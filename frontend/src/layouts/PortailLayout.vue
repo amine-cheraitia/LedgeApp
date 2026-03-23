@@ -48,8 +48,8 @@ async function handleLogout() {
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  background: var(--p-surface-0);
-  border-bottom: 1px solid var(--p-surface-200);
+  background: var(--p-content-background);
+  border-bottom: 1px solid var(--p-content-border-color);
 }
 
 .portail-title {

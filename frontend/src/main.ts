@@ -10,6 +10,9 @@ import './assets/styles/main.css'
 import App from './App.vue'
 import router from './router'
 
+// Dark mode par défaut
+document.documentElement.classList.add('dark')
+
 const app = createApp(App)
 
 app.use(createPinia())

@@ -88,10 +88,10 @@ async function handleLogin() {
 .login-card {
   width: 100%;
   max-width: 24rem;
-  background: var(--p-surface-0);
+  background: var(--p-content-background);
+  border: 1px solid var(--p-content-border-color);
   border-radius: 0.75rem;
   padding: 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .login-title {

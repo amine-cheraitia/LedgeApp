@@ -115,8 +115,8 @@ function toggleSidebar() {
   align-items: center;
   gap: 0.5rem;
   padding: 0 1rem;
-  background: var(--p-surface-0);
-  border-bottom: 1px solid var(--p-surface-200);
+  background: var(--p-content-background);
+  border-bottom: 1px solid var(--p-content-border-color);
   z-index: 100;
 }
 
@@ -124,6 +124,7 @@ function toggleSidebar() {
   font-size: 1.125rem;
   font-weight: 700;
   flex: 1;
+  color: var(--p-text-color);
 }
 
 .layout-header-actions {
@@ -145,8 +146,8 @@ function toggleSidebar() {
   left: 0;
   bottom: 0;
   width: 16rem;
-  background: var(--p-surface-0);
-  border-right: 1px solid var(--p-surface-200);
+  background: var(--p-content-background);
+  border-right: 1px solid var(--p-content-border-color);
   transform: translateX(-100%);
   transition: transform 0.3s ease;
   z-index: 200;
