@@ -1,0 +1,40 @@
+# IDE
+.DS_Store
+Thumbs.db
+*.log
+/.fleet
+/.idea
+/.nova
+/.vscode
+/.zed
+
+# Backend (Laravel)
+backend/.env
+backend/.env.backup
+backend/.env.production
+backend/.env.docker
+backend/.phpactor.json
+backend/.phpunit.result.cache
+backend/.phpunit.cache
+backend/auth.json
+backend/node_modules
+backend/public/build
+backend/public/css
+backend/public/hot
+backend/public/js
+backend/public/storage
+backend/public/vendor
+backend/storage/*.key
+backend/storage/pail
+backend/vendor
+Homestead.json
+Homestead.yaml
+
+# Frontend (Vue.js)
+frontend/node_modules
+frontend/dist
+frontend/.env.local
+frontend/.env.*.local
+
+# Claude
+.claude/settings.local.json
