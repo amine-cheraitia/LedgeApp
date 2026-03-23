@@ -1,0 +1,55 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Entreprise extends Model
+{
+    use HasFactory, SoftDeletes;
+
+    protected $fillable = [
+        'raison_sociale', 'nif', 'nis', 'num_rc', 'article_imposition',
+        'regime_fiscal', 'categorie', 'secteur_activite', 'adresse',
+        'ville', 'wilaya', 'telephone', 'email', 'contact_principal',
+        'statut', 'notes',
+    ];
+
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
+    }
+
+    public function missions(): HasMany
+    {
+        return $this->hasMany(Mission::class);
+    }
+
+    public function devis(): HasMany
+    {
+        return $this->hasMany(Devis::class);
+    }
+
+    public function factures(): HasMany
+    {
+        return $this->hasMany(Facture::class);
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(Document::class);
+    }
+
+    public function isClient(): bool
+    {
+        return $this->statut === 'client';
+    }
+
+    public function isProspect(): bool
+    {
+        return $this->statut === 'prospect';
+    }
+}
