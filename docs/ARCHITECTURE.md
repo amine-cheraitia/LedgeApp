@@ -1,6 +1,7 @@
 # Architecture N-tier — Ledge
 
-> Décision prise le 23 Mars 2026
+> Decision prise le 23 Mars 2026
+> Remplace la V0 monolithique (Laravel 8 + Blade) et la V1 Filament (abandonnee)
 
 ## Vue d'ensemble
 

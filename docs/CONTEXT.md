@@ -1,19 +1,22 @@
 # Ledge — Contexte Projet
 
-> Dernière mise à jour : 23 Mars 2026 — Architecture N-tier (Vue.js + Laravel API)
-> RNCP 39583 · Expert en Développement Logiciel · YNOV
+> Derniere mise a jour : 24 Mars 2026 — Architecture N-tier (Vue.js + Laravel API)
+> RNCP 39583 - Expert en Developpement Logiciel - YNOV
 
 ---
 
-## Identité
+## Identite
 
 | | |
 |---|---|
 | **Nom** | Ledge |
-| **Type** | Système de gestion intégré pour cabinets de conseil / comptabilité |
-| **Marché cible** | Algérie — cabinet pilote en premier, extensible nationalement |
-| **Contexte** | Le cabinet ne dispose d'aucun outil numérique centralisé. Gestion sur Excel / papier → pertes d'information, erreurs de facturation, relances oubliées, aucune traçabilité. Ledge remplace tout ça. |
-| **Deadline** | Début juin 2026 — MVP complet + tous les livrables RNCP |
+| **Type** | Systeme de gestion integre pour cabinets de conseil / comptabilite |
+| **Marche cible** | Algerie — cabinet pilote en premier, extensible nationalement |
+| **Contexte** | Le cabinet ne dispose d'aucun outil numerique centralise. Gestion sur Excel / papier -> pertes d'information, erreurs de facturation, relances oubliees, aucune tracabilite. Ledge remplace tout ca. |
+| **Historique** | V0 monolithique (Laravel 8 + Blade + mPDF) -> V1 Filament (abandonnee) -> V2 actuelle N-tier (Vue 3 + Laravel API) |
+| **Deadline** | Debut juin 2026 — MVP complet + tous les livrables RNCP |
+
+> **Note interne (ne pas mentionner dans les livrables RNCP)** : une ancienne application Laravel existe (rapport de stage). Elle sert de reference metier pour les regles de calcul et le modele de donnees, mais Ledge est presente comme une creation from scratch repondant a l'absence de solution numerique.
 
 ---
 
@@ -21,19 +24,31 @@
 
 | Couche | Choix | Version |
 |---|---|---|
-| **Architecture** | N-tier 3 couches (présentation / métier / données) | — |
+| **Architecture** | N-tier 3 couches (presentation / metier / donnees) | — |
 | **Frontend** | Vue 3 + TypeScript + PrimeVue + Pinia + Vue Router | Vue 3.5 / PrimeVue 4 |
 | **Backend** | Laravel (API REST) + Sanctum + PHP | Laravel 12 / PHP 8.3 |
 | **BDD** | MySQL | 9.1.0 (WAMP local) |
 | **Auth** | Laravel Sanctum (SPA cookie-based) | v4.3 |
 | **Permissions** | Spatie Laravel Permission | v7.2 |
 | **PDF** | DomPDF | v3.1 |
-| **Queue / Cache** | Database driver (WAMP) | — |
+| **Queue / Cache** | Database driver (WAMP local) / Redis (prod) | — |
+| **Stockage docs** | Disque local + compatible S3 | PDF factures, documents cabinet |
 | **Serveur cible** | Nginx + PHP-FPM | VPS Linux Ubuntu 22 LTS |
-| **CI/CD** | GitHub Actions | Déploiement automatisé |
+| **CI/CD** | GitHub Actions | Deploiement automatise |
 | **Dev tooling** | WAMP (Windows) + Claude Code | Environnement local |
 
 > **Dev local :** WAMP sur Windows. Fix MySQL 9 requis : `ROW_FORMAT=DYNAMIC` dans `config/database.php`.
+
+---
+
+## Historique des versions
+
+Voir [docs/HISTORIQUE.md](HISTORIQUE.md) pour le detail complet (V0, V1, V2).
+
+### Resume
+- **V0** (Laravel 8 + Blade) — appli originale, modules fonctionnels mais sans TVA historisee, portail, relances auto
+- **V1** (Laravel 12 + Filament) — abandonnee, modeles/migrations repris
+- **V2** (Vue 3 + Laravel API) — projet actuel N-tier
 
 ---
 
@@ -48,7 +63,7 @@ Ledge/
 │   │   │   ├── Requests/      # FormRequests par domaine
 │   │   │   ├── Resources/     # API Resources JSON par domaine
 │   │   │   └── Middleware/    # EnsureBackofficeAccess, EnsurePortailAccess
-│   │   ├── Models/            # 19 modèles Eloquent
+│   │   ├── Models/            # 18 modeles Eloquent
 │   │   └── Providers/
 │   ├── routes/api.php         # Toutes les routes API /api/v1/*
 │   ├── database/              # Migrations + seeders
@@ -59,7 +74,7 @@ Ledge/
 │   │   ├── assets/        # CSS mobile-first + RGAA
 │   │   ├── layouts/       # AdminLayout, PortailLayout
 │   │   ├── pages/         # Pages par domaine
-│   │   ├── router/        # Vue Router avec guards par rôle
+│   │   ├── router/        # Vue Router avec guards par role
 │   │   ├── stores/        # Pinia stores (auth, etc.)
 │   │   └── types/         # Interfaces TypeScript
 │   └── package.json
@@ -72,197 +87,352 @@ Ledge/
 
 ---
 
-## Accès Local (Développement)
+## Acces Local (Developpement)
 
 | Service | URL | Commande |
 |---|---|---|
 | **Backend API** | `http://localhost:8000/api/v1/*` | `cd backend && php artisan serve` |
 | **Frontend** | `http://localhost:5173` | `cd frontend && npm run dev` |
 
-**Compte admin par défaut :** `admin@ledge.dz` / `password`
+**Compte admin par defaut :** `admin@ledge.dz` / `password`
 
 ---
 
-## Modules Métier
+## Flux Metier Global
+
+```
+Entreprise (prospect)
+    |
+Devis (exercice + prestation + total calcule)
+    |
+Mission (dates debut/fin - statut - total - calendrier)
+    |-- Mandat (document officiel, genere auto)
+    |-- Convention (contrat signe, genere auto)
+    |-- Taches (assignees collaborateurs - commentaires internes)
+    +-- Factures (FF facture | FA avoir)
+            +-- Paiements (Cheque / Virement / Espece)
+                    +-- Relances (auto J+15/J+30/J+60 ou manuelles)
+```
+
+---
+
+## Modules Metier
 
 ### Core / Settings
-Auth, rôles et permissions (Spatie Laravel Permission), **paramètres globaux configurables sans code** :
-- Taux TVA avec **historique versionné** (date d'entrée en vigueur)
-- Timbre fiscal (1%, plafonné 2 500 DA — LF 2024)
-- Coordonnées cabinet (nom, adresse, NIF, NIS, RIB, logo)
-- Numérotation factures (préfixe, format annuel ou séquentiel)
-- Délais de relance (J+X par niveau)
-- Modèles mails de relance (templates personnalisables)
-- Grille tarifaire : tarifs de base prestations, indices régime fiscal, indices catégorie
+Auth, roles et permissions (Spatie Laravel Permission), **parametres globaux configurables sans code** :
+- Taux TVA avec **historique versionne** (date d'entree en vigueur)
+- Timbre fiscal (1%, plafonne 2 500 DA — LF 2024)
+- Coordonnees cabinet (nom, adresse, NIF, NIS, RIB, logo)
+- Numerotation factures (prefixe, format annuel ou sequentiel)
+- Delais de relance (J+X par niveau)
+- Modeles mails de relance (templates personnalisables)
+- Devise (DA par defaut)
+- KPI — seuils d'alerte et periodes de calcul
+- Grille tarifaire : tarifs de base prestations, indices regime fiscal, indices categorie
 
-**Rôles applicatifs** : `admin` · `collaborateur` · `secretaire` · `client`
+**Roles applicatifs** : `admin` - `collaborateur` - `secretaire` - `client`
 
-**Colonne `users.entreprise_id`** : nullable — renseignée **uniquement** pour le rôle `client`. Les users `admin`, `collaborateur`, `secretaire` ont cette colonne à `NULL`.
+**Regle d'affectation** : l'utilisateur s'inscrit sans role. L'Admin affecte le role manuellement. Aucun acces fonctionnel sans role affecte.
 
-| Fonctionnalité | Admin | Collaborateur | Secrétaire | Client |
+**Colonne `users.entreprise_id`** : nullable — renseignee **uniquement** pour le role `client`. Les users `admin`, `collaborateur`, `secretaire` ont cette colonne a `NULL`. C'est via cette FK que le portail client sait quelles factures et documents afficher, et que le scope Eloquent isole les donnees par entreprise.
+
+| Fonctionnalite | Admin | Collaborateur | Secretaire | Client |
 |---|:---:|:---:|:---:|:---:|
-| Paramétrage / TVA / tarifs / exercices | ✅ | ✗ | ✗ | ✗ |
-| Gestion utilisateurs & affectation rôles | ✅ | ✗ | ✗ | ✗ |
-| KPI global + performance collaborateurs | ✅ | ✗ | ✗ | ✗ |
-| Clients / Prospects (CRUD) | ✅ | ✗ | ✗ | ✗ |
-| Devis & Facturation (créer, émettre, PDF) | ✅ | ✗ | ✗ | ✗ |
-| Missions & Planning global | ✅ | ✗ | ✗ | ✗ |
-| Tâches — voir ses tâches assignées | ✅ | ✅ | ✗ | ✗ |
-| Tâches — changer le statut | ✅ | ✅ | ✗ | ✗ |
-| Tâches — ajouter un commentaire | ✅ | ✅ | ✗ | ✗ |
-| Consulter les créances | ✅ | ✗ | ✅ | ✗ |
-| Relance manuelle (bouton) | ✅ | ✗ | ✅ | ✗ |
-| Relance automatique (config queue) | ✅ | ✗ | ✗ | ✗ |
-| Portail client (ses factures / docs) | ✗ | ✗ | ✗ | ✅ |
+| Parametrage / TVA / tarifs / exercices | oui | - | - | - |
+| Gestion utilisateurs & affectation roles | oui | - | - | - |
+| KPI global + performance collaborateurs | oui | - | - | - |
+| Clients / Prospects (CRUD) | oui | - | - | - |
+| Devis & Facturation (creer, emettre, PDF) | oui | - | - | - |
+| Missions & Planning global | oui | - | - | - |
+| Taches — voir ses taches assignees | oui | oui | - | - |
+| Taches — changer le statut | oui | oui | - | - |
+| Taches — ajouter un commentaire | oui | oui | - | - |
+| Taches — modifier/supprimer son commentaire | oui | oui (siens) | - | - |
+| Consulter les creances | oui | - | oui | - |
+| Relance manuelle (bouton) | oui | - | oui | - |
+| Relance automatique (config queue) | oui | - | - | - |
+| Portail client (ses factures / docs) | - | - | - | oui |
 
 ---
 
 ### Clients / Dossiers
 Fiche entreprise avec **deux statuts distincts** :
-- **Prospect** : entreprise ayant demandé un devis mais sans mission en cours.
-- **Client** : entreprise ayant au moins une mission active ou passée.
+- **Prospect** : entreprise ayant demande un devis mais sans mission en cours. Peut avoir un ou plusieurs devis. Aucune facture.
+- **Client** : entreprise ayant au moins une mission active ou passee.
+
+**Bascule automatique** : Observer `MissionCreated` — quand une mission est creee pour une entreprise prospect, elle passe automatiquement en statut `client`.
+
+**Contacts multiples** par entreprise avec designation du contact principal.
+
+Donnees : contacts, NIF/NIS, numero RC, article d'imposition, regime fiscal, categorie (TPE/PME/GE), secteur d'activite, historique complet des missions et factures.
 
 ---
 
 ### Facturation
-Devis, factures, avoirs. Séparation par **exercice fiscal**. Calcul automatique TVA + timbre fiscal. Génération PDF conforme DGI.
+Devis, factures, avoirs. Separation obligatoire par **exercice fiscal (annee)**. Calcul automatique TVA + timbre fiscal. Generation PDF conforme DGI. Logs immuables (piste d'audit).
 
 **Calcul du prix HT d'une mission :**
 ```
-Prix HT = prestation.tarif_initial × regime_fiscal.indice × categorie.indice
+Prix HT = prestation.tarif_initial x regime_fiscal.indice x categorie.indice
 ```
+
+| Composant | Exemples |
+|---|---|
+| `tarif_initial` (prestation) | CAC = 300 000 DA - ACMPT = 120 000 DA - AENT = 80 000 DA |
+| `indice` regime fiscal | Forfait = x1.0 - Reel = x1.5 |
+| `indice` categorie | TPE = x1.0 - PME = x1.75 - GE = x2.0 |
+
+Exemple : ACMPT pour une PME au regime Reel -> `120 000 x 1.5 x 1.75 = 315 000 DA HT`
 
 **Calcul TVA sur facture :**
 ```
-Montant TVA    = Prix HT × taux_tva_en_vigueur_à_la_date_de_facture
-Timbre fiscal  = min(Prix HT × taux_timbre, plafond_timbre)
+Montant TVA    = Prix HT x taux_tva_en_vigueur_a_la_date_de_facture
+Timbre fiscal  = min(Prix HT x taux_timbre, plafond_timbre)
 Prix TTC       = Prix HT + Montant TVA + Timbre fiscal
 ```
+
+> Tous les indices et tarifs de base sont **parametrables via Settings** — aucun redeploiement pour ajuster la grille tarifaire.
+
+**Tranches de facturation (repris de la V0) :**
+```
+Tranche 1 = 30% du total mission
+Tranche 2 = 30% du total mission
+Tranche 3 = 40% du total mission (solde)
+```
+
+**Statut facture** recalcule automatiquement : `en_attente -> partiel -> solde`
+
+**Snapshots immuables** : taux TVA et timbre sont figes a la creation de la facture (pas de recalcul retroactif).
+
+**Logs immuables** (piste d'audit) sur toutes les transactions financieres.
+
+**PDF** : generation conforme DGI avec montant en lettres (NumberFormatter locale fr).
 
 ---
 
 ### Planning
-FullCalendar (Vue.js), missions, tâches, assignation collaborateurs, commentaires internes.
+FullCalendar (Vue.js), missions, taches, assignation collaborateurs, commentaires internes, drag & drop.
+
+**Statuts taches** (4) : `a_faire`, `en_cours`, `termine`, `bloque`
+
+**Documents generes par mission** : mandat + convention (generation automatique a la creation).
 
 ---
 
 ### Relances / Mails
-- **Automatique** : règles paramétrables (J+15, J+30…) via queue Laravel.
-- **Manuelle** : bouton accessible à l'Admin et à la Secrétaire.
+Deux modes de relance :
+- **Automatique** : regles parametrables (J+15, J+30, J+60) executees via queue Laravel (cron quotidien). Aucune intervention manuelle necessaire.
+- **Manuelle** : bouton "Envoyer la relance" accessible a l'Admin et a la Secretaire uniquement.
+- **Templates mails** personnalisables avec variables : `{{client}}`, `{{montant}}`, `{{echeance}}`
+- **Observer `InvoicePaid`** : annulation automatique des relances en cours des qu'un paiement solde la facture.
+
+Suivi statut paiement par facture (en_attente / partiel / solde). Journal des relances envoyees.
 
 ---
 
 ### Portail Client
-Routes Vue.js séparées (`/portail`) — rôle `client` uniquement, lecture seule.
+Routes Vue.js separees (`/portail`) — role `client` uniquement, lecture seule.
 
-**Flux d'accès :**
+**Le client ne s'inscrit jamais lui-meme.** Flux d'acces :
 1. Admin ouvre la fiche Entreprise (statut = `client`)
-2. Admin clique **"Activer l'accès portail"**
-3. Ledge crée un `User` avec `entreprise_id` + rôle `client`
-4. Email envoyé avec lien de définition de mot de passe
-5. Admin peut révoquer via `portail_actif = 0`
+2. Admin clique **"Activer l'acces portail"**
+3. Ledge cree automatiquement un `User` avec `entreprise_id` renseigne et le role `client`
+4. Email envoye au contact principal avec lien de definition de mot de passe
+5. Le client definit son mot de passe et accede au portail
+6. L'Admin peut revoquer l'acces a tout moment via `portail_actif = 0`
+
+Le client accede 24h/24 a ses factures filtrees par exercice fiscal, telecharge ses documents, consulte l'historique de ses missions. Le scope Eloquent garantit qu'il ne voit que les donnees de **son** entreprise.
 
 ---
 
 ### KPI / Reporting
-Performance personnel, taux de recouvrement, délais moyens, objectifs vs réalisé.
+Performance personnel : dossiers traites, taux de recouvrement, delais moyens, nombre de relances necessaires avant paiement. Objectifs vs realise parametrables par role. Alertes si KPI sous seuil.
+
+**Dashboards par role :**
+- **Admin** : CA mensuel (graphique), missions en cours/achevees, CA annuel, taches en cours, factures impayees
+- **Secretaire** : total impayees, retard 15-30j, retard >30j
+- **Collaborateur** : ses taches en cours / achevees
 
 ---
 
-## Règles Métier Critiques
+### Documents
+Generation PDF (DomPDF), stockage, versioning, partage via portail client.
+
+---
+
+## Regles Metier Critiques
 
 ### TVA — Historisation obligatoire
 
+La TVA change avec chaque loi de finances. Il faut **toujours retrouver le taux en vigueur a la date de la facture**, meme des annees plus tard.
+
+```
+tva_rates
+|-- id
+|-- taux          (ex: 19.00)
+|-- designation   (ex: "TVA standard LF 2024")
+|-- date_debut    (ex: 2024-01-01)
+|-- date_fin      (ex: 2027-12-31 — NULL si encore en vigueur)
++-- type          (standard | reduit | exonere)
+```
+
+**Regle de calcul** : pour une facture datee du 15/03/2026, appliquer le taux dont `date_debut <= 2026-03-15 <= date_fin`.
+
 ```php
-// Toujours utiliser cette méthode, jamais un taux en dur
+// Toujours utiliser cette methode, jamais un taux en dur
 $tva = TvaRate::enVigueurLe($facture->date_facture);
 $timbre = TimbreRate::enVigueurLe($facture->date_facture);
 ```
 
-### Exercices Fiscaux — Séparation stricte
-Numérotation réinitialisée chaque année : `FF2026-001`, `FF2027-001`…
+Exemple concret :
+- TVA 19% en vigueur en 2026 -> facture 2026 = 19%
+- TVA passe a 29% en 2028 -> facture 2028 = 29%, mais facture 2026 **reste a 19%**
 
----
+### Exercices Fiscaux — Separation stricte
+Numerotation reinitialisee chaque annee : `FF2026-001`, `FF2027-001`...
+Recherche et filtres toujours contextuels a un exercice. Le portail client affiche les factures par exercice. Les KPI sont calcules par exercice.
 
-## Spécificités Réglementaires Algériennes
+### Protection suppression
 
-| Règle | Détail |
+| Entite | Condition de blocage |
 |---|---|
-| TVA standard | 19% — LF 2023 (historisé) |
-| TVA réduite | 9% (historisé) |
-| Timbre fiscal | 1% plafonné à 2 500 DA — LF 2024 (historisé) |
-| Mentions obligatoires facture | NIF + NIS + RC + Art. imposition, numéro chronologique, date |
-| Exercice fiscal | Année civile (janvier → décembre) |
+| Entreprise | Si devis ou missions associes |
+| Mission | Si factures associees |
+| Facture | Si paiements ou avoirs associes |
+| Tache | Si commentaires associes |
+
+### Documents legaux
+- **Mandats** : generes par mission, numerotation `MD{yy}-XXX`, PDF
+- **Conventions** : generes par mission, numerotation `CV{yy}-XXX`, PDF
+
+### Events Laravel (decouplage)
+- `MissionCreated` -> bascule prospect -> client
+- `InvoicePaid` -> annule relances en cours
+- `FiscalYearClosed` -> archive les documents de l'exercice
 
 ---
 
-## Schéma BDD — Tables principales
+## Types de prestations (donnees reelles du cabinet)
+
+| Code | Designation | Tarif base | Duree |
+|---|---|---|---|
+| CAC | Audit Legal (Commissariat aux comptes) | 300 000 DA | 36 mois |
+| ACMPT | Assistance Comptable | 120 000 DA | 12 mois |
+| AENT | Accompagnement d'entreprise | 80 000 DA | 12 mois |
+| ASSC | Assainissement de la comptabilite | 100 000 DA | 12 mois |
+| A&C | Audit et conseil | 110 000 DA | 12 mois |
+
+---
+
+## Ce que Ledge ameliore vs l'ancienne app (V0)
+
+| Probleme identifie | Solution dans Ledge |
+|---|---|
+| Pas de TVA / timbre calcules | Calcul auto + historisation des taux |
+| Pas de suivi statut paiement | Statut auto + relances automatiques |
+| Pas de portail client | Module Portail (Vue.js `/portail`) |
+| Roles basiques | Spatie Laravel Permission (granulaire) |
+| Pas de KPI collaborateur | Module KPI/Reporting |
+| Pas de separation par exercice | Exercices fiscaux + numerotation annuelle |
+| Pas de supervision / MCO | UptimeRobot + Sentry + Laravel Health |
+| Pas d'accessibilite | RGAA integre des le dev |
+| UI Blade/jQuery vieillissante | Vue 3 + PrimeVue SPA moderne |
+| Pas de tests | PHPUnit + tests composants Vue |
+
+---
+
+## Specificites Reglementaires Algeriennes
+
+| Regle | Detail |
+|---|---|
+| TVA standard | 19% — LF 2023, art. 21 (historise) |
+| TVA reduite | 9% — services exoneres, art. 23 (historise) |
+| Timbre fiscal | 1% plafonne a 2 500 DA — LF 2024 (historise) |
+| Mentions obligatoires facture | NIF + NIS + RC + Art. imposition, numero chronologique, date |
+| Format DGI | Factures conformes Direction Generale des Impots |
+| Facturation electronique | Projet de loi en cours — architecture prete |
+| Piste d'audit | Logs immuables sur toutes les transactions financieres |
+| Exercice fiscal | Annee civile (janvier -> decembre) |
+
+---
+
+## Schema BDD — Tables principales
 
 ```
-users                  → auth + rôles Spatie (entreprise_id nullable, portail_actif)
-entreprises            → clients & prospects
-exercices              → exercices fiscaux par année
-tva_rates              → historique taux TVA
-timbre_rates           → historique taux timbre fiscal
-settings               → paramètres clé/valeur
-prestations            → catalogue avec tarif_initial
-regimes_fiscaux        → Forfait (×1.0) / Réel (×1.5)
-categories_entreprise  → TPE (×1.0) / PME (×1.75) / GE (×2.0)
-missions               → missions par entreprise + exercice + prestation
-mission_user           → affectation collaborateurs
-taches                 → tâches par mission
-tache_commentaires     → commentaires sur tâches
-devis                  → devis par entreprise + exercice
-devis_lignes           → lignes de devis
-factures               → FF (facture) / FA (avoir)
-facture_lignes         → lignes de facture
-paiements              → paiements reçus par facture
-relances               → journal des relances
-documents              → fichiers PDF et documents
+users                  -> auth + roles Spatie (entreprise_id nullable, portail_actif)
+entreprises            -> clients & prospects (statut, regime, categorie)
+exercices              -> exercices fiscaux par annee
+tva_rates              -> historique taux TVA (date_debut / date_fin)
+timbre_rates           -> historique taux timbre fiscal
+settings               -> parametres cle/valeur (cabinet, facturation, relances)
+prestations            -> catalogue avec tarif_initial
+regimes_fiscaux        -> Forfait (x1.0) / Reel (x1.5)
+categories_entreprise  -> TPE (x1.0) / PME (x1.75) / GE (x2.0)
+missions               -> missions par entreprise + exercice + prestation
+mission_user           -> affectation collaborateurs aux missions
+taches                 -> taches par mission, assignees a un collaborateur
+tache_commentaires     -> commentaires sur taches
+devis                  -> devis par entreprise + exercice
+devis_lignes           -> lignes de devis
+factures               -> FF (facture) / FA (avoir), TVA historisee
+facture_lignes         -> lignes de facture
+paiements              -> paiements recus par facture
+relances               -> journal des relances (auto + manuelles)
+documents              -> fichiers PDF et documents partages portail
 ```
 
 ---
 
-## Décisions Architecturales Clés
+## Decisions Architecturales Cles
 
-**Architecture N-tier retenue** — séparation claire entre :
-- **Tier 1 (Présentation)** : Vue 3 + PrimeVue — SPA accessible RGAA, responsive mobile-first
-- **Tier 2 (Métier)** : Laravel API REST + Sanctum — controllers organisés par domaine
-- **Tier 3 (Données)** : MySQL via Eloquent ORM
+**Architecture N-tier retenue** — separation claire entre :
+- **Tier 1 (Presentation)** : Vue 3 + PrimeVue — SPA accessible RGAA, responsive mobile-first
+- **Tier 2 (Metier)** : Laravel API REST + Sanctum — controllers organises par domaine
+- **Tier 3 (Donnees)** : MySQL via Eloquent ORM
 
-**Organisation backend classique avec sous-dossiers par domaine** — pas de modules avec ServiceProviders séparés. Chaque domaine (Auth, Entreprises, Facturation, Planning...) a ses controllers, requests et resources dans des sous-dossiers dédiés.
+**Organisation backend classique avec sous-dossiers par domaine** — pas de modules avec ServiceProviders separes.
 
-**Sanctum SPA mode** — authentification cookie-based (pas de tokens Bearer) pour le même domaine. CORS configuré pour `localhost:5173`.
+**Sanctum SPA mode** — authentification cookie-based (pas de tokens Bearer) pour le meme domaine.
 
-**`users.entreprise_id` nullable** — `NULL` pour admin/collaborateur/secrétaire, renseigné uniquement pour le rôle `client`.
+**Event Bus Laravel** — decouplage metier via Events/Observers (`InvoicePaid`, `MissionCreated`, `FiscalYearClosed`).
 
-**Table `tva_rates` versionnée** — taux TVA et timbre fiscal historisés avec date d'entrée en vigueur.
+**`users.entreprise_id` nullable** — `NULL` pour admin/collaborateur/secretaire, renseigne uniquement pour le role `client`. Isolation automatique des donnees dans le portail via scope Eloquent.
 
-**Séparation par exercice fiscal** — toute la facturation est cloisonnée par année.
+**Table `tva_rates` versionnee** — taux TVA et timbre fiscal historises avec date d'entree en vigueur. Aucun redeploiement pour les mises a jour reglementaires.
+
+**Table `settings` cle/valeur** — parametres metier en base, modifiables par l'admin sans code.
+
+**Separation par exercice fiscal** — toute la facturation est cloisonnee par annee. Numerotation reinitialisee chaque 1er janvier.
 
 ---
 
 ## Exigences Non-Fonctionnelles
 
-### Accessibilité RGAA (C2.2.3 ★)
+### Accessibilite RGAA (C2.2.3)
 
-| Critère | Implémentation |
+| Critere | Implementation |
 |---|---|
-| Contraste couleurs (AA min 4.5:1) | Thème PrimeVue Aura validé |
+| Contraste couleurs (AA min 4.5:1) | Theme PrimeVue Aura valide |
 | Navigation clavier | Tab/Enter/Esc sur tous les composants |
 | Labels formulaires | `<label>` ou `aria-label` sur chaque input |
 | Messages d'erreur | `aria-live` ou `role="alert"` |
+| Images decoratives | `alt=""` sur les images non informatives |
 | Focus visible | `outline` CSS sur `:focus-visible` |
 | Skip link | "Aller au contenu principal" sur chaque page |
-| Titres hiérarchiques | Structure `h1 > h2 > h3` cohérente |
+| Titres hierarchiques | Structure `h1 > h2 > h3` coherente |
+| Liens explicites | Pas de "cliquez ici" — textes de liens descriptifs |
 
-### Sécurité OWASP
+**Outils de test :** axe DevTools, WAVE, Lighthouse, test clavier manuel.
 
-| Règle | Implémentation |
+> A documenter dans le **cahier de recettes** (C2.3.1) avec captures d'ecran des scores Lighthouse.
+
+### Securite OWASP
+
+| Regle | Implementation |
 |---|---|
-| A01 — Broken Access Control | Middlewares par rôle, Policies Laravel |
+| A01 — Broken Access Control | Middlewares par role, Policies Laravel |
 | A03 — Injection | FormRequests obligatoires, jamais de `DB::raw()` avec input |
-| A07 — XSS | Sanitisation Vue.js (pas de `v-html` avec données utilisateur) |
+| A07 — XSS | Sanitisation Vue.js (pas de `v-html` avec donnees utilisateur) |
 | CSRF | Sanctum cookie + CSRF token automatique |
 
 ### Responsive Mobile-First
@@ -272,105 +442,88 @@ documents              → fichiers PDF et documents
 
 ---
 
-## Stratégie Git — Gitflow 5 Phases RNCP
+## Strategie Git — Gitflow 5 Phases RNCP
 
-### Modèle de branches
-
-```
-main          ← production stable — merge via PR uniquement
-develop       ← intégration continue
-feature/xxx   ← une branche par fonctionnalité (depuis develop)
-fix/xxx       ← hotfix (depuis main, merge double main+develop)
-```
-
-### 5 Phases
-
-**Phase 1 — Feature branch :**
-- `git checkout develop && git checkout -b feature/xxx`
-- Conventional Commits : `feat(module):`, `fix(module):`, `chore(module):`
-- Tests avant PR → C2.2.2 ★
-- PR vers develop avec template RNCP → C4.2.2
-
-**Phase 2 — Merge develop :**
-- GitHub Actions : lint → tests → build → staging → C2.1.2 ★
-
-**Phase 3 — Release main :**
-- CHANGELOG.md mis à jour → C4.3.2 ★ obligatoire
-- PR develop → main + Tag Git + GitHub Release
-- Deploy prod auto → C4.2.2
-
-**Phase 4 — Hotfix :**
-- Branche depuis main, merge double (main + develop)
-- Fiche anomalie → C4.2.1 ★
-
-**Phase 5 — Dépendances :**
-- Branche `fix/deps-xxx`, PR → develop
-- `chore(deps):` → C4.1.1 + C4.3.2
-
-**Règle d'or : JAMAIS de push direct sur main.**
+Voir [docs/GITFLOW.md](GITFLOW.md) pour le detail complet.
 
 ---
 
 ## Bloc 4 — MCO & Supervision
 
-| Outil | Usage | Compétence |
+| Outil | Usage | Competence |
 |---|---|---|
-| UptimeRobot | Ping HTTP toutes les 5 min | C4.1.2 ★ |
-| Laravel Health (spatie) | Endpoint `/health` (BDD, stockage, queue) | C4.1.2 ★ |
-| Sentry (free tier) | Remontée automatique des erreurs PHP | C4.2.1 ★ |
-| GitHub Releases | Journal des versions + CHANGELOG | C4.3.2 ★ |
+| UptimeRobot (gratuit) | Ping HTTP toutes les 5 min, alerte mail/SMS si down | C4.1.2 |
+| Laravel Health (spatie) | Endpoint `/health` (BDD, stockage, queue) | C4.1.2 |
+| Sentry (free tier) | Remontee automatique des erreurs PHP avec contexte | C4.2.1 |
+| Laravel Log + rotation | Fichiers logs quotidiens `storage/logs/laravel-YYYY-MM-DD.log` | C4.2.1 |
+| GitHub Releases | Journal des versions + CHANGELOG | C4.3.2 |
+
+### Alertes automatiques prevues
+- Factures impayees au-dela du delai parametre -> relance + alerte manager
+- KPI collaborateur sous seuil -> alerte responsable
+- Espace disque > 80% -> alerte admin
+- Echec de job queue (mail non envoye) -> retry + log
+- Erreur 500 -> Sentry + log
 
 ---
 
-## RNCP 39583 — Suivi des Compétences
+## RNCP 39583 — Suivi des Competences
 
-### Bloc 1 — Cadrer le projet ✅ Terminé
+> Regle : 50% minimum par bloc + **toutes les obligatoires**
 
-| Compétence | Obligatoire | Statut |
+### Bloc 1 — Cadrer le projet (Termine)
+
+| Competence | Obligatoire | Statut |
 |---|---|---|
-| C1.1.1 Cartographie parties prenantes | ★ | ✅ |
-| C1.1.2 Analyse de la demande | | ✅ |
-| C1.2.1 SWOT | | ✅ |
-| C1.2.2 Faisabilité technique | ★ | ✅ |
-| C1.2.3 Cartographie des risques | | ✅ |
-| C1.3.1 Veille technologique & réglementaire | | ✅ |
-| C1.3.2 Comparatif solutions techniques | ★ | ✅ |
-| C1.4.1 Charge de travail | ★ | ✅ |
-| C1.4.2 Budget prévisionnel | | ✅ |
-| C1.5 Modélisation architecture | | ✅ |
-| C1.6 Préconisation client | ★ | ✅ |
+| C1.1.1 Cartographie parties prenantes | oui | fait |
+| C1.1.2 Analyse de la demande | | fait |
+| C1.2.1 SWOT | | fait |
+| C1.2.2 Faisabilite technique | oui | fait |
+| C1.2.3 Cartographie des risques | | fait |
+| C1.3.1 Veille technologique & reglementaire | | fait |
+| C1.3.2 Comparatif solutions techniques | oui | fait |
+| C1.4.1 Charge de travail | oui | fait |
+| C1.4.2 Budget previsionnel | | fait |
+| C1.5 Modelisation architecture | | fait |
+| C1.6 Preconisation client | oui | fait |
 
-### Bloc 2 — Concevoir & Développer ⏳ En cours
+### Bloc 2 — Concevoir & Developper (En cours)
 
-| Compétence | Obligatoire | Statut |
-|---|---|---|
-| C2.1.1 Environnement déploiement / tests | | ⏳ |
-| C2.1.2 Intégration continue | | ⏳ |
-| C2.2.1 Prototype fonctionnel | ★ | ⏳ |
-| C2.2.2 Tests unitaires | ★ | ⏳ |
-| C2.2.3 Sécurité OWASP & accessibilité RGAA | ★ | ⏳ |
-| C2.2.4 Déploiement progressif | | ⏳ |
-| C2.3.1 Cahier de recettes | ★ | ⏳ |
-| C2.3.2 Plan de correction des bugs | | ⏳ |
-| C2.4.1 Documentation technique | | ⏳ |
+| Competence | Obligatoire | Statut | Notes |
+|---|---|---|---|
+| C2.1.1 Environnement deploiement / tests | | en cours | WAMP local + staging VPS |
+| C2.1.2 Integration continue | | en cours | GitHub Actions |
+| C2.2.1 Prototype fonctionnel | oui | en cours | MVP Ledge |
+| C2.2.2 Tests unitaires | oui | en cours | PHPUnit — Facturation et KPI en priorite |
+| C2.2.3 Securite OWASP & accessibilite RGAA | oui | en cours | axe + Lighthouse |
+| C2.2.4 Deploiement progressif | | en cours | |
+| C2.3.1 Cahier de recettes | oui | en cours | Inclut scores Lighthouse accessibilite |
+| C2.3.2 Plan de correction des bugs | | en cours | |
+| C2.4.1 Documentation technique | | en cours | README + doc API |
 
-### Bloc 3 — Piloter le projet ⏳ À faire
+### Bloc 3 — Piloter le projet (A faire)
 
-| Compétence | Obligatoire | Statut |
-|---|---|---|
-| C3.1 Planning / méthodologie | ★ | ⏳ |
-| C3.2.1 Suivi avancement & indicateurs | ★ | ⏳ |
-| C3.4.2 Démonstration live | ★ | ⏳ |
+| Competence | Obligatoire | Statut | Notes |
+|---|---|---|---|
+| C3.1 Planning / methodologie | oui | en cours | Gantt 12 semaines |
+| C3.2.1 Suivi avancement & indicateurs | oui | en cours | Burndown par sprint |
+| C3.2.2 Arbitrages | | en cours | |
+| C3.3.1 Management equipe | | en cours | |
+| C3.3.2 Besoins en competences | | en cours | |
+| C3.4.1 Comptes rendus client | | en cours | |
+| C3.4.2 Demonstration live | oui | en cours | **CRITIQUE — app doit tourner en live** |
 
-### Bloc 4 — MCO ⏳ À faire
+### Bloc 4 — MCO (A faire)
 
-| Compétence | Obligatoire | Statut |
-|---|---|---|
-| C4.1.1 Mises à jour dépendances | | ⏳ |
-| C4.1.2 Supervision & alertes | ★ | ⏳ |
-| C4.2.1 Consignation anomalies | ★ | ⏳ |
-| C4.2.2 Correctif CI/CD | | ⏳ |
-| C4.3.2 Journal des versions | ★ | ⏳ |
+| Competence | Obligatoire | Statut | Notes |
+|---|---|---|---|
+| C4.1.1 Mises a jour dependances | | en cours | `composer outdated` + Dependabot |
+| C4.1.2 Supervision & alertes | oui | en cours | UptimeRobot + Laravel Health + Sentry |
+| C4.2.1 Consignation anomalies | oui | en cours | Sentry + Laravel logs rotatifs |
+| C4.2.2 Correctif CI/CD | | en cours | Pipeline GitHub Actions |
+| C4.3.1 Axes d'amelioration | | en cours | Retour utilisateurs post-MVP |
+| C4.3.2 Journal des versions | oui | en cours | CHANGELOG.md + GitHub Releases (SemVer) |
+| C4.3.3 Collaboration support client | | en cours | Guide utilisateur + procedure d'escalade |
 
 ---
 
@@ -378,10 +531,10 @@ fix/xxx       ← hotfix (depuis main, merge double main+develop)
 
 | Semaines | Phase | Contenu | Statut |
 |---|---|---|---|
-| S1–S2 | Cadrage & Bloc 1 | Dossier de cadrage, SWOT, comparatif, architecture | ✅ |
-| S3–S4 | Architecture & Setup | Schéma BDD, migrations, doc technique | ✅ |
-| S5–S6 | Sprint 1 — Core | Auth, Entreprises, Facturation, Settings, Exercices | ⏳ |
-| S7–S8 | Sprint 2 — Avancé | Planning FullCalendar, Relances, Portail client, KPI | ⏳ |
-| S9 | Sprint 3 — Qualité | OWASP, RGAA, tests unitaires | ⏳ |
-| S10–S11 | Recette & MCO | Cahier de recettes, CHANGELOG, supervision | ⏳ |
-| S12 | Soutenance | Slides, démo live (C3.4.2 ★) | ⏳ |
+| S1-S2 | Cadrage & Bloc 1 | Dossier de cadrage, SWOT, comparatif, charge, budget, architecture | fait |
+| S3-S4 | Architecture & Setup | Schema BDD, migrations, doc technique, Gantt | fait |
+| S5-S6 | Sprint 1 — Core | Auth/roles, Clients, Facturation (calcul HT/TVA/timbre/PDF), Settings, Exercices | en cours |
+| S7-S8 | Sprint 2 — Avance | Planning FullCalendar, Relances mails, Portail client, KPI | a faire |
+| S9 | Sprint 3 — Qualite | OWASP Top 10, RGAA (axe + Lighthouse), tests unitaires, staging | a faire |
+| S10-S11 | Recette & MCO | Cahier de recettes, anomalies, CHANGELOG, UptimeRobot, Sentry | a faire |
+| S12 | Soutenance | Slides Blocs 2/3/4, repetition demo live (C3.4.2), argumentation jury | a faire |
