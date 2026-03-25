@@ -25,6 +25,8 @@ import { exercicesApi } from '@/api/modules/exercices'
 import { devisApi } from '@/api/modules/devis'
 import { facturesApi } from '@/api/modules/factures'
 import { settingsApi } from '@/api/modules/settings'
+import { missionsApi } from '@/api/modules/missions'
+import { tachesApi } from '@/api/modules/taches'
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -144,6 +146,89 @@ describe('facturesApi', () => {
     await facturesApi.getPaiements(1)
 
     expect(mockGet).toHaveBeenCalledWith('/factures/1/paiements')
+  })
+})
+
+describe('missionsApi', () => {
+  it('getAll calls GET /missions with params', async () => {
+    const mockData = { data: [], meta: { current_page: 1, last_page: 1, per_page: 15, total: 0 } }
+    mockGet.mockResolvedValue({ data: mockData })
+
+    const result = await missionsApi.getAll({ page: 1, statut: 'en_cours' })
+
+    expect(mockGet).toHaveBeenCalledWith('/missions', { params: { page: 1, statut: 'en_cours' } })
+    expect(result).toEqual(mockData)
+  })
+
+  it('getOne calls GET /missions/:id', async () => {
+    mockGet.mockResolvedValue({ data: { data: { id: 1, reference: 'M2026-001' } } })
+
+    const result = await missionsApi.getOne(1)
+
+    expect(mockGet).toHaveBeenCalledWith('/missions/1')
+    expect(result.data.reference).toBe('M2026-001')
+  })
+
+  it('create calls POST /missions', async () => {
+    const payload = { entreprise_id: 1, prestation_id: 2, date_debut: '2026-04-01', date_fin: '2027-03-31' }
+    mockPost.mockResolvedValue({ data: { data: { id: 1, ...payload } } })
+
+    const result = await missionsApi.create(payload)
+
+    expect(mockPost).toHaveBeenCalledWith('/missions', payload)
+    expect(result.data.entreprise_id).toBe(1)
+  })
+
+  it('update calls PUT /missions/:id', async () => {
+    mockPut.mockResolvedValue({ data: { data: { id: 1, statut: 'terminee' } } })
+
+    await missionsApi.update(1, { statut: 'terminee' })
+
+    expect(mockPut).toHaveBeenCalledWith('/missions/1', { statut: 'terminee' })
+  })
+
+  it('delete calls DELETE /missions/:id', async () => {
+    mockDelete.mockResolvedValue({})
+
+    await missionsApi.delete(1)
+
+    expect(mockDelete).toHaveBeenCalledWith('/missions/1')
+  })
+})
+
+describe('tachesApi', () => {
+  it('getAll calls GET /missions/:id/taches', async () => {
+    mockGet.mockResolvedValue({ data: { data: [] } })
+
+    const result = await tachesApi.getAll(5)
+
+    expect(mockGet).toHaveBeenCalledWith('/missions/5/taches')
+    expect(result.data).toEqual([])
+  })
+
+  it('create calls POST /missions/:id/taches', async () => {
+    const payload = { titre: 'Collecte documents', priorite: 2 }
+    mockPost.mockResolvedValue({ data: { data: { id: 1, ...payload } } })
+
+    await tachesApi.create(5, payload)
+
+    expect(mockPost).toHaveBeenCalledWith('/missions/5/taches', payload)
+  })
+
+  it('update calls PUT /missions/:mid/taches/:tid', async () => {
+    mockPut.mockResolvedValue({ data: { data: { id: 1, statut: 'terminee' } } })
+
+    await tachesApi.update(5, 1, { statut: 'terminee' })
+
+    expect(mockPut).toHaveBeenCalledWith('/missions/5/taches/1', { statut: 'terminee' })
+  })
+
+  it('delete calls DELETE /missions/:mid/taches/:tid', async () => {
+    mockDelete.mockResolvedValue({})
+
+    await tachesApi.delete(5, 1)
+
+    expect(mockDelete).toHaveBeenCalledWith('/missions/5/taches/1')
   })
 })
 

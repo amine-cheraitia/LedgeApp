@@ -7,15 +7,20 @@ namespace App\Http\Controllers\Facturation;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Facturation\StoreDevisRequest;
 use App\Http\Resources\Facturation\DevisResource;
+use App\Http\Resources\Planning\MissionResource;
 use App\Models\Devis;
 use App\Services\FacturationService;
+use App\Services\MissionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class DevisController extends Controller
 {
-    public function __construct(private FacturationService $facturationService) {}
+    public function __construct(
+        private FacturationService $facturationService,
+        private MissionService $missionService,
+    ) {}
 
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -64,6 +69,41 @@ class DevisController extends Controller
         $devis->update($validated);
 
         return new DevisResource($devis->load('lignes', 'entreprise'));
+    }
+
+    /**
+     * Convertit un devis accepte en mission.
+     */
+    public function convertirEnMission(Request $request, Devis $devis): MissionResource|JsonResponse
+    {
+        if (! in_array($devis->statut, ['accepte', 'envoye'])) {
+            return response()->json([
+                'message' => 'Seuls les devis envoyes ou acceptes peuvent etre convertis en mission.',
+            ], 409);
+        }
+
+        $validated = $request->validate([
+            'prestation_id' => ['required', 'integer', 'exists:prestations,id'],
+            'date_debut' => ['required', 'date'],
+            'date_fin' => ['required', 'date', 'after_or_equal:date_debut'],
+            'collaborateur_ids' => ['nullable', 'array'],
+            'collaborateur_ids.*' => ['integer', 'exists:users,id'],
+        ]);
+
+        $mission = $this->missionService->creerMission([
+            'entreprise_id' => $devis->entreprise_id,
+            'prestation_id' => $validated['prestation_id'],
+            'date_debut' => $validated['date_debut'],
+            'date_fin' => $validated['date_fin'],
+            'collaborateur_ids' => $validated['collaborateur_ids'] ?? [],
+            'notes' => 'Genere depuis devis '.$devis->numero,
+        ]);
+
+        if ($devis->statut === 'envoye') {
+            $devis->update(['statut' => 'accepte']);
+        }
+
+        return new MissionResource($mission);
     }
 
     public function destroy(Devis $devis): JsonResponse

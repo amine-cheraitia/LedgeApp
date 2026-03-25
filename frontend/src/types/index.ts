@@ -74,12 +74,28 @@ export interface Mission {
   prix_ht: number
   date_debut: string
   date_fin: string | null
-  statut: 'en_cours' | 'terminee' | 'annulee'
+  statut: 'en_cours' | 'terminee' | 'suspendue' | 'annulee'
   notes: string | null
   entreprise?: Entreprise
   exercice?: Exercice
   prestation?: Prestation
   collaborateurs?: User[]
+  taches?: Tache[]
+  factures?: Facture[]
+  created_at: string
+  updated_at: string
+}
+
+export interface Tache {
+  id: number
+  mission_id: number
+  assigned_to: number | null
+  titre: string
+  description: string | null
+  statut: 'a_faire' | 'en_cours' | 'terminee' | 'bloquee'
+  date_echeance: string | null
+  priorite: number
+  assignee?: User
   created_at: string
   updated_at: string
 }

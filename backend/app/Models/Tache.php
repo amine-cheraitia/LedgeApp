@@ -17,6 +17,11 @@ class Tache extends Model
         'statut', 'date_echeance', 'priorite',
     ];
 
+    protected $attributes = [
+        'statut' => 'a_faire',
+        'priorite' => 1,
+    ];
+
     protected $casts = [
         'date_echeance' => 'date',
     ];

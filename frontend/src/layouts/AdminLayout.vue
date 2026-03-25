@@ -17,6 +17,7 @@ const menuItems = computed(() => [
       { label: 'Entreprises', icon: 'pi pi-building', command: () => router.push('/entreprises') },
       { label: 'Exercices', icon: 'pi pi-calendar', command: () => router.push('/exercices') },
       { label: 'Prestations', icon: 'pi pi-list', command: () => router.push('/prestations') },
+      { label: 'Missions', icon: 'pi pi-briefcase', command: () => router.push('/missions') },
       { label: 'Devis', icon: 'pi pi-file', command: () => router.push('/devis') },
       { label: 'Factures', icon: 'pi pi-receipt', command: () => router.push('/factures') },
     ],
