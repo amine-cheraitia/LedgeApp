@@ -9,9 +9,24 @@
 
 Systeme de gestion integre pour cabinet de conseil/comptabilite algerien.
 Certification RNCP 39583 — Expert en Developpement Logiciel — YNOV.
-Stack : **Laravel 12** (API backend) + **Vue 3 + PrimeVue** (frontend) + **MySQL** + **Spatie Permission** + **Sanctum**.
 Architecture : **N-tier 3 couches** — presentation (Vue.js) / metier (Laravel API) / donnees (MySQL).
 Historique : V0 monolithique (Laravel 8 + Blade) -> V1 Filament (abandonnee) -> V2 actuelle N-tier.
+
+### Stack technique
+
+| Couche | Technologie |
+|---|---|
+| Backend | Laravel 12 — API REST — PHP 8.2+ |
+| Auth | Laravel Sanctum (cookie-based SPA) |
+| Frontend | Vue.js 3 SPA — Composition API — TypeScript |
+| UI Library | PrimeVue 4 |
+| State | Pinia |
+| Router | Vue Router 4 |
+| BDD | MySQL 8 |
+| Roles | Spatie Laravel Permission |
+| PDF | barryvdh/laravel-dompdf |
+| Queue/Cache | Redis (production) / sync (dev) |
+| MCO | UptimeRobot + Laravel Health + Sentry |
 
 ---
 
@@ -26,14 +41,15 @@ Ledge/
 │   │   │   │   ├── Auth/          # AuthController, UserController
 │   │   │   │   ├── Entreprises/   # EntrepriseController
 │   │   │   │   ├── Exercices/     # ExerciceController
+│   │   │   │   ├── Facturation/   # DevisController, FactureController, PaiementController
+│   │   │   │   ├── Planning/      # MissionController, TacheController
 │   │   │   │   ├── Prestations/   # PrestationController
-│   │   │   │   ├── Settings/      # SettingController
-│   │   │   │   ├── Facturation/   # (a venir)
-│   │   │   │   └── Planning/      # (a venir)
+│   │   │   │   └── Settings/      # SettingController
 │   │   │   ├── Requests/         # FormRequests par domaine
 │   │   │   ├── Resources/        # API Resources JSON par domaine
 │   │   │   └── Middleware/       # EnsureBackofficeAccess, EnsurePortailAccess
-│   │   ├── Models/               # 18 modeles Eloquent
+│   │   ├── Models/               # 19 modeles Eloquent
+│   │   ├── Services/             # Logique metier (FacturationService, MissionService...)
 │   │   ├── Events/               # MissionCreated, InvoicePaid, etc.
 │   │   ├── Observers/            # MissionObserver, etc.
 │   │   └── Providers/
@@ -69,6 +85,7 @@ php artisan db:seed
 php artisan test
 composer dump-autoload
 php artisan serve          # http://localhost:8000
+php artisan queue:work     # traitement des jobs (Redis en prod)
 
 # Frontend (depuis frontend/)
 cd frontend
@@ -203,6 +220,71 @@ Admin -> Fiche Entreprise (statut=client) -> "Activer acces portail"
 
 ---
 
+## Couche Services — regle obligatoire
+
+Les controllers sont **minces** : ils valident (FormRequest), delegent au Service, et retournent la Resource.
+Toute logique metier va dans `app/Services/`. Les Services utilisent Eloquent directement (pas de Repository).
+
+```php
+// Controller — mince
+public function store(StoreFactureRequest $request): FactureResource
+{
+    $facture = $this->facturationService->creer($request->validated(), $request->user());
+    return new FactureResource($facture);
+}
+
+// Service — logique metier
+class FacturationService
+{
+    public function creer(array $data, User $user): Facture { ... }
+}
+```
+
+Injection de dependances dans le constructeur du controller :
+```php
+public function __construct(private readonly FacturationService $facturationService) {}
+```
+
+---
+
+## Modules metier (inventaire)
+
+| Domaine | Controllers | Services | Modeles |
+|---|---|---|---|
+| Auth | AuthController, UserController | — | User |
+| Entreprises | EntrepriseController | — | Entreprise, CategorieEntreprise, RegimeFiscal |
+| Exercices | ExerciceController | — | Exercice |
+| Prestations | PrestationController | — | Prestation |
+| Facturation | DevisController, FactureController, PaiementController | FacturationService | Devis, DevisLigne, Facture, FactureLigne, Paiement |
+| Planning | MissionController, TacheController | MissionService | Mission, Tache, TacheCommentaire |
+| Settings | SettingController | — | Setting |
+| Referentiel | — | — | TvaRate, TimbreRate |
+| Relances (a venir) | RelanceController | RelanceService | Relance |
+| KPI (a venir) | KpiController | KpiCalculatorService | KpiObjectif, KpiResultat |
+
+---
+
+## MCO — Maintien en Conditions Operationnelles
+
+| Outil | Role | Statut |
+|---|---|---|
+| Laravel Health | Health checks internes (BDD, cache, queue) | Installe |
+| UptimeRobot | Monitoring externe (uptime, SSL, latence) | A configurer |
+| Sentry | Error tracking + alerting temps reel | A installer |
+
+---
+
+## Jobs & Queues (a venir)
+
+| Job | Declencheur | Description |
+|---|---|---|
+| `EnvoyerRelancesJob` | Cron quotidien | Envoi automatique des relances echues |
+| `CalculerKpiMensuelJob` | Cron mensuel | Snapshots KPI mensuels par collaborateur |
+
+Driver : **Redis** en production, **sync** en dev.
+
+---
+
 ## Protection suppression
 | Entite | Blocage si |
 |---|---|
@@ -325,6 +407,10 @@ Sur tout composant Vue avec PrimeVue :
 - Textes de liens explicites — jamais "cliquez ici"
 - `<label>` ou `aria-label` sur chaque input
 - Skip link "Aller au contenu principal" sur chaque page
+- Contraste minimum 4.5:1 sur tous les textes
+- Navigation clavier complete sur tous les composants interactifs
+- Pas de `v-html` avec donnees utilisateur (XSS + accessibilite)
+- Structure semantique : `<main>`, `<nav>`, `<header>`, `<section>` avec `aria-labelledby`
 
 ---
 
@@ -336,7 +422,8 @@ Tous les montants sont en **Dinars Algeriens (DA)**. Jamais d'euros dans l'appli
 
 ## Ce que Claude Code ne doit PAS faire
 
-- Mettre de la logique metier dans les controllers -> la garder dans les modeles ou services
+- Mettre de la logique metier dans les controllers -> tout deleguer au Service
+- Appeler un Service d'un autre domaine directement -> passer par un Event Laravel
 - Utiliser `Carbon::now()` pour resoudre la TVA -> passer la date de facturation
 - Creer des composants Vue avec Options API -> Composition API uniquement
 - Mettre la logique d'appel API dans les composants -> utiliser les composables ou modules api/
