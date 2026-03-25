@@ -65,15 +65,16 @@ npm run test:watch            # mode watch
 | Prestations (grille tarifaire + composable) | Fait |
 | Parametres (Settings + composable) | Fait |
 | Utilisateurs (CRUD + composables) | Fait |
-| Devis (CRUD + lignes dynamiques) | Fait |
-| Factures (CRUD + snapshots TVA/timbre) | Fait |
+| Devis (CRUD + lignes dynamiques + conversion en mission) | Fait |
+| Missions (CRUD + calcul prix HT + bascule prospect→client) | Fait |
+| Taches (CRUD nested sous missions + statut inline) | Fait |
+| Factures (CRUD + snapshots TVA/timbre + lien mission) | Fait |
 | Paiements (enregistrement + statut auto) | Fait |
-| Tests backend (PHPUnit) | Fait |
-| Tests frontend (Vitest) | Fait |
+| Tests backend (PHPUnit — 38 tests) | Fait |
+| Tests frontend (Vitest — 27 tests) | Fait |
 | CI/CD GitHub Actions | Fait |
 | Generation PDF (DomPDF) | A faire |
 | Avoirs (FA) | A faire |
-| Missions / Planning (FullCalendar) | A faire |
 | Relances (auto + manuelles) | A faire |
 | Portail client | A faire |
 | KPI / Dashboard | A faire |

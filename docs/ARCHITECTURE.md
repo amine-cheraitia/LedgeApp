@@ -49,11 +49,13 @@ backend/app/
 │   │   ├── Exercices/         # ExerciceController
 │   │   ├── Prestations/       # PrestationController
 │   │   ├── Settings/          # SettingController
-│   │   └── Facturation/       # DevisController, FactureController, PaiementController
-│   ├── Requests/              # FormRequests par domaine (Auth/, Entreprises/, Facturation/, ...)
-│   └── Resources/             # API Resources JSON par domaine
+│   │   ├── Facturation/       # DevisController, FactureController, PaiementController
+│   │   └── Planning/          # MissionController, TacheController
+│   ├── Requests/              # FormRequests par domaine (Auth/, Entreprises/, Facturation/, Planning/)
+│   └── Resources/             # API Resources JSON par domaine (Facturation/, Planning/)
 ├── Services/
-│   └── FacturationService.php # Logique metier : numerotation, creation devis/factures, paiements
+│   ├── FacturationService.php # Logique metier : numerotation, creation devis/factures, paiements
+│   └── MissionService.php     # Logique metier : calcul prix HT, reference, CRUD missions
 ├── Events/                    # MissionCreated, InvoicePaid
 ├── Listeners/                 # ConvertProspectToClient, CancelRelancesOnPayment
 ├── Observers/                 # MissionObserver
@@ -74,7 +76,7 @@ Architecture **Page → Composable → API Module → Axios** :
 frontend/src/
 ├── api/
 │   ├── client.ts          # Axios configure (CSRF, intercepteurs)
-│   └── modules/           # Un module par domaine (entreprises, devis, factures, ...)
+│   └── modules/           # Un module par domaine (entreprises, devis, factures, missions, taches, ...)
 ├── composables/           # Logique reactive reutilisable (useEntreprises, useFactures, ...)
 ├── assets/styles/         # CSS mobile-first, skip-link RGAA
 ├── layouts/               # AdminLayout (sidebar), PortailLayout

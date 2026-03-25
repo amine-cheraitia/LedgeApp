@@ -10,13 +10,52 @@
 ## [Unreleased]
 
 ### A faire
-- Module Missions / Planning (FullCalendar, taches, assignation collaborateurs)
 - Module Relances (automatiques via queue + manuelles)
 - Portail client (lecture seule factures/documents)
 - Module KPI / Reporting (CA, missions, performance collaborateurs)
 - Module Documents / GED
 - Generation PDF factures/devis (DomPDF + montant en lettres)
 - Avoirs (FA) — creation depuis facture existante
+
+---
+
+## [0.5.0] — 2026-03-25
+
+### Ajouts — Module Missions + Taches
+
+#### Backend — MissionService + Controllers
+
+- **MissionService** — couche metier centralisee :
+  - `creerMission()` : calcul automatique du prix HT (`prestation.tarif_initial x regime_fiscal.indice x categorie.indice`),
+    generation de la reference sequentielle (M2026-001), creation mission + rattachement collaborateurs (pivot `mission_user`)
+  - `updateMission()` : modification statut/dates/notes/collaborateurs. Prix HT immuable apres creation
+  - `deleteMission()` : suppression bloquee si factures associees (HTTP 409)
+- **MissionController** — CRUD complet avec filtres (entreprise, statut), eager loading relations
+- **TacheController** — CRUD nested sous `/missions/{id}/taches`, changement statut inline
+- **Conversion Devis → Mission** — `POST /devis/{id}/convertir-en-mission` : cree une mission depuis un devis accepte/envoye
+- **FormRequests** : `StoreMissionRequest`, `UpdateMissionRequest`, `StoreTacheRequest`
+- **Resources** : `MissionResource` (avec entreprise, prestation, taches, factures), `TacheResource`
+
+#### Frontend — Pages Missions
+
+- **API modules** : `missions.ts`, `taches.ts` — CRUD complet
+- **Composables** : `useMissions.ts`, `useTaches.ts` — logique reactive
+- **MissionListPage** — DataTable (reference, entreprise, prestation, prix HT, statut) + Dialog creation (select entreprise/prestation)
+- **MissionDetailPage** — detail mission, tranches suggerees (30/30/40), section taches avec statut inline, factures liees
+- **Router** : routes `/missions` et `/missions/:id`
+- **Sidebar** : ajout item Missions (pi-briefcase) dans la navigation
+
+#### Tests
+
+- **MissionApiTest** (7 tests) : prix HT calcule, bascule prospect→client, CRUD, reference sequentielle, protection suppression
+- **TacheApiTest** (3 tests) : creation, liste, mise a jour statut
+- **Frontend** (9 tests) : modules API missions + taches
+
+### Corrections
+
+- **fix(auth)** : roles Spatie retournes comme objets `[{name: 'admin', ...}]` — normalisation en strings `['admin']` pour que `isAdmin` fonctionne dans le sidebar
+- **fix(routes)** : parametre route taches `{tach}` → `{tache}` (singularisation Laravel incorrecte pour le francais)
+- **fix(model)** : ajout `$attributes` defaults sur Tache (statut, priorite) pour coherence modele/BDD
 
 ---
 
