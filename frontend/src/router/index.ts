@@ -41,6 +41,16 @@ const router = createRouter({
           component: () => import('@/pages/prestations/PrestationListPage.vue'),
         },
         {
+          path: 'devis',
+          name: 'devis',
+          component: () => import('@/pages/devis/DevisListPage.vue'),
+        },
+        {
+          path: 'factures',
+          name: 'factures',
+          component: () => import('@/pages/factures/FactureListPage.vue'),
+        },
+        {
           path: 'settings',
           name: 'settings',
           component: () => import('@/pages/settings/SettingsPage.vue'),
