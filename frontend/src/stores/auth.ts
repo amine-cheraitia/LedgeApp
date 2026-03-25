@@ -15,12 +15,20 @@ export const useAuthStore = defineStore('auth', () => {
     return roles.some(r => ['admin', 'collaborateur', 'secretaire'].includes(r))
   })
 
+  function normalizeUser(raw: Record<string, unknown>): User {
+    const u = raw as unknown as User
+    if (Array.isArray(u.roles) && u.roles.length > 0 && typeof u.roles[0] === 'object') {
+      u.roles = (u.roles as unknown as Array<{ name: string }>).map(r => r.name)
+    }
+    return u
+  }
+
   async function login(email: string, password: string) {
     loading.value = true
     try {
       const { data } = await api.post('/login', { email, password })
-      user.value = data.user
-      return data.user
+      user.value = normalizeUser(data.user)
+      return user.value
     } finally {
       loading.value = false
     }
@@ -34,7 +42,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchUser() {
     try {
       const { data } = await api.get('/me')
-      user.value = data.user
+      user.value = normalizeUser(data.user)
     } catch {
       user.value = null
     }
