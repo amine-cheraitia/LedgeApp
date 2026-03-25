@@ -50,8 +50,14 @@ class EntrepriseController extends Controller
 
     public function destroy(Entreprise $entreprise): JsonResponse
     {
+        if ($entreprise->missions()->exists() || $entreprise->devis()->exists()) {
+            return response()->json([
+                'message' => 'Impossible de supprimer cette entreprise : des missions ou devis y sont associes.',
+            ], 409);
+        }
+
         $entreprise->delete();
 
-        return response()->json(['message' => 'Entreprise supprimée.']);
+        return response()->json(['message' => 'Entreprise supprimee.']);
     }
 }

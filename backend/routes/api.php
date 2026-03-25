@@ -6,6 +6,9 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\Entreprises\EntrepriseController;
 use App\Http\Controllers\Exercices\ExerciceController;
+use App\Http\Controllers\Facturation\DevisController;
+use App\Http\Controllers\Facturation\FactureController;
+use App\Http\Controllers\Facturation\PaiementController;
 use App\Http\Controllers\Prestations\PrestationController;
 use App\Http\Controllers\Settings\SettingController;
 
@@ -21,7 +24,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
-    // Routes authentifiées
+    // Routes authentifiees
     Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/me', [AuthController::class, 'me']);
@@ -47,6 +50,17 @@ Route::prefix('v1')->group(function () {
             // Settings (admin uniquement)
             Route::get('settings', [SettingController::class, 'index']);
             Route::put('settings', [SettingController::class, 'update']);
+
+            // Facturation — Devis
+            Route::apiResource('devis', DevisController::class);
+
+            // Facturation — Factures
+            Route::apiResource('factures', FactureController::class)->except(['update']);
+
+            // Facturation — Paiements (nested sous factures)
+            Route::get('factures/{facture}/paiements', [PaiementController::class, 'index']);
+            Route::post('factures/{facture}/paiements', [PaiementController::class, 'store']);
+            Route::delete('factures/{facture}/paiements/{paiement}', [PaiementController::class, 'destroy']);
         });
 
         // Portail client
