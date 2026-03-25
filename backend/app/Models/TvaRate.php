@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 class TvaRate extends Model
@@ -21,9 +22,9 @@ class TvaRate extends Model
      * Retourne le taux TVA en vigueur à une date donnée.
      * Règle critique : toujours retrouver le bon taux historique.
      */
-    public static function enVigueurLe(\Carbon\Carbon|string $date, string $type = 'standard'): ?self
+    public static function enVigueurLe(Carbon|string $date, string $type = 'standard'): ?self
     {
-        $date = is_string($date) ? \Carbon\Carbon::parse($date) : $date;
+        $date = is_string($date) ? Carbon::parse($date) : $date;
 
         return self::where('type', $type)
             ->where('date_debut', '<=', $date)

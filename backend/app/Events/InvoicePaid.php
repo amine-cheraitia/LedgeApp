@@ -12,7 +12,5 @@ class InvoicePaid
 {
     use Dispatchable, SerializesModels;
 
-    public function __construct(public Facture $facture)
-    {
-    }
+    public function __construct(public Facture $facture) {}
 }

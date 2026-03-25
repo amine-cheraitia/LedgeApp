@@ -73,8 +73,8 @@ class EntrepriseApiTest extends TestCase
     {
         $exercice = Exercice::create([
             'annee' => (int) date('Y'),
-            'date_ouverture' => date('Y') . '-01-01',
-            'date_cloture' => date('Y') . '-12-31',
+            'date_ouverture' => date('Y').'-01-01',
+            'date_cloture' => date('Y').'-12-31',
             'statut' => 'ouvert',
         ]);
 

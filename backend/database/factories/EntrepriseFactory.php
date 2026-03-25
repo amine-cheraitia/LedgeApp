@@ -15,22 +15,22 @@ class EntrepriseFactory extends Factory
     public function definition(): array
     {
         return [
-            'raison_sociale'    => $this->faker->company(),
-            'nif'               => $this->faker->unique()->numerify('##########'),
-            'nis'               => $this->faker->unique()->numerify('##############'),
-            'num_rc'            => $this->faker->numerify('##/##-######B##'),
-            'article_imposition'=> $this->faker->numerify('######'),
-            'regime_fiscal'     => $this->faker->randomElement(['forfait', 'reel']),
-            'categorie'         => $this->faker->randomElement(['TPE', 'PME', 'GE']),
-            'secteur_activite'  => $this->faker->sentence(3),
-            'adresse'           => $this->faker->streetAddress(),
-            'ville'             => $this->faker->city(),
-            'wilaya'            => $this->faker->randomElement(['Alger', 'Oran', 'Constantine', 'Annaba']),
-            'telephone'         => $this->faker->numerify('0#########'),
-            'email'             => $this->faker->unique()->companyEmail(),
+            'raison_sociale' => $this->faker->company(),
+            'nif' => $this->faker->unique()->numerify('##########'),
+            'nis' => $this->faker->unique()->numerify('##############'),
+            'num_rc' => $this->faker->numerify('##/##-######B##'),
+            'article_imposition' => $this->faker->numerify('######'),
+            'regime_fiscal' => $this->faker->randomElement(['forfait', 'reel']),
+            'categorie' => $this->faker->randomElement(['TPE', 'PME', 'GE']),
+            'secteur_activite' => $this->faker->sentence(3),
+            'adresse' => $this->faker->streetAddress(),
+            'ville' => $this->faker->city(),
+            'wilaya' => $this->faker->randomElement(['Alger', 'Oran', 'Constantine', 'Annaba']),
+            'telephone' => $this->faker->numerify('0#########'),
+            'email' => $this->faker->unique()->companyEmail(),
             'contact_principal' => $this->faker->name(),
-            'statut'            => 'prospect',
-            'notes'             => null,
+            'statut' => 'prospect',
+            'notes' => null,
         ];
     }
 

@@ -1,7 +1,5 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\Entreprises\EntrepriseController;
@@ -11,6 +9,7 @@ use App\Http\Controllers\Facturation\FactureController;
 use App\Http\Controllers\Facturation\PaiementController;
 use App\Http\Controllers\Prestations\PrestationController;
 use App\Http\Controllers\Settings\SettingController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------

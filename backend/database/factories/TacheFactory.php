@@ -17,13 +17,13 @@ class TacheFactory extends Factory
     public function definition(): array
     {
         return [
-            'mission_id'    => Mission::factory(),
-            'assigned_to'   => null,
-            'titre'         => fake()->sentence(4),
-            'description'   => fake()->paragraph(),
-            'statut'        => 'a_faire',
+            'mission_id' => Mission::factory(),
+            'assigned_to' => null,
+            'titre' => fake()->sentence(4),
+            'description' => fake()->paragraph(),
+            'statut' => 'a_faire',
             'date_echeance' => fake()->optional()->dateTimeBetween('now', '+2 months')?->format('Y-m-d'),
-            'priorite'      => fake()->numberBetween(1, 4),
+            'priorite' => fake()->numberBetween(1, 4),
         ];
     }
 

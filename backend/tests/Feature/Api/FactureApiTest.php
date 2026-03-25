@@ -19,6 +19,7 @@ class FactureApiTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private Entreprise $entreprise;
 
     protected function setUp(): void
@@ -36,8 +37,8 @@ class FactureApiTest extends TestCase
 
         Exercice::create([
             'annee' => (int) date('Y'),
-            'date_ouverture' => date('Y') . '-01-01',
-            'date_cloture' => date('Y') . '-12-31',
+            'date_ouverture' => date('Y').'-01-01',
+            'date_cloture' => date('Y').'-12-31',
             'statut' => 'ouvert',
         ]);
 

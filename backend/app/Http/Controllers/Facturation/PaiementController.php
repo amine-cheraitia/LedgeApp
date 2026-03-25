@@ -16,9 +16,7 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class PaiementController extends Controller
 {
-    public function __construct(private FacturationService $facturationService)
-    {
-    }
+    public function __construct(private FacturationService $facturationService) {}
 
     public function index(Facture $facture): AnonymousResourceCollection
     {

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 class TimbreRate extends Model
@@ -18,9 +19,9 @@ class TimbreRate extends Model
         'plafond' => 'decimal:2',
     ];
 
-    public static function enVigueurLe(\Carbon\Carbon|string $date): ?self
+    public static function enVigueurLe(Carbon|string $date): ?self
     {
-        $date = is_string($date) ? \Carbon\Carbon::parse($date) : $date;
+        $date = is_string($date) ? Carbon::parse($date) : $date;
 
         return self::where('date_debut', '<=', $date)
             ->where(function ($q) use ($date) {

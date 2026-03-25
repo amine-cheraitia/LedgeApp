@@ -12,7 +12,5 @@ class MissionCreated
 {
     use Dispatchable, SerializesModels;
 
-    public function __construct(public Mission $mission)
-    {
-    }
+    public function __construct(public Mission $mission) {}
 }

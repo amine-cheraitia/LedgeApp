@@ -8,8 +8,6 @@ use App\Models\Entreprise;
 use App\Models\Exercice;
 use App\Models\Mission;
 use App\Models\Prestation;
-use App\Models\RegimeFiscal;
-use App\Models\CategorieEntreprise;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -23,8 +21,8 @@ class ConvertProspectToClientTest extends TestCase
 
         Exercice::create([
             'annee' => (int) date('Y'),
-            'date_ouverture' => date('Y') . '-01-01',
-            'date_cloture' => date('Y') . '-12-31',
+            'date_ouverture' => date('Y').'-01-01',
+            'date_cloture' => date('Y').'-12-31',
             'statut' => 'ouvert',
         ]);
 
@@ -58,8 +56,8 @@ class ConvertProspectToClientTest extends TestCase
 
         Exercice::create([
             'annee' => (int) date('Y'),
-            'date_ouverture' => date('Y') . '-01-01',
-            'date_cloture' => date('Y') . '-12-31',
+            'date_ouverture' => date('Y').'-01-01',
+            'date_cloture' => date('Y').'-12-31',
             'statut' => 'ouvert',
         ]);
 
