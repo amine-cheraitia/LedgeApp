@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { facturesApi, type FactureFilters, type FacturePayload, type PaiementPayload } from '@/api/modules/factures'
-import type { Facture, Paiement } from '@/types'
+import type { Facture } from '@/types'
 
 export function useFactures() {
   const toast = useToast()

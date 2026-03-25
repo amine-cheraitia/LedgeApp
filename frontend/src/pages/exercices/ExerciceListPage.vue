@@ -5,7 +5,7 @@ import Column from 'primevue/column'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
-import InputText from 'primevue/inputtext'
+import InputNumber from 'primevue/inputnumber'
 import DatePicker from 'primevue/datepicker'
 import Select from 'primevue/select'
 import { useExercices } from '@/composables/useExercices'
@@ -137,7 +137,7 @@ onMounted(fetchExercices)
       <form @submit.prevent="onSubmit" class="dialog-form">
         <div class="form-field">
           <label for="ex-annee">Annee *</label>
-          <InputText id="ex-annee" v-model.number="form.annee" type="number" required fluid />
+          <InputNumber id="ex-annee" v-model="form.annee" :useGrouping="false" required fluid />
         </div>
 
         <div class="form-field">
