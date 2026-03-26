@@ -7,8 +7,8 @@ namespace Tests\Feature\Api;
 use App\Models\Entreprise;
 use App\Models\Exercice;
 use App\Models\Setting;
-use App\Models\TimbreRate;
-use App\Models\TvaRate;
+use App\Models\TimbreTaux;
+use App\Models\TvaTaux;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -42,7 +42,7 @@ class DevisApiTest extends TestCase
             'statut' => 'ouvert',
         ]);
 
-        TvaRate::create([
+        TvaTaux::create([
             'taux' => 19,
             'designation' => 'TVA standard',
             'date_debut' => '2023-01-01',
@@ -50,7 +50,7 @@ class DevisApiTest extends TestCase
             'actif' => true,
         ]);
 
-        TimbreRate::create([
+        TimbreTaux::create([
             'taux' => 1,
             'plafond' => 2500,
             'designation' => 'Timbre fiscal',

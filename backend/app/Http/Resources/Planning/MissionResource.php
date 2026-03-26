@@ -19,6 +19,7 @@ class MissionResource extends JsonResource
             'entreprise_id' => $this->entreprise_id,
             'exercice_id' => $this->exercice_id,
             'prestation_id' => $this->prestation_id,
+            'devis_id' => $this->devis_id,
             'reference' => $this->reference,
             'prix_ht' => (float) $this->prix_ht,
             'date_debut' => $this->date_debut?->toDateString(),

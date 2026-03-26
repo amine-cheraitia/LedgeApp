@@ -40,6 +40,7 @@ class MissionService
                 'entreprise_id' => $entreprise->id,
                 'exercice_id' => $exercice->id,
                 'prestation_id' => $prestation->id,
+                'devis_id' => $data['devis_id'] ?? null,
                 'reference' => $reference,
                 'prix_ht' => $prixHt,
                 'date_debut' => $data['date_debut'],

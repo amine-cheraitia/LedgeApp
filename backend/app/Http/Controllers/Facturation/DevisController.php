@@ -93,6 +93,7 @@ class DevisController extends Controller
         $mission = $this->missionService->creerMission([
             'entreprise_id' => $devis->entreprise_id,
             'prestation_id' => $validated['prestation_id'],
+            'devis_id' => $devis->id,
             'date_debut' => $validated['date_debut'],
             'date_fin' => $validated['date_fin'],
             'collaborateur_ids' => $validated['collaborateur_ids'] ?? [],
