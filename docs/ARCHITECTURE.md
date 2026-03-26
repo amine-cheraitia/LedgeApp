@@ -38,35 +38,84 @@
 
 ## Organisation du backend
 
-Architecture **classique Laravel avec sous-dossiers par domaine** :
+Architecture **Controller → Service → Model** avec sous-dossiers par domaine :
 
 ```
-backend/app/Http/Controllers/
-├── Auth/              # AuthController, UserController
-├── Entreprises/       # EntrepriseController
-├── Exercices/         # ExerciceController
-├── Prestations/       # PrestationController
-├── Settings/          # SettingController
-├── Facturation/       # FactureController, DevisController, AvoirController
-├── Planning/          # MissionController, TacheController
-├── Relances/          # RelanceController
-└── Documents/         # DocumentController
+backend/app/
+├── Http/
+│   ├── Controllers/
+│   │   ├── Auth/              # AuthController, UserController
+│   │   ├── Entreprises/       # EntrepriseController
+│   │   ├── Exercices/         # ExerciceController
+│   │   ├── Prestations/       # PrestationController
+│   │   ├── Settings/          # SettingController
+│   │   ├── Facturation/       # DevisController, FactureController, PaiementController
+│   │   └── Planning/          # MissionController, TacheController
+│   ├── Requests/              # FormRequests par domaine (Auth/, Entreprises/, Facturation/, Planning/)
+│   └── Resources/             # API Resources JSON par domaine (Facturation/, Planning/)
+├── Services/
+│   ├── FacturationService.php # Logique metier : numerotation, creation devis/factures, paiements
+│   └── MissionService.php     # Logique metier : calcul prix HT, reference, CRUD missions
+├── Events/                    # MissionCreated, InvoicePaid
+├── Listeners/                 # ConvertProspectToClient, CancelRelancesOnPayment
+├── Observers/                 # MissionObserver
+├── Models/                    # 18 modeles Eloquent
+└── Providers/                 # AppServiceProvider (observers, events)
 ```
 
-Pas de modules avec ServiceProviders séparés — trop de config pour 18 modèles, même clarté avec des sous-dossiers.
+**Principe** : le Controller valide (FormRequest) et delegue au Service.
+Le Service contient la logique metier. Le Model gere les relations, casts et scopes Eloquent.
+
+Pas de modules avec ServiceProviders separes — trop de config pour 18 modeles, meme clarte avec des sous-dossiers.
 
 ## Organisation du frontend
 
+Architecture **Page → Composable → API Module → Axios** :
+
 ```
 frontend/src/
-├── api/client.ts      # Axios configuré (CSRF, intercepteurs)
-├── assets/styles/     # CSS mobile-first, skip-link RGAA
-├── layouts/           # AdminLayout (sidebar), PortailLayout
-├── pages/             # Un dossier par domaine
-├── router/            # Guards auth + rôle
-├── stores/            # Pinia (auth, etc.)
-└── types/             # Interfaces TypeScript
+├── api/
+│   ├── client.ts          # Axios configure (CSRF, intercepteurs)
+│   └── modules/           # Un module par domaine (entreprises, devis, factures, missions, taches, ...)
+├── composables/           # Logique reactive reutilisable (useEntreprises, useFactures, ...)
+├── assets/styles/         # CSS mobile-first, skip-link RGAA
+├── layouts/               # AdminLayout (sidebar), PortailLayout
+├── pages/                 # Un dossier par domaine
+├── router/                # Guards auth + role
+├── stores/                # Pinia (auth uniquement — le reste via composables)
+├── types/                 # Interfaces TypeScript
+└── __tests__/             # Tests Vitest (types, api-modules)
 ```
+
+**Principe** : la Page utilise le Composable pour la logique reactive.
+Le Composable appelle le Module API. Le Module API fait les requetes HTTP via Axios.
+Jamais d'appel Axios direct dans les composants Vue.
+
+## Tests
+
+```
+backend/tests/
+├── Feature/Api/           # Tests integration API (DevisApiTest, FactureApiTest, EntrepriseApiTest)
+└── Unit/
+    ├── Models/            # Tests modeles (TvaRate, TimbreRate, Prestation)
+    └── Listeners/         # Tests listeners (ConvertProspectToClient)
+
+frontend/src/__tests__/
+├── types.test.ts          # Validation interfaces TypeScript
+└── api-modules.test.ts    # Tests unitaires modules API (mock Axios)
+```
+
+- Backend : PHPUnit + SQLite :memory: (RefreshDatabase)
+- Frontend : Vitest + happy-dom
+
+## CI/CD
+
+Pipeline GitHub Actions (`.github/workflows/ci.yml`) declenchee sur push/PR vers `main` et `develop` :
+
+| Job | Etapes |
+|---|---|
+| `backend` | PHP 8.2 → Composer install → Pint lint → PHPUnit |
+| `frontend` | Node 20 → npm ci → Vitest → vue-tsc → Vite build |
 
 ## Sécurité (OWASP)
 

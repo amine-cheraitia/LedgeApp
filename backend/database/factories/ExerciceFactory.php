@@ -19,17 +19,17 @@ class ExerciceFactory extends Factory
         $annee = 2020 + self::$yearOffset++;
 
         return [
-            'annee'          => $annee,
+            'annee' => $annee,
             'date_ouverture' => "{$annee}-01-01",
-            'date_cloture'   => null,
-            'statut'         => 'ouvert',
+            'date_cloture' => null,
+            'statut' => 'ouvert',
         ];
     }
 
     public function ouvert(): static
     {
         return $this->state(fn (array $attributes) => [
-            'statut'       => 'ouvert',
+            'statut' => 'ouvert',
             'date_cloture' => null,
         ]);
     }
@@ -37,7 +37,7 @@ class ExerciceFactory extends Factory
     public function cloture(): static
     {
         return $this->state(fn (array $attributes) => [
-            'statut'       => 'cloture',
+            'statut' => 'cloture',
             'date_cloture' => $attributes['date_ouverture']
                 ? date('Y-12-31', strtotime($attributes['date_ouverture']))
                 : now()->toDateString(),

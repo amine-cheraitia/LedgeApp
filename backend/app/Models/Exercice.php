@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Exercice extends Model
 {
     use HasFactory;
+
     protected $fillable = ['annee', 'date_ouverture', 'date_cloture', 'statut'];
 
     protected $casts = [

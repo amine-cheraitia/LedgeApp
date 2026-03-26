@@ -155,10 +155,10 @@ Ce montant est calcule UNE SEULE FOIS a la creation et stocke de facon immuable.
 ### 2. TVA historisee — regle absolue
 ```php
 // TOUJOURS passer la date de facturation — JAMAIS Carbon::now()
-$tva = TvaRate::enVigueurLe($facture->date_facture);
-$timbre = TimbreRate::enVigueurLe($facture->date_facture);
+$tva = TvaTaux::enVigueurLe($facture->date_facture);
+$timbre = TimbreTaux::enVigueurLe($facture->date_facture);
 ```
-La table `tva_rates` a `date_debut` / `date_fin`. Une facture de 2026 doit retourner 19% meme si appelee en 2030.
+La table `tva_taux` a `date_debut` / `date_fin`. Une facture de 2026 doit retourner 19% meme si appelee en 2030.
 
 ### 3. Snapshots immuables sur facture
 Ces valeurs sont copiees a la creation et **ne changent jamais** :
@@ -367,7 +367,7 @@ GET    /api/v1/portail/missions
 
 ### PHP / Laravel
 - `declare(strict_types=1);` en haut de chaque nouveau fichier
-- Tables en **francais** (snake_case) : `tva_rates`, `tache_commentaires`
+- Tables en **francais** (snake_case) : `tva_taux`, `tache_commentaires`
 - Modeles en **PascalCase francais** : `TacheCommentaire`, `RegimeFiscal`
 - Controllers API dans `backend/app/Http/Controllers/{Domaine}/`
 - FormRequests : `StoreFactureRequest`, `UpdateMissionRequest`

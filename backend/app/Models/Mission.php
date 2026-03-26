@@ -14,7 +14,7 @@ class Mission extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'entreprise_id', 'exercice_id', 'prestation_id', 'reference',
+        'entreprise_id', 'exercice_id', 'prestation_id', 'devis_id', 'reference',
         'prix_ht', 'date_debut', 'date_fin', 'statut', 'notes',
     ];
 
@@ -37,6 +37,11 @@ class Mission extends Model
     public function prestation(): BelongsTo
     {
         return $this->belongsTo(Prestation::class);
+    }
+
+    public function devis(): BelongsTo
+    {
+        return $this->belongsTo(Devis::class);
     }
 
     public function collaborateurs(): BelongsToMany

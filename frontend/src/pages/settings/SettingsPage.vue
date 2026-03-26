@@ -1,41 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useToast } from 'primevue/usetoast'
+import { onMounted } from 'vue'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
-import api from '@/api/client'
-import type { Setting } from '@/types'
+import { useSettings } from '@/composables/useSettings'
 
-const toast = useToast()
-const settings = ref<Setting[]>([])
-const loading = ref(false)
-const saving = ref(false)
-
-async function fetchSettings() {
-  loading.value = true
-  try {
-    const { data } = await api.get('/settings')
-    settings.value = data.data
-  } catch {
-    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de charger les paramètres.', life: 3000 })
-  } finally {
-    loading.value = false
-  }
-}
-
-async function saveSettings() {
-  saving.value = true
-  try {
-    await api.put('/settings', {
-      settings: settings.value.map(s => ({ key: s.key, value: s.value })),
-    })
-    toast.add({ severity: 'success', summary: 'Succès', detail: 'Paramètres enregistrés.', life: 3000 })
-  } catch {
-    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Échec de la sauvegarde.', life: 3000 })
-  } finally {
-    saving.value = false
-  }
-}
+const { settings, loading, saving, fetchSettings, saveSettings } = useSettings()
 
 onMounted(fetchSettings)
 </script>
@@ -43,10 +12,12 @@ onMounted(fetchSettings)
 <template>
   <div>
     <div class="page-header">
-      <h2>Paramètres</h2>
+      <h2>Parametres</h2>
     </div>
 
-    <form @submit.prevent="saveSettings" class="settings-form">
+    <div v-if="loading" class="loading">Chargement...</div>
+
+    <form v-else @submit.prevent="saveSettings" class="settings-form">
       <div v-for="setting in settings" :key="setting.key" class="form-field">
         <label :for="'setting-' + setting.key">
           {{ setting.label || setting.key }}
@@ -84,5 +55,11 @@ onMounted(fetchSettings)
   font-size: 0.875rem;
   font-weight: 500;
   margin-bottom: 0.375rem;
+}
+
+.loading {
+  padding: 2rem;
+  text-align: center;
+  color: var(--p-text-muted-color);
 }
 </style>

@@ -14,7 +14,7 @@ class Facture extends Model
 
     protected $fillable = [
         'entreprise_id', 'exercice_id', 'mission_id', 'devis_id', 'created_by',
-        'tva_rate_id', 'timbre_rate_id', 'numero', 'type', 'facture_origine_id',
+        'tva_taux_id', 'timbre_taux_id', 'numero', 'type', 'facture_origine_id',
         'date_facture', 'date_echeance', 'montant_ht', 'taux_tva', 'montant_tva',
         'montant_timbre', 'montant_ttc', 'montant_paye', 'statut_paiement',
         'pdf_path', 'notes',
@@ -46,14 +46,14 @@ class Facture extends Model
         return $this->belongsTo(Mission::class);
     }
 
-    public function tvaRate(): BelongsTo
+    public function tvaTaux(): BelongsTo
     {
-        return $this->belongsTo(TvaRate::class);
+        return $this->belongsTo(TvaTaux::class);
     }
 
-    public function timbreRate(): BelongsTo
+    public function timbreTaux(): BelongsTo
     {
-        return $this->belongsTo(TimbreRate::class);
+        return $this->belongsTo(TimbreTaux::class);
     }
 
     public function createdBy(): BelongsTo

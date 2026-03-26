@@ -21,15 +21,15 @@ class MissionFactory extends Factory
         $fin = fake()->dateTimeBetween($debut, '+6 months');
 
         return [
-            'entreprise_id'  => Entreprise::factory()->client(),
-            'exercice_id'    => Exercice::factory(),
-            'prestation_id'  => Prestation::first()?->id ?? 1,
-            'reference'      => 'M' . now()->year . '-' . str_pad(fake()->unique()->numberBetween(1, 999), 3, '0', STR_PAD_LEFT),
-            'prix_ht'        => fake()->randomFloat(2, 50000, 500000),
-            'date_debut'     => $debut->format('Y-m-d'),
-            'date_fin'       => $fin->format('Y-m-d'),
-            'statut'         => 'en_cours',
-            'notes'          => null,
+            'entreprise_id' => Entreprise::factory()->client(),
+            'exercice_id' => Exercice::factory(),
+            'prestation_id' => Prestation::first()?->id ?? 1,
+            'reference' => 'M'.now()->year.'-'.str_pad(fake()->unique()->numberBetween(1, 999), 3, '0', STR_PAD_LEFT),
+            'prix_ht' => fake()->randomFloat(2, 50000, 500000),
+            'date_debut' => $debut->format('Y-m-d'),
+            'date_fin' => $fin->format('Y-m-d'),
+            'statut' => 'en_cours',
+            'notes' => null,
         ];
     }
 

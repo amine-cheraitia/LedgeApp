@@ -44,23 +44,40 @@ npm run dev                # http://localhost:5173
 
 `admin@ledge.dz` / `password`
 
+## Tests
+
+```bash
+# Backend (depuis backend/)
+php artisan test              # 28 tests PHPUnit sur SQLite :memory:
+
+# Frontend (depuis frontend/)
+npm run test                  # 18 tests Vitest
+npm run test:watch            # mode watch
+```
+
 ## Modules
 
 | Module | Statut |
 |---|---|
 | Auth + Roles (Sanctum + Spatie) | Fait |
-| Entreprises (CRUD) | Fait |
-| Exercices fiscaux | Fait |
-| Prestations (grille tarifaire) | Fait |
-| Parametres (Settings) | Fait |
-| Utilisateurs (CRUD + roles) | Fait |
-| Facturation (devis, factures, avoirs, PDF) | A faire |
-| Missions / Planning (FullCalendar) | A faire |
-| Paiements + Creances | A faire |
+| Entreprises (CRUD + composables) | Fait |
+| Exercices fiscaux (CRUD + composables) | Fait |
+| Prestations (grille tarifaire + composable) | Fait |
+| Parametres (Settings + composable) | Fait |
+| Utilisateurs (CRUD + composables) | Fait |
+| Devis (CRUD + lignes dynamiques + conversion en mission) | Fait |
+| Missions (CRUD + calcul prix HT + bascule prospect→client) | Fait |
+| Taches (CRUD nested sous missions + statut inline) | Fait |
+| Factures (CRUD + snapshots TVA/timbre + lien mission) | Fait |
+| Paiements (enregistrement + statut auto) | Fait |
+| Tests backend (PHPUnit — 38 tests) | Fait |
+| Tests frontend (Vitest — 27 tests) | Fait |
+| CI/CD GitHub Actions | Fait |
+| Generation PDF (DomPDF) | A faire |
+| Avoirs (FA) | A faire |
 | Relances (auto + manuelles) | A faire |
 | Portail client | A faire |
 | KPI / Dashboard | A faire |
-| Tests | A faire |
 
 ## Documentation
 

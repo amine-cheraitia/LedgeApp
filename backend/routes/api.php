@@ -1,13 +1,18 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\Entreprises\EntrepriseController;
 use App\Http\Controllers\Exercices\ExerciceController;
+use App\Http\Controllers\Facturation\DevisController;
+use App\Http\Controllers\Facturation\FactureController;
+use App\Http\Controllers\Facturation\PaiementController;
+use App\Http\Controllers\Planning\MissionController;
+use App\Http\Controllers\Planning\TacheCommentaireController;
+use App\Http\Controllers\Planning\TacheController;
 use App\Http\Controllers\Prestations\PrestationController;
 use App\Http\Controllers\Settings\SettingController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,7 +26,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
-    // Routes authentifiées
+    // Routes authentifiees
     Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/me', [AuthController::class, 'me']);
@@ -47,6 +52,23 @@ Route::prefix('v1')->group(function () {
             // Settings (admin uniquement)
             Route::get('settings', [SettingController::class, 'index']);
             Route::put('settings', [SettingController::class, 'update']);
+
+            // Planning — Missions
+            Route::apiResource('missions', MissionController::class);
+            Route::apiResource('missions.taches', TacheController::class)->except(['show'])->parameters(['taches' => 'tache']);
+            Route::apiResource('taches.commentaires', TacheCommentaireController::class)->except(['show'])->parameters(['commentaires' => 'commentaire']);
+
+            // Facturation — Devis
+            Route::post('devis/{devi}/convertir-en-mission', [DevisController::class, 'convertirEnMission']);
+            Route::apiResource('devis', DevisController::class);
+
+            // Facturation — Factures
+            Route::apiResource('factures', FactureController::class)->except(['update']);
+
+            // Facturation — Paiements (nested sous factures)
+            Route::get('factures/{facture}/paiements', [PaiementController::class, 'index']);
+            Route::post('factures/{facture}/paiements', [PaiementController::class, 'store']);
+            Route::delete('factures/{facture}/paiements/{paiement}', [PaiementController::class, 'destroy']);
         });
 
         // Portail client

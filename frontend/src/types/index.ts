@@ -65,6 +65,132 @@ export interface Setting {
   label: string | null
 }
 
+export interface Mission {
+  id: number
+  entreprise_id: number
+  exercice_id: number
+  prestation_id: number
+  reference: string
+  prix_ht: number
+  date_debut: string
+  date_fin: string | null
+  statut: 'en_cours' | 'terminee' | 'suspendue' | 'annulee'
+  notes: string | null
+  entreprise?: Entreprise
+  exercice?: Exercice
+  prestation?: Prestation
+  collaborateurs?: User[]
+  taches?: Tache[]
+  factures?: Facture[]
+  created_at: string
+  updated_at: string
+}
+
+export interface Tache {
+  id: number
+  mission_id: number
+  assigned_to: number | null
+  titre: string
+  description: string | null
+  statut: 'a_faire' | 'en_cours' | 'terminee' | 'bloquee'
+  date_echeance: string | null
+  priorite: number
+  assignee?: User
+  created_at: string
+  updated_at: string
+}
+
+export interface DevisLigne {
+  id?: number
+  devis_id?: number
+  prestation_id: number | null
+  designation: string
+  quantite: number
+  prix_unitaire_ht: number
+  total_ht: number
+  ordre: number
+  prestation?: Prestation
+}
+
+export interface Devis {
+  id: number
+  entreprise_id: number
+  exercice_id: number
+  created_by: number
+  numero: string
+  date_devis: string
+  date_validite: string
+  montant_ht: number
+  montant_tva: number
+  montant_timbre: number
+  montant_ttc: number
+  statut: 'brouillon' | 'envoye' | 'accepte' | 'refuse' | 'expire'
+  notes: string | null
+  entreprise?: Entreprise
+  exercice?: Exercice
+  lignes?: DevisLigne[]
+  created_at: string
+  updated_at: string
+}
+
+export interface FactureLigne {
+  id?: number
+  facture_id?: number
+  prestation_id: number | null
+  designation: string
+  quantite: number
+  prix_unitaire_ht: number
+  total_ht: number
+  ordre: number
+  prestation?: Prestation
+}
+
+export interface Facture {
+  id: number
+  entreprise_id: number
+  exercice_id: number
+  mission_id: number | null
+  devis_id: number | null
+  created_by: number
+  tva_rate_id: number | null
+  timbre_rate_id: number | null
+  numero: string
+  type: 'FF' | 'FA'
+  facture_origine_id: number | null
+  date_facture: string
+  date_echeance: string
+  montant_ht: number
+  taux_tva: number
+  montant_tva: number
+  montant_timbre: number
+  montant_ttc: number
+  montant_paye: number
+  statut_paiement: 'en_attente' | 'partiel' | 'solde'
+  pdf_path: string | null
+  notes: string | null
+  entreprise?: Entreprise
+  exercice?: Exercice
+  mission?: Mission
+  lignes?: FactureLigne[]
+  paiements?: Paiement[]
+  created_at: string
+  updated_at: string
+}
+
+export interface Paiement {
+  id: number
+  facture_id: number
+  recorded_by: number
+  montant: number
+  date_paiement: string
+  mode_paiement: 'virement' | 'cheque' | 'espece' | 'autre'
+  reference: string | null
+  notes: string | null
+  facture?: Facture
+  created_at: string
+  updated_at: string
+}
+
 export interface PaginatedResponse<T> {
   data: T[]
   meta: {
