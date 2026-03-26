@@ -10,8 +10,8 @@ use App\Models\Exercice;
 use App\Models\Facture;
 use App\Models\FactureLigne;
 use App\Models\Setting;
-use App\Models\TimbreRate;
-use App\Models\TvaRate;
+use App\Models\TimbreTaux;
+use App\Models\TvaTaux;
 use Illuminate\Support\Facades\DB;
 
 class FacturationService
@@ -57,11 +57,11 @@ class FacturationService
 
             $montantHt = collect($lignes)->sum(fn (array $l) => $l['quantite'] * $l['prix_unitaire_ht']);
 
-            $tvaRate = TvaRate::enVigueurLe($data['date_devis']);
-            $timbreRate = TimbreRate::enVigueurLe($data['date_devis']);
+            $tvaTaux = TvaTaux::enVigueurLe($data['date_devis']);
+            $timbreTaux = TimbreTaux::enVigueurLe($data['date_devis']);
 
-            $montantTva = $tvaRate ? round($montantHt * (float) $tvaRate->taux / 100, 2) : 0;
-            $montantTimbre = $timbreRate ? $timbreRate->calculer($montantHt) : 0;
+            $montantTva = $tvaTaux ? round($montantHt * (float) $tvaTaux->taux / 100, 2) : 0;
+            $montantTimbre = $timbreTaux ? $timbreTaux->calculer($montantHt) : 0;
             $montantTtc = round($montantHt + $montantTva + $montantTimbre, 2);
 
             $devis = Devis::create([
@@ -111,12 +111,12 @@ class FacturationService
             $montantHt = collect($lignes)->sum(fn (array $l) => $l['quantite'] * $l['prix_unitaire_ht']);
 
             $dateFacture = $data['date_facture'];
-            $tvaRate = TvaRate::enVigueurLe($dateFacture);
-            $timbreRate = TimbreRate::enVigueurLe($dateFacture);
+            $tvaTaux = TvaTaux::enVigueurLe($dateFacture);
+            $timbreTaux = TimbreTaux::enVigueurLe($dateFacture);
 
-            $tauxTva = $tvaRate ? (float) $tvaRate->taux : 0;
+            $tauxTva = $tvaTaux ? (float) $tvaTaux->taux : 0;
             $montantTva = round($montantHt * $tauxTva / 100, 2);
-            $montantTimbre = $timbreRate ? $timbreRate->calculer($montantHt) : 0;
+            $montantTimbre = $timbreTaux ? $timbreTaux->calculer($montantHt) : 0;
             $montantTtc = round($montantHt + $montantTva + $montantTimbre, 2);
 
             $facture = Facture::create([
@@ -125,8 +125,8 @@ class FacturationService
                 'mission_id' => $data['mission_id'] ?? null,
                 'devis_id' => $data['devis_id'] ?? null,
                 'created_by' => $userId,
-                'tva_rate_id' => $tvaRate?->id,
-                'timbre_rate_id' => $timbreRate?->id,
+                'tva_taux_id' => $tvaTaux?->id,
+                'timbre_taux_id' => $timbreTaux?->id,
                 'numero' => $this->genererNumero($prefixe, 'factures', $exercice),
                 'type' => $type,
                 'facture_origine_id' => $data['facture_origine_id'] ?? null,

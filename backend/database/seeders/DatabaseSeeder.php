@@ -13,7 +13,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             SettingsSeeder::class,
             ExerciceSeeder::class,
-            TvaRatesSeeder::class,
+            TvaTauxSeeder::class,
             PrestationsSeeder::class,
         ]);
     }

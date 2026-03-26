@@ -5,9 +5,9 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
-class TimbreRate extends Model
+class TimbreTaux extends Model
 {
-    protected $table = 'timbre_rates';
+    protected $table = 'timbre_taux';
 
     protected $fillable = ['taux', 'plafond', 'designation', 'date_debut', 'date_fin', 'actif'];
 

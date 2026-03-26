@@ -5,9 +5,9 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
-class TvaRate extends Model
+class TvaTaux extends Model
 {
-    protected $table = 'tva_rates';
+    protected $table = 'tva_taux';
 
     protected $fillable = ['taux', 'designation', 'date_debut', 'date_fin', 'type', 'actif'];
 

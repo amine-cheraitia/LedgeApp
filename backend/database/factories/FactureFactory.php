@@ -21,8 +21,8 @@ class FactureFactory extends Factory
             'entreprise_id' => Entreprise::factory(),
             'exercice_id' => Exercice::factory(),
             'created_by' => User::factory(),
-            'tva_rate_id' => null, // set in tests
-            'timbre_rate_id' => null, // set in tests
+            'tva_taux_id' => null, // set in tests
+            'timbre_taux_id' => null, // set in tests
             'numero' => 'FF'.now()->year.'-'.str_pad(fake()->unique()->numberBetween(1, 999), 3, '0', STR_PAD_LEFT),
             'type' => 'FF',
             'date_facture' => now()->toDateString(),

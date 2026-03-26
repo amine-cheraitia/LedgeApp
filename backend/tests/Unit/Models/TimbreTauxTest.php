@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Models;
 
-use App\Models\TimbreRate;
+use App\Models\TimbreTaux;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class TimbreRateTest extends TestCase
+class TimbreTauxTest extends TestCase
 {
     use RefreshDatabase;
 
     public function test_calculates_timbre_correctly(): void
     {
-        $timbre = TimbreRate::create([
+        $timbre = TimbreTaux::create([
             'taux' => 1,
             'plafond' => 2500,
             'designation' => 'Timbre fiscal',
@@ -31,7 +31,7 @@ class TimbreRateTest extends TestCase
 
     public function test_returns_correct_rate_for_date(): void
     {
-        TimbreRate::create([
+        TimbreTaux::create([
             'taux' => 1,
             'plafond' => 2500,
             'designation' => 'Timbre',
@@ -39,14 +39,14 @@ class TimbreRateTest extends TestCase
             'actif' => true,
         ]);
 
-        $rate = TimbreRate::enVigueurLe('2026-03-25');
+        $rate = TimbreTaux::enVigueurLe('2026-03-25');
         $this->assertNotNull($rate);
         $this->assertEquals(1, (float) $rate->taux);
     }
 
     public function test_returns_null_before_any_rate(): void
     {
-        TimbreRate::create([
+        TimbreTaux::create([
             'taux' => 1,
             'plafond' => 2500,
             'designation' => 'Timbre',
@@ -54,7 +54,7 @@ class TimbreRateTest extends TestCase
             'actif' => true,
         ]);
 
-        $rate = TimbreRate::enVigueurLe('2020-01-01');
+        $rate = TimbreTaux::enVigueurLe('2020-01-01');
         $this->assertNull($rate);
     }
 }

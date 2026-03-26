@@ -5,11 +5,11 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
-class TvaRatesSeeder extends Seeder
+class TvaTauxSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('tva_rates')->updateOrInsert(
+        DB::table('tva_taux')->updateOrInsert(
             ['taux' => 19.00, 'type' => 'standard'],
             [
                 'taux' => 19.00,
@@ -23,7 +23,7 @@ class TvaRatesSeeder extends Seeder
             ]
         );
 
-        DB::table('tva_rates')->updateOrInsert(
+        DB::table('tva_taux')->updateOrInsert(
             ['taux' => 9.00, 'type' => 'reduit'],
             [
                 'taux' => 9.00,
@@ -37,7 +37,7 @@ class TvaRatesSeeder extends Seeder
             ]
         );
 
-        DB::table('timbre_rates')->updateOrInsert(
+        DB::table('timbre_taux')->updateOrInsert(
             ['taux' => 1.00],
             [
                 'taux' => 1.00,
