@@ -65,8 +65,11 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('taches.commentaires', TacheCommentaireController::class)->except(['show'])->parameters(['commentaires' => 'commentaire']);
 
             // Facturation — Devis
-            Route::post('devis/{devi}/convertir-en-mission', [DevisController::class, 'convertirEnMission']);
-            Route::apiResource('devis', DevisController::class);
+            Route::post('devis/{devis}/envoyer', [DevisController::class, 'envoyer']);
+            Route::post('devis/{devis}/accepter', [DevisController::class, 'accepter']);
+            Route::post('devis/{devis}/refuser', [DevisController::class, 'refuser']);
+            Route::post('devis/{devis}/convertir-en-mission', [DevisController::class, 'convertirEnMission']);
+            Route::apiResource('devis', DevisController::class)->parameters(['devis' => 'devis']);
 
             // Facturation — Factures
             Route::apiResource('factures', FactureController::class)->except(['update']);

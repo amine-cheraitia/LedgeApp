@@ -189,11 +189,59 @@ class DevisApiTest extends TestCase
 
         $devisId = $createResponse->json('data.id');
 
-        $this->actingAs($this->admin)->putJson("/api/v1/devis/{$devisId}", ['statut' => 'envoye']);
+        $this->actingAs($this->admin)->postJson("/api/v1/devis/{$devisId}/envoyer");
 
         $response = $this->actingAs($this->admin)->deleteJson("/api/v1/devis/{$devisId}");
 
         $response->assertStatus(409);
+    }
+
+    public function test_workflow_envoyer_accepter_refuser(): void
+    {
+        $devisId = $this->actingAs($this->admin)->postJson('/api/v1/devis', [
+            'entreprise_id' => $this->entreprise->id,
+            'prestation_id' => $this->prestation->id,
+            'date_devis' => '2026-03-31',
+            'date_validite' => '2026-04-30',
+        ])->json('data.id');
+
+        // Envoyer
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId}/envoyer")
+            ->assertStatus(200)
+            ->assertJsonPath('data.statut', 'envoye');
+
+        // Ne peut pas accepter un devis non envoye (deja envoye ici, tester avec brouillon)
+        $devisId2 = $this->actingAs($this->admin)->postJson('/api/v1/devis', [
+            'entreprise_id' => $this->entreprise->id,
+            'prestation_id' => $this->prestation->id,
+            'date_devis' => '2026-03-31',
+            'date_validite' => '2026-04-30',
+        ])->json('data.id');
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId2}/accepter")
+            ->assertStatus(409);
+
+        // Accepter le premier devis (envoye)
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId}/accepter")
+            ->assertStatus(200)
+            ->assertJsonPath('data.statut', 'accepte');
+
+        // Tester refuser sur un devis envoye
+        $devisId3 = $this->actingAs($this->admin)->postJson('/api/v1/devis', [
+            'entreprise_id' => $this->entreprise->id,
+            'prestation_id' => $this->prestation->id,
+            'date_devis' => '2026-03-31',
+            'date_validite' => '2026-04-30',
+        ])->json('data.id');
+
+        $this->actingAs($this->admin)->postJson("/api/v1/devis/{$devisId3}/envoyer");
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId3}/refuser")
+            ->assertStatus(200)
+            ->assertJsonPath('data.statut', 'refuse');
     }
 
     public function test_numerotation_sequentielle(): void
