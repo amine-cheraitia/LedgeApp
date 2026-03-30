@@ -9,19 +9,12 @@ export interface DevisFilters {
   statut?: string
 }
 
-export interface DevisLignePayload {
-  prestation_id?: number | null
-  designation: string
-  quantite: number
-  prix_unitaire_ht: number
-}
-
 export interface DevisPayload {
   entreprise_id: number
+  prestation_id: number
   date_devis: string
   date_validite: string
   notes?: string | null
-  lignes: DevisLignePayload[]
 }
 
 export const devisApi = {

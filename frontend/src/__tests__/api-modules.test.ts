@@ -93,9 +93,9 @@ describe('devisApi', () => {
   it('create calls POST /devis with payload', async () => {
     const payload = {
       entreprise_id: 1,
+      prestation_id: 1,
       date_devis: '2026-03-25',
       date_validite: '2026-04-25',
-      lignes: [{ designation: 'Test', quantite: 1, prix_unitaire_ht: 10000 }],
     }
     mockPost.mockResolvedValue({ data: { data: { id: 1, numero: 'DV2026-001' } } })
 

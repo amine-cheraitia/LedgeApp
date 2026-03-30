@@ -106,26 +106,16 @@ export interface Tache {
   updated_at: string
 }
 
-export interface DevisLigne {
-  id?: number
-  devis_id?: number
-  prestation_id: number | null
-  designation: string
-  quantite: number
-  prix_unitaire_ht: number
-  total_ht: number
-  ordre: number
-  prestation?: Prestation
-}
-
 export interface Devis {
   id: number
   entreprise_id: number
+  prestation_id: number
   exercice_id: number
   created_by: number
   numero: string
   date_devis: string
   date_validite: string
+  prix_ht: number
   montant_ht: number
   montant_tva: number
   montant_timbre: number
@@ -133,8 +123,7 @@ export interface Devis {
   statut: 'brouillon' | 'envoye' | 'accepte' | 'refuse' | 'expire'
   notes: string | null
   entreprise?: Entreprise
-  exercice?: Exercice
-  lignes?: DevisLigne[]
+  prestation?: Prestation
   created_at: string
   updated_at: string
 }
