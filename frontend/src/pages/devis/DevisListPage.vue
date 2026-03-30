@@ -4,7 +4,6 @@ import { useConfirm } from 'primevue/useconfirm'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
@@ -14,8 +13,8 @@ import Textarea from 'primevue/textarea'
 import ConfirmDialog from 'primevue/confirmdialog'
 import { useDevis } from '@/composables/useDevis'
 import { useEntreprises } from '@/composables/useEntreprises'
+import { usePrestations } from '@/composables/usePrestations'
 import type { Devis } from '@/types'
-import type { DevisLignePayload } from '@/api/modules/devis'
 
 const confirm = useConfirm()
 const {
@@ -25,6 +24,7 @@ const {
 } = useDevis()
 
 const { entreprises, fetchEntreprises } = useEntreprises()
+const { prestations, fetchPrestations } = usePrestations()
 
 const search = ref('')
 const dialogVisible = ref(false)
@@ -32,10 +32,10 @@ const saving = ref(false)
 
 const form = reactive({
   entreprise_id: null as number | null,
+  prestation_id: null as number | null,
   date_devis: null as Date | null,
   date_validite: null as Date | null,
   notes: '',
-  lignes: [{ designation: '', quantite: 1, prix_unitaire_ht: 0, prestation_id: null }] as (DevisLignePayload & { prestation_id: number | null })[],
 })
 
 function toIsoDate(d: Date | null): string {
@@ -60,31 +60,23 @@ function statutColor(statut: string) {
 
 function openCreate() {
   form.entreprise_id = null
+  form.prestation_id = null
   form.date_devis = null
   form.date_validite = null
   form.notes = ''
-  form.lignes = [{ designation: '', quantite: 1, prix_unitaire_ht: 0, prestation_id: null }]
   dialogVisible.value = true
 }
 
-function addLigne() {
-  form.lignes.push({ designation: '', quantite: 1, prix_unitaire_ht: 0, prestation_id: null })
-}
-
-function removeLigne(index: number) {
-  if (form.lignes.length > 1) form.lignes.splice(index, 1)
-}
-
 async function onSubmit() {
-  if (!form.entreprise_id || !form.date_devis || !form.date_validite) return
+  if (!form.entreprise_id || !form.prestation_id || !form.date_devis || !form.date_validite) return
   saving.value = true
   try {
     await createDevis({
       entreprise_id: form.entreprise_id,
+      prestation_id: form.prestation_id,
       date_devis: toIsoDate(form.date_devis),
       date_validite: toIsoDate(form.date_validite),
       notes: form.notes || null,
-      lignes: form.lignes,
     })
     dialogVisible.value = false
   } catch {
@@ -112,6 +104,7 @@ function handleSearch() {
 onMounted(() => {
   fetchDevis()
   fetchEntreprises()
+  fetchPrestations()
 })
 </script>
 
@@ -148,10 +141,15 @@ onMounted(() => {
           {{ data.entreprise?.raison_sociale ?? '-' }}
         </template>
       </Column>
-      <Column field="date_devis" header="Date" />
-      <Column header="Montant HT (DA)">
+      <Column header="Prestation">
         <template #body="{ data }">
-          {{ formatMontant(data.montant_ht) }}
+          {{ data.prestation?.designation ?? '-' }}
+        </template>
+      </Column>
+      <Column field="date_devis" header="Date" />
+      <Column header="Prix HT (DA)">
+        <template #body="{ data }">
+          {{ formatMontant(data.prix_ht) }}
         </template>
       </Column>
       <Column header="Montant TTC (DA)">
@@ -192,23 +190,34 @@ onMounted(() => {
       v-model:visible="dialogVisible"
       header="Nouveau devis"
       :modal="true"
-      :style="{ width: '44rem' }"
+      :style="{ width: '36rem' }"
     >
       <form @submit.prevent="onSubmit" class="dialog-form">
-        <div class="form-row">
-          <div class="form-field">
-            <label for="dv-entreprise">Entreprise *</label>
-            <Select
-              id="dv-entreprise"
-              v-model="form.entreprise_id"
-              :options="entreprises"
-              optionLabel="raison_sociale"
-              optionValue="id"
-              placeholder="Selectionner..."
-              filter
-              fluid
-            />
-          </div>
+        <div class="form-field">
+          <label for="dv-entreprise">Entreprise *</label>
+          <Select
+            id="dv-entreprise"
+            v-model="form.entreprise_id"
+            :options="entreprises"
+            optionLabel="raison_sociale"
+            optionValue="id"
+            placeholder="Selectionner..."
+            filter
+            fluid
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="dv-prestation">Prestation *</label>
+          <Select
+            id="dv-prestation"
+            v-model="form.prestation_id"
+            :options="prestations"
+            optionLabel="designation"
+            optionValue="id"
+            placeholder="Selectionner..."
+            fluid
+          />
         </div>
 
         <div class="form-row">
@@ -220,33 +229,6 @@ onMounted(() => {
             <label for="dv-validite">Date validite *</label>
             <DatePicker id="dv-validite" v-model="form.date_validite" dateFormat="dd/mm/yy" fluid />
           </div>
-        </div>
-
-        <div class="lignes-section">
-          <h4>Lignes</h4>
-          <div v-for="(ligne, i) in form.lignes" :key="i" class="ligne-row">
-            <div class="form-field" style="flex: 2">
-              <label :for="'lg-des-' + i" class="sr-only">Designation</label>
-              <InputText :id="'lg-des-' + i" v-model="ligne.designation" placeholder="Designation" fluid />
-            </div>
-            <div class="form-field" style="flex: 0.5">
-              <label :for="'lg-qty-' + i" class="sr-only">Quantite</label>
-              <InputNumber :id="'lg-qty-' + i" v-model="ligne.quantite" :min="0.01" :minFractionDigits="0" :maxFractionDigits="2" placeholder="Qte" fluid />
-            </div>
-            <div class="form-field" style="flex: 1">
-              <label :for="'lg-prix-' + i" class="sr-only">Prix unitaire HT</label>
-              <InputNumber :id="'lg-prix-' + i" v-model="ligne.prix_unitaire_ht" :min="0" mode="decimal" :minFractionDigits="2" placeholder="Prix HT" fluid />
-            </div>
-            <Button
-              icon="pi pi-times"
-              text
-              severity="danger"
-              aria-label="Supprimer la ligne"
-              @click="removeLigne(i)"
-              :disabled="form.lignes.length <= 1"
-            />
-          </div>
-          <Button label="Ajouter une ligne" icon="pi pi-plus" text severity="info" @click="addLigne" />
         </div>
 
         <div class="form-field">
@@ -276,12 +258,9 @@ onMounted(() => {
 .form-field { display: flex; flex-direction: column; gap: 0.25rem; flex: 1; }
 .form-field label { font-size: 0.875rem; font-weight: 500; }
 .form-row { display: flex; gap: 0.75rem; }
-.lignes-section { display: flex; flex-direction: column; gap: 0.5rem; }
-.lignes-section h4 { margin: 0; font-size: 0.95rem; }
-.ligne-row { display: flex; gap: 0.5rem; align-items: flex-end; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
 
 @media (max-width: 640px) {
-  .form-row, .ligne-row { flex-direction: column; }
+  .form-row { flex-direction: column; }
 }
 </style>
