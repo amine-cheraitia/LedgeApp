@@ -42,7 +42,6 @@ const roleOptions = [
   { label: 'Admin', value: 'admin' },
   { label: 'Collaborateur', value: 'collaborateur' },
   { label: 'Secretaire', value: 'secretaire' },
-  { label: 'Client', value: 'client' },
 ]
 
 function roleColor(role: string) {
