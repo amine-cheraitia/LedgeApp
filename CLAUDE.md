@@ -115,10 +115,14 @@ VITE_API_URL=http://localhost:8000
 ```
 main      <- production stable (jamais de push direct)
 develop   <- integration
-feature/* <- une branche par module (depuis develop)
+feature/* <- UNE branche par US/fonctionnalite (depuis develop)
 fix/*     <- hotfix (depuis main, merge double main+develop)
 ```
 
+- **Regle absolue : une branche = une seule fonctionnalite**
+  - `feature/creation-facture` — pas `feature/facturation` qui regroupe N features
+  - Nommage : `feature/{slug-fonctionnalite}` ex: `feature/creation-facture`, `feature/pdf-devis`
+  - Jamais regrouper plusieurs fonctionnalites dans une meme branche feature
 - Conventional Commits : `feat(module):`, `fix(module):`, `chore(module):`
 - Toute modification passe par une PR avec le template RNCP
 - CHANGELOG.md mis a jour avant chaque merge vers main
