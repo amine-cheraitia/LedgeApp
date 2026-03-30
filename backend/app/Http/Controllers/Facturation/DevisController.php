@@ -60,48 +60,91 @@ class DevisController extends Controller
         }
 
         $validated = $request->validate([
-            'statut' => ['sometimes', 'in:brouillon,envoye,accepte,refuse,expire'],
             'notes' => ['nullable', 'string'],
             'date_validite' => ['sometimes', 'date'],
         ]);
 
         $devis->update($validated);
 
-        return new DevisResource($devis->load('lignes', 'entreprise'));
+        return new DevisResource($devis->load('prestation', 'entreprise'));
+    }
+
+    /**
+     * Marque un devis brouillon comme envoye.
+     */
+    public function envoyer(Devis $devis): DevisResource|JsonResponse
+    {
+        if ($devis->statut !== 'brouillon') {
+            return response()->json([
+                'message' => 'Seuls les devis en brouillon peuvent etre envoyes.',
+            ], 409);
+        }
+
+        $devis->update(['statut' => 'envoye']);
+
+        return new DevisResource($devis->load('prestation', 'entreprise'));
+    }
+
+    /**
+     * Marque un devis envoye comme accepte.
+     */
+    public function accepter(Devis $devis): DevisResource|JsonResponse
+    {
+        if ($devis->statut !== 'envoye') {
+            return response()->json([
+                'message' => 'Seuls les devis envoyes peuvent etre acceptes.',
+            ], 409);
+        }
+
+        $devis->update(['statut' => 'accepte']);
+
+        return new DevisResource($devis->load('prestation', 'entreprise'));
+    }
+
+    /**
+     * Marque un devis envoye comme refuse.
+     */
+    public function refuser(Devis $devis): DevisResource|JsonResponse
+    {
+        if ($devis->statut !== 'envoye') {
+            return response()->json([
+                'message' => 'Seuls les devis envoyes peuvent etre refuses.',
+            ], 409);
+        }
+
+        $devis->update(['statut' => 'refuse']);
+
+        return new DevisResource($devis->load('prestation', 'entreprise'));
     }
 
     /**
      * Convertit un devis accepte en mission.
+     * La prestation et l'entreprise viennent du devis — pas de resaisie.
      */
     public function convertirEnMission(Request $request, Devis $devis): MissionResource|JsonResponse
     {
-        if (! in_array($devis->statut, ['accepte', 'envoye'])) {
+        if ($devis->statut !== 'accepte') {
             return response()->json([
-                'message' => 'Seuls les devis envoyes ou acceptes peuvent etre convertis en mission.',
+                'message' => 'Seuls les devis acceptes peuvent etre convertis en mission.',
             ], 409);
         }
 
         $validated = $request->validate([
-            'prestation_id' => ['required', 'integer', 'exists:prestations,id'],
             'date_debut' => ['required', 'date'],
-            'date_fin' => ['required', 'date', 'after_or_equal:date_debut'],
+            'date_fin' => ['nullable', 'date', 'after_or_equal:date_debut'],
             'collaborateur_ids' => ['nullable', 'array'],
             'collaborateur_ids.*' => ['integer', 'exists:users,id'],
         ]);
 
         $mission = $this->missionService->creerMission([
             'entreprise_id' => $devis->entreprise_id,
-            'prestation_id' => $validated['prestation_id'],
+            'prestation_id' => $devis->prestation_id,
             'devis_id' => $devis->id,
             'date_debut' => $validated['date_debut'],
-            'date_fin' => $validated['date_fin'],
+            'date_fin' => $validated['date_fin'] ?? null,
             'collaborateur_ids' => $validated['collaborateur_ids'] ?? [],
             'notes' => 'Genere depuis devis '.$devis->numero,
         ]);
-
-        if ($devis->statut === 'envoye') {
-            $devis->update(['statut' => 'accepte']);
-        }
 
         return new MissionResource($mission);
     }

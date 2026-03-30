@@ -17,6 +17,12 @@ export interface DevisPayload {
   notes?: string | null
 }
 
+export interface ConvertirEnMissionPayload {
+  date_debut: string
+  date_fin?: string | null
+  collaborateur_ids?: number[]
+}
+
 export const devisApi = {
   getAll(params?: DevisFilters): Promise<PaginatedResponse<Devis>> {
     return api.get('/devis', { params }).then(r => r.data)
@@ -30,8 +36,24 @@ export const devisApi = {
     return api.post('/devis', data).then(r => r.data)
   },
 
-  update(id: number, data: Partial<{ statut: string; notes: string; date_validite: string }>): Promise<{ data: Devis }> {
+  update(id: number, data: Partial<{ notes: string; date_validite: string }>): Promise<{ data: Devis }> {
     return api.put(`/devis/${id}`, data).then(r => r.data)
+  },
+
+  envoyer(id: number): Promise<{ data: Devis }> {
+    return api.post(`/devis/${id}/envoyer`).then(r => r.data)
+  },
+
+  accepter(id: number): Promise<{ data: Devis }> {
+    return api.post(`/devis/${id}/accepter`).then(r => r.data)
+  },
+
+  refuser(id: number): Promise<{ data: Devis }> {
+    return api.post(`/devis/${id}/refuser`).then(r => r.data)
+  },
+
+  convertirEnMission(id: number, data: ConvertirEnMissionPayload): Promise<{ data: any }> {
+    return api.post(`/devis/${id}/convertir-en-mission`, data).then(r => r.data)
   },
 
   delete(id: number): Promise<void> {

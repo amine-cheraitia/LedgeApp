@@ -8,34 +8,49 @@ import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
+import MultiSelect from 'primevue/multiselect'
 import DatePicker from 'primevue/datepicker'
 import Textarea from 'primevue/textarea'
 import ConfirmDialog from 'primevue/confirmdialog'
 import { useDevis } from '@/composables/useDevis'
 import { useEntreprises } from '@/composables/useEntreprises'
 import { usePrestations } from '@/composables/usePrestations'
+import { useUsers } from '@/composables/useUsers'
 import type { Devis } from '@/types'
 
 const confirm = useConfirm()
 const {
   devisList, loading, totalRecords, filters,
-  fetchDevis, createDevis, updateDevisStatut, deleteDevis,
-  onPage, onSearch,
+  fetchDevis, createDevis, envoyerDevis, accepterDevis, refuserDevis,
+  convertirDevisEnMission, deleteDevis, onPage, onSearch,
 } = useDevis()
 
 const { entreprises, fetchEntreprises } = useEntreprises()
 const { prestations, fetchPrestations } = usePrestations()
+const { users, fetchUsers } = useUsers()
 
 const search = ref('')
+
+// Dialog creation devis
 const dialogVisible = ref(false)
 const saving = ref(false)
-
 const form = reactive({
   entreprise_id: null as number | null,
   prestation_id: null as number | null,
   date_devis: null as Date | null,
   date_validite: null as Date | null,
   notes: '',
+})
+
+// Dialog conversion en mission
+const conversionVisible = ref(false)
+const converting = ref(false)
+const conversionDevisId = ref<number | null>(null)
+const conversionDevisNumero = ref('')
+const conversionForm = reactive({
+  date_debut: null as Date | null,
+  date_fin: null as Date | null,
+  collaborateur_ids: [] as number[],
 })
 
 function toIsoDate(d: Date | null): string {
@@ -86,6 +101,32 @@ async function onSubmit() {
   }
 }
 
+function openConversion(devis: Devis) {
+  conversionDevisId.value = devis.id
+  conversionDevisNumero.value = devis.numero
+  conversionForm.date_debut = null
+  conversionForm.date_fin = null
+  conversionForm.collaborateur_ids = []
+  conversionVisible.value = true
+}
+
+async function onConvertir() {
+  if (!conversionDevisId.value || !conversionForm.date_debut) return
+  converting.value = true
+  try {
+    await convertirDevisEnMission(conversionDevisId.value, {
+      date_debut: toIsoDate(conversionForm.date_debut),
+      date_fin: conversionForm.date_fin ? toIsoDate(conversionForm.date_fin) : null,
+      collaborateur_ids: conversionForm.collaborateur_ids,
+    })
+    conversionVisible.value = false
+  } catch {
+    // erreur geree par le composable
+  } finally {
+    converting.value = false
+  }
+}
+
 function confirmDelete(devis: Devis) {
   confirm.require({
     message: `Supprimer le devis "${devis.numero}" ?`,
@@ -105,6 +146,7 @@ onMounted(() => {
   fetchDevis()
   fetchEntreprises()
   fetchPrestations()
+  fetchUsers()
 })
 </script>
 
@@ -162,15 +204,17 @@ onMounted(() => {
           <Tag :value="data.statut" :severity="statutColor(data.statut)" />
         </template>
       </Column>
-      <Column header="Actions" style="width: 10rem">
+      <Column header="Actions" style="width: 14rem">
         <template #body="{ data }">
+          <!-- Brouillon : envoyer + supprimer -->
           <Button
             v-if="data.statut === 'brouillon'"
             icon="pi pi-send"
             text
             severity="info"
             aria-label="Envoyer"
-            @click="updateDevisStatut(data.id, 'envoye')"
+            v-tooltip.top="'Envoyer'"
+            @click="envoyerDevis(data.id)"
           />
           <Button
             v-if="data.statut === 'brouillon'"
@@ -178,7 +222,37 @@ onMounted(() => {
             text
             severity="danger"
             aria-label="Supprimer"
+            v-tooltip.top="'Supprimer'"
             @click="confirmDelete(data)"
+          />
+          <!-- Envoye : accepter + refuser -->
+          <Button
+            v-if="data.statut === 'envoye'"
+            icon="pi pi-check-circle"
+            text
+            severity="success"
+            aria-label="Accepter"
+            v-tooltip.top="'Accepter'"
+            @click="accepterDevis(data.id)"
+          />
+          <Button
+            v-if="data.statut === 'envoye'"
+            icon="pi pi-times-circle"
+            text
+            severity="danger"
+            aria-label="Refuser"
+            v-tooltip.top="'Refuser'"
+            @click="refuserDevis(data.id)"
+          />
+          <!-- Accepte : convertir en mission -->
+          <Button
+            v-if="data.statut === 'accepte'"
+            icon="pi pi-arrow-right"
+            text
+            severity="warn"
+            aria-label="Convertir en mission"
+            v-tooltip.top="'Convertir en mission'"
+            @click="openConversion(data)"
           />
         </template>
       </Column>
@@ -186,6 +260,7 @@ onMounted(() => {
 
     <ConfirmDialog />
 
+    <!-- Dialog creation devis -->
     <Dialog
       v-model:visible="dialogVisible"
       header="Nouveau devis"
@@ -239,6 +314,51 @@ onMounted(() => {
         <div class="dialog-actions">
           <Button label="Annuler" severity="secondary" text @click="dialogVisible = false" />
           <Button type="submit" label="Creer" icon="pi pi-check" :loading="saving" />
+        </div>
+      </form>
+    </Dialog>
+
+    <!-- Dialog conversion en mission -->
+    <Dialog
+      v-model:visible="conversionVisible"
+      :header="`Convertir ${conversionDevisNumero} en mission`"
+      :modal="true"
+      :style="{ width: '36rem' }"
+    >
+      <form @submit.prevent="onConvertir" class="dialog-form">
+        <div class="form-row">
+          <div class="form-field">
+            <label for="cv-debut">Date debut *</label>
+            <DatePicker id="cv-debut" v-model="conversionForm.date_debut" dateFormat="dd/mm/yy" fluid />
+          </div>
+          <div class="form-field">
+            <label for="cv-fin">Date fin</label>
+            <DatePicker id="cv-fin" v-model="conversionForm.date_fin" dateFormat="dd/mm/yy" fluid />
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="cv-collabs">Collaborateurs</label>
+          <MultiSelect
+            id="cv-collabs"
+            v-model="conversionForm.collaborateur_ids"
+            :options="users"
+            optionLabel="name"
+            optionValue="id"
+            placeholder="Selectionner des collaborateurs..."
+            fluid
+          />
+        </div>
+
+        <div class="dialog-actions">
+          <Button label="Annuler" severity="secondary" text @click="conversionVisible = false" />
+          <Button
+            type="submit"
+            label="Creer la mission"
+            icon="pi pi-arrow-right"
+            :loading="converting"
+            :disabled="!conversionForm.date_debut"
+          />
         </div>
       </form>
     </Dialog>

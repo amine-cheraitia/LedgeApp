@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { useToast } from 'primevue/usetoast'
-import { devisApi, type DevisFilters, type DevisPayload } from '@/api/modules/devis'
+import { devisApi, type DevisFilters, type DevisPayload, type ConvertirEnMissionPayload } from '@/api/modules/devis'
 import type { Devis } from '@/types'
 
 export function useDevis() {
@@ -33,9 +33,30 @@ export function useDevis() {
     return response.data
   }
 
-  async function updateDevisStatut(id: number, statut: string) {
-    const response = await devisApi.update(id, { statut })
-    toast.add({ severity: 'success', summary: 'Succes', detail: 'Statut mis a jour.', life: 3000 })
+  async function envoyerDevis(id: number) {
+    const response = await devisApi.envoyer(id)
+    toast.add({ severity: 'success', summary: 'Succes', detail: 'Devis envoye.', life: 3000 })
+    await fetchDevis()
+    return response.data
+  }
+
+  async function accepterDevis(id: number) {
+    const response = await devisApi.accepter(id)
+    toast.add({ severity: 'success', summary: 'Succes', detail: 'Devis accepte.', life: 3000 })
+    await fetchDevis()
+    return response.data
+  }
+
+  async function refuserDevis(id: number) {
+    const response = await devisApi.refuser(id)
+    toast.add({ severity: 'success', summary: 'Succes', detail: 'Devis refuse.', life: 3000 })
+    await fetchDevis()
+    return response.data
+  }
+
+  async function convertirDevisEnMission(id: number, data: ConvertirEnMissionPayload) {
+    const response = await devisApi.convertirEnMission(id, data)
+    toast.add({ severity: 'success', summary: 'Succes', detail: 'Mission creee depuis le devis.', life: 3000 })
     await fetchDevis()
     return response.data
   }
@@ -64,7 +85,10 @@ export function useDevis() {
     filters,
     fetchDevis,
     createDevis,
-    updateDevisStatut,
+    envoyerDevis,
+    accepterDevis,
+    refuserDevis,
+    convertirDevisEnMission,
     deleteDevis,
     onPage,
     onSearch,
