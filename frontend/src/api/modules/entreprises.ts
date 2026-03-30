@@ -28,4 +28,12 @@ export const entreprisesApi = {
   delete(id: number): Promise<void> {
     return api.delete(`/entreprises/${id}`)
   },
+
+  activerPortail(id: number, data: { name: string; email: string }) {
+    return api.post(`/entreprises/${id}/activer-portail`, data).then(r => r.data)
+  },
+
+  togglePortail(id: number) {
+    return api.post(`/entreprises/${id}/toggle-portail`).then(r => r.data)
+  },
 }

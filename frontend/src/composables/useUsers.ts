@@ -27,23 +27,40 @@ export function useUsers() {
   }
 
   async function createUser(data: UserPayload) {
-    const response = await usersApi.create(data)
-    toast.add({ severity: 'success', summary: 'Succes', detail: 'Utilisateur cree.', life: 3000 })
-    await fetchUsers()
-    return response.data
+    try {
+      const response = await usersApi.create(data)
+      toast.add({ severity: 'success', summary: 'Succes', detail: 'Utilisateur cree.', life: 3000 })
+      await fetchUsers()
+      return response.data
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Erreur lors de la creation.'
+      toast.add({ severity: 'error', summary: 'Erreur', detail: message, life: 5000 })
+      throw error
+    }
   }
 
   async function updateUser(id: number, data: Partial<UserPayload>) {
-    const response = await usersApi.update(id, data)
-    toast.add({ severity: 'success', summary: 'Succes', detail: 'Utilisateur mis a jour.', life: 3000 })
-    await fetchUsers()
-    return response.data
+    try {
+      const response = await usersApi.update(id, data)
+      toast.add({ severity: 'success', summary: 'Succes', detail: 'Utilisateur mis a jour.', life: 3000 })
+      await fetchUsers()
+      return response.data
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Erreur lors de la mise a jour.'
+      toast.add({ severity: 'error', summary: 'Erreur', detail: message, life: 5000 })
+      throw error
+    }
   }
 
   async function deleteUser(id: number) {
-    await usersApi.delete(id)
-    toast.add({ severity: 'success', summary: 'Succes', detail: 'Utilisateur supprime.', life: 3000 })
-    await fetchUsers()
+    try {
+      await usersApi.delete(id)
+      toast.add({ severity: 'success', summary: 'Succes', detail: 'Utilisateur supprime.', life: 3000 })
+      await fetchUsers()
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Erreur lors de la suppression.'
+      toast.add({ severity: 'error', summary: 'Erreur', detail: message, life: 5000 })
+    }
   }
 
   function onPage(event: { page: number }) {

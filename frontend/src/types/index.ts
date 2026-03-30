@@ -31,6 +31,12 @@ export interface Entreprise {
   notes: string | null
   missions_count?: number
   factures_count?: number
+  portail_user?: {
+    id: number
+    name: string
+    email: string
+    portail_actif: boolean
+  } | null
   created_at: string
   updated_at: string
 }

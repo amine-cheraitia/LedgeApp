@@ -22,14 +22,11 @@ api.interceptors.request.use(async (config) => {
 })
 
 // Intercepteur réponse : gestion erreurs globales
+// Les 401 sont gérés par le router guard (beforeEach) et fetchUser()
+// Ne JAMAIS faire window.location.href ici : ça recharge la page et vide Pinia
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      window.location.href = '/login'
-    }
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error)
 )
 
 export default api

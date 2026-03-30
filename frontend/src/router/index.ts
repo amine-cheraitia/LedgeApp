@@ -12,7 +12,7 @@ const router = createRouter({
     },
     {
       path: '/',
-      component: () => import('@/layouts/AdminLayout.vue'),
+      component: () => import('@/layout/AppLayout.vue'),
       meta: { requiresAuth: true, backoffice: true },
       children: [
         {
@@ -69,7 +69,7 @@ const router = createRouter({
     },
     {
       path: '/portail',
-      component: () => import('@/layouts/PortailLayout.vue'),
+      component: () => import('@/layout/AppLayout.vue'),
       meta: { requiresAuth: true, portail: true },
       children: [
         {
