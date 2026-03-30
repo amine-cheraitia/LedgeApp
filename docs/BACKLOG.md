@@ -152,6 +152,7 @@
 - Numerotation `DV{ANNEE}-{NNN}` · statuts : brouillon / envoye / accepte / refuse / expire
 - `FacturationService::creerDevis()` avec calcul TVA/timbre automatique
 - Frontend : `Select` prestation dans le formulaire, prix HT affiche en lecture seule
+- Bouton "Envoyer" : change le statut en `envoye` — **l'envoi par mail (PDF en PJ) est prevu mais non implemente, depend de US-12**
 - Depend de : **US-01, US-03, US-04, US-05, US-06, US-17**
 
 ---
@@ -500,6 +501,17 @@
 - Missions assignees · taux de completion des taches
 - Distinct du dashboard Admin global
 - Depend de : **US-33, US-20**
+
+---
+
+### US-44 · Envoi devis par mail · C · 3 pts · Sprint 3
+
+**En tant qu'administrateur**, je veux envoyer le devis par mail au contact principal de l'entreprise **afin que** le client le recoive directement sans manipulation manuelle.
+
+- Bouton "Envoyer" declenche un `Mailable` Laravel avec le PDF devis en piece jointe
+- Mail envoye au `contact_principal` de l'entreprise
+- Statut passe automatiquement a `envoye` apres envoi confirme
+- Depend de : **US-11, US-12** (PDF devis obligatoire)
 
 ---
 
