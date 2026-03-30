@@ -14,14 +14,15 @@ class Devis extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'entreprise_id', 'exercice_id', 'created_by', 'numero',
-        'date_devis', 'date_validite', 'montant_ht', 'montant_tva',
+        'entreprise_id', 'prestation_id', 'exercice_id', 'created_by', 'numero',
+        'date_devis', 'date_validite', 'prix_ht', 'montant_ht', 'montant_tva',
         'montant_timbre', 'montant_ttc', 'statut', 'notes',
     ];
 
     protected $casts = [
         'date_devis' => 'date',
         'date_validite' => 'date',
+        'prix_ht' => 'decimal:2',
         'montant_ht' => 'decimal:2',
         'montant_tva' => 'decimal:2',
         'montant_timbre' => 'decimal:2',
@@ -31,6 +32,11 @@ class Devis extends Model
     public function entreprise(): BelongsTo
     {
         return $this->belongsTo(Entreprise::class);
+    }
+
+    public function prestation(): BelongsTo
+    {
+        return $this->belongsTo(Prestation::class);
     }
 
     public function exercice(): BelongsTo
@@ -43,9 +49,9 @@ class Devis extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function lignes(): HasMany
+    public function factures(): HasMany
     {
-        return $this->hasMany(DevisLigne::class);
+        return $this->hasMany(Facture::class);
     }
 
     public function mission(): HasOne

@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Devis;
-use App\Models\DevisLigne;
+use App\Models\Entreprise;
 use App\Models\Exercice;
+use App\Models\Prestation;
 use App\Models\Facture;
 use App\Models\FactureLigne;
 use App\Models\Setting;
@@ -47,31 +48,38 @@ class FacturationService
     }
 
     /**
-     * Cree un devis avec ses lignes et calcule les montants.
+     * Cree un devis pour une seule prestation.
+     * Le prix HT est calcule automatiquement via la grille tarifaire (immuable).
      */
-    public function creerDevis(array $data, array $lignes, int $userId): Devis
+    public function creerDevis(array $data, int $userId): Devis
     {
-        return DB::transaction(function () use ($data, $lignes, $userId) {
+        return DB::transaction(function () use ($data, $userId) {
             $exercice = Exercice::current();
             $prefixe = Setting::get('devis_prefixe', 'DV');
 
-            $montantHt = collect($lignes)->sum(fn (array $l) => $l['quantite'] * $l['prix_unitaire_ht']);
+            $entreprise = Entreprise::findOrFail($data['entreprise_id']);
+            $prestation = Prestation::findOrFail($data['prestation_id']);
+
+            // Prix HT calcule une seule fois via la grille tarifaire — immuable
+            $prixHt = $prestation->calculerPrixHt($entreprise->regime_fiscal, $entreprise->categorie);
 
             $tvaTaux = TvaTaux::enVigueurLe($data['date_devis']);
             $timbreTaux = TimbreTaux::enVigueurLe($data['date_devis']);
 
-            $montantTva = $tvaTaux ? round($montantHt * (float) $tvaTaux->taux / 100, 2) : 0;
-            $montantTimbre = $timbreTaux ? $timbreTaux->calculer($montantHt) : 0;
-            $montantTtc = round($montantHt + $montantTva + $montantTimbre, 2);
+            $montantTva = $tvaTaux ? round($prixHt * (float) $tvaTaux->taux / 100, 2) : 0;
+            $montantTimbre = $timbreTaux ? $timbreTaux->calculer($prixHt) : 0;
+            $montantTtc = round($prixHt + $montantTva + $montantTimbre, 2);
 
             $devis = Devis::create([
-                'entreprise_id' => $data['entreprise_id'],
+                'entreprise_id' => $entreprise->id,
+                'prestation_id' => $prestation->id,
                 'exercice_id' => $exercice->id,
                 'created_by' => $userId,
                 'numero' => $this->genererNumero($prefixe, 'devis', $exercice),
                 'date_devis' => $data['date_devis'],
                 'date_validite' => $data['date_validite'],
-                'montant_ht' => $montantHt,
+                'prix_ht' => $prixHt,
+                'montant_ht' => $prixHt,
                 'montant_tva' => $montantTva,
                 'montant_timbre' => $montantTimbre,
                 'montant_ttc' => $montantTtc,
@@ -79,19 +87,7 @@ class FacturationService
                 'notes' => $data['notes'] ?? null,
             ]);
 
-            foreach ($lignes as $index => $ligne) {
-                DevisLigne::create([
-                    'devis_id' => $devis->id,
-                    'prestation_id' => $ligne['prestation_id'] ?? null,
-                    'designation' => $ligne['designation'],
-                    'quantite' => $ligne['quantite'],
-                    'prix_unitaire_ht' => $ligne['prix_unitaire_ht'],
-                    'total_ht' => round($ligne['quantite'] * $ligne['prix_unitaire_ht'], 2),
-                    'ordre' => $index + 1,
-                ]);
-            }
-
-            return $devis->load('lignes', 'entreprise');
+            return $devis->load('prestation', 'entreprise');
         });
     }
 

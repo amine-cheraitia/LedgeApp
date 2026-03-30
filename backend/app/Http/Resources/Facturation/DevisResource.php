@@ -17,11 +17,13 @@ class DevisResource extends JsonResource
         return [
             'id' => $this->id,
             'entreprise_id' => $this->entreprise_id,
+            'prestation_id' => $this->prestation_id,
             'exercice_id' => $this->exercice_id,
             'created_by' => $this->created_by,
             'numero' => $this->numero,
             'date_devis' => $this->date_devis?->toDateString(),
             'date_validite' => $this->date_validite?->toDateString(),
+            'prix_ht' => $this->prix_ht,
             'montant_ht' => $this->montant_ht,
             'montant_tva' => $this->montant_tva,
             'montant_timbre' => $this->montant_timbre,
@@ -29,7 +31,7 @@ class DevisResource extends JsonResource
             'statut' => $this->statut,
             'notes' => $this->notes,
             'entreprise' => $this->whenLoaded('entreprise'),
-            'lignes' => DevisLigneResource::collection($this->whenLoaded('lignes')),
+            'prestation' => $this->whenLoaded('prestation'),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
