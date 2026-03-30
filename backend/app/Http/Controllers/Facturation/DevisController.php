@@ -24,7 +24,7 @@ class DevisController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $devis = Devis::with('entreprise', 'lignes')
+        $devis = Devis::with('entreprise', 'prestation')
             ->when($request->entreprise_id, fn ($q, $id) => $q->where('entreprise_id', $id))
             ->when($request->statut, fn ($q, $s) => $q->where('statut', $s))
             ->when($request->search, fn ($q, $s) => $q->where('numero', 'like', "%{$s}%"))
@@ -37,19 +37,18 @@ class DevisController extends Controller
     public function store(StoreDevisRequest $request): JsonResponse
     {
         $devis = $this->facturationService->creerDevis(
-            $request->safe()->except('lignes'),
-            $request->validated('lignes'),
+            $request->validated(),
             $request->user()->id,
         );
 
-        return (new DevisResource($devis->load('lignes', 'entreprise')))
+        return (new DevisResource($devis->load('prestation', 'entreprise')))
             ->response()
             ->setStatusCode(201);
     }
 
     public function show(Devis $devis): DevisResource
     {
-        return new DevisResource($devis->load('lignes', 'entreprise'));
+        return new DevisResource($devis->load('prestation', 'entreprise'));
     }
 
     public function update(Request $request, Devis $devis): DevisResource|JsonResponse
@@ -115,7 +114,6 @@ class DevisController extends Controller
             ], 409);
         }
 
-        $devis->lignes()->delete();
         $devis->delete();
 
         return response()->json(['message' => 'Devis supprime.']);

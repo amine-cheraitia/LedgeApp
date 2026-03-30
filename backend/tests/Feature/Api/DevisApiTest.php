@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Api;
 
+use App\Models\CategorieEntreprise;
 use App\Models\Entreprise;
 use App\Models\Exercice;
+use App\Models\Prestation;
+use App\Models\RegimeFiscal;
 use App\Models\Setting;
 use App\Models\TimbreTaux;
 use App\Models\TvaTaux;
@@ -22,9 +25,12 @@ class DevisApiTest extends TestCase
 
     private Entreprise $entreprise;
 
+    private Prestation $prestation;
+
     protected function setUp(): void
     {
         parent::setUp();
+
         Role::create(['name' => 'admin']);
         Role::create(['name' => 'collaborateur']);
         Role::create(['name' => 'secretaire']);
@@ -33,7 +39,23 @@ class DevisApiTest extends TestCase
         $this->admin = User::factory()->create();
         $this->admin->assignRole('admin');
 
-        $this->entreprise = Entreprise::factory()->create();
+        // Referentiel tarifaire
+        RegimeFiscal::create(['code' => 'reel', 'designation' => 'Régime Réel', 'indice' => 1.50]);
+        CategorieEntreprise::create(['code' => 'PME', 'designation' => 'PME', 'indice' => 1.75]);
+
+        $this->entreprise = Entreprise::factory()->create([
+            'regime_fiscal' => 'reel',
+            'categorie' => 'PME',
+        ]);
+
+        // ACMPT : 120 000 x 1.5 (reel) x 1.75 (PME) = 315 000 DA
+        $this->prestation = Prestation::create([
+            'code' => 'ACMPT',
+            'designation' => 'Assistance Comptable',
+            'tarif_initial' => 120000,
+            'duree_mois' => 12,
+            'actif' => true,
+        ]);
 
         Exercice::create([
             'annee' => (int) date('Y'),
@@ -61,117 +83,131 @@ class DevisApiTest extends TestCase
         Setting::set('devis_prefixe', 'DV');
     }
 
-    public function test_can_create_devis_with_lines(): void
+    public function test_can_create_devis_avec_une_prestation(): void
     {
         $response = $this->actingAs($this->admin)
             ->postJson('/api/v1/devis', [
                 'entreprise_id' => $this->entreprise->id,
-                'date_devis' => '2026-03-25',
-                'date_validite' => '2026-04-25',
-                'lignes' => [
-                    [
-                        'designation' => 'Prestation comptable',
-                        'quantite' => 1,
-                        'prix_unitaire_ht' => 120000,
-                    ],
-                ],
+                'prestation_id' => $this->prestation->id,
+                'date_devis' => '2026-03-31',
+                'date_validite' => '2026-04-30',
             ]);
 
         $response->assertCreated()
-            ->assertJsonPath('data.statut', 'brouillon');
+            ->assertJsonPath('data.statut', 'brouillon')
+            ->assertJsonPath('data.prestation_id', $this->prestation->id);
 
         $data = $response->json('data');
-        $this->assertEquals(120000, (float) $data['montant_ht']);
-        $this->assertEquals(22800, (float) $data['montant_tva']);
+        // Prix HT = 120 000 x 1.5 x 1.75 = 315 000 DA
+        $this->assertEquals(315000, (float) $data['prix_ht']);
+        $this->assertEquals(315000, (float) $data['montant_ht']);
         $this->assertStringStartsWith('DV', $data['numero']);
     }
 
-    public function test_devis_calculates_tva_and_timbre(): void
+    public function test_prix_ht_calcule_via_grille_tarifaire(): void
+    {
+        // Regime forfait (x1.0) + TPE (x1.0) => prix HT = tarif_initial
+        RegimeFiscal::create(['code' => 'forfait', 'designation' => 'Régime Forfait', 'indice' => 1.00]);
+        CategorieEntreprise::create(['code' => 'TPE', 'designation' => 'TPE', 'indice' => 1.00]);
+
+        $entrepriseTpe = Entreprise::factory()->create([
+            'regime_fiscal' => 'forfait',
+            'categorie' => 'TPE',
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/devis', [
+                'entreprise_id' => $entrepriseTpe->id,
+                'prestation_id' => $this->prestation->id,
+                'date_devis' => '2026-03-31',
+                'date_validite' => '2026-04-30',
+            ]);
+
+        $response->assertCreated();
+        // Prix HT = 120 000 x 1.0 x 1.0 = 120 000 DA
+        $this->assertEquals(120000, (float) $response->json('data.prix_ht'));
+    }
+
+    public function test_tva_et_timbre_calcules_sur_prix_ht(): void
     {
         $response = $this->actingAs($this->admin)
             ->postJson('/api/v1/devis', [
                 'entreprise_id' => $this->entreprise->id,
-                'date_devis' => '2026-03-25',
-                'date_validite' => '2026-04-25',
-                'lignes' => [
-                    ['designation' => 'Ligne 1', 'quantite' => 2, 'prix_unitaire_ht' => 50000],
-                ],
+                'prestation_id' => $this->prestation->id,
+                'date_devis' => '2026-03-31',
+                'date_validite' => '2026-04-30',
             ]);
 
         $response->assertCreated();
         $data = $response->json('data');
 
-        // HT = 2 * 50000 = 100000
-        $this->assertEquals(100000, (float) $data['montant_ht']);
-        // TVA = 100000 * 19% = 19000
-        $this->assertEquals(19000, (float) $data['montant_tva']);
-        // Timbre = min(100000 * 1%, 2500) = 1000
-        $this->assertEquals(1000, (float) $data['montant_timbre']);
-        // TTC = 100000 + 19000 + 1000 = 120000
-        $this->assertEquals(120000, (float) $data['montant_ttc']);
+        // HT = 315 000
+        $this->assertEquals(315000, (float) $data['montant_ht']);
+        // TVA = 315 000 * 19% = 59 850
+        $this->assertEquals(59850, (float) $data['montant_tva']);
+        // Timbre = min(315 000 * 1%, 2 500) = 2 500 (plafond)
+        $this->assertEquals(2500, (float) $data['montant_timbre']);
+        // TTC = 315 000 + 59 850 + 2 500 = 377 350
+        $this->assertEquals(377350, (float) $data['montant_ttc']);
+    }
+
+    public function test_creation_devis_sans_prestation_echoue(): void
+    {
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/devis', [
+                'entreprise_id' => $this->entreprise->id,
+                'date_devis' => '2026-03-31',
+                'date_validite' => '2026-04-30',
+            ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['prestation_id']);
     }
 
     public function test_can_list_devis(): void
     {
-        // Cree un devis via l'API d'abord
-        $this->actingAs($this->admin)
-            ->postJson('/api/v1/devis', [
-                'entreprise_id' => $this->entreprise->id,
-                'date_devis' => '2026-03-25',
-                'date_validite' => '2026-04-25',
-                'lignes' => [
-                    ['designation' => 'Test', 'quantite' => 1, 'prix_unitaire_ht' => 10000],
-                ],
-            ]);
+        $this->actingAs($this->admin)->postJson('/api/v1/devis', [
+            'entreprise_id' => $this->entreprise->id,
+            'prestation_id' => $this->prestation->id,
+            'date_devis' => '2026-03-31',
+            'date_validite' => '2026-04-30',
+        ]);
 
-        $response = $this->actingAs($this->admin)
-            ->getJson('/api/v1/devis');
+        $response = $this->actingAs($this->admin)->getJson('/api/v1/devis');
 
-        $response->assertOk()
-            ->assertJsonCount(1, 'data');
+        $response->assertOk()->assertJsonCount(1, 'data');
     }
 
     public function test_cannot_delete_non_brouillon_devis(): void
     {
-        $createResponse = $this->actingAs($this->admin)
-            ->postJson('/api/v1/devis', [
-                'entreprise_id' => $this->entreprise->id,
-                'date_devis' => '2026-03-25',
-                'date_validite' => '2026-04-25',
-                'lignes' => [
-                    ['designation' => 'Test', 'quantite' => 1, 'prix_unitaire_ht' => 10000],
-                ],
-            ]);
+        $createResponse = $this->actingAs($this->admin)->postJson('/api/v1/devis', [
+            'entreprise_id' => $this->entreprise->id,
+            'prestation_id' => $this->prestation->id,
+            'date_devis' => '2026-03-31',
+            'date_validite' => '2026-04-30',
+        ]);
 
         $devisId = $createResponse->json('data.id');
 
-        // Passe en envoye
-        $this->actingAs($this->admin)
-            ->putJson("/api/v1/devis/{$devisId}", ['statut' => 'envoye']);
+        $this->actingAs($this->admin)->putJson("/api/v1/devis/{$devisId}", ['statut' => 'envoye']);
 
-        // Tente de supprimer
-        $response = $this->actingAs($this->admin)
-            ->deleteJson("/api/v1/devis/{$devisId}");
+        $response = $this->actingAs($this->admin)->deleteJson("/api/v1/devis/{$devisId}");
 
         $response->assertStatus(409);
     }
 
-    public function test_sequential_numbering(): void
+    public function test_numerotation_sequentielle(): void
     {
         for ($i = 0; $i < 3; $i++) {
-            $this->actingAs($this->admin)
-                ->postJson('/api/v1/devis', [
-                    'entreprise_id' => $this->entreprise->id,
-                    'date_devis' => '2026-03-25',
-                    'date_validite' => '2026-04-25',
-                    'lignes' => [
-                        ['designation' => "Ligne {$i}", 'quantite' => 1, 'prix_unitaire_ht' => 10000],
-                    ],
-                ]);
+            $this->actingAs($this->admin)->postJson('/api/v1/devis', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_devis' => '2026-03-31',
+                'date_validite' => '2026-04-30',
+            ]);
         }
 
-        $response = $this->actingAs($this->admin)
-            ->getJson('/api/v1/devis');
+        $response = $this->actingAs($this->admin)->getJson('/api/v1/devis');
 
         $numeros = collect($response->json('data'))->pluck('numero')->sort()->values();
         $annee = date('Y');

@@ -20,14 +20,10 @@ class StoreDevisRequest extends FormRequest
     {
         return [
             'entreprise_id' => ['required', 'exists:entreprises,id'],
+            'prestation_id' => ['required', 'exists:prestations,id'],
             'date_devis' => ['required', 'date'],
             'date_validite' => ['required', 'date', 'after_or_equal:date_devis'],
             'notes' => ['nullable', 'string'],
-            'lignes' => ['required', 'array', 'min:1'],
-            'lignes.*.prestation_id' => ['nullable', 'exists:prestations,id'],
-            'lignes.*.designation' => ['required', 'string', 'max:255'],
-            'lignes.*.quantite' => ['required', 'numeric', 'min:0.01'],
-            'lignes.*.prix_unitaire_ht' => ['required', 'numeric', 'min:0'],
         ];
     }
 }
