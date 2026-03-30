@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\UserController;
+use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\Entreprises\EntrepriseController;
 use App\Http\Controllers\Exercices\ExerciceController;
 use App\Http\Controllers\Facturation\DevisController;
@@ -31,6 +32,9 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/me', [AuthController::class, 'me']);
 
+        // Dashboard stats
+        Route::get('/stats', [DashboardController::class, 'stats']);
+
         // Back-office
         Route::middleware('backoffice')->group(function () {
 
@@ -39,6 +43,8 @@ Route::prefix('v1')->group(function () {
 
             // Entreprises
             Route::apiResource('entreprises', EntrepriseController::class);
+            Route::post('entreprises/{entreprise}/activer-portail', [EntrepriseController::class, 'activerPortail']);
+            Route::post('entreprises/{entreprise}/toggle-portail', [EntrepriseController::class, 'togglePortail']);
 
             // Exercices
             Route::get('exercices/current', [ExerciceController::class, 'current']);

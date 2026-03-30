@@ -29,6 +29,16 @@ class EntrepriseResource extends JsonResource
             'notes' => $this->notes,
             'missions_count' => $this->whenCounted('missions'),
             'factures_count' => $this->whenCounted('factures'),
+            'portail_user' => $this->whenLoaded('users', function () {
+                $clientUser = $this->users->first(fn ($u) => $u->hasRole('client'));
+
+                return $clientUser ? [
+                    'id' => $clientUser->id,
+                    'name' => $clientUser->name,
+                    'email' => $clientUser->email,
+                    'portail_actif' => $clientUser->portail_actif,
+                ] : null;
+            }),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
