@@ -9,6 +9,24 @@
 
 ## [Unreleased]
 
+### Ajouts — Portail client + Dashboard KPI + Refonte design
+
+#### Backend — Portail client (US-29)
+- **PortailService** : activation accès portail depuis fiche entreprise — création user `client` avec mot de passe temporaire, toggle actif/inactif
+- **EntrepriseController** : méthodes `activerPortail` et `togglePortail`
+- **EntrepriseResource** : exposition `portail_user` (id, email, portail_actif) via `whenLoaded`
+- Routes : `POST /api/v1/entreprises/{id}/activer-portail`, `POST /api/v1/entreprises/{id}/toggle-portail`
+
+#### Backend — Dashboard KPI (US-33 partiel)
+- **DashboardController** : endpoint `GET /api/v1/stats` — compteurs entreprises/missions/factures/devis, CA HT/TTC, impayés, en retard, 5 derniers éléments
+
+#### Frontend — Refonte design
+- Nouveau système de layout PrimeVue 4 : `AppLayout`, `AppTopbar`, `AppSidebar`, `AppMenu`, `AppMenuItem`, `AppFooter`, `AppConfigurator`
+- `FloatingConfigurator` : switch thème Aura/Lara en live
+- Styles globaux refaits : `layout.scss`, `tailwind.css`
+- Module API `stats.ts` pour le dashboard
+- Pages mises à jour : `LoginPage`, `DashboardPage`, `EntrepriseListPage`
+
 ### A faire
 - Module Relances (automatiques via queue + manuelles)
 - Portail client (lecture seule factures/documents)
