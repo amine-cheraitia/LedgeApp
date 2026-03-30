@@ -504,7 +504,7 @@
 
 ---
 
-### US-44 · Envoi devis par mail · C · 3 pts · Sprint 3
+### US-44 · Envoi devis par mail · C · 3 pts · Apres Sprint 3
 
 **En tant qu'administrateur**, je veux envoyer le devis par mail au contact principal de l'entreprise **afin que** le client le recoive directement sans manipulation manuelle.
 
