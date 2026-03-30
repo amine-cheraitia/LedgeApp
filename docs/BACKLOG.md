@@ -147,9 +147,11 @@
 
 **En tant qu'administrateur**, je veux creer un devis pour une entreprise **afin que** le prix HT soit calcule automatiquement selon la grille tarifaire.
 
-- Calcul : `tarif x indice_regime x indice_categorie`
+- Un devis = une seule prestation — regle immuable
+- Calcul : `tarif x indice_regime x indice_categorie` — calcule a la creation, jamais modifiable
 - Numerotation `DV{ANNEE}-{NNN}` · statuts : brouillon / envoye / accepte / refuse / expire
 - `FacturationService::creerDevis()` avec calcul TVA/timbre automatique
+- Frontend : `Select` prestation dans le formulaire, prix HT affiche en lecture seule
 - Depend de : **US-01, US-03, US-04, US-05, US-06, US-17**
 
 ---

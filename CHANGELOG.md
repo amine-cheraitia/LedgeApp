@@ -9,6 +9,20 @@
 
 ## [Unreleased]
 
+### Corrections — Devis : une prestation unique (US-11)
+
+#### Backend
+- **Migration** : suppression `devis_lignes`, ajout `prestation_id` + `prix_ht` sur `devis`
+- **FacturationService::creerDevis()** : calcul automatique `tarif × indice_regime × indice_categorie` — prix saisi manuellement supprimé
+- **StoreDevisRequest** : `prestation_id` requis, suppression `lignes[]`
+- **DevisResource** : expose `prestation` et `prix_ht` au lieu des lignes
+- **Tests** : 7 tests DevisApiTest réécrits (grille tarifaire, TVA, timbre, validation)
+
+#### Frontend
+- **`api/modules/devis.ts`** : `DevisPayload` passe à `prestation_id`, suppression `DevisLignePayload`
+- **`types/index.ts`** : suppression `DevisLigne`, `Devis` aligné sur le backend
+- **`pages/devis/DevisListPage.vue`** : formulaire — section lignes remplacée par `Select` prestation
+
 ### Ajouts — Portail client + Dashboard KPI + Refonte design
 
 #### Backend — Portail client (US-29)
