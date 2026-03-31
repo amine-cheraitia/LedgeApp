@@ -61,6 +61,20 @@ export function useDevis() {
     return response.data
   }
 
+  async function telechargerPdf(id: number, numero: string) {
+    try {
+      const blob = await devisApi.getPdf(id)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `devis-${numero}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de generer le PDF.', life: 3000 })
+    }
+  }
+
   async function deleteDevis(id: number) {
     await devisApi.delete(id)
     toast.add({ severity: 'success', summary: 'Succes', detail: 'Devis supprime.', life: 3000 })
@@ -89,6 +103,7 @@ export function useDevis() {
     accepterDevis,
     refuserDevis,
     convertirDevisEnMission,
+    telechargerPdf,
     deleteDevis,
     onPage,
     onSearch,

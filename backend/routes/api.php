@@ -65,6 +65,7 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('taches.commentaires', TacheCommentaireController::class)->except(['show'])->parameters(['commentaires' => 'commentaire']);
 
             // Facturation — Devis
+            Route::get('devis/{devis}/pdf', [DevisController::class, 'pdf']);
             Route::post('devis/{devis}/envoyer', [DevisController::class, 'envoyer']);
             Route::post('devis/{devis}/accepter', [DevisController::class, 'accepter']);
             Route::post('devis/{devis}/refuser', [DevisController::class, 'refuser']);

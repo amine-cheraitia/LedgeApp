@@ -106,11 +106,11 @@ describe('devisApi', () => {
   })
 
   it('update calls PUT /devis/:id', async () => {
-    mockPut.mockResolvedValue({ data: { data: { id: 1, statut: 'envoye' } } })
+    mockPut.mockResolvedValue({ data: { data: { id: 1, notes: 'maj' } } })
 
-    await devisApi.update(1, { statut: 'envoye' })
+    await devisApi.update(1, { notes: 'maj' })
 
-    expect(mockPut).toHaveBeenCalledWith('/devis/1', { statut: 'envoye' })
+    expect(mockPut).toHaveBeenCalledWith('/devis/1', { notes: 'maj' })
   })
 })
 

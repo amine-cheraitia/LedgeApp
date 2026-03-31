@@ -9,6 +9,41 @@
 
 ## [Unreleased]
 
+### Corrections — PDF devis : timbre retiré + montant en lettres
+
+#### Backend
+- **`FacturationService::creerDevis()`** : `montant_timbre` forcé à 0 — le timbre fiscal s'applique uniquement sur les factures, pas sur les devis
+- **`PdfService::montantEnLettres()`** : nouvelle méthode — convertit un montant float en lettres françaises via `NumberFormatter` (PHP intl, locale `fr`), suffixe « Dinars Algériens »
+- **Test** `test_tva_calcule_sur_prix_ht_sans_timbre` : assertions mises à jour (`montant_timbre = 0`, TTC = HT + TVA)
+
+#### Frontend (PDF)
+- **`pdf/devis.blade.php`** : colonne Timbre et ligne "Timbre fiscal" supprimées du tableau et des totaux
+- Bandeau *Arrêté le présent devis à la somme de **[montant en lettres]*** ajouté sous le bloc TOTAL TTC
+
+---
+
+### Ajouts — PDF devis (US-12)
+
+#### Backend
+- **PdfService** : service dédié DomPDF — `genererDevis()` charge les données cabinet (`Setting`) et rend la vue Blade ; conçu pour accueillir `genererFacture()` (US-14)
+- **Vue Blade `pdf/devis.blade.php`** : template A4 portrait — en-tête cabinet (nom/NIF/NIS/RIB/adresse/tél), bloc destinataire (raison sociale/NIF/NIS/RC), tableau prestation (code, désignation, prix HT, TVA, timbre), récapitulatif totaux, zone double signature avec mention « Bon pour accord »
+- **Route** : `GET /api/v1/devis/{id}/pdf` — streame le PDF directement au client
+- **DevisController::pdf()** : délègue à `PdfService`, retourne un stream `application/pdf`
+- **Test** : `test_pdf_devis_retourne_un_pdf` — vérifie HTTP 200 + Content-Type `application/pdf`
+
+#### Frontend
+- **`api/modules/devis.ts`** : ajout `getPdf(id)` avec `responseType: 'blob'`
+- **`composables/useDevis.ts`** : ajout `telechargerPdf(id, numero)` — crée un object URL, déclenche le téléchargement, révoque l'URL
+- **`pages/devis/DevisListPage.vue`** : bouton PDF (icône `pi-file-pdf`) visible pour tous les statuts sauf `brouillon`
+
+### Refactoring SOLID — Devis workflow
+
+#### Backend
+- **SRP** : logique de transition d'état déplacée du controller vers `FacturationService` — nouvelles méthodes `envoyerDevis()`, `accepterDevis()`, `refuserDevis()`, `supprimerDevis()`, `mettreAJourDevis()` ; chaque méthode lève `DomainException` si la transition est invalide
+- **FormRequests** : ajout `UpdateDevisRequest` (notes, date_validite) et `ConvertirEnMissionRequest` (date_debut, date_fin, collaborateur_ids) — suppression des `$request->validate()` inline dans `update()` et `convertirEnMission()`
+- **DRY** : `MissionService::genererReference()` supprimée — délègue désormais à `FacturationService::genererNumero()` via le nouveau paramètre optionnel `$colonne` (défaut `'numero'`)
+- **DevisController** : réduit à validation + délégation + retour Resource ; gestion HTTP 409 centralisée par `catch (DomainException)`
+
 ### Corrections — Devis : une prestation unique (US-11)
 
 #### Backend
@@ -46,7 +81,7 @@
 - Portail client (lecture seule factures/documents)
 - Module KPI / Reporting (CA, missions, performance collaborateurs)
 - Module Documents / GED
-- Generation PDF factures/devis (DomPDF + montant en lettres)
+- PDF facture conforme DGI (US-14) — `PdfService::genererFacture()` + montant en lettres
 - Avoirs (FA) — creation depuis facture existante
 
 ---

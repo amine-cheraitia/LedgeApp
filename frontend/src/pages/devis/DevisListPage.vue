@@ -22,7 +22,7 @@ const confirm = useConfirm()
 const {
   devisList, loading, totalRecords, filters,
   fetchDevis, createDevis, envoyerDevis, accepterDevis, refuserDevis,
-  convertirDevisEnMission, deleteDevis, onPage, onSearch,
+  convertirDevisEnMission, telechargerPdf, deleteDevis, onPage, onSearch,
 } = useDevis()
 
 const { entreprises, fetchEntreprises } = useEntreprises()
@@ -206,6 +206,16 @@ onMounted(() => {
       </Column>
       <Column header="Actions" style="width: 14rem">
         <template #body="{ data }">
+          <!-- PDF (tous statuts sauf brouillon) -->
+          <Button
+            v-if="data.statut !== 'brouillon'"
+            icon="pi pi-file-pdf"
+            text
+            severity="secondary"
+            aria-label="Telecharger le PDF"
+            v-tooltip.top="'Telecharger PDF'"
+            @click="telechargerPdf(data.id, data.numero)"
+          />
           <!-- Brouillon : envoyer + supprimer -->
           <Button
             v-if="data.statut === 'brouillon'"
