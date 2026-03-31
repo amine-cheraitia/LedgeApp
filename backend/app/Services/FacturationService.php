@@ -13,6 +13,7 @@ use App\Models\Prestation;
 use App\Models\Setting;
 use App\Models\TimbreTaux;
 use App\Models\TvaTaux;
+use DomainException;
 use Illuminate\Support\Facades\DB;
 
 class FacturationService
@@ -21,20 +22,20 @@ class FacturationService
      * Genere le prochain numero sequentiel pour un type de document.
      * Utilise lockForUpdate pour eviter les doublons en concurrence.
      */
-    public function genererNumero(string $prefixe, string $table, Exercice $exercice): string
+    public function genererNumero(string $prefixe, string $table, Exercice $exercice, string $colonne = 'numero'): string
     {
-        return DB::transaction(function () use ($prefixe, $table, $exercice) {
+        return DB::transaction(function () use ($prefixe, $table, $exercice, $colonne) {
             $annee = $exercice->annee;
             $pattern = "{$prefixe}{$annee}-%";
 
             $query = DB::table($table)
-                ->where('numero', 'like', $pattern);
+                ->where($colonne, 'like', $pattern);
 
             if (DB::getDriverName() !== 'sqlite') {
                 $query->lockForUpdate();
             }
 
-            $dernierNumero = $query->max('numero');
+            $dernierNumero = $query->max($colonne);
 
             if ($dernierNumero) {
                 $sequence = (int) substr($dernierNumero, strrpos($dernierNumero, '-') + 1);
@@ -64,11 +65,10 @@ class FacturationService
             $prixHt = $prestation->calculerPrixHt($entreprise->regime_fiscal, $entreprise->categorie);
 
             $tvaTaux = TvaTaux::enVigueurLe($data['date_devis']);
-            $timbreTaux = TimbreTaux::enVigueurLe($data['date_devis']);
 
             $montantTva = $tvaTaux ? round($prixHt * (float) $tvaTaux->taux / 100, 2) : 0;
-            $montantTimbre = $timbreTaux ? $timbreTaux->calculer($prixHt) : 0;
-            $montantTtc = round($prixHt + $montantTva + $montantTimbre, 2);
+            // Le timbre fiscal ne s'applique pas sur les devis — uniquement sur les factures
+            $montantTtc = round($prixHt + $montantTva, 2);
 
             $devis = Devis::create([
                 'entreprise_id' => $entreprise->id,
@@ -81,7 +81,7 @@ class FacturationService
                 'prix_ht' => $prixHt,
                 'montant_ht' => $prixHt,
                 'montant_tva' => $montantTva,
-                'montant_timbre' => $montantTimbre,
+                'montant_timbre' => 0,
                 'montant_ttc' => $montantTtc,
                 'statut' => 'brouillon',
                 'notes' => $data['notes'] ?? null,
@@ -89,6 +89,59 @@ class FacturationService
 
             return $devis->load('prestation', 'entreprise');
         });
+    }
+
+    public function mettreAJourDevis(Devis $devis, array $data): Devis
+    {
+        if ($devis->statut !== 'brouillon') {
+            throw new DomainException('Seuls les devis en brouillon peuvent etre modifies.');
+        }
+
+        $devis->update($data);
+
+        return $devis->load('prestation', 'entreprise');
+    }
+
+    public function envoyerDevis(Devis $devis): Devis
+    {
+        if ($devis->statut !== 'brouillon') {
+            throw new DomainException('Seuls les devis en brouillon peuvent etre envoyes.');
+        }
+
+        $devis->update(['statut' => 'envoye']);
+
+        return $devis->load('prestation', 'entreprise');
+    }
+
+    public function accepterDevis(Devis $devis): Devis
+    {
+        if ($devis->statut !== 'envoye') {
+            throw new DomainException('Seuls les devis envoyes peuvent etre acceptes.');
+        }
+
+        $devis->update(['statut' => 'accepte']);
+
+        return $devis->load('prestation', 'entreprise');
+    }
+
+    public function refuserDevis(Devis $devis): Devis
+    {
+        if ($devis->statut !== 'envoye') {
+            throw new DomainException('Seuls les devis envoyes peuvent etre refuses.');
+        }
+
+        $devis->update(['statut' => 'refuse']);
+
+        return $devis->load('prestation', 'entreprise');
+    }
+
+    public function supprimerDevis(Devis $devis): void
+    {
+        if ($devis->statut !== 'brouillon') {
+            throw new DomainException('Seuls les devis en brouillon peuvent etre supprimes.');
+        }
+
+        $devis->delete();
     }
 
     /**

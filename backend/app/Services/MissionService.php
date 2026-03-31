@@ -34,7 +34,7 @@ class MissionService
             );
 
             $prefixe = Setting::get('mission_prefixe', 'M');
-            $reference = $this->genererReference($prefixe, $exercice);
+            $reference = $this->facturationService->genererNumero($prefixe, 'missions', $exercice, 'reference');
 
             $mission = Mission::create([
                 'entreprise_id' => $entreprise->id,
@@ -57,31 +57,5 @@ class MissionService
         });
     }
 
-    /**
-     * Genere la prochaine reference sequentielle pour les missions.
-     * Format : M2026-001 (adapte de genererNumero mais sur colonne reference).
-     */
-    private function genererReference(string $prefixe, Exercice $exercice): string
-    {
-        $annee = $exercice->annee;
-        $pattern = "{$prefixe}{$annee}-%";
-
-        $query = DB::table('missions')
-            ->where('reference', 'like', $pattern);
-
-        if (DB::getDriverName() !== 'sqlite') {
-            $query->lockForUpdate();
-        }
-
-        $derniereRef = $query->max('reference');
-
-        if ($derniereRef) {
-            $sequence = (int) substr($derniereRef, strrpos($derniereRef, '-') + 1);
-            $sequence++;
-        } else {
-            $sequence = 1;
-        }
-
-        return sprintf('%s%d-%03d', $prefixe, $annee, $sequence);
-    }
 }
+
