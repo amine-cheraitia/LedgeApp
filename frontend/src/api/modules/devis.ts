@@ -56,6 +56,10 @@ export const devisApi = {
     return api.post(`/devis/${id}/convertir-en-mission`, data).then(r => r.data)
   },
 
+  getPdf(id: number): Promise<Blob> {
+    return api.get(`/devis/${id}/pdf`, { responseType: 'blob' }).then(r => r.data)
+  },
+
   delete(id: number): Promise<void> {
     return api.delete(`/devis/${id}`)
   },

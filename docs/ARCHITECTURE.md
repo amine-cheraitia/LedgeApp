@@ -54,8 +54,9 @@ backend/app/
 │   ├── Requests/              # FormRequests par domaine (Auth/, Entreprises/, Facturation/, Planning/)
 │   └── Resources/             # API Resources JSON par domaine (Facturation/, Planning/)
 ├── Services/
-│   ├── FacturationService.php # Logique metier : numerotation, creation devis/factures, paiements
-│   └── MissionService.php     # Logique metier : calcul prix HT, reference, CRUD missions
+│   ├── FacturationService.php # Logique metier : numerotation, transitions devis, creation devis/factures, paiements
+│   ├── MissionService.php     # Logique metier : calcul prix HT, CRUD missions (délègue genererNumero à FacturationService)
+│   └── PdfService.php         # Generation PDF DomPDF : genererDevis() — extensible pour genererFacture() (US-14)
 ├── Events/                    # MissionCreated, InvoicePaid
 ├── Listeners/                 # ConvertProspectToClient, CancelRelancesOnPayment
 ├── Observers/                 # MissionObserver
@@ -63,8 +64,10 @@ backend/app/
 └── Providers/                 # AppServiceProvider (observers, events)
 ```
 
-**Principe** : le Controller valide (FormRequest) et delegue au Service.
-Le Service contient la logique metier. Le Model gere les relations, casts et scopes Eloquent.
+**Principe SOLID** : le Controller valide (FormRequest), delegue au Service, retourne la Resource.
+Le Service contient toute la logique metier (transitions d'etat, calculs, regles de gestion) et leve `DomainException` si une regle est violee.
+Le Controller catch `DomainException` et retourne le code HTTP approprie (409, etc.).
+Le Model gere les relations, casts et scopes Eloquent.
 
 Pas de modules avec ServiceProviders separes — trop de config pour 18 modeles, meme clarte avec des sous-dossiers.
 

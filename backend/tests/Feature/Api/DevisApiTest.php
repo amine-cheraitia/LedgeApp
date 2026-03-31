@@ -128,7 +128,7 @@ class DevisApiTest extends TestCase
         $this->assertEquals(120000, (float) $response->json('data.prix_ht'));
     }
 
-    public function test_tva_et_timbre_calcules_sur_prix_ht(): void
+    public function test_tva_calcule_sur_prix_ht_sans_timbre(): void
     {
         $response = $this->actingAs($this->admin)
             ->postJson('/api/v1/devis', [
@@ -145,10 +145,10 @@ class DevisApiTest extends TestCase
         $this->assertEquals(315000, (float) $data['montant_ht']);
         // TVA = 315 000 * 19% = 59 850
         $this->assertEquals(59850, (float) $data['montant_tva']);
-        // Timbre = min(315 000 * 1%, 2 500) = 2 500 (plafond)
-        $this->assertEquals(2500, (float) $data['montant_timbre']);
-        // TTC = 315 000 + 59 850 + 2 500 = 377 350
-        $this->assertEquals(377350, (float) $data['montant_ttc']);
+        // Timbre = 0 sur les devis (s'applique uniquement sur les factures)
+        $this->assertEquals(0, (float) $data['montant_timbre']);
+        // TTC = 315 000 + 59 850 = 374 850
+        $this->assertEquals(374850, (float) $data['montant_ttc']);
     }
 
     public function test_creation_devis_sans_prestation_echoue(): void
@@ -242,6 +242,23 @@ class DevisApiTest extends TestCase
             ->postJson("/api/v1/devis/{$devisId3}/refuser")
             ->assertStatus(200)
             ->assertJsonPath('data.statut', 'refuse');
+    }
+
+    public function test_pdf_devis_retourne_un_pdf(): void
+    {
+        $devisId = $this->actingAs($this->admin)->postJson('/api/v1/devis', [
+            'entreprise_id' => $this->entreprise->id,
+            'prestation_id' => $this->prestation->id,
+            'date_devis'    => '2026-03-31',
+            'date_validite' => '2026-04-30',
+            'notes'         => 'Test PDF',
+        ])->json('data.id');
+
+        $response = $this->actingAs($this->admin)
+            ->get("/api/v1/devis/{$devisId}/pdf");
+
+        $response->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
     }
 
     public function test_numerotation_sequentielle(): void

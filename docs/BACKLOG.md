@@ -159,7 +159,7 @@
 
 ## Couche 3
 
-### US-12 · PDF devis conforme · M · 3 pts · Sprint 1
+### US-12 · PDF devis conforme · M · 3 pts · Sprint 1 ✅
 
 **En tant qu'administrateur**, je veux generer un PDF du devis conforme au format algerien **afin de** l'envoyer a l'entreprise pour validation.
 

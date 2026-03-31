@@ -184,7 +184,13 @@ Prix HT = prestation.tarif_initial x regime_fiscal.indice x categorie.indice
 
 Exemple : ACMPT pour une PME au regime Reel -> `120 000 x 1.5 x 1.75 = 315 000 DA HT`
 
-**Calcul TVA sur facture :**
+**Calcul TVA — devis :**
+```
+TTC devis = Prix HT + (Prix HT x taux_tva)
+// Le timbre fiscal NE s'applique PAS sur les devis — montant_timbre = 0
+```
+
+**Calcul TVA — facture :**
 ```
 Montant TVA    = Prix HT x taux_tva_en_vigueur_a_la_date_de_facture
 Timbre fiscal  = min(Prix HT x taux_timbre, plafond_timbre)
@@ -206,7 +212,8 @@ Tranche 3 = 40% du total mission (solde)
 
 **Logs immuables** (piste d'audit) sur toutes les transactions financieres.
 
-**PDF** : generation conforme DGI avec montant en lettres (NumberFormatter locale fr).
+**PDF devis** : montant TTC en lettres (« Arrêté le présent devis à la somme de ... Dinars Algériens ») via `NumberFormatter` locale `fr`.
+**PDF facture** : generation conforme DGI avec montant en lettres — a implementer (US-14).
 
 ---
 
@@ -372,8 +379,7 @@ missions               -> missions par entreprise + exercice + prestation
 mission_user           -> affectation collaborateurs aux missions
 taches                 -> taches par mission, assignees a un collaborateur
 tache_commentaires     -> commentaires sur taches
-devis                  -> devis par entreprise + exercice
-devis_lignes           -> lignes de devis
+devis                  -> devis par entreprise + exercice (une prestation unique, prix_ht calcule a la creation)
 factures               -> FF (facture) / FA (avoir), TVA historisee
 facture_lignes         -> lignes de facture
 paiements              -> paiements recus par facture
@@ -533,7 +539,7 @@ Voir [docs/GITFLOW.md](GITFLOW.md) pour le detail complet.
 |---|---|---|---|
 | S1-S2 | Cadrage & Bloc 1 | Dossier de cadrage, SWOT, comparatif, charge, budget, architecture | fait |
 | S3-S4 | Architecture & Setup | Schema BDD, migrations, doc technique, Gantt | fait |
-| S5-S6 | Sprint 1 — Core | Auth/roles, Clients, Facturation (calcul HT/TVA/timbre/PDF), Settings, Exercices | en cours |
+| S5-S6 | Sprint 1 — Core | Auth/roles, Clients, Facturation (calcul HT/TVA/timbre/PDF devis), Settings, Exercices | en cours |
 | S7-S8 | Sprint 2 — Avance | Planning FullCalendar, Relances mails, Portail client, KPI | a faire |
 | S9 | Sprint 3 — Qualite | OWASP Top 10, RGAA (axe + Lighthouse), tests unitaires, staging | a faire |
 | S10-S11 | Recette & MCO | Cahier de recettes, anomalies, CHANGELOG, UptimeRobot, Sentry | a faire |
