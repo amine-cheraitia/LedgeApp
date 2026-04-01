@@ -33,22 +33,42 @@
         /* ── Bande d'en-tête ───────────────────────── */
         .header-band {
             background-color: #1e3a5f;
-            padding: 18px 22px;
+            padding: 14px 22px 16px 22px;
             margin-bottom: 0;
         }
         .header-band td { vertical-align: middle; }
+
+        /* Logo Ledge */
+        .ledge-logo-box {
+            display: inline-block;
+            background-color: #3b82f6;
+            color: #ffffff;
+            font-size: 9pt;
+            font-weight: bold;
+            width: 18px;
+            height: 18px;
+            text-align: center;
+            line-height: 18px;
+            border-radius: 3px;
+            letter-spacing: 0;
+        }
+        .ledge-brand {
+            font-size: 7.5pt;
+            color: #7ba7d4;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            vertical-align: middle;
+            margin-left: 4px;
+        }
+        .header-brand-row { margin-bottom: 8px; }
+
         .header-band .cabinet-nom {
-            font-size: 15pt;
+            font-size: 16pt;
             font-weight: bold;
             color: #ffffff;
             letter-spacing: 0.5px;
         }
-        .header-band .cabinet-sub {
-            font-size: 8pt;
-            color: #a8c0db;
-            margin-top: 3px;
-        }
-        .header-band .statut-cell { text-align: right; }
+        .header-band .statut-cell { text-align: right; vertical-align: bottom; }
 
         /* ── Badge statut paiement ──────────────────── */
         .badge {
@@ -225,11 +245,13 @@
     <table class="header-band" width="100%" cellpadding="0" cellspacing="0">
         <tr>
             <td>
-                <div class="cabinet-nom">{{ $cabinet['nom'] }}</div>
-                <div class="cabinet-sub">
-                    @if($cabinet['adresse']){{ $cabinet['adresse'] }}@endif
-                    @if($cabinet['telephone']) &nbsp;·&nbsp; Tél&nbsp;: {{ $cabinet['telephone'] }} @endif
+                <div class="header-brand-row">
+                    <table cellpadding="0" cellspacing="0"><tr>
+                        <td class="ledge-logo-box">L</td>
+                        <td class="ledge-brand">Ledge</td>
+                    </tr></table>
                 </div>
+                <div class="cabinet-nom">{{ $cabinet['nom'] }}</div>
             </td>
             <td class="statut-cell">
                 <span class="badge badge-{{ $facture->statut_paiement }}">{{ ucfirst(str_replace('_', ' ', $facture->statut_paiement)) }}</span>
@@ -323,8 +345,19 @@
             </thead>
             <tbody>
                 @foreach($facture->lignes as $ligne)
+                @php
+                    $prestationNom = $facture->mission?->prestation?->designation ?? $ligne->designation;
+                    $pct = $facture->mission && (float)$facture->mission->prix_ht > 0
+                        ? round((float)$ligne->total_ht / (float)$facture->mission->prix_ht * 100)
+                        : null;
+                @endphp
                 <tr>
-                    <td><div class="presta-label">{{ $ligne->designation }}</div></td>
+                    <td>
+                        <div class="presta-label">{{ $prestationNom }}</div>
+                        @if($pct !== null)
+                        <div style="font-size:8pt; color:#64748b; margin-top:2px;">Tranche {{ $pct }}%</div>
+                        @endif
+                    </td>
                     <td class="r">{{ number_format((float)$ligne->total_ht, 2, ',', ' ') }} DA</td>
                     <td class="r">{{ number_format((float)$ligne->total_ht * (float)$facture->taux_tva / 100, 2, ',', ' ') }} DA</td>
                 </tr>

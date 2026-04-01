@@ -185,7 +185,7 @@ class FacturationService
 
             $exercice = Exercice::current();
             $prefixe = Setting::get('facture_prefixe', 'FF');
-            $designation = 'Mission '.$mission->reference.' — '.$tranche['label'];
+            $designation = $mission->prestation->designation.' — '.($tranche['taux'] * 100).'%';
 
             $facture = Facture::create([
                 'entreprise_id' => $mission->entreprise_id,
