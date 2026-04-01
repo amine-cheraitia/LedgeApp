@@ -19,10 +19,10 @@ class ConvertirEnMissionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'date_debut'           => ['required', 'date'],
-            'date_fin'             => ['nullable', 'date', 'after_or_equal:date_debut'],
-            'collaborateur_ids'    => ['nullable', 'array'],
-            'collaborateur_ids.*'  => ['integer', 'exists:users,id'],
+            'date_debut' => ['required', 'date'],
+            'date_fin' => ['nullable', 'date', 'after_or_equal:date_debut'],
+            'collaborateur_ids' => ['nullable', 'array'],
+            'collaborateur_ids.*' => ['integer', 'exists:users,id'],
         ];
     }
 }

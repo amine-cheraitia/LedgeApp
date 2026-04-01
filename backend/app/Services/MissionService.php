@@ -56,6 +56,4 @@ class MissionService
             return $mission->load('entreprise', 'prestation', 'collaborateurs');
         });
     }
-
 }
-
