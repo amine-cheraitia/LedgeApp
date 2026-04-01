@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -13,37 +14,43 @@ import DatePicker from 'primevue/datepicker'
 import Textarea from 'primevue/textarea'
 import ConfirmDialog from 'primevue/confirmdialog'
 import { useFactures } from '@/composables/useFactures'
-import { useEntreprises } from '@/composables/useEntreprises'
+import { useMissions } from '@/composables/useMissions'
 import type { Facture } from '@/types'
-import type { FactureLignePayload, PaiementPayload } from '@/api/modules/factures'
+import type { PaiementPayload } from '@/api/modules/factures'
 
+const toast = useToast()
 const confirm = useConfirm()
+
 const {
   factures, loading, totalRecords, filters,
-  fetchFactures, createFacture, deleteFacture, addPaiement,
+  fetchFactures, createFacture, deleteFacture, addPaiement, telechargerPdf,
   onPage, onSearch,
 } = useFactures()
 
-const { entreprises, fetchEntreprises } = useEntreprises()
+const { missions, fetchMissions } = useMissions()
 
 const search = ref('')
 
-// Dialog creation facture
+// Dialog création facture
 const dialogVisible = ref(false)
 const saving = ref(false)
 const form = reactive({
-  entreprise_id: null as number | null,
-  type: 'FF' as 'FF' | 'FA',
-  date_facture: null as Date | null,
-  date_echeance: null as Date | null,
+  mission_id: null as number | null,
+  date_facture: new Date() as Date,
   notes: '',
-  lignes: [{ designation: '', quantite: 1, prix_unitaire_ht: 0, prestation_id: null }] as (FactureLignePayload & { prestation_id: number | null })[],
+})
+
+const dateEcheancePreview = computed(() => {
+  if (!form.date_facture) return ''
+  const d = new Date(form.date_facture)
+  d.setDate(d.getDate() + 45)
+  return d.toLocaleDateString('fr-FR')
 })
 
 // Dialog paiement
 const paiementDialogVisible = ref(false)
 const paiementSaving = ref(false)
-const paiementFactureId = ref<number | null>(null)
+const paiementFacture = ref<Facture | null>(null)
 const paiementForm = reactive<PaiementPayload>({
   montant: 0,
   date_paiement: '',
@@ -53,97 +60,97 @@ const paiementForm = reactive<PaiementPayload>({
 })
 const datePaiement = ref<Date | null>(null)
 
+const modeOptions = [
+  { label: 'Virement', value: 'virement' },
+  { label: 'Cheque', value: 'cheque' },
+  { label: 'Autre', value: 'autre' },
+]
+
 function toIsoDate(d: Date | null): string {
   if (!d) return ''
   return d.toISOString().split('T')[0]
 }
 
 function formatMontant(v: number) {
-  return Number(v).toLocaleString('fr-FR')
+  return Number(v).toLocaleString('fr-FR') + ' DA'
 }
 
-const typeOptions = [
-  { label: 'Facture (FF)', value: 'FF' },
-  { label: 'Avoir (FA)', value: 'FA' },
-]
-
-const modeOptions = [
-  { label: 'Virement', value: 'virement' },
-  { label: 'Cheque', value: 'cheque' },
-  { label: 'Espece', value: 'espece' },
-  { label: 'Autre', value: 'autre' },
-]
-
-function statutColor(statut: string) {
-  const map: Record<string, string> = {
+function statutPaiementColor(statut: string) {
+  const map: Record<string, 'warn' | 'info' | 'success' | 'secondary'> = {
     en_attente: 'warn',
     partiel: 'info',
     solde: 'success',
   }
-  return (map[statut] ?? 'secondary') as 'warn' | 'info' | 'success' | 'secondary'
+  return map[statut] ?? 'secondary'
 }
 
-// Creation facture
+function modePaiementLabel(mode: string) {
+  const map: Record<string, string> = {
+    virement: 'Virement',
+    cheque: 'Cheque',
+    autre: 'Autre',
+    non_defini: '—',
+  }
+  return map[mode] ?? mode
+}
+
+// Tranche suivante pour une mission donnée
+function trancheLabel(mission_id: number | null): string {
+  if (!mission_id) return '—'
+  const nb = factures.value.filter((f: Facture) => f.mission_id === mission_id).length
+  if (nb === 0) return 'T1 — 30%'
+  if (nb === 1) return 'T2 — 30%'
+  if (nb === 2) return 'T3 — 40% (solde)'
+  return 'Complet'
+}
+
 function openCreate() {
-  form.entreprise_id = null
-  form.type = 'FF'
-  form.date_facture = null
-  form.date_echeance = null
+  form.mission_id = null
+  form.date_facture = new Date()
   form.notes = ''
-  form.lignes = [{ designation: '', quantite: 1, prix_unitaire_ht: 0, prestation_id: null }]
   dialogVisible.value = true
 }
 
-function addLigne() {
-  form.lignes.push({ designation: '', quantite: 1, prix_unitaire_ht: 0, prestation_id: null })
-}
-
-function removeLigne(index: number) {
-  if (form.lignes.length > 1) form.lignes.splice(index, 1)
-}
-
 async function onSubmitFacture() {
-  if (!form.entreprise_id || !form.date_facture || !form.date_echeance) return
+  if (!form.mission_id || !form.date_facture) return
   saving.value = true
   try {
     await createFacture({
-      entreprise_id: form.entreprise_id,
-      type: form.type,
+      mission_id: form.mission_id,
       date_facture: toIsoDate(form.date_facture),
-      date_echeance: toIsoDate(form.date_echeance),
       notes: form.notes || null,
-      lignes: form.lignes,
     })
     dialogVisible.value = false
-  } catch {
-    // erreur geree par le composable
+  } catch (err: any) {
+    const detail = err.response?.data?.message ?? 'Erreur lors de la creation.'
+    toast.add({ severity: 'error', summary: 'Erreur', detail, life: 5000 })
   } finally {
     saving.value = false
   }
 }
 
-// Paiement
 function openPaiement(facture: Facture) {
-  paiementFactureId.value = facture.id
-  paiementForm.montant = 0
+  paiementFacture.value = facture
+  paiementForm.montant = facture.montant_ttc - facture.montant_paye
   paiementForm.mode_paiement = 'virement'
   paiementForm.reference = null
   paiementForm.notes = null
-  datePaiement.value = null
+  datePaiement.value = new Date()
   paiementDialogVisible.value = true
 }
 
 async function onSubmitPaiement() {
-  if (!paiementFactureId.value || !datePaiement.value) return
+  if (!paiementFacture.value || !datePaiement.value) return
   paiementSaving.value = true
   try {
-    await addPaiement(paiementFactureId.value, {
+    await addPaiement(paiementFacture.value.id, {
       ...paiementForm,
       date_paiement: toIsoDate(datePaiement.value),
     })
     paiementDialogVisible.value = false
-  } catch {
-    // erreur geree par le composable
+  } catch (err: any) {
+    const detail = err.response?.data?.message ?? 'Erreur lors du paiement.'
+    toast.add({ severity: 'error', summary: 'Erreur', detail, life: 5000 })
   } finally {
     paiementSaving.value = false
   }
@@ -166,7 +173,7 @@ function handleSearch() {
 
 onMounted(() => {
   fetchFactures()
-  fetchEntreprises()
+  fetchMissions()
 })
 </script>
 
@@ -174,7 +181,7 @@ onMounted(() => {
   <div>
     <div class="page-header">
       <h2>Factures</h2>
-      <Button label="Nouvelle facture" icon="pi pi-plus" @click="openCreate" />
+      <Button label="Nouvelle facture" icon="pi pi-plus" aria-label="Creer une facture" @click="openCreate" />
     </div>
 
     <div class="page-toolbar">
@@ -198,9 +205,9 @@ onMounted(() => {
       stripedRows
     >
       <Column field="numero" header="Numero" />
-      <Column field="type" header="Type">
+      <Column header="Mission">
         <template #body="{ data }">
-          <Tag :value="data.type" :severity="data.type === 'FF' ? 'info' : 'warn'" />
+          {{ data.mission?.reference ?? '-' }}
         </template>
       </Column>
       <Column header="Entreprise">
@@ -209,36 +216,53 @@ onMounted(() => {
         </template>
       </Column>
       <Column field="date_facture" header="Date" />
-      <Column header="TTC (DA)">
+      <Column field="date_echeance" header="Echeance" />
+      <Column header="Montant TTC">
         <template #body="{ data }">
           {{ formatMontant(data.montant_ttc) }}
         </template>
       </Column>
-      <Column header="Paye (DA)">
+      <Column header="Paye">
         <template #body="{ data }">
           {{ formatMontant(data.montant_paye) }}
         </template>
       </Column>
+      <Column header="Mode">
+        <template #body="{ data }">
+          {{ modePaiementLabel(data.mode_paiement) }}
+        </template>
+      </Column>
       <Column header="Statut">
         <template #body="{ data }">
-          <Tag :value="data.statut_paiement" :severity="statutColor(data.statut_paiement)" />
+          <Tag :value="data.statut_paiement" :severity="statutPaiementColor(data.statut_paiement)" />
         </template>
       </Column>
       <Column header="Actions" style="width: 10rem">
         <template #body="{ data }">
           <Button
+            icon="pi pi-file-pdf"
+            text
+            severity="secondary"
+            aria-label="Telecharger le PDF"
+            v-tooltip.top="'Telecharger PDF'"
+            @click="telechargerPdf(data.id, data.numero)"
+          />
+          <Button
             v-if="data.statut_paiement !== 'solde'"
             icon="pi pi-wallet"
             text
             severity="success"
-            aria-label="Ajouter un paiement"
+            aria-label="Enregistrer un paiement"
+            v-tooltip.top="'Paiement'"
             @click="openPaiement(data)"
           />
           <Button
+            v-if="!data.paiements || data.paiements.length === 0"
             icon="pi pi-trash"
             text
             severity="danger"
             aria-label="Supprimer"
+            v-tooltip.top="'Supprimer'"
             @click="confirmDelete(data)"
           />
         </template>
@@ -247,32 +271,29 @@ onMounted(() => {
 
     <ConfirmDialog />
 
-    <!-- Dialog creation facture -->
+    <!-- Dialog création facture -->
     <Dialog
       v-model:visible="dialogVisible"
       header="Nouvelle facture"
       :modal="true"
-      :style="{ width: '44rem' }"
+      :style="{ width: '34rem' }"
     >
       <form @submit.prevent="onSubmitFacture" class="dialog-form">
-        <div class="form-row">
-          <div class="form-field">
-            <label for="f-entreprise">Entreprise *</label>
-            <Select
-              id="f-entreprise"
-              v-model="form.entreprise_id"
-              :options="entreprises"
-              optionLabel="raison_sociale"
-              optionValue="id"
-              placeholder="Selectionner..."
-              filter
-              fluid
-            />
-          </div>
-          <div class="form-field">
-            <label for="f-type">Type *</label>
-            <Select id="f-type" v-model="form.type" :options="typeOptions" optionLabel="label" optionValue="value" fluid />
-          </div>
+        <div class="form-field">
+          <label for="f-mission">Mission *</label>
+          <Select
+            id="f-mission"
+            v-model="form.mission_id"
+            :options="missions"
+            optionLabel="reference"
+            optionValue="id"
+            placeholder="Selectionner une mission..."
+            filter
+            fluid
+          />
+          <small v-if="form.mission_id" class="tranche-hint">
+            Prochaine tranche : <strong>{{ trancheLabel(form.mission_id) }}</strong>
+          </small>
         </div>
 
         <div class="form-row">
@@ -281,36 +302,10 @@ onMounted(() => {
             <DatePicker id="f-date" v-model="form.date_facture" dateFormat="dd/mm/yy" fluid />
           </div>
           <div class="form-field">
-            <label for="f-echeance">Date echeance *</label>
-            <DatePicker id="f-echeance" v-model="form.date_echeance" dateFormat="dd/mm/yy" fluid />
+            <label>Echeance (auto)</label>
+            <div class="echeance-preview">{{ dateEcheancePreview }}</div>
+            <small class="hint">Date facture + 45 jours</small>
           </div>
-        </div>
-
-        <div class="lignes-section">
-          <h4>Lignes</h4>
-          <div v-for="(ligne, i) in form.lignes" :key="i" class="ligne-row">
-            <div class="form-field" style="flex: 2">
-              <label :for="'fl-des-' + i" class="sr-only">Designation</label>
-              <InputText :id="'fl-des-' + i" v-model="ligne.designation" placeholder="Designation" fluid />
-            </div>
-            <div class="form-field" style="flex: 0.5">
-              <label :for="'fl-qty-' + i" class="sr-only">Quantite</label>
-              <InputNumber :id="'fl-qty-' + i" v-model="ligne.quantite" :min="0.01" :minFractionDigits="0" :maxFractionDigits="2" placeholder="Qte" fluid />
-            </div>
-            <div class="form-field" style="flex: 1">
-              <label :for="'fl-prix-' + i" class="sr-only">Prix unitaire HT</label>
-              <InputNumber :id="'fl-prix-' + i" v-model="ligne.prix_unitaire_ht" :min="0" mode="decimal" :minFractionDigits="2" placeholder="Prix HT" fluid />
-            </div>
-            <Button
-              icon="pi pi-times"
-              text
-              severity="danger"
-              aria-label="Supprimer la ligne"
-              @click="removeLigne(i)"
-              :disabled="form.lignes.length <= 1"
-            />
-          </div>
-          <Button label="Ajouter une ligne" icon="pi pi-plus" text severity="info" @click="addLigne" />
         </div>
 
         <div class="form-field">
@@ -319,8 +314,14 @@ onMounted(() => {
         </div>
 
         <div class="dialog-actions">
-          <Button label="Annuler" severity="secondary" text @click="dialogVisible = false" />
-          <Button type="submit" label="Creer" icon="pi pi-check" :loading="saving" />
+          <Button label="Annuler" severity="secondary" text @click="dialogVisible = false" type="button" />
+          <Button
+            type="submit"
+            label="Creer"
+            icon="pi pi-check"
+            :loading="saving"
+            :disabled="!form.mission_id"
+          />
         </div>
       </form>
     </Dialog>
@@ -328,14 +329,24 @@ onMounted(() => {
     <!-- Dialog paiement -->
     <Dialog
       v-model:visible="paiementDialogVisible"
-      header="Enregistrer un paiement"
+      :header="`Paiement — ${paiementFacture?.numero}`"
       :modal="true"
       :style="{ width: '28rem' }"
     >
       <form @submit.prevent="onSubmitPaiement" class="dialog-form">
         <div class="form-field">
           <label for="p-montant">Montant (DA) *</label>
-          <InputNumber id="p-montant" v-model="paiementForm.montant" :min="0.01" mode="decimal" :minFractionDigits="2" fluid />
+          <InputNumber
+            id="p-montant"
+            v-model="paiementForm.montant"
+            :min="0.01"
+            mode="decimal"
+            :minFractionDigits="2"
+            fluid
+          />
+          <small v-if="paiementFacture" class="hint">
+            Restant : {{ formatMontant(paiementFacture.montant_ttc - paiementFacture.montant_paye) }}
+          </small>
         </div>
 
         <div class="form-field">
@@ -344,8 +355,15 @@ onMounted(() => {
         </div>
 
         <div class="form-field">
-          <label for="p-mode">Mode *</label>
-          <Select id="p-mode" v-model="paiementForm.mode_paiement" :options="modeOptions" optionLabel="label" optionValue="value" fluid />
+          <label for="p-mode">Mode de paiement *</label>
+          <Select
+            id="p-mode"
+            v-model="paiementForm.mode_paiement"
+            :options="modeOptions"
+            optionLabel="label"
+            optionValue="value"
+            fluid
+          />
         </div>
 
         <div class="form-field">
@@ -354,8 +372,14 @@ onMounted(() => {
         </div>
 
         <div class="dialog-actions">
-          <Button label="Annuler" severity="secondary" text @click="paiementDialogVisible = false" />
-          <Button type="submit" label="Enregistrer" icon="pi pi-check" :loading="paiementSaving" />
+          <Button label="Annuler" severity="secondary" text @click="paiementDialogVisible = false" type="button" />
+          <Button
+            type="submit"
+            label="Enregistrer"
+            icon="pi pi-check"
+            :loading="paiementSaving"
+            :disabled="!datePaiement || !paiementForm.montant"
+          />
         </div>
       </form>
     </Dialog>
@@ -375,12 +399,22 @@ onMounted(() => {
 .form-field { display: flex; flex-direction: column; gap: 0.25rem; flex: 1; }
 .form-field label { font-size: 0.875rem; font-weight: 500; }
 .form-row { display: flex; gap: 0.75rem; }
-.lignes-section { display: flex; flex-direction: column; gap: 0.5rem; }
-.lignes-section h4 { margin: 0; font-size: 0.95rem; }
-.ligne-row { display: flex; gap: 0.5rem; align-items: flex-end; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
+.hint { color: var(--p-text-muted-color); font-size: 0.75rem; }
+.tranche-hint { color: var(--p-primary-color); font-size: 0.8rem; }
+.echeance-preview {
+  padding: 0.5rem 0.75rem;
+  background: var(--p-surface-ground);
+  border: 1px solid var(--p-surface-border);
+  border-radius: var(--p-border-radius);
+  font-size: 0.9rem;
+  color: var(--p-text-color);
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+}
 
 @media (max-width: 640px) {
-  .form-row, .ligne-row { flex-direction: column; }
+  .form-row { flex-direction: column; }
 }
 </style>

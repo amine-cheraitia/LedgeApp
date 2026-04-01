@@ -6,33 +6,20 @@ export interface FactureFilters {
   per_page?: number
   search?: string
   entreprise_id?: number
-  type?: 'FF' | 'FA'
+  mission_id?: number
   statut_paiement?: string
 }
 
-export interface FactureLignePayload {
-  prestation_id?: number | null
-  designation: string
-  quantite: number
-  prix_unitaire_ht: number
-}
-
 export interface FacturePayload {
-  entreprise_id: number
-  mission_id?: number | null
-  devis_id?: number | null
-  type: 'FF' | 'FA'
-  facture_origine_id?: number | null
+  mission_id: number
   date_facture: string
-  date_echeance: string
   notes?: string | null
-  lignes: FactureLignePayload[]
 }
 
 export interface PaiementPayload {
   montant: number
   date_paiement: string
-  mode_paiement: 'virement' | 'cheque' | 'espece' | 'autre'
+  mode_paiement: 'virement' | 'cheque' | 'autre'
   reference?: string | null
   notes?: string | null
 }
@@ -50,11 +37,14 @@ export const facturesApi = {
     return api.post('/factures', data).then(r => r.data)
   },
 
+  getPdf(id: number): Promise<Blob> {
+    return api.get(`/factures/${id}/pdf`, { responseType: 'blob' }).then(r => r.data)
+  },
+
   delete(id: number): Promise<void> {
     return api.delete(`/factures/${id}`)
   },
 
-  // Paiements
   getPaiements(factureId: number): Promise<{ data: Paiement[] }> {
     return api.get(`/factures/${factureId}/paiements`).then(r => r.data)
   },

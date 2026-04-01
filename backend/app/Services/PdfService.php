@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Devis;
+use App\Models\Facture;
 use App\Models\Setting;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\DomPDF\PDF as PdfInstance;
@@ -19,6 +20,17 @@ class PdfService
         $montantEnLettres = $this->montantEnLettres((float) $devis->montant_ttc);
 
         return Pdf::loadView('pdf.devis', compact('devis', 'cabinet', 'montantEnLettres'))
+            ->setPaper('a4', 'portrait');
+    }
+
+    public function genererFacture(Facture $facture): PdfInstance
+    {
+        $facture->load('entreprise', 'mission.prestation', 'lignes', 'exercice', 'createdBy');
+
+        $cabinet = $this->getCabinetInfo();
+        $montantEnLettres = $this->montantEnLettres((float) $facture->montant_ttc);
+
+        return Pdf::loadView('pdf.facture', compact('facture', 'cabinet', 'montantEnLettres'))
             ->setPaper('a4', 'portrait');
     }
 
