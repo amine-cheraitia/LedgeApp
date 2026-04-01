@@ -345,8 +345,19 @@
             </thead>
             <tbody>
                 @foreach($facture->lignes as $ligne)
+                @php
+                    $prestationNom = $facture->mission?->prestation?->designation ?? $ligne->designation;
+                    $pct = $facture->mission && (float)$facture->mission->prix_ht > 0
+                        ? round((float)$ligne->total_ht / (float)$facture->mission->prix_ht * 100)
+                        : null;
+                @endphp
                 <tr>
-                    <td><div class="presta-label">{{ $ligne->designation }}</div></td>
+                    <td>
+                        <div class="presta-label">{{ $prestationNom }}</div>
+                        @if($pct !== null)
+                        <div style="font-size:8pt; color:#64748b; margin-top:2px;">Tranche {{ $pct }}%</div>
+                        @endif
+                    </td>
                     <td class="r">{{ number_format((float)$ligne->total_ht, 2, ',', ' ') }} DA</td>
                     <td class="r">{{ number_format((float)$ligne->total_ht * (float)$facture->taux_tva / 100, 2, ',', ' ') }} DA</td>
                 </tr>
