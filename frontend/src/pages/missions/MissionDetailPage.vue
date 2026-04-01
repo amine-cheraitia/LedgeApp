@@ -155,13 +155,6 @@ function statutMissionSeverity(statut: string) {
   return map[statut] ?? 'secondary'
 }
 
-function statutTacheSeverity(statut: string) {
-  const map: Record<string, string> = {
-    a_faire: 'secondary', en_cours: 'info', terminee: 'success', bloquee: 'danger',
-  }
-  return map[statut] ?? 'secondary'
-}
-
 function formatDate(d: string | null) {
   if (!d) return '-'
   return new Date(d).toLocaleDateString('fr-FR')

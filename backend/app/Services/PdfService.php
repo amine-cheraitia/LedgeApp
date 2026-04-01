@@ -38,11 +38,11 @@ class PdfService
     private function getCabinetInfo(): array
     {
         return [
-            'nom'       => Setting::get('cabinet_nom', 'Cabinet'),
-            'adresse'   => Setting::get('cabinet_adresse'),
-            'nif'       => Setting::get('cabinet_nif'),
-            'nis'       => Setting::get('cabinet_nis'),
-            'rib'       => Setting::get('cabinet_rib'),
+            'nom' => Setting::get('cabinet_nom', 'Cabinet'),
+            'adresse' => Setting::get('cabinet_adresse'),
+            'nif' => Setting::get('cabinet_nif'),
+            'nis' => Setting::get('cabinet_nis'),
+            'rib' => Setting::get('cabinet_rib'),
             'telephone' => Setting::get('cabinet_telephone'),
         ];
     }

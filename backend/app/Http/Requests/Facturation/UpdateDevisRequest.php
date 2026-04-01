@@ -19,8 +19,8 @@ class UpdateDevisRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'notes'          => ['nullable', 'string'],
-            'date_validite'  => ['sometimes', 'date'],
+            'notes' => ['nullable', 'string'],
+            'date_validite' => ['sometimes', 'date'],
         ];
     }
 }
