@@ -219,7 +219,7 @@
 
 ---
 
-### US-19 · Creation taches · M · 3 pts · Sprint 2
+### US-19 · Creation taches · M · 3 pts · Sprint 2 ✅
 
 **En tant qu'administrateur**, je veux creer des taches et les assigner a des collaborateurs **afin d'** organiser le travail en equipe.
 
@@ -274,7 +274,7 @@
 
 ---
 
-### US-20 · Taches collaborateur — lecture · M · 3 pts · Sprint 2
+### US-20 · Taches collaborateur — lecture · M · 3 pts · Sprint 2 ✅
 
 **En tant que collaborateur**, je veux consulter uniquement mes taches assignees **afin de** savoir ce que j'ai a faire.
 
@@ -284,7 +284,7 @@
 
 ---
 
-### US-21 · Changer statut tache · M · 2 pts · Sprint 2
+### US-21 · Changer statut tache · M · 2 pts · Sprint 2 ✅
 
 **En tant que collaborateur**, je veux changer le statut de mes taches **afin d'** informer l'admin de l'avancement.
 
@@ -522,7 +522,7 @@
 | Sprint | US | Pts | Contenu principal |
 |---|---|---|---|
 | Sprint 1 | US-01 ✅, 02 ✅, 03 ✅, 04 ✅, 05 ✅, 06 ✅, 07 ✅, 08, 09, 11 ✅, 12, 17 ✅, 18 ✅, 40 ✅, 43 | 49 pts | Auth · Referentiel · Clients · Devis · Mission · Exercice |
-| Sprint 2 | US-10, 13 🔧, 14, 15, 16, 19, 20, 21, 22 ✅, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34 | 96 pts | Factures · Taches · Portail · Relances · KPI |
+| Sprint 2 | US-10, 13 ✅, 14 ✅, 15 ✅, 16, 19 ✅, 20 ✅, 21 ✅, 22 ✅, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34 | 96 pts | Factures · Taches · Portail · Relances · KPI |
 | Sprint 3 | US-35, 36, 37, 38, 39, 41, 42 | 27 pts | Qualite · OWASP · RGAA · Tests · MCO |
 | **Total** | **43 US** | **170 pts** | |
 
@@ -537,9 +537,9 @@
 
 | Statut | US | Pts |
 |---|---|---|
-| ✅ Termine | 16 US | 57 pts |
+| ✅ Termine | 19 US | 65 pts |
 | 🔧 En cours | — | — |
-| A faire | 27 US | 113 pts |
+| A faire | 24 US | 105 pts |
 
 ### Noeuds critiques
 
@@ -548,8 +548,8 @@
 | **US-18 Mission** ⭐ ✅ | Debloque 11 US en aval (taches, factures, calendrier, portail, KPI, relances) |
 | **US-13 Facture** ⭐ ✅ | Debloque 9 US en aval (PDF DGI, paiements, avoirs, relances, portail, KPI) |
 
-> US-18 et US-13 sont livrees. US-14 (PDF facture) et US-15 (paiements) implementees dans la meme livraison.
-> Sprint 2 peut continuer : US-19 (taches), US-20 (collaborateur), US-23 (calendrier), US-24 (PDF convention/mandat).
+> US-18, US-13, US-14, US-15, US-19, US-20, US-21, US-22 livrees.
+> Sprint 2 peut continuer : US-23 (calendrier), US-24 (PDF convention/mandat), US-16 (avoirs).
 
 ---
 
