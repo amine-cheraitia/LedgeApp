@@ -9,6 +9,14 @@
 
 ## [Unreleased]
 
+### Corrections — PDF facture : en-tête, désignation, TypeError
+
+- **`FactureController::pdf()`** : type de retour corrigé `StreamedResponse` → `Illuminate\Http\Response` — DomPDF `.stream()` / `.download()` retourne une `Response` standard
+- **`pdf/facture.blade.php` + `pdf/devis.blade.php`** : logo `[L] Ledge` en haut à gauche + nom du cabinet en grand — adresse, téléphone et coordonnées du cabinet retirés de l'en-tête (conservés dans le footer)
+- **`pdf/facture.blade.php`** : désignation de la ligne = nom de la prestation de la mission + pourcentage de tranche calculé depuis les montants réels (`ligne.total_ht / mission.prix_ht`) — indépendant du snapshot `designation` stocké en base
+
+---
+
 ### Ajouts — Facturation : création facture avec tranches automatiques (US-13)
 
 #### Backend
