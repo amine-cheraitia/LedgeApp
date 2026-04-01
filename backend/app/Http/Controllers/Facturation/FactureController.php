@@ -14,7 +14,7 @@ use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Http\Response as HttpResponse;
 
 class FactureController extends Controller
 {
@@ -60,10 +60,10 @@ class FactureController extends Controller
         );
     }
 
-    public function pdf(Facture $facture): StreamedResponse
+    public function pdf(Facture $facture): HttpResponse
     {
         return $this->pdfService->genererFacture($facture)
-            ->stream('facture-'.$facture->numero.'.pdf');
+            ->download('facture-'.$facture->numero.'.pdf');
     }
 
     public function destroy(Facture $facture): JsonResponse
