@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Planning;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Planning\StoreTacheRequest;
+use App\Http\Requests\Planning\UpdateTacheRequest;
 use App\Http\Resources\Planning\TacheResource;
 use App\Models\Mission;
 use App\Models\Tache;
@@ -30,7 +31,7 @@ class TacheController extends Controller
             ->setStatusCode(201);
     }
 
-    public function update(StoreTacheRequest $request, Mission $mission, Tache $tache): TacheResource
+    public function update(UpdateTacheRequest $request, Mission $mission, Tache $tache): TacheResource
     {
         $tache->update($request->validated());
 

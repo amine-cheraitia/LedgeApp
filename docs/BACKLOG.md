@@ -219,7 +219,7 @@
 
 ---
 
-### US-19 · Creation taches · M · 3 pts · Sprint 2
+### US-19 · Creation taches · M · 3 pts · Sprint 2 ✅
 
 **En tant qu'administrateur**, je veux creer des taches et les assigner a des collaborateurs **afin d'** organiser le travail en equipe.
 
@@ -274,7 +274,7 @@
 
 ---
 
-### US-20 · Taches collaborateur — lecture · M · 3 pts · Sprint 2
+### US-20 · Taches collaborateur — lecture · M · 3 pts · Sprint 2 ✅
 
 **En tant que collaborateur**, je veux consulter uniquement mes taches assignees **afin de** savoir ce que j'ai a faire.
 
@@ -284,7 +284,7 @@
 
 ---
 
-### US-21 · Changer statut tache · M · 2 pts · Sprint 2
+### US-21 · Changer statut tache · M · 2 pts · Sprint 2 ✅
 
 **En tant que collaborateur**, je veux changer le statut de mes taches **afin d'** informer l'admin de l'avancement.
 
@@ -522,7 +522,7 @@
 | Sprint | US | Pts | Contenu principal |
 |---|---|---|---|
 | Sprint 1 | US-01 ✅, 02 ✅, 03 ✅, 04 ✅, 05 ✅, 06 ✅, 07 ✅, 08, 09, 11 ✅, 12, 17 ✅, 18 ✅, 40 ✅, 43 | 49 pts | Auth · Referentiel · Clients · Devis · Mission · Exercice |
-| Sprint 2 | US-10, 13 🔧, 14, 15, 16, 19, 20, 21, 22 ✅, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34 | 96 pts | Factures · Taches · Portail · Relances · KPI |
+| Sprint 2 | US-10, 13 🔧, 14, 15, 16, 19 ✅, 20 ✅, 21 ✅, 22 ✅, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34 | 96 pts | Factures · Taches · Portail · Relances · KPI |
 | Sprint 3 | US-35, 36, 37, 38, 39, 41, 42 | 27 pts | Qualite · OWASP · RGAA · Tests · MCO |
 | **Total** | **43 US** | **170 pts** | |
 
@@ -537,9 +537,9 @@
 
 | Statut | US | Pts |
 |---|---|---|
-| ✅ Termine | 13 US | 41 pts |
+| ✅ Termine | 16 US | 49 pts |
 | 🔧 En cours | 1 US (US-13) | 8 pts |
-| A faire | 29 US | 121 pts |
+| A faire | 26 US | 113 pts |
 
 ### Noeuds critiques
 
@@ -548,8 +548,8 @@
 | **US-18 Mission** ⭐ ✅ | Debloque 11 US en aval (taches, factures, calendrier, portail, KPI, relances) |
 | **US-13 Facture** ⭐ 🔧 | Debloque 9 US en aval (PDF DGI, paiements, avoirs, relances, portail, KPI) |
 
-> US-18 est livree. US-13 (facturation) est en cours sur `feature/facturation`.
-> Le sprint 2 peut demarrer des que US-13 est finalisee.
+> US-18, US-19, US-20, US-21 livrees. US-13 (facturation) est en cours sur `feature/creation-facture`.
+> Le sprint 2 peut avancer des que US-13 est finalisee.
 
 ---
 

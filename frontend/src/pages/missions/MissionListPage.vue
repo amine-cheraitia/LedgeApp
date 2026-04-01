@@ -9,12 +9,14 @@ import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
+import MultiSelect from 'primevue/multiselect'
 import DatePicker from 'primevue/datepicker'
 import Textarea from 'primevue/textarea'
 import ConfirmDialog from 'primevue/confirmdialog'
 import { useMissions } from '@/composables/useMissions'
 import { useEntreprises } from '@/composables/useEntreprises'
 import { usePrestations } from '@/composables/usePrestations'
+import { useUsers } from '@/composables/useUsers'
 import type { Mission } from '@/types'
 import type { MissionPayload } from '@/api/modules/missions'
 
@@ -28,6 +30,7 @@ const {
 
 const { entreprises, fetchEntreprises } = useEntreprises()
 const { prestations, fetchPrestations } = usePrestations()
+const { users, fetchUsers } = useUsers()
 
 const search = ref('')
 const dialogVisible = ref(false)
@@ -109,6 +112,7 @@ onMounted(() => {
   fetchMissions()
   fetchEntreprises()
   fetchPrestations()
+  fetchUsers()
 })
 </script>
 
@@ -207,6 +211,19 @@ onMounted(() => {
         <div class="form-field">
           <label for="m-fin">Date fin *</label>
           <DatePicker id="m-fin" v-model="dateFin" dateFormat="dd/mm/yy" required fluid />
+        </div>
+
+        <div class="form-field">
+          <label for="m-collabs">Collaborateurs</label>
+          <MultiSelect
+            id="m-collabs"
+            v-model="form.collaborateur_ids"
+            :options="users"
+            optionLabel="name"
+            optionValue="id"
+            placeholder="Selectionner des collaborateurs..."
+            fluid
+          />
         </div>
 
         <div class="form-field">

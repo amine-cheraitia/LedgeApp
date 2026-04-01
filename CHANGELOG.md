@@ -9,6 +9,23 @@
 
 ## [Unreleased]
 
+### Ajouts — Missions : tâches complètes + statuts mission (US-19)
+
+#### Backend
+- **`UpdateTacheRequest`** (nouveau) : FormRequest dédié à la mise à jour des tâches — `titre` en `sometimes` (optionnel) permettant la mise à jour partielle du statut seul sans re-valider tous les champs
+- **`TacheController::update()`** : injecte désormais `UpdateTacheRequest` au lieu de `StoreTacheRequest` — SRP respecté (store et update ont des règles différentes)
+
+#### Frontend
+- **`MissionListPage.vue`** : ajout `MultiSelect` collaborateurs dans le dialog de création de mission
+- **`MissionDetailPage.vue`** : refonte complète —
+  - Boutons de changement de statut mission (Reprendre / Suspendre / Terminer / Annuler) selon le statut courant
+  - Collaborateurs affichés en chips dans le bloc info
+  - Sélecteur `assigné à` (Select user) dans le dialog nouvelle tâche
+  - Bouton supprimer tâche avec `ConfirmDialog` + gestion erreur 409 (tâche avec commentaires)
+  - Cohérence des tags de statut tâche
+
+---
+
 ### Corrections — PDF devis : timbre retiré + montant en lettres
 
 #### Backend
