@@ -117,11 +117,8 @@ describe('devisApi', () => {
 describe('facturesApi', () => {
   it('create calls POST /factures', async () => {
     const payload = {
-      entreprise_id: 1,
-      type: 'FF' as const,
+      mission_id: 1,
       date_facture: '2026-03-25',
-      date_echeance: '2026-04-25',
-      lignes: [{ designation: 'Service', quantite: 1, prix_unitaire_ht: 100000 }],
     }
     mockPost.mockResolvedValue({ data: { data: { id: 1, numero: 'FF2026-001' } } })
 

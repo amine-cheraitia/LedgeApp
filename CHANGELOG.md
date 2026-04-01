@@ -9,6 +9,29 @@
 
 ## [Unreleased]
 
+### Ajouts — Facturation : création facture avec tranches automatiques (US-13)
+
+#### Backend
+- **Migration** : `add_mode_paiement_to_factures_table` — colonne `mode_paiement` (default `non_defini`) + `make_timbre_taux_id_nullable_on_factures`
+- **`FacturationService::creerFacture()`** : entièrement réécrit — détection automatique de la tranche (T1 30%, T2 30%, T3 40%) par comptage des factures `FF` de la mission, `lockForUpdate()` pour éviter les doublons en concurrence, snapshot TVA historisée via `TvaTaux::enVigueurLe($dateFacture)`, date échéance auto = date_facture + 45 jours, `montant_timbre = 0` (timbre ignoré), `mode_paiement = non_defini` à la création
+- **`FacturationService::creerFacture()`** : lève `DomainException` si ≥ 3 factures existent déjà pour la mission
+- **`PaiementController`** : met à jour `mode_paiement` sur la facture lors de l'enregistrement d'un paiement
+- **`PdfService::genererFacture()`** : génère le PDF de facture (template A4 identique au devis, sans timbre, avec mention mode de règlement)
+- **`FactureController::pdf()`** : route `GET /api/v1/factures/{id}/pdf`
+- **`StoreFactureRequest`** : simplifié — `mission_id` + `date_facture` + `notes` uniquement
+- **`StorePaiementRequest`** : `mode_paiement` accepte `virement`, `cheque`, `autre`
+- **`FactureResource`** : expose `mode_paiement`
+- **Vue Blade `pdf/facture.blade.php`** : template A4 — en-tête cabinet, bloc destinataire, tableau prestation (tranche label, HT, TVA, TTC), totaux, montant en lettres, mode de règlement (RIB si virement), signatures « Bon pour acquit »
+- **Tests** : 8 tests `FactureApiTest` — tranche1, tranches T1/T2/T3, erreur >3 tranches, snapshot TVA, paiement partiel, solde, suppression bloquée avec paiements, paiement sur facture soldée bloqué
+
+#### Frontend
+- **`api/modules/factures.ts`** : `FacturePayload` simplifié (`mission_id`, `date_facture`, `notes`), ajout `getPdf()` avec `responseType: blob`, `PaiementPayload` avec `autre` comme 3e mode
+- **`types/index.ts`** : `Facture` enrichi avec `mode_paiement`
+- **`composables/useFactures.ts`** : ajout `telechargerPdf(id, numero)` — pattern blob download
+- **`pages/factures/FactureListPage.vue`** : formulaire basé sur mission (plus entreprise), date facture par défaut aujourd'hui, aperçu date échéance (+45j, non modifiable), hint tranche suivante, dialog paiement avec 3 modes, bouton PDF sur chaque ligne
+
+---
+
 ### Corrections — PDF devis : timbre retiré + montant en lettres
 
 #### Backend

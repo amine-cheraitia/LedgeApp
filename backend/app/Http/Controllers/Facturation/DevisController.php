@@ -18,6 +18,7 @@ use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Symfony\Component\HttpFoundation\Response;
 
 class DevisController extends Controller
 {
@@ -104,13 +105,13 @@ class DevisController extends Controller
     {
         try {
             $mission = $this->missionService->creerMission([
-                'entreprise_id'     => $devis->entreprise_id,
-                'prestation_id'     => $devis->prestation_id,
-                'devis_id'          => $devis->id,
-                'date_debut'        => $request->date_debut,
-                'date_fin'          => $request->date_fin,
+                'entreprise_id' => $devis->entreprise_id,
+                'prestation_id' => $devis->prestation_id,
+                'devis_id' => $devis->id,
+                'date_debut' => $request->date_debut,
+                'date_fin' => $request->date_fin,
                 'collaborateur_ids' => $request->collaborateur_ids ?? [],
-                'notes'             => 'Genere depuis devis '.$devis->numero,
+                'notes' => 'Genere depuis devis '.$devis->numero,
             ]);
         } catch (DomainException $e) {
             return response()->json(['message' => $e->getMessage()], 409);
@@ -119,7 +120,7 @@ class DevisController extends Controller
         return new MissionResource($mission);
     }
 
-    public function pdf(Devis $devis): \Symfony\Component\HttpFoundation\Response
+    public function pdf(Devis $devis): Response
     {
         return $this->pdfService->genererDevis($devis)
             ->stream('devis-'.$devis->numero.'.pdf');

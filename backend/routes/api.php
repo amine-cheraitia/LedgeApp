@@ -73,6 +73,7 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('devis', DevisController::class)->parameters(['devis' => 'devis']);
 
             // Facturation — Factures
+            Route::get('factures/{facture}/pdf', [FactureController::class, 'pdf']);
             Route::apiResource('factures', FactureController::class)->except(['update']);
 
             // Facturation — Paiements (nested sous factures)

@@ -46,6 +46,20 @@ export function useFactures() {
     return response.data
   }
 
+  async function telechargerPdf(id: number, numero: string) {
+    try {
+      const blob = await facturesApi.getPdf(id)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `facture-${numero}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de generer le PDF.', life: 3000 })
+    }
+  }
+
   function onPage(event: { page: number }) {
     filters.value.page = event.page + 1
     fetchFactures()
@@ -66,6 +80,7 @@ export function useFactures() {
     createFacture,
     deleteFacture,
     addPaiement,
+    telechargerPdf,
     onPage,
     onSearch,
   }

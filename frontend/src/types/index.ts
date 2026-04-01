@@ -161,6 +161,7 @@ export interface Facture {
   montant_ttc: number
   montant_paye: number
   statut_paiement: 'en_attente' | 'partiel' | 'solde'
+  mode_paiement: 'virement' | 'cheque' | 'autre' | 'non_defini'
   pdf_path: string | null
   notes: string | null
   entreprise?: Entreprise

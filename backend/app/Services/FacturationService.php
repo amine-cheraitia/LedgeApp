@@ -9,10 +9,11 @@ use App\Models\Entreprise;
 use App\Models\Exercice;
 use App\Models\Facture;
 use App\Models\FactureLigne;
+use App\Models\Mission;
 use App\Models\Prestation;
 use App\Models\Setting;
-use App\Models\TimbreTaux;
 use App\Models\TvaTaux;
+use Carbon\Carbon;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 
@@ -145,65 +146,81 @@ class FacturationService
     }
 
     /**
-     * Cree une facture avec ses lignes.
-     * Les snapshots TVA/timbre sont figes a la creation — regle immuable.
+     * Cree une facture de mission avec tranche automatique.
+     * T1=30%, T2=30%, T3=40% — determinee par le nb de factures existantes sur la mission.
+     * Date echeance = date_facture + 45 jours. Timbre = 0 (non applicable).
+     * Snapshots TVA figes a la date de facturation — regle immuable.
      */
-    public function creerFacture(array $data, array $lignes, int $userId): Facture
+    public function creerFacture(array $data, int $userId): Facture
     {
-        return DB::transaction(function () use ($data, $lignes, $userId) {
-            $exercice = Exercice::current();
-            $type = $data['type'] ?? 'FF';
-            $prefixe = $type === 'FA'
-                ? Setting::get('avoir_prefixe', 'FA')
-                : Setting::get('facture_prefixe', 'FF');
+        return DB::transaction(function () use ($data, $userId) {
+            $mission = Mission::with('entreprise', 'prestation')
+                ->lockForUpdate()
+                ->findOrFail($data['mission_id']);
 
-            $montantHt = collect($lignes)->sum(fn (array $l) => $l['quantite'] * $l['prix_unitaire_ht']);
+            $nbFactures = Facture::where('mission_id', $mission->id)
+                ->where('type', 'FF')
+                ->count();
+
+            if ($nbFactures >= 3) {
+                throw new DomainException('Les 3 tranches ont deja ete facturees pour cette mission.');
+            }
+
+            $tranches = [
+                0 => ['taux' => 0.30, 'label' => 'Tranche 1 (30%)'],
+                1 => ['taux' => 0.30, 'label' => 'Tranche 2 (30%)'],
+                2 => ['taux' => 0.40, 'label' => 'Tranche 3 — solde (40%)'],
+            ];
+
+            $tranche = $tranches[$nbFactures];
+            $montantHt = round((float) $mission->prix_ht * $tranche['taux'], 2);
 
             $dateFacture = $data['date_facture'];
-            $tvaTaux = TvaTaux::enVigueurLe($dateFacture);
-            $timbreTaux = TimbreTaux::enVigueurLe($dateFacture);
+            $dateEcheance = Carbon::parse($dateFacture)->addDays(45)->toDateString();
 
+            $tvaTaux = TvaTaux::enVigueurLe($dateFacture);
             $tauxTva = $tvaTaux ? (float) $tvaTaux->taux : 0;
             $montantTva = round($montantHt * $tauxTva / 100, 2);
-            $montantTimbre = $timbreTaux ? $timbreTaux->calculer($montantHt) : 0;
-            $montantTtc = round($montantHt + $montantTva + $montantTimbre, 2);
+            $montantTtc = round($montantHt + $montantTva, 2);
+
+            $exercice = Exercice::current();
+            $prefixe = Setting::get('facture_prefixe', 'FF');
+            $designation = 'Mission '.$mission->reference.' — '.$tranche['label'];
 
             $facture = Facture::create([
-                'entreprise_id' => $data['entreprise_id'],
+                'entreprise_id' => $mission->entreprise_id,
                 'exercice_id' => $exercice->id,
-                'mission_id' => $data['mission_id'] ?? null,
-                'devis_id' => $data['devis_id'] ?? null,
+                'mission_id' => $mission->id,
+                'devis_id' => $mission->devis_id ?? null,
                 'created_by' => $userId,
                 'tva_taux_id' => $tvaTaux?->id,
-                'timbre_taux_id' => $timbreTaux?->id,
+                'timbre_taux_id' => null,
                 'numero' => $this->genererNumero($prefixe, 'factures', $exercice),
-                'type' => $type,
-                'facture_origine_id' => $data['facture_origine_id'] ?? null,
+                'type' => 'FF',
                 'date_facture' => $dateFacture,
-                'date_echeance' => $data['date_echeance'],
+                'date_echeance' => $dateEcheance,
                 'montant_ht' => $montantHt,
                 'taux_tva' => $tauxTva,
                 'montant_tva' => $montantTva,
-                'montant_timbre' => $montantTimbre,
+                'montant_timbre' => 0,
                 'montant_ttc' => $montantTtc,
                 'montant_paye' => 0,
                 'statut_paiement' => 'en_attente',
+                'mode_paiement' => 'non_defini',
                 'notes' => $data['notes'] ?? null,
             ]);
 
-            foreach ($lignes as $index => $ligne) {
-                FactureLigne::create([
-                    'facture_id' => $facture->id,
-                    'prestation_id' => $ligne['prestation_id'] ?? null,
-                    'designation' => $ligne['designation'],
-                    'quantite' => $ligne['quantite'],
-                    'prix_unitaire_ht' => $ligne['prix_unitaire_ht'],
-                    'total_ht' => round($ligne['quantite'] * $ligne['prix_unitaire_ht'], 2),
-                    'ordre' => $index + 1,
-                ]);
-            }
+            FactureLigne::create([
+                'facture_id' => $facture->id,
+                'prestation_id' => $mission->prestation_id,
+                'designation' => $designation,
+                'quantite' => 1,
+                'prix_unitaire_ht' => $montantHt,
+                'total_ht' => $montantHt,
+                'ordre' => 1,
+            ]);
 
-            return $facture->load('lignes', 'entreprise');
+            return $facture->load('lignes', 'entreprise', 'mission');
         });
     }
 

@@ -205,7 +205,7 @@
 
 ---
 
-### US-13 · Creation facture avec tranches ⭐ · M · 8 pts · Sprint 2 🔧
+### US-13 · Creation facture avec tranches ⭐ · M · 8 pts · Sprint 2 ✅
 
 **En tant qu'administrateur**, je veux creer une facture a partir d'une mission avec paiement par tranches **afin de** facturer le client en respectant l'exercice fiscal courant.
 
@@ -252,7 +252,7 @@
 
 ## Couche 5
 
-### US-14 · PDF facture conforme DGI · M · 5 pts · Sprint 2
+### US-14 · PDF facture conforme DGI · M · 5 pts · Sprint 2 ✅
 
 **En tant qu'administrateur**, je veux generer un PDF de facture conforme DGI **afin qu'**il soit juridiquement recevable en Algerie.
 
@@ -262,7 +262,7 @@
 
 ---
 
-### US-15 · Paiements avec statut automatique · M · 3 pts · Sprint 2
+### US-15 · Paiements avec statut automatique · M · 3 pts · Sprint 2 ✅
 
 **En tant qu'administrateur**, je veux enregistrer les paiements par tranche **afin de** suivre le recouvrement en temps reel.
 
@@ -537,19 +537,19 @@
 
 | Statut | US | Pts |
 |---|---|---|
-| ✅ Termine | 13 US | 41 pts |
-| 🔧 En cours | 1 US (US-13) | 8 pts |
-| A faire | 29 US | 121 pts |
+| ✅ Termine | 16 US | 57 pts |
+| 🔧 En cours | — | — |
+| A faire | 27 US | 113 pts |
 
 ### Noeuds critiques
 
 | US | Raison |
 |---|---|
 | **US-18 Mission** ⭐ ✅ | Debloque 11 US en aval (taches, factures, calendrier, portail, KPI, relances) |
-| **US-13 Facture** ⭐ 🔧 | Debloque 9 US en aval (PDF DGI, paiements, avoirs, relances, portail, KPI) |
+| **US-13 Facture** ⭐ ✅ | Debloque 9 US en aval (PDF DGI, paiements, avoirs, relances, portail, KPI) |
 
-> US-18 est livree. US-13 (facturation) est en cours sur `feature/facturation`.
-> Le sprint 2 peut demarrer des que US-13 est finalisee.
+> US-18 et US-13 sont livrees. US-14 (PDF facture) et US-15 (paiements) implementees dans la meme livraison.
+> Sprint 2 peut continuer : US-19 (taches), US-20 (collaborateur), US-23 (calendrier), US-24 (PDF convention/mandat).
 
 ---
 

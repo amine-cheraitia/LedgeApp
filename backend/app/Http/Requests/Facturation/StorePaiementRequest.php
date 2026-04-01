@@ -21,7 +21,7 @@ class StorePaiementRequest extends FormRequest
         return [
             'montant' => ['required', 'numeric', 'min:0.01'],
             'date_paiement' => ['required', 'date'],
-            'mode_paiement' => ['required', 'in:virement,cheque,espece,autre'],
+            'mode_paiement' => ['required', 'in:virement,cheque,autre'],
             'reference' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string'],
         ];

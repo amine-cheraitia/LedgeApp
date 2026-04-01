@@ -33,6 +33,7 @@ class FactureResource extends JsonResource
             'montant_ttc' => $this->montant_ttc,
             'montant_paye' => $this->montant_paye,
             'statut_paiement' => $this->statut_paiement,
+            'mode_paiement' => $this->mode_paiement,
             'notes' => $this->notes,
             'entreprise' => $this->whenLoaded('entreprise'),
             'mission' => $this->whenLoaded('mission'),

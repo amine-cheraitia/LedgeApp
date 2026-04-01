@@ -43,6 +43,9 @@ class PaiementController extends Controller
             'notes' => $request->validated('notes'),
         ]);
 
+        // Mettre a jour le mode de paiement sur la facture
+        $facture->update(['mode_paiement' => $request->validated('mode_paiement')]);
+
         $this->facturationService->recalculerStatutPaiement($facture);
 
         if ($facture->estSolde()) {

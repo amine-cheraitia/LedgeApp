@@ -9,18 +9,25 @@ use App\Http\Requests\Facturation\StoreFactureRequest;
 use App\Http\Resources\Facturation\FactureResource;
 use App\Models\Facture;
 use App\Services\FacturationService;
+use App\Services\PdfService;
+use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FactureController extends Controller
 {
-    public function __construct(private FacturationService $facturationService) {}
+    public function __construct(
+        private FacturationService $facturationService,
+        private PdfService $pdfService,
+    ) {}
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $factures = Facture::with('entreprise', 'lignes')
+        $factures = Facture::with('entreprise', 'mission', 'lignes')
             ->when($request->entreprise_id, fn ($q, $id) => $q->where('entreprise_id', $id))
+            ->when($request->mission_id, fn ($q, $id) => $q->where('mission_id', $id))
             ->when($request->type, fn ($q, $t) => $q->where('type', $t))
             ->when($request->statut_paiement, fn ($q, $s) => $q->where('statut_paiement', $s))
             ->when($request->search, fn ($q, $s) => $q->where('numero', 'like', "%{$s}%"))
@@ -32,13 +39,16 @@ class FactureController extends Controller
 
     public function store(StoreFactureRequest $request): JsonResponse
     {
-        $facture = $this->facturationService->creerFacture(
-            $request->safe()->except('lignes'),
-            $request->validated('lignes'),
-            $request->user()->id,
-        );
+        try {
+            $facture = $this->facturationService->creerFacture(
+                $request->validated(),
+                $request->user()->id,
+            );
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
+        }
 
-        return (new FactureResource($facture->load('lignes', 'entreprise')))
+        return (new FactureResource($facture->load('lignes', 'entreprise', 'mission')))
             ->response()
             ->setStatusCode(201);
     }
@@ -48,6 +58,12 @@ class FactureController extends Controller
         return new FactureResource(
             $facture->load('lignes', 'entreprise', 'mission', 'paiements')
         );
+    }
+
+    public function pdf(Facture $facture): StreamedResponse
+    {
+        return $this->pdfService->genererFacture($facture)
+            ->stream('facture-'.$facture->numero.'.pdf');
     }
 
     public function destroy(Facture $facture): JsonResponse
@@ -61,6 +77,6 @@ class FactureController extends Controller
         $facture->lignes()->delete();
         $facture->delete();
 
-        return response()->json(['message' => 'Facture supprimee.']);
+        return response()->json(null, 204);
     }
 }
