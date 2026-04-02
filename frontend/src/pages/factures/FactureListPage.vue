@@ -15,6 +15,7 @@ import Textarea from 'primevue/textarea'
 import ConfirmDialog from 'primevue/confirmdialog'
 import { useFactures } from '@/composables/useFactures'
 import { useMissions } from '@/composables/useMissions'
+import { avoirsApi } from '@/api/modules/avoirs'
 import type { Facture } from '@/types'
 import type { PaiementPayload } from '@/api/modules/factures'
 
@@ -171,6 +172,52 @@ function handleSearch() {
   onSearch(search.value)
 }
 
+// Dialog avoir
+const avoirDialogVisible = ref(false)
+const avoirSaving = ref(false)
+const avoirFacture = ref<Facture | null>(null)
+const avoirForm = reactive({
+  montant_ht: 0,
+  date_avoir: new Date() as Date,
+  motif: '',
+})
+
+function openAvoir(facture: Facture) {
+  avoirFacture.value = facture
+  avoirForm.montant_ht = 0
+  avoirForm.date_avoir = new Date()
+  avoirForm.motif = ''
+  avoirDialogVisible.value = true
+}
+
+async function onSubmitAvoir() {
+  if (!avoirFacture.value || !avoirForm.montant_ht || !avoirForm.date_avoir) return
+  avoirSaving.value = true
+  try {
+    await avoirsApi.store(avoirFacture.value.id, {
+      montant_ht: avoirForm.montant_ht,
+      date_avoir: toIsoDate(avoirForm.date_avoir),
+      motif: avoirForm.motif,
+    })
+    toast.add({ severity: 'success', summary: 'Avoir créé', detail: 'L\'avoir a été émis avec succès.', life: 4000 })
+    avoirDialogVisible.value = false
+    fetchFactures()
+  } catch (err: any) {
+    const detail = err.response?.data?.message ?? 'Erreur lors de la création de l\'avoir.'
+    toast.add({ severity: 'error', summary: 'Erreur', detail, life: 5000 })
+  } finally {
+    avoirSaving.value = false
+  }
+}
+
+async function telechargerAvoirPdf(factureId: number, avoirId: number, numero: string) {
+  try {
+    await avoirsApi.telechargerPdf(factureId, avoirId, numero)
+  } catch {
+    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de télécharger le PDF.', life: 3000 })
+  }
+}
+
 onMounted(() => {
   fetchFactures()
   fetchMissions()
@@ -257,6 +304,14 @@ onMounted(() => {
             @click="openPaiement(data)"
           />
           <Button
+            icon="pi pi-file-edit"
+            text
+            severity="secondary"
+            aria-label="Émettre un avoir"
+            v-tooltip.top="'Émettre un avoir'"
+            @click="openAvoir(data)"
+          />
+          <Button
             v-if="!data.paiements || data.paiements.length === 0"
             icon="pi pi-trash"
             text
@@ -321,6 +376,71 @@ onMounted(() => {
             icon="pi pi-check"
             :loading="saving"
             :disabled="!form.mission_id"
+          />
+        </div>
+      </form>
+    </Dialog>
+
+    <!-- Dialog avoir -->
+    <Dialog
+      v-model:visible="avoirDialogVisible"
+      :header="`Émettre un avoir — ${avoirFacture?.numero}`"
+      :modal="true"
+      :style="{ width: '32rem', maxWidth: '95vw' }"
+      :breakpoints="{ '640px': '95vw' }"
+      :draggable="false"
+    >
+      <form v-if="avoirFacture" @submit.prevent="onSubmitAvoir" class="dialog-form">
+        <div class="avoir-recap">
+          <div class="recap-row">
+            <span class="recap-label">Facture</span>
+            <span>{{ avoirFacture.numero }}</span>
+          </div>
+          <div class="recap-row">
+            <span class="recap-label">Restant dû</span>
+            <span class="montant-restant">{{ formatMontant(avoirFacture.montant_restant) }}</span>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="a-montant">Montant HT de l'avoir (DA) *</label>
+          <InputNumber
+            id="a-montant"
+            v-model="avoirForm.montant_ht"
+            :min="0.01"
+            mode="decimal"
+            :minFractionDigits="2"
+            fluid
+            aria-label="Montant HT de l'avoir"
+          />
+          <small class="hint">TVA reprise de la facture d'origine ({{ avoirFacture.taux_tva }}%)</small>
+        </div>
+
+        <div class="form-field">
+          <label for="a-date">Date de l'avoir *</label>
+          <DatePicker id="a-date" v-model="avoirForm.date_avoir" dateFormat="dd/mm/yy" fluid aria-label="Date de l'avoir" />
+        </div>
+
+        <div class="form-field">
+          <label for="a-motif">Motif *</label>
+          <Textarea
+            id="a-motif"
+            v-model="avoirForm.motif"
+            rows="3"
+            fluid
+            placeholder="Motif de l'avoir..."
+            aria-label="Motif de l'avoir"
+          />
+        </div>
+
+        <div class="dialog-actions">
+          <Button label="Annuler" severity="secondary" text @click="avoirDialogVisible = false" type="button" />
+          <Button
+            type="submit"
+            label="Émettre l'avoir"
+            icon="pi pi-check"
+            :loading="avoirSaving"
+            :disabled="!avoirForm.montant_ht || !avoirForm.motif || !avoirForm.date_avoir"
           />
         </div>
       </form>
@@ -413,6 +533,19 @@ onMounted(() => {
   display: flex;
   align-items: center;
 }
+
+.avoir-recap {
+  background: var(--p-surface-ground);
+  border: 1px solid var(--p-surface-border);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.recap-row { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.recap-label { font-size: 0.8rem; color: var(--p-text-muted-color); }
+.montant-restant { font-weight: 700; color: var(--p-red-600); }
 
 @media (max-width: 640px) {
   .form-row { flex-direction: column; }

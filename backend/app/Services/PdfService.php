@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Avoir;
 use App\Models\Devis;
 use App\Models\Facture;
 use App\Models\Setting;
@@ -31,6 +32,17 @@ class PdfService
         $montantEnLettres = $this->montantEnLettres((float) $facture->montant_ttc);
 
         return Pdf::loadView('pdf.facture', compact('facture', 'cabinet', 'montantEnLettres'))
+            ->setPaper('a4', 'portrait');
+    }
+
+    public function genererAvoir(Avoir $avoir): PdfInstance
+    {
+        $avoir->load('factureOrigine.entreprise', 'factureOrigine.mission', 'exercice', 'createdBy');
+
+        $cabinet = $this->getCabinetInfo();
+        $montantEnLettres = $this->montantEnLettres((float) $avoir->montant_ttc);
+
+        return Pdf::loadView('pdf.avoir', compact('avoir', 'cabinet', 'montantEnLettres'))
             ->setPaper('a4', 'portrait');
     }
 

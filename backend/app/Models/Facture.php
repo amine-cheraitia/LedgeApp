@@ -76,9 +76,16 @@ class Facture extends Model
         return $this->hasMany(Relance::class);
     }
 
+    public function avoirs(): HasMany
+    {
+        return $this->hasMany(Avoir::class, 'facture_origine_id');
+    }
+
     public function montantRestant(): float
     {
-        return (float) $this->montant_ttc - (float) $this->montant_paye;
+        $totalAvoirs = (float) $this->avoirs()->sum('montant_ttc');
+
+        return max(0.0, (float) $this->montant_ttc - (float) $this->montant_paye - $totalAvoirs);
     }
 
     public function estSolde(): bool

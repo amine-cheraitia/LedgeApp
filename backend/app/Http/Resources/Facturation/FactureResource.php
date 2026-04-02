@@ -41,6 +41,7 @@ class FactureResource extends JsonResource
             'lignes' => FactureLigneResource::collection($this->whenLoaded('lignes')),
             'paiements' => PaiementResource::collection($this->whenLoaded('paiements')),
             'relances' => RelanceResource::collection($this->whenLoaded('relances')),
+            'avoirs' => AvoirResource::collection($this->whenLoaded('avoirs')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

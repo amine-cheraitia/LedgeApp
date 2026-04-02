@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\Entreprises\EntrepriseController;
 use App\Http\Controllers\Exercices\ExerciceController;
+use App\Http\Controllers\Facturation\AvoirController;
 use App\Http\Controllers\Facturation\CreanceController;
 use App\Http\Controllers\Facturation\DevisController;
 use App\Http\Controllers\Facturation\FactureController;
@@ -89,6 +90,11 @@ Route::prefix('v1')->group(function () {
             // Facturation — Relances
             Route::get('factures/{facture}/relances', [RelanceController::class, 'index']);
             Route::post('factures/{facture}/relances', [RelanceController::class, 'store']);
+
+            // Facturation — Avoirs
+            Route::get('factures/{facture}/avoirs', [AvoirController::class, 'index']);
+            Route::post('factures/{facture}/avoirs', [AvoirController::class, 'store']);
+            Route::get('factures/{facture}/avoirs/{avoir}/pdf', [AvoirController::class, 'pdf']);
         });
 
         // Portail client

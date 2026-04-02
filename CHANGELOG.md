@@ -9,6 +9,29 @@
 
 ## [Unreleased]
 
+### Ajouts — Avoir sur facture (US-16)
+
+#### Backend
+- **Migration** `create_avoirs_table` : table `avoirs` — `facture_origine_id`, `exercice_id`, `created_by`, `numero` (FA{ANNEE}-{NNN}), `date_avoir`, `montant_ht`, `taux_tva_snapshot`, `montant_tva`, `montant_ttc`, `motif`
+- **`Avoir`** : modèle Eloquent avec relations `factureOrigine`, `exercice`, `createdBy`
+- **`Facture::montantRestant()`** : mise à jour — soustrait désormais le total des avoirs TTC (`max(0, ttc - paye - avoirs)`)
+- **`FacturationService::creerAvoir()`** : création d'avoir avec reprise du taux TVA snapshot de la facture d'origine, validation montant ≤ restant dû, numérotation séquentielle FA{ANNEE}-{NNN}
+- **`PdfService::genererAvoir()`** : génération PDF DomPDF — design violet distinct de la facture, header "Avoir / Note de crédit", référence facture origine, récapitulatif financier, montant en lettres, motif
+- **`AvoirController`** : `GET /factures/{id}/avoirs` (liste), `POST /factures/{id}/avoirs` (création), `GET /factures/{id}/avoirs/{avoir}/pdf` (PDF)
+- **`StoreAvoirRequest`** : validation `montant_ht`, `date_avoir`, `motif`
+- **`AvoirResource`** : resource JSON avec tous les champs
+- **`FactureResource`** : ajout de la relation `avoirs` (chargée conditionnellement)
+- **`routes/api.php`** : 3 routes avoirs nestées sous `/factures/{id}/avoirs`
+- **`resources/views/pdf/avoir.blade.php`** : vue PDF avoir — couleur violette, récap financier, motif, signatures
+- **Tests** : 9 tests `AvoirApiTest` — liste, création, TVA snapshot, numérotation séquentielle, montant > restant (409), réduction montant restant, validation montant/motif, accès non authentifié (62 tests en tout, 157 assertions)
+
+#### Frontend
+- **`types/index.ts`** : interface `Avoir` ajoutée, `Facture` enrichi avec `avoirs?`
+- **`api/modules/avoirs.ts`** : `avoirsApi.index()`, `avoirsApi.store()`, `avoirsApi.telechargerPdf()`
+- **`pages/factures/FactureListPage.vue`** : bouton "Émettre un avoir" dans les actions, dialog avec récap restant dû, saisie montant HT + date + motif, toast succès/erreur
+
+---
+
 ### Ajouts — Relances et créances impayées (US-25, US-26, US-27, US-28)
 
 #### Backend
