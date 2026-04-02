@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Avoir;
 use App\Models\Devis;
 use App\Models\Entreprise;
 use App\Models\Exercice;
@@ -221,6 +222,42 @@ class FacturationService
             ]);
 
             return $facture->load('lignes', 'entreprise', 'mission');
+        });
+    }
+
+    /**
+     * Emet un avoir sur une facture existante.
+     * Le taux TVA est repris depuis la facture d'origine (snapshot immuable).
+     * Le montant HT saisi ne peut pas depasser le montant restant du de la facture.
+     */
+    public function creerAvoir(Facture $facture, array $data, int $userId): Avoir
+    {
+        return DB::transaction(function () use ($facture, $data, $userId) {
+            $montantHt = (float) $data['montant_ht'];
+            $tauxTva = (float) $facture->taux_tva;
+            $montantTva = round($montantHt * $tauxTva / 100, 2);
+            $montantTtc = round($montantHt + $montantTva, 2);
+
+            if ($montantTtc > $facture->montantRestant() + 0.001) {
+                throw new DomainException('Le montant de l\'avoir ne peut pas dépasser le montant restant dû ('
+                    .number_format($facture->montantRestant(), 2, ',', ' ').' DA).');
+            }
+
+            $exercice = Exercice::current();
+            $prefixe = Setting::get('avoir_prefixe', 'FA');
+
+            return Avoir::create([
+                'facture_origine_id' => $facture->id,
+                'exercice_id' => $exercice->id,
+                'created_by' => $userId,
+                'numero' => $this->genererNumero($prefixe, 'avoirs', $exercice),
+                'date_avoir' => $data['date_avoir'],
+                'montant_ht' => $montantHt,
+                'taux_tva_snapshot' => $tauxTva,
+                'montant_tva' => $montantTva,
+                'montant_ttc' => $montantTtc,
+                'motif' => $data['motif'],
+            ]);
         });
     }
 

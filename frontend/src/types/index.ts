@@ -171,8 +171,25 @@ export interface Facture {
   lignes?: FactureLigne[]
   paiements?: Paiement[]
   relances?: Relance[]
+  avoirs?: Avoir[]
   created_at: string
   updated_at: string
+}
+
+export interface Avoir {
+  id: number
+  facture_origine_id: number
+  exercice_id: number
+  created_by: number
+  numero: string
+  date_avoir: string
+  montant_ht: number
+  taux_tva_snapshot: number
+  montant_tva: number
+  montant_ttc: number
+  motif: string
+  facture_origine?: Facture
+  created_at: string
 }
 
 export interface Relance {
