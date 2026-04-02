@@ -5,9 +5,11 @@ use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\Entreprises\EntrepriseController;
 use App\Http\Controllers\Exercices\ExerciceController;
+use App\Http\Controllers\Facturation\CreanceController;
 use App\Http\Controllers\Facturation\DevisController;
 use App\Http\Controllers\Facturation\FactureController;
 use App\Http\Controllers\Facturation\PaiementController;
+use App\Http\Controllers\Facturation\RelanceController;
 use App\Http\Controllers\Planning\MissionController;
 use App\Http\Controllers\Planning\TacheCommentaireController;
 use App\Http\Controllers\Planning\TacheController;
@@ -80,6 +82,13 @@ Route::prefix('v1')->group(function () {
             Route::get('factures/{facture}/paiements', [PaiementController::class, 'index']);
             Route::post('factures/{facture}/paiements', [PaiementController::class, 'store']);
             Route::delete('factures/{facture}/paiements/{paiement}', [PaiementController::class, 'destroy']);
+
+            // Facturation — Creances impayees
+            Route::get('creances', [CreanceController::class, 'index']);
+
+            // Facturation — Relances
+            Route::get('factures/{facture}/relances', [RelanceController::class, 'index']);
+            Route::post('factures/{facture}/relances', [RelanceController::class, 'store']);
         });
 
         // Portail client

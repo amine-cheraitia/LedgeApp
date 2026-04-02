@@ -34,11 +34,13 @@ class FactureResource extends JsonResource
             'montant_paye' => $this->montant_paye,
             'statut_paiement' => $this->statut_paiement,
             'mode_paiement' => $this->mode_paiement,
+            'montant_restant' => $this->montantRestant(),
             'notes' => $this->notes,
             'entreprise' => $this->whenLoaded('entreprise'),
             'mission' => $this->whenLoaded('mission'),
             'lignes' => FactureLigneResource::collection($this->whenLoaded('lignes')),
             'paiements' => PaiementResource::collection($this->whenLoaded('paiements')),
+            'relances' => RelanceResource::collection($this->whenLoaded('relances')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

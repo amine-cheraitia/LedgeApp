@@ -31,6 +31,8 @@ const model = computed(() => [
     items: [
       { label: 'Devis', icon: 'pi pi-fw pi-file', to: '/devis' },
       { label: 'Factures', icon: 'pi pi-fw pi-receipt', to: '/factures' },
+      { label: 'Creances', icon: 'pi pi-fw pi-exclamation-circle', to: '/creances' },
+      { label: 'Relances', icon: 'pi pi-fw pi-bell', to: '/relances/config' },
     ],
   },
   {

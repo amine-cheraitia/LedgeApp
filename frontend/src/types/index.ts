@@ -162,6 +162,7 @@ export interface Facture {
   montant_paye: number
   statut_paiement: 'en_attente' | 'partiel' | 'solde'
   mode_paiement: 'virement' | 'cheque' | 'autre' | 'non_defini'
+  montant_restant: number
   pdf_path: string | null
   notes: string | null
   entreprise?: Entreprise
@@ -169,8 +170,23 @@ export interface Facture {
   mission?: Mission
   lignes?: FactureLigne[]
   paiements?: Paiement[]
+  relances?: Relance[]
   created_at: string
   updated_at: string
+}
+
+export interface Relance {
+  id: number
+  facture_id: number
+  sent_by: number | null
+  niveau: 1 | 2 | 3
+  type: 'automatique' | 'manuelle'
+  email_destinataire: string
+  envoyee_le: string | null
+  statut: 'en_attente' | 'envoyee' | 'echec' | 'annulee'
+  message: string | null
+  sentBy?: User
+  created_at: string
 }
 
 export interface Paiement {

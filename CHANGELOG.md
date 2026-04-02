@@ -9,6 +9,33 @@
 
 ## [Unreleased]
 
+### Ajouts — Relances et créances impayées (US-25, US-26, US-27, US-28)
+
+#### Backend
+- **Migration** `add_annulee_to_relances_statut` : ajout du statut `annulee` à l'enum `relances.statut` (nécessaire pour `CancelRelancesOnPayment`)
+- **`RelanceService`** : logique métier centralisée — `envoyerManuelle()` (niveau choisi, mail immédiat), `envoyerAutomatique()` (vérification doublon + séquentialité des niveaux), résolution des templates depuis `settings` avec remplacement des variables `{{client}}`, `{{montant}}`, `{{numero_facture}}`, `{{echeance}}`
+- **`RelanceController`** : `GET /api/v1/factures/{id}/relances` (historique), `POST /api/v1/factures/{id}/relances` (relance manuelle)
+- **`CreanceController`** : `GET /api/v1/creances` — liste des factures `en_attente` ou `partiel` triées par ancienneté d'échéance
+- **`FactureResource`** : ajout du champ `montant_restant` (calculé) et `relances` (relation conditionnelle)
+- **`RelanceResource`** : resource JSON dédiée (niveau, type, statut, email, envoyee_le, sentBy)
+- **`RelanceClientMail`** + `resources/views/mail/relance.blade.php` : email HTML avec badge niveau (rappel / relance ferme / mise en demeure), récapitulatif financier, style responsive
+- **`EnvoyerRelancesJob`** : job quotidien (`ShouldQueue`) — sélectionne les factures échues, détermine le niveau attendu selon les délais settings, envoie uniquement si le niveau précédent a déjà été traité
+- **`routes/console.php`** : scheduler — `EnvoyerRelancesJob` déclenché chaque jour à 8h00
+- **`SettingsSeeder`** : ajout des 3 templates mail par défaut (`relance_template_n1/n2/n3`)
+- **`resend/resend-laravel`** : package installé — driver `resend` pour envoi email en production
+- **Tests** : 9 tests `RelanceApiTest` — liste créances, exclusion soldées, inclusion partielles, relance manuelle, blocage sur facture soldée, validation niveau, historique, anti-doublon automatique, blocage niveau2 sans niveau1
+
+#### Frontend
+- **`api/modules/relances.ts`** : `relancesApi.indexParFacture()` + `relancesApi.store()`
+- **`api/modules/creances.ts`** : `creancesApi.index()`
+- **`types/index.ts`** : interface `Relance` ajoutée, `Facture` enrichi avec `montant_restant` et `relances?`
+- **`pages/relances/CreancesPage.vue`** : tableau créances impayées avec retard en jours, montant restant dû, badge statut, bouton relance manuelle avec dialog de sélection du niveau
+- **`pages/relances/RelancesConfigPage.vue`** : configuration des délais (J+15/30/45) et templates des 3 niveaux avec variables disponibles, sauvegarde via `settingsApi`
+- **`router/index.ts`** : routes `/creances` et `/relances/config`
+- **`AppMenu.vue`** : section Facturation enrichie — liens Créances et Relances
+
+---
+
 ### Corrections — PDF facture : en-tête, désignation, TypeError
 
 - **`FactureController::pdf()`** : type de retour corrigé `StreamedResponse` → `Illuminate\Http\Response` — DomPDF `.stream()` / `.download()` retourne une `Response` standard
