@@ -327,7 +327,7 @@
 
 ---
 
-### US-25 · Regles de relance · M · 3 pts · Sprint 2
+### US-25 · Regles de relance · M · 3 pts · Sprint 2 ✅
 
 **En tant qu'administrateur**, je veux configurer les regles de relance automatique (J+15, J+30, J+60) **afin d'** automatiser le recouvrement.
 
@@ -338,7 +338,7 @@
 
 ---
 
-### US-27 · Creances impayees · M · 3 pts · Sprint 2
+### US-27 · Creances impayees · M · 3 pts · Sprint 2 ✅
 
 **En tant que secretaire**, je veux consulter la liste des creances **afin de** suivre les encaissements en attente.
 
@@ -389,7 +389,7 @@
 
 ## Couche 7
 
-### US-26 · Relances automatiques · M · 5 pts · Sprint 2
+### US-26 · Relances automatiques · M · 5 pts · Sprint 2 ✅
 
 **En tant que systeme**, je veux envoyer automatiquement les relances aux clients depassant le delai parametre **afin de** reduire les retards de paiement sans intervention manuelle.
 
@@ -400,7 +400,7 @@
 
 ---
 
-### US-28 · Relance manuelle · S · 5 pts · Sprint 2
+### US-28 · Relance manuelle · S · 5 pts · Sprint 2 ✅
 
 **En tant qu'administrateur ou secretaire**, je veux declencher manuellement une relance sur une facture impayee **afin de** gerer les cas sensibles hors delais automatiques.
 
@@ -522,7 +522,7 @@
 | Sprint | US | Pts | Contenu principal |
 |---|---|---|---|
 | Sprint 1 | US-01 ✅, 02 ✅, 03 ✅, 04 ✅, 05 ✅, 06 ✅, 07 ✅, 08, 09, 11 ✅, 12, 17 ✅, 18 ✅, 40 ✅, 43 | 49 pts | Auth · Referentiel · Clients · Devis · Mission · Exercice |
-| Sprint 2 | US-10, 13 ✅, 14 ✅, 15 ✅, 16, 19 ✅, 20 ✅, 21 ✅, 22 ✅, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34 | 96 pts | Factures · Taches · Portail · Relances · KPI |
+| Sprint 2 | US-10, 13 ✅, 14 ✅, 15 ✅, 16, 19 ✅, 20 ✅, 21 ✅, 22 ✅, 23, 24, 25 ✅, 26 ✅, 27 ✅, 28 ✅, 29, 30, 31, 32, 33, 34 | 96 pts | Factures · Taches · Portail · Relances · KPI |
 | Sprint 3 | US-35, 36, 37, 38, 39, 41, 42 | 27 pts | Qualite · OWASP · RGAA · Tests · MCO |
 | **Total** | **43 US** | **170 pts** | |
 
@@ -537,9 +537,9 @@
 
 | Statut | US | Pts |
 |---|---|---|
-| ✅ Termine | 19 US | 65 pts |
+| ✅ Termine | 23 US | 81 pts |
 | 🔧 En cours | — | — |
-| A faire | 24 US | 105 pts |
+| A faire | 20 US | 89 pts |
 
 ### Noeuds critiques
 
@@ -548,8 +548,8 @@
 | **US-18 Mission** ⭐ ✅ | Debloque 11 US en aval (taches, factures, calendrier, portail, KPI, relances) |
 | **US-13 Facture** ⭐ ✅ | Debloque 9 US en aval (PDF DGI, paiements, avoirs, relances, portail, KPI) |
 
-> US-18, US-13, US-14, US-15, US-19, US-20, US-21, US-22 livrees.
-> Sprint 2 peut continuer : US-23 (calendrier), US-24 (PDF convention/mandat), US-16 (avoirs).
+> US-18, US-13, US-14, US-15, US-19, US-20, US-21, US-22, US-25, US-26, US-27, US-28 livrees.
+> Sprint 2 peut continuer : US-16 (avoirs), US-29 (portail client), US-33 (dashboard KPI), US-23 (calendrier), US-24 (PDF convention/mandat).
 
 ---
 

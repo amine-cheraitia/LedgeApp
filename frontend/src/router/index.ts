@@ -65,6 +65,16 @@ const router = createRouter({
           name: 'settings',
           component: () => import('@/pages/settings/SettingsPage.vue'),
         },
+        {
+          path: 'creances',
+          name: 'creances',
+          component: () => import('@/pages/relances/CreancesPage.vue'),
+        },
+        {
+          path: 'relances/config',
+          name: 'relances-config',
+          component: () => import('@/pages/relances/RelancesConfigPage.vue'),
+        },
       ],
     },
     {
