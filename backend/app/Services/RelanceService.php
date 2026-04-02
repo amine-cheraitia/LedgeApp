@@ -73,7 +73,7 @@ class RelanceService
                 ->where('statut', 'envoyee')
                 ->exists();
 
-            if (!$niveauPrecedentEnvoye) {
+            if (! $niveauPrecedentEnvoye) {
                 return null;
             }
         }

@@ -13,6 +13,7 @@ use App\Models\Relance;
 use App\Models\Setting;
 use App\Models\TvaTaux;
 use App\Models\User;
+use App\Services\RelanceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role;
@@ -230,7 +231,7 @@ class RelanceApiTest extends TestCase
             'statut' => 'envoyee',
         ]);
 
-        $service = app(\App\Services\RelanceService::class);
+        $service = app(RelanceService::class);
         $result = $service->envoyerAutomatique($this->factureEnAttente->load('entreprise', 'relances'), 1);
 
         $this->assertNull($result);
@@ -241,7 +242,7 @@ class RelanceApiTest extends TestCase
     {
         Mail::fake();
 
-        $service = app(\App\Services\RelanceService::class);
+        $service = app(RelanceService::class);
         $result = $service->envoyerAutomatique($this->factureEnAttente->load('entreprise', 'relances'), 2);
 
         $this->assertNull($result);

@@ -140,7 +140,7 @@ onMounted(fetchSettings)
           Variables disponibles : <code>{{ VARIABLES_HELP }}</code>
         </p>
         <TabView>
-          <TabPanel header="Niveau 1 — Rappel">
+          <TabPanel value="n1" header="Niveau 1 — Rappel">
             <div class="mt-2">
               <label for="tpl1" class="font-semibold block mb-1">Message du rappel</label>
               <Textarea
@@ -152,7 +152,7 @@ onMounted(fetchSettings)
               />
             </div>
           </TabPanel>
-          <TabPanel header="Niveau 2 — Relance ferme">
+          <TabPanel value="n2" header="Niveau 2 — Relance ferme">
             <div class="mt-2">
               <label for="tpl2" class="font-semibold block mb-1">Message de relance ferme</label>
               <Textarea
@@ -164,7 +164,7 @@ onMounted(fetchSettings)
               />
             </div>
           </TabPanel>
-          <TabPanel header="Niveau 3 — Mise en demeure">
+          <TabPanel value="n3" header="Niveau 3 — Mise en demeure">
             <div class="mt-2">
               <label for="tpl3" class="font-semibold block mb-1">Message de mise en demeure</label>
               <Textarea

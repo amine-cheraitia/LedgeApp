@@ -10,4 +10,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 // Envoi quotidien des relances automatiques a 8h du matin
-Schedule::job(new EnvoyerRelancesJob())->dailyAt('08:00');
+Schedule::job(new EnvoyerRelancesJob)->dailyAt('08:00');
