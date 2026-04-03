@@ -210,13 +210,6 @@ async function onSubmitAvoir() {
   }
 }
 
-async function telechargerAvoirPdf(factureId: number, avoirId: number, numero: string) {
-  try {
-    await avoirsApi.telechargerPdf(factureId, avoirId, numero)
-  } catch {
-    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de télécharger le PDF.', life: 3000 })
-  }
-}
 
 onMounted(() => {
   fetchFactures()
