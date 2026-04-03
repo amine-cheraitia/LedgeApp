@@ -9,6 +9,20 @@
 
 ## [Unreleased]
 
+### Ajouts — Portail client accès (US-29)
+
+#### Backend
+- **`PortailController::me()`** : endpoint `GET /api/v1/portail/me` — retourne le profil du client avec son entreprise (scope isolation garantie par le middleware)
+- **Route** `GET /api/v1/portail/me` dans le groupe `middleware('portail')` — protégé par `EnsurePortailAccess`
+- **Tests** : 11 tests `PortailAccessTest` — activation portail (création user client + mot de passe temporaire), 422 si prospect, 409 si portail déjà activé, toggle activate/désactivation, middleware bloque staff (403), middleware bloque client inactif (403), middleware autorise client actif, retour entreprise dans `/portail/me`, accès non authentifié (401)
+
+#### Frontend
+- **`layout/PortailLayout.vue`** : layout dédié portail — topbar avec logo, raison sociale entreprise, nav (Accueil / Mes factures / Mes missions), nom utilisateur, bouton déconnexion ; pas de sidebar backoffice ; footer cabinet ; responsive mobile-first ; RGAA (skip-link, aria-label, focus-visible)
+- **`router/index.ts`** : route `/portail` branchée sur `PortailLayout` au lieu de `AppLayout`
+- **`pages/portail/PortailDashboard.vue`** : page d'accueil portail — message de bienvenue avec nom client + raison sociale, cards accès rapide (Mes factures / Mes missions), bloc informations entreprise (régime fiscal, catégorie, NIF, ville)
+
+---
+
 ### Ajouts — Avoir sur facture (US-16)
 
 #### Backend
