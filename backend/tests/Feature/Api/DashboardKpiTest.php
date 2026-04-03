@@ -62,26 +62,26 @@ class DashboardKpiTest extends TestCase
         );
         $mission = Mission::factory()->create([
             'entreprise_id' => $entreprise->id,
-            'exercice_id'   => $this->exercice->id,
+            'exercice_id' => $this->exercice->id,
             'prestation_id' => $prestation->id,
-            'prix_ht'       => 100000,
+            'prix_ht' => 100000,
         ]);
 
         return Facture::factory()->create(array_merge([
-            'type'            => 'FF',
-            'entreprise_id'   => $entreprise->id,
-            'exercice_id'     => $this->exercice->id,
-            'mission_id'      => $mission->id,
-            'tva_taux_id'     => $tva->id,
-            'timbre_taux_id'  => $timbre->id,
-            'montant_ht'      => 100000,
-            'taux_tva'        => 19,
-            'montant_tva'     => 19000,
-            'montant_ttc'     => 119000,
-            'montant_paye'    => 0,
+            'type' => 'FF',
+            'entreprise_id' => $entreprise->id,
+            'exercice_id' => $this->exercice->id,
+            'mission_id' => $mission->id,
+            'tva_taux_id' => $tva->id,
+            'timbre_taux_id' => $timbre->id,
+            'montant_ht' => 100000,
+            'taux_tva' => 19,
+            'montant_tva' => 19000,
+            'montant_ttc' => 119000,
+            'montant_paye' => 0,
             'statut_paiement' => 'en_attente',
-            'date_facture'    => now()->startOfMonth()->toDateString(),
-            'date_echeance'   => now()->addDays(30)->toDateString(),
+            'date_facture' => now()->startOfMonth()->toDateString(),
+            'date_echeance' => now()->addDays(30)->toDateString(),
         ], $overrides));
     }
 
@@ -140,7 +140,7 @@ class DashboardKpiTest extends TestCase
         $this->creerFacture(['exercice_id' => $this->exercice->id, 'montant_ttc' => 80000]);
 
         $res = $this->actingAs($this->admin)
-            ->getJson('/api/v1/stats?exercice_id=' . $this->exercice->id)
+            ->getJson('/api/v1/stats?exercice_id='.$this->exercice->id)
             ->assertOk();
 
         $this->assertEquals(80000.0, $res->json('data.factures.ca_ttc'));
@@ -149,7 +149,7 @@ class DashboardKpiTest extends TestCase
     public function test_alerte_factures_en_retard(): void
     {
         $this->creerFacture([
-            'date_echeance'   => now()->subDays(5)->toDateString(),
+            'date_echeance' => now()->subDays(5)->toDateString(),
             'statut_paiement' => 'en_attente',
         ]);
 

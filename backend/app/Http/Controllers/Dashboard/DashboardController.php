@@ -26,7 +26,7 @@ class DashboardController extends Controller
         $factureQuery = fn () => Facture::where('type', 'FF')
             ->when($exerciceId, fn ($q) => $q->where('exercice_id', $exerciceId));
 
-        $caTtc     = (float) $factureQuery()->sum('montant_ttc');
+        $caTtc = (float) $factureQuery()->sum('montant_ttc');
         $totalPaye = (float) $factureQuery()->sum('montant_paye');
 
         $tvaCollectee = (float) $factureQuery()->sum('montant_tva');
@@ -61,13 +61,13 @@ class DashboardController extends Controller
         $alertes = [];
         if ($enRetard > 0) {
             $alertes[] = [
-                'type'    => 'danger',
+                'type' => 'danger',
                 'message' => "{$enRetard} facture(s) en retard de paiement.",
             ];
         }
         if ($caTtc > 0 && $tauxRecouvrement < $seuilRecouvrement) {
             $alertes[] = [
-                'type'    => 'warn',
+                'type' => 'warn',
                 'message' => "Taux de recouvrement faible : {$tauxRecouvrement}% (seuil : {$seuilRecouvrement}%).",
             ];
         }
@@ -77,40 +77,40 @@ class DashboardController extends Controller
 
         return response()->json([
             'data' => [
-                'exercices'         => $exercices,
-                'exercice_courant'  => $exerciceId,
+                'exercices' => $exercices,
+                'exercice_courant' => $exerciceId,
                 'kpi' => [
-                    'ca_mois'            => $caMois,
-                    'tva_collectee'      => $tvaCollectee,
-                    'taux_recouvrement'  => $tauxRecouvrement,
+                    'ca_mois' => $caMois,
+                    'tva_collectee' => $tvaCollectee,
+                    'taux_recouvrement' => $tauxRecouvrement,
                     'seuil_recouvrement' => $seuilRecouvrement,
                 ],
                 'alertes' => $alertes,
                 'entreprises' => [
-                    'total'     => Entreprise::count(),
-                    'clients'   => Entreprise::where('statut', 'client')->count(),
+                    'total' => Entreprise::count(),
+                    'clients' => Entreprise::where('statut', 'client')->count(),
                     'prospects' => Entreprise::where('statut', 'prospect')->count(),
                 ],
                 'missions' => [
-                    'total'     => $missionQuery()->count(),
-                    'en_cours'  => $missionQuery()->where('statut', 'en_cours')->count(),
+                    'total' => $missionQuery()->count(),
+                    'en_cours' => $missionQuery()->where('statut', 'en_cours')->count(),
                     'terminees' => $missionQuery()->where('statut', 'terminee')->count(),
-                    'ca_ht'     => (float) $missionQuery()->sum('prix_ht'),
+                    'ca_ht' => (float) $missionQuery()->sum('prix_ht'),
                 ],
                 'factures' => [
-                    'total'         => $factureQuery()->count(),
-                    'en_attente'    => $factureQuery()->where('statut_paiement', 'en_attente')->count(),
-                    'partielles'    => $factureQuery()->where('statut_paiement', 'partiel')->count(),
-                    'soldees'       => $factureQuery()->where('statut_paiement', 'solde')->count(),
-                    'ca_ttc'        => $caTtc,
-                    'total_paye'    => $totalPaye,
-                    'total_impaye'  => $totalImpaye,
-                    'en_retard'     => $enRetard,
+                    'total' => $factureQuery()->count(),
+                    'en_attente' => $factureQuery()->where('statut_paiement', 'en_attente')->count(),
+                    'partielles' => $factureQuery()->where('statut_paiement', 'partiel')->count(),
+                    'soldees' => $factureQuery()->where('statut_paiement', 'solde')->count(),
+                    'ca_ttc' => $caTtc,
+                    'total_paye' => $totalPaye,
+                    'total_impaye' => $totalImpaye,
+                    'en_retard' => $enRetard,
                 ],
                 'devis' => [
-                    'total'        => Devis::count(),
-                    'en_attente'   => Devis::whereIn('statut', ['brouillon', 'envoye'])->count(),
-                    'acceptes'     => Devis::where('statut', 'accepte')->count(),
+                    'total' => Devis::count(),
+                    'en_attente' => Devis::whereIn('statut', ['brouillon', 'envoye'])->count(),
+                    'acceptes' => Devis::where('statut', 'accepte')->count(),
                     'ca_potentiel' => (float) Devis::whereIn('statut', ['brouillon', 'envoye'])->sum('montant_ttc'),
                 ],
                 'recentes' => [
