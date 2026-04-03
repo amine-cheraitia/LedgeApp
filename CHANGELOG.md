@@ -9,6 +9,22 @@
 
 ## [Unreleased]
 
+### Ajouts — Portail : mes factures + mes missions (US-30, US-31)
+
+#### Backend
+- **`PortailFactureController`** : `GET /api/v1/portail/factures` (liste scoped `entreprise_id`, filtres exercice + statut), `GET /api/v1/portail/factures/{id}/pdf` (PDF sécurisé — 403 si hors scope)
+- **`PortailMissionController`** : `GET /api/v1/portail/missions` (liste scoped, filtre statut), `GET /api/v1/portail/missions/{id}` (détail avec tâches, sans commentaires internes)
+- **Routes** : 4 routes dans le groupe `middleware('portail')`
+- **Tests** : 6 tests `PortailFactureTest` + 7 tests `PortailMissionTest` — scope isolation, filtres, PDF 403 hors scope, tâches sans commentaires, accès staff interdit
+
+#### Frontend
+- **`api/modules/portail.ts`** : `portailApi.getFactures()`, `telechargerFacturePdf()`, `getMissions()`, `getMission()`
+- **`pages/portail/PortailFacturesPage.vue`** : tableau factures (numéro, date, échéance, TTC, restant dû en rouge, statut) + filtre statut + téléchargement PDF
+- **`pages/portail/PortailMissionsPage.vue`** : tableau missions (référence, prestation, statut, barre d'avancement %) + dialog détail avec tâches (sans commentaires internes) — lecture seule stricte
+- **`router/index.ts`** : routes `/portail/factures` et `/portail/missions`
+
+---
+
 ### Ajouts — Portail client accès (US-29)
 
 #### Backend

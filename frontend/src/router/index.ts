@@ -87,6 +87,16 @@ const router = createRouter({
           name: 'portail-dashboard',
           component: () => import('@/pages/portail/PortailDashboard.vue'),
         },
+        {
+          path: 'factures',
+          name: 'portail-factures',
+          component: () => import('@/pages/portail/PortailFacturesPage.vue'),
+        },
+        {
+          path: 'missions',
+          name: 'portail-missions',
+          component: () => import('@/pages/portail/PortailMissionsPage.vue'),
+        },
       ],
     },
   ],
