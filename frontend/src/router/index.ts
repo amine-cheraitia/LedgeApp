@@ -79,7 +79,7 @@ const router = createRouter({
     },
     {
       path: '/portail',
-      component: () => import('@/layout/AppLayout.vue'),
+      component: () => import('@/layout/PortailLayout.vue'),
       meta: { requiresAuth: true, portail: true },
       children: [
         {

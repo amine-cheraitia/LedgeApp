@@ -181,7 +181,7 @@
 
 ---
 
-### US-29 · Portail client — acces · M · 5 pts · Sprint 2
+### US-29 · Portail client — acces · M · 5 pts · Sprint 2 ✅
 
 **En tant que client**, je veux acceder a un portail securise distinct **afin de** consulter mes donnees en autonomie.
 
@@ -522,7 +522,7 @@
 | Sprint | US | Pts | Contenu principal |
 |---|---|---|---|
 | Sprint 1 | US-01 ✅, 02 ✅, 03 ✅, 04 ✅, 05 ✅, 06 ✅, 07 ✅, 08, 09, 11 ✅, 12, 17 ✅, 18 ✅, 40 ✅, 43 | 49 pts | Auth · Referentiel · Clients · Devis · Mission · Exercice |
-| Sprint 2 | US-10, 13 ✅, 14 ✅, 15 ✅, 16 ✅, 19 ✅, 20 ✅, 21 ✅, 22 ✅, 23, 24, 25 ✅, 26 ✅, 27 ✅, 28 ✅, 29, 30, 31, 32, 33, 34 | 96 pts | Factures · Taches · Portail · Relances · KPI |
+| Sprint 2 | US-10, 13 ✅, 14 ✅, 15 ✅, 16 ✅, 19 ✅, 20 ✅, 21 ✅, 22 ✅, 23, 24, 25 ✅, 26 ✅, 27 ✅, 28 ✅, 29 ✅, 30, 31, 32, 33, 34 | 96 pts | Factures · Taches · Portail · Relances · KPI |
 | Sprint 3 | US-35, 36, 37, 38, 39, 41, 42 | 27 pts | Qualite · OWASP · RGAA · Tests · MCO |
 | **Total** | **43 US** | **170 pts** | |
 
@@ -537,9 +537,9 @@
 
 | Statut | US | Pts |
 |---|---|---|
-| ✅ Termine | 24 US | 86 pts |
+| ✅ Termine | 25 US | 91 pts |
 | 🔧 En cours | — | — |
-| A faire | 19 US | 84 pts |
+| A faire | 18 US | 79 pts |
 
 ### Noeuds critiques
 
@@ -548,8 +548,8 @@
 | **US-18 Mission** ⭐ ✅ | Debloque 11 US en aval (taches, factures, calendrier, portail, KPI, relances) |
 | **US-13 Facture** ⭐ ✅ | Debloque 9 US en aval (PDF DGI, paiements, avoirs, relances, portail, KPI) |
 
-> US-18, US-13, US-14, US-15, US-16, US-19, US-20, US-21, US-22, US-25, US-26, US-27, US-28 livrees.
-> Sprint 2 peut continuer : US-16 (avoirs), US-29 (portail client), US-33 (dashboard KPI), US-23 (calendrier), US-24 (PDF convention/mandat).
+> US-18, US-13, US-14, US-15, US-16, US-19, US-20, US-21, US-22, US-25, US-26, US-27, US-28, US-29 livrees.
+> Sprint 2 peut continuer : US-30 (portail factures), US-31 (portail missions), US-33 (dashboard KPI), US-23 (calendrier), US-24 (PDF convention/mandat).
 
 ---
 
