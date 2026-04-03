@@ -38,11 +38,11 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/me', [AuthController::class, 'me']);
 
-        // Dashboard stats
-        Route::get('/stats', [DashboardController::class, 'stats']);
-
         // Back-office
         Route::middleware('backoffice')->group(function () {
+
+            // Dashboard stats
+            Route::get('/stats', [DashboardController::class, 'stats']);
 
             // Users
             Route::apiResource('users', UserController::class);

@@ -9,6 +9,20 @@
 
 ## [Unreleased]
 
+### Ajouts — Dashboard KPI (US-33)
+
+#### Backend
+- **`DashboardController::stats()`** : enrichi avec filtre `exercice_id`, CA du mois, TVA collectée, taux de recouvrement, alertes dynamiques (factures en retard, taux faible)
+- **`routes/api.php`** : route `/stats` déplacée dans le groupe `backoffice` (clients bloqués — 403)
+- **`SettingsSeeder`** : ajout clé `seuil_alerte_recouvrement` (défaut 70%)
+- **Tests** : 9 tests `DashboardKpiTest` — structure KPI, CA mois, TVA, taux recouvrement, filtre exercice, alertes retard/faible, no-alert si soldé, accès client interdit, 401 non authentifié
+
+#### Frontend
+- **`api/modules/stats.ts`** : `getDashboard(exerciceId?)` + type `DashboardStats` enrichi (`kpi`, `alertes`, `exercices`)
+- **`pages/dashboard/DashboardPage.vue`** : filtre exercice, 3 widgets KPI (CA mois, TVA collectée, taux recouvrement avec barre de progression colorée), bannière d'alertes (`Message` PrimeVue)
+
+---
+
 ### Ajouts — Portail : mes factures + mes missions (US-30, US-31)
 
 #### Backend
