@@ -377,7 +377,7 @@
 
 ---
 
-### US-33 · Dashboard KPI · M · 5 pts · Sprint 2
+### US-33 · Dashboard KPI · M · 5 pts · Sprint 2 ✅
 
 **En tant qu'administrateur**, je veux un tableau de bord avec les indicateurs cles **afin d'** avoir une vision instantanee du cabinet.
 
@@ -537,9 +537,9 @@
 
 | Statut | US | Pts |
 |---|---|---|
-| ✅ Termine | 27 US | 97 pts |
+| ✅ Termine | 28 US | 102 pts |
 | 🔧 En cours | — | — |
-| A faire | 16 US | 73 pts |
+| A faire | 15 US | 68 pts |
 
 ### Noeuds critiques
 

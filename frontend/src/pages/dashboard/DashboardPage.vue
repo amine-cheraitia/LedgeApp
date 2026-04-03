@@ -2,19 +2,29 @@
 import { statsApi, type DashboardStats } from '@/api/modules/stats'
 import { useAuthStore } from '@/stores/auth'
 import { onMounted, ref } from 'vue'
+import Select from 'primevue/select'
+import Message from 'primevue/message'
 
 const auth = useAuthStore()
 const loading = ref(true)
 const stats = ref<DashboardStats | null>(null)
+const exerciceId = ref<number | null>(null)
 
-onMounted(async () => {
+async function fetchStats() {
+  loading.value = true
   try {
-    const res = await statsApi.getDashboard()
+    const res = await statsApi.getDashboard(exerciceId.value)
     stats.value = res.data
   } finally {
     loading.value = false
   }
-})
+}
+
+onMounted(fetchStats)
+
+function alerteSeverity(type: string): 'error' | 'warn' | 'info' | 'success' {
+  return type === 'danger' ? 'error' : type === 'warn' ? 'warn' : 'info'
+}
 
 function formatDA(montant: number): string {
   return new Intl.NumberFormat('fr-DZ', { style: 'decimal', minimumFractionDigits: 2 }).format(montant) + ' DA'
@@ -49,10 +59,22 @@ function statutMissionLabel(statut: string): string {
   <div class="grid grid-cols-12 gap-8">
     <!-- Header -->
     <div class="col-span-12">
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">Tableau de bord</h2>
           <p class="text-muted-color mt-1">Bienvenue, {{ auth.user?.name }}.</p>
+        </div>
+        <div v-if="stats">
+          <label for="filtre-exercice" class="sr-only">Filtrer par exercice</label>
+          <Select
+            id="filtre-exercice"
+            v-model="exerciceId"
+            :options="[{ id: null, annee: 'Tous les exercices' }, ...stats.exercices]"
+            option-label="annee"
+            option-value="id"
+            aria-label="Filtrer les KPI par exercice"
+            @change="fetchStats"
+          />
         </div>
       </div>
     </div>
@@ -63,13 +85,99 @@ function statutMissionLabel(statut: string): string {
     </div>
 
     <template v-if="stats && !loading">
+      <!-- Alertes -->
+      <div v-if="stats.alertes.length" class="col-span-12" role="alert" aria-live="polite">
+        <Message
+          v-for="(alerte, i) in stats.alertes"
+          :key="i"
+          :severity="alerteSeverity(alerte.type)"
+          :closable="false"
+          class="mb-2"
+        >
+          {{ alerte.message }}
+        </Message>
+      </div>
+
+      <!-- KPI widgets -->
+      <div class="col-span-12 lg:col-span-6 xl:col-span-4">
+        <div class="card h-full">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-muted-color font-medium">CA du mois</span>
+            <div class="flex items-center justify-center bg-cyan-100 dark:bg-cyan-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
+              <i class="pi pi-chart-line text-cyan-500 text-xl!" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="text-surface-900 dark:text-surface-0 font-bold text-2xl">{{ formatDA(stats.kpi.ca_mois) }}</div>
+          <div class="mt-4">
+            <span class="text-muted-color text-sm">Factures émises ce mois</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-span-12 lg:col-span-6 xl:col-span-4">
+        <div class="card h-full">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-muted-color font-medium">TVA collectée</span>
+            <div class="flex items-center justify-center bg-purple-100 dark:bg-purple-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
+              <i class="pi pi-percentage text-purple-500 text-xl!" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="text-surface-900 dark:text-surface-0 font-bold text-2xl">{{ formatDA(stats.kpi.tva_collectee) }}</div>
+          <div class="mt-4">
+            <span class="text-muted-color text-sm">Cumul sur la période</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-span-12 lg:col-span-6 xl:col-span-4">
+        <div class="card h-full">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-muted-color font-medium">Taux de recouvrement</span>
+            <div
+              class="flex items-center justify-center rounded-border"
+              :class="stats.kpi.taux_recouvrement >= stats.kpi.seuil_recouvrement ? 'bg-green-100 dark:bg-green-400/10' : 'bg-orange-100 dark:bg-orange-400/10'"
+              style="width: 2.5rem; height: 2.5rem"
+            >
+              <i
+                class="text-xl!"
+                :class="stats.kpi.taux_recouvrement >= stats.kpi.seuil_recouvrement ? 'pi pi-check-circle text-green-500' : 'pi pi-exclamation-circle text-orange-500'"
+                aria-hidden="true"
+              ></i>
+            </div>
+          </div>
+          <div
+            class="font-bold text-2xl"
+            :class="stats.kpi.taux_recouvrement >= stats.kpi.seuil_recouvrement ? 'text-green-600' : 'text-orange-500'"
+          >
+            {{ stats.kpi.taux_recouvrement }}%
+          </div>
+          <div class="mt-3">
+            <div
+              role="progressbar"
+              :aria-valuenow="stats.kpi.taux_recouvrement"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              :aria-label="`Taux de recouvrement : ${stats.kpi.taux_recouvrement}%`"
+              class="recouvrement-bar"
+            >
+              <div
+                class="recouvrement-fill"
+                :style="{ width: stats.kpi.taux_recouvrement + '%' }"
+                :class="stats.kpi.taux_recouvrement >= stats.kpi.seuil_recouvrement ? 'fill-success' : 'fill-warn'"
+              />
+            </div>
+            <span class="text-muted-color text-xs mt-1 block">Seuil : {{ stats.kpi.seuil_recouvrement }}%</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Stat Cards -->
       <div class="col-span-12 lg:col-span-6 xl:col-span-3">
         <div class="card h-full">
           <div class="flex items-center justify-between mb-4">
             <span class="text-muted-color font-medium">Clients</span>
             <div class="flex items-center justify-center bg-blue-100 dark:bg-blue-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
-              <i class="pi pi-building text-blue-500 !text-xl"></i>
+              <i class="pi pi-building text-blue-500 text-xl!"></i>
             </div>
           </div>
           <div class="text-surface-900 dark:text-surface-0 font-bold text-3xl">{{ stats.entreprises.clients }}</div>
@@ -86,7 +194,7 @@ function statutMissionLabel(statut: string): string {
           <div class="flex items-center justify-between mb-4">
             <span class="text-muted-color font-medium">Missions actives</span>
             <div class="flex items-center justify-center bg-orange-100 dark:bg-orange-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
-              <i class="pi pi-briefcase text-orange-500 !text-xl"></i>
+              <i class="pi pi-briefcase text-orange-500 text-xl!"></i>
             </div>
           </div>
           <div class="text-surface-900 dark:text-surface-0 font-bold text-3xl">{{ stats.missions.en_cours }}</div>
@@ -103,7 +211,7 @@ function statutMissionLabel(statut: string): string {
           <div class="flex items-center justify-between mb-4">
             <span class="text-muted-color font-medium">Chiffre d'affaires</span>
             <div class="flex items-center justify-center bg-cyan-100 dark:bg-cyan-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
-              <i class="pi pi-dollar text-cyan-500 !text-xl"></i>
+              <i class="pi pi-dollar text-cyan-500 text-xl!"></i>
             </div>
           </div>
           <div class="text-surface-900 dark:text-surface-0 font-bold text-3xl">{{ formatDA(stats.factures.ca_ttc) }}</div>
@@ -119,7 +227,7 @@ function statutMissionLabel(statut: string): string {
           <div class="flex items-center justify-between mb-4">
             <span class="text-muted-color font-medium">Impayés</span>
             <div class="flex items-center justify-center rounded-border" :class="stats.factures.en_retard > 0 ? 'bg-red-100 dark:bg-red-400/10' : 'bg-green-100 dark:bg-green-400/10'" style="width: 2.5rem; height: 2.5rem">
-              <i class="pi pi-exclamation-triangle !text-xl" :class="stats.factures.en_retard > 0 ? 'text-red-500' : 'text-green-500'"></i>
+              <i class="pi pi-exclamation-triangle text-xl!" :class="stats.factures.en_retard > 0 ? 'text-red-500' : 'text-green-500'"></i>
             </div>
           </div>
           <div class="text-surface-900 dark:text-surface-0 font-bold text-3xl">{{ formatDA(stats.factures.total_impaye) }}</div>
@@ -261,3 +369,26 @@ function statutMissionLabel(statut: string): string {
     </template>
   </div>
 </template>
+
+<style scoped>
+.recouvrement-bar {
+  height: 6px;
+  background: var(--p-surface-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.recouvrement-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.fill-success {
+  background: var(--p-green-500, #22c55e);
+}
+
+.fill-warn {
+  background: var(--p-orange-500, #f97316);
+}
+</style>

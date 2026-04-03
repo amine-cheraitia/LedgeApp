@@ -1,6 +1,15 @@
 import api from '@/api/client'
 
 export interface DashboardStats {
+  exercices: { id: number; annee: number; statut: string }[]
+  exercice_courant: number | null
+  kpi: {
+    ca_mois: number
+    tva_collectee: number
+    taux_recouvrement: number
+    seuil_recouvrement: number
+  }
+  alertes: { type: 'danger' | 'warn' | 'info'; message: string }[]
   entreprises: {
     total: number
     clients: number
@@ -35,7 +44,8 @@ export interface DashboardStats {
 }
 
 export const statsApi = {
-  getDashboard(): Promise<{ data: DashboardStats }> {
-    return api.get('/stats').then((r) => r.data)
+  getDashboard(exerciceId?: number | null): Promise<{ data: DashboardStats }> {
+    const params = exerciceId ? { exercice_id: exerciceId } : {}
+    return api.get('/stats', { params }).then((r) => r.data)
   },
 }
