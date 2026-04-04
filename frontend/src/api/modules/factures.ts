@@ -6,6 +6,7 @@ export interface FactureFilters {
   per_page?: number
   search?: string
   exercice_id?: number
+  entreprise_id?: number
   statut_paiement?: string
   sort_field?: string
   sort_direction?: 'asc' | 'desc'

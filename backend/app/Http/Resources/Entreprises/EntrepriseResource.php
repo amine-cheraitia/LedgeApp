@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources\Entreprises;
 
 use Illuminate\Http\Request;
@@ -29,6 +31,7 @@ class EntrepriseResource extends JsonResource
             'notes' => $this->notes,
             'missions_count' => $this->whenCounted('missions'),
             'factures_count' => $this->whenCounted('factures'),
+            'contacts' => ContactResource::collection($this->whenLoaded('contacts')),
             'portail_user' => $this->whenLoaded('users', function () {
                 $clientUser = $this->users->first(fn ($u) => $u->hasRole('client'));
 

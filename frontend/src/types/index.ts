@@ -37,6 +37,7 @@ export interface Entreprise {
     email: string
     portail_actif: boolean
   } | null
+  contacts?: Contact[]
   created_at: string
   updated_at: string
 }

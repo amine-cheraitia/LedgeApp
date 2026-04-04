@@ -112,6 +112,7 @@ class EntrepriseController extends Controller
 
     public function show(Entreprise $entreprise): EntrepriseResource
     {
+        $entreprise->load('users', 'contacts');
         $entreprise->loadCount('missions', 'factures');
 
         return new EntrepriseResource($entreprise);
