@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, watch, onMounted } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -47,6 +47,9 @@ const editDevisSaving = ref(false)
 const editDevisId = ref<number | null>(null)
 const editDevisNumero = ref('')
 const editDevisForm = reactive({
+  entreprise_id: null as number | null,
+  prestation_id: null as number | null,
+  date_devis: null as Date | null,
   date_validite: null as Date | null,
   notes: '',
 })
@@ -60,6 +63,24 @@ const conversionForm = reactive({
   date_debut: null as Date | null,
   date_fin: null as Date | null,
   collaborateur_ids: [] as number[],
+})
+
+// Auto-fill date_validite = date_devis + 2 mois (création)
+watch(() => form.date_devis, (newDate) => {
+  if (newDate) {
+    const d = new Date(newDate)
+    d.setMonth(d.getMonth() + 2)
+    form.date_validite = d
+  }
+})
+
+// Auto-fill date_validite = date_devis + 2 mois (modification)
+watch(() => editDevisForm.date_devis, (newDate) => {
+  if (newDate) {
+    const d = new Date(newDate)
+    d.setMonth(d.getMonth() + 2)
+    editDevisForm.date_validite = d
+  }
 })
 
 function toIsoDate(d: Date | null): string {
@@ -113,6 +134,9 @@ async function onSubmit() {
 function openEditDevis(devis: Devis) {
   editDevisId.value = devis.id
   editDevisNumero.value = devis.numero
+  editDevisForm.entreprise_id = devis.entreprise?.id ?? devis.entreprise_id ?? null
+  editDevisForm.prestation_id = devis.prestation?.id ?? devis.prestation_id ?? null
+  editDevisForm.date_devis = devis.date_devis ? new Date(devis.date_devis) : null
   editDevisForm.date_validite = devis.date_validite ? new Date(devis.date_validite) : null
   editDevisForm.notes = devis.notes ?? ''
   editDevisVisible.value = true
@@ -123,6 +147,9 @@ async function onSubmitEditDevis() {
   editDevisSaving.value = true
   try {
     await updateDevis(editDevisId.value, {
+      entreprise_id: editDevisForm.entreprise_id ?? undefined,
+      prestation_id: editDevisForm.prestation_id ?? undefined,
+      date_devis: editDevisForm.date_devis ? toIsoDate(editDevisForm.date_devis) : undefined,
       date_validite: editDevisForm.date_validite ? toIsoDate(editDevisForm.date_validite) : undefined,
       notes: editDevisForm.notes || undefined,
     })
@@ -352,7 +379,7 @@ onMounted(() => {
           </div>
           <div class="form-field">
             <label for="dv-validite">Date validite *</label>
-            <DatePicker id="dv-validite" v-model="form.date_validite" dateFormat="dd/mm/yy" fluid />
+            <DatePicker id="dv-validite" v-model="form.date_validite" dateFormat="dd/mm/yy" :minDate="form.date_devis ?? undefined" fluid />
           </div>
         </div>
 
@@ -373,17 +400,50 @@ onMounted(() => {
       v-model:visible="editDevisVisible"
       :header="`Modifier le devis ${editDevisNumero}`"
       :modal="true"
-      :style="{ width: '32rem' }"
+      :style="{ width: '36rem' }"
     >
       <form @submit.prevent="onSubmitEditDevis" class="dialog-form">
         <div class="form-field">
-          <label for="ed-validite">Date validite</label>
-          <DatePicker id="ed-validite" v-model="editDevisForm.date_validite" dateFormat="dd/mm/yy" fluid />
+          <label for="ed-entreprise">Entreprise *</label>
+          <Select
+            id="ed-entreprise"
+            v-model="editDevisForm.entreprise_id"
+            :options="entreprises"
+            optionLabel="raison_sociale"
+            optionValue="id"
+            placeholder="Selectionner..."
+            filter
+            fluid
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="ed-prestation">Prestation *</label>
+          <Select
+            id="ed-prestation"
+            v-model="editDevisForm.prestation_id"
+            :options="prestations"
+            optionLabel="designation"
+            optionValue="id"
+            placeholder="Selectionner..."
+            fluid
+          />
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label for="ed-date">Date devis *</label>
+            <DatePicker id="ed-date" v-model="editDevisForm.date_devis" dateFormat="dd/mm/yy" fluid />
+          </div>
+          <div class="form-field">
+            <label for="ed-validite">Date validite *</label>
+            <DatePicker id="ed-validite" v-model="editDevisForm.date_validite" dateFormat="dd/mm/yy" :minDate="editDevisForm.date_devis ?? undefined" fluid />
+          </div>
         </div>
 
         <div class="form-field">
           <label for="ed-notes">Notes</label>
-          <Textarea id="ed-notes" v-model="editDevisForm.notes" rows="3" fluid />
+          <Textarea id="ed-notes" v-model="editDevisForm.notes" rows="2" fluid />
         </div>
 
         <div class="dialog-actions">

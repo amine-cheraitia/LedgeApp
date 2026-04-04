@@ -183,9 +183,7 @@ const avoirForm = reactive({
 
 function openAvoir(facture: Facture) {
   avoirFacture.value = facture
-  avoirForm.montant_ht = parseFloat(
-    (facture.montant_restant * (facture.montant_ht / facture.montant_ttc)).toFixed(2)
-  )
+  avoirForm.montant_ht = facture.montant_ht
   avoirForm.date_avoir = new Date()
   avoirForm.motif = ''
   avoirDialogVisible.value = true
