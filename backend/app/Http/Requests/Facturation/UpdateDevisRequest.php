@@ -19,8 +19,11 @@ class UpdateDevisRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'notes' => ['nullable', 'string'],
+            'entreprise_id' => ['sometimes', 'exists:entreprises,id'],
+            'prestation_id' => ['sometimes', 'exists:prestations,id'],
+            'date_devis' => ['sometimes', 'date'],
             'date_validite' => ['sometimes', 'date'],
+            'notes' => ['nullable', 'string'],
         ];
     }
 }

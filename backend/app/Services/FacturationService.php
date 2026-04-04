@@ -99,6 +99,13 @@ class FacturationService
             throw new DomainException('Seuls les devis en brouillon peuvent etre modifies.');
         }
 
+        // Recalculer le prix HT si entreprise ou prestation change
+        if (isset($data['entreprise_id']) || isset($data['prestation_id'])) {
+            $entreprise = Entreprise::findOrFail($data['entreprise_id'] ?? $devis->entreprise_id);
+            $prestation = Prestation::findOrFail($data['prestation_id'] ?? $devis->prestation_id);
+            $data['prix_ht'] = $prestation->calculerPrixHt($entreprise->regime_fiscal, $entreprise->categorie);
+        }
+
         $devis->update($data);
 
         return $devis->load('prestation', 'entreprise');
