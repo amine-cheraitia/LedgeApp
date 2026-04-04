@@ -11,6 +11,7 @@ use App\Http\Resources\Planning\MissionResource;
 use App\Models\Mission;
 use App\Services\MissionService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class MissionController extends Controller
@@ -19,14 +20,11 @@ class MissionController extends Controller
         private MissionService $missionService,
     ) {}
 
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        $missions = Mission::with('entreprise', 'prestation', 'exercice')
-            ->when(request('entreprise_id'), fn ($q, $v) => $q->where('entreprise_id', $v))
-            ->when(request('statut'), fn ($q, $v) => $q->where('statut', $v))
-            ->when(request('search'), fn ($q, $v) => $q->where('reference', 'like', "%{$v}%"))
-            ->latest()
-            ->paginate(request('per_page', 15));
+        $missions = $this->missionService->listerMissions($request->only([
+            'exercice_id', 'statut', 'search', 'sort_field', 'sort_direction', 'per_page',
+        ]));
 
         return MissionResource::collection($missions);
     }
@@ -49,13 +47,9 @@ class MissionController extends Controller
 
     public function update(UpdateMissionRequest $request, Mission $mission): MissionResource
     {
-        $mission->update($request->safe()->except(['collaborateur_ids']));
+        $mission = $this->missionService->mettreAJourMission($mission, $request->validated());
 
-        if ($request->has('collaborateur_ids')) {
-            $mission->collaborateurs()->sync($request->validated('collaborateur_ids') ?? []);
-        }
-
-        return new MissionResource($mission->load('entreprise', 'prestation', 'collaborateurs'));
+        return new MissionResource($mission);
     }
 
     public function destroy(Mission $mission): JsonResponse

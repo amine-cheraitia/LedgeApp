@@ -99,6 +99,8 @@ Route::prefix('v1')->group(function () {
             Route::post('factures/{facture}/relances', [RelanceController::class, 'store']);
 
             // Facturation — Avoirs
+            Route::get('avoirs', [AvoirController::class, 'indexAll']);
+            Route::delete('avoirs/{avoir}', [AvoirController::class, 'destroy']);
             Route::get('factures/{facture}/avoirs', [AvoirController::class, 'index']);
             Route::post('factures/{facture}/avoirs', [AvoirController::class, 'store']);
             Route::get('factures/{facture}/avoirs/{avoir}/pdf', [AvoirController::class, 'pdf']);

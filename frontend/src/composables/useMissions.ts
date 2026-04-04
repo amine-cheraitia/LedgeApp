@@ -10,6 +10,8 @@ export function useMissions() {
   const totalRecords = ref(0)
   const filters = ref<MissionFilters>({ page: 1, per_page: 15 })
 
+  let _debounceTimer: ReturnType<typeof setTimeout> | null = null
+
   async function fetchMissions() {
     loading.value = true
     try {
@@ -52,7 +54,23 @@ export function useMissions() {
   }
 
   function onSearch(search: string) {
-    filters.value.search = search
+    if (_debounceTimer) clearTimeout(_debounceTimer)
+    _debounceTimer = setTimeout(() => {
+      filters.value.search = search
+      filters.value.page = 1
+      fetchMissions()
+    }, 300)
+  }
+
+  function onSort(event: { sortField?: string | ((item: any) => string) | null; sortOrder?: number | null }) {
+    filters.value.sort_field = typeof event.sortField === 'string' ? event.sortField : undefined
+    filters.value.sort_direction = event.sortOrder === 1 ? 'asc' : 'desc'
+    filters.value.page = 1
+    fetchMissions()
+  }
+
+  function setExercice(exerciceId: number | undefined) {
+    filters.value.exercice_id = exerciceId
     filters.value.page = 1
     fetchMissions()
   }
@@ -68,5 +86,7 @@ export function useMissions() {
     deleteMission,
     onPage,
     onSearch,
+    onSort,
+    setExercice,
   }
 }

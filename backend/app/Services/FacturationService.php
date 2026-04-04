@@ -16,6 +16,7 @@ use App\Models\Setting;
 use App\Models\TvaTaux;
 use Carbon\Carbon;
 use DomainException;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 class FacturationService
@@ -48,6 +49,47 @@ class FacturationService
 
             return sprintf('%s%d-%03d', $prefixe, $annee, $sequence);
         });
+    }
+
+    private const DEVIS_SORT_FIELDS = ['numero', 'date_devis', 'date_validite', 'statut', 'prix_ht'];
+
+    private const FACTURE_SORT_FIELDS = ['numero', 'date_facture', 'date_echeance', 'montant_ttc', 'statut_paiement'];
+
+    public function listerDevis(array $filters): LengthAwarePaginator
+    {
+        $sortField = in_array($filters['sort_field'] ?? '', self::DEVIS_SORT_FIELDS)
+            ? $filters['sort_field']
+            : 'created_at';
+        $sortDir = ($filters['sort_direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        return Devis::with('entreprise', 'prestation')
+            ->when($filters['exercice_id'] ?? null, fn ($q, $v) => $q->where('exercice_id', $v))
+            ->when($filters['statut'] ?? null, fn ($q, $v) => $q->where('statut', $v))
+            ->when($filters['search'] ?? null, fn ($q, $s) => $q
+                ->where('numero', 'like', "%{$s}%")
+                ->orWhereHas('entreprise', fn ($eq) => $eq->where('raison_sociale', 'like', "%{$s}%"))
+            )
+            ->orderBy($sortField, $sortDir)
+            ->paginate($filters['per_page'] ?? 15);
+    }
+
+    public function listerFactures(array $filters): LengthAwarePaginator
+    {
+        $sortField = in_array($filters['sort_field'] ?? '', self::FACTURE_SORT_FIELDS)
+            ? $filters['sort_field']
+            : 'created_at';
+        $sortDir = ($filters['sort_direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        return Facture::with('entreprise', 'mission', 'lignes')
+            ->when($filters['exercice_id'] ?? null, fn ($q, $v) => $q->where('exercice_id', $v))
+            ->when($filters['statut_paiement'] ?? null, fn ($q, $v) => $q->where('statut_paiement', $v))
+            ->when($filters['type'] ?? null, fn ($q, $v) => $q->where('type', $v))
+            ->when($filters['search'] ?? null, fn ($q, $s) => $q
+                ->where('numero', 'like', "%{$s}%")
+                ->orWhereHas('entreprise', fn ($eq) => $eq->where('raison_sociale', 'like', "%{$s}%"))
+            )
+            ->orderBy($sortField, $sortDir)
+            ->paginate($filters['per_page'] ?? 15);
     }
 
     /**
