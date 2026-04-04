@@ -430,15 +430,16 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: var(--p-surface-100, #f8f8f8);
-  border: 1px solid var(--p-surface-200, #e5e5e5);
+  background: transparent;
+  border: 1px solid var(--p-content-border-color, rgba(128,128,128,0.2));
   border-radius: 0.5rem;
   padding: 0.5rem 1rem;
   min-width: 8rem;
+  color: var(--p-text-color);
 }
 .kpi-card.kpi-warning {
-  border-color: var(--p-orange-300, #fb923c);
-  background: var(--p-orange-50, #fff7ed);
+  border-color: var(--p-orange-400, #fb923c);
+  background: rgba(234,88,12,0.1);
 }
 .kpi-label { font-size: 0.75rem; color: var(--p-text-muted-color, #888); }
 .kpi-value { font-size: 1rem; font-weight: 700; margin-top: 0.15rem; }
@@ -464,10 +465,11 @@ onMounted(async () => {
   gap: 1.25rem;
 }
 .info-section {
-  background: var(--p-surface-0, #fff);
-  border: 1px solid var(--p-surface-200, #e5e5e5);
+  background: transparent;
+  border: 1px solid var(--p-content-border-color, rgba(128,128,128,0.2));
   border-radius: 0.5rem;
   padding: 1rem;
+  color: var(--p-text-color);
 }
 .section-title {
   font-size: 0.8rem;

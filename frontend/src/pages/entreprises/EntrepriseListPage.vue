@@ -767,10 +767,12 @@ onMounted(() => {
 .portail-tag { margin-right: 0.25rem; }
 .portail-intro { margin-bottom: 0.75rem; font-size: 0.875rem; }
 .credentials-box {
-  background: var(--p-surface-100, #f5f5f5);
+  background: rgba(128,128,128,0.1);
+  border: 1px solid var(--p-content-border-color, rgba(128,128,128,0.2));
   border-radius: 0.5rem;
   padding: 1rem;
   margin-bottom: 0.75rem;
+  color: var(--p-text-color);
 }
 .credentials-fields { margin-top: 0.75rem; }
 .credential-row {
@@ -781,7 +783,8 @@ onMounted(() => {
 }
 .credential-label { font-weight: 500; min-width: 6rem; }
 .credential-row code {
-  background: var(--p-surface-200, #e5e5e5);
+  background: rgba(128,128,128,0.15);
+  color: var(--p-text-color);
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
   font-size: 0.9rem;
