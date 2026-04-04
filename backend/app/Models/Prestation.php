@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Prestation extends Model
 {
@@ -17,6 +20,11 @@ class Prestation extends Model
      * Calcule le prix HT selon la grille tarifaire Ledge.
      * Prix HT = tarif_initial × indice_regime × indice_categorie
      */
+    public function missions(): HasMany
+    {
+        return $this->hasMany(Mission::class);
+    }
+
     public function calculerPrixHt(string $regime, string $categorie): float
     {
         $indiceRegime = RegimeFiscal::where('code', $regime)->value('indice') ?? 1.0;

@@ -57,9 +57,12 @@ Route::prefix('v1')->group(function () {
             Route::get('exercices/current', [ExerciceController::class, 'current']);
             Route::apiResource('exercices', ExerciceController::class);
 
-            // Prestations (lecture + calcul prix)
+            // Prestations
             Route::get('prestations', [PrestationController::class, 'index']);
+            Route::post('prestations', [PrestationController::class, 'store']);
             Route::get('prestations/{prestation}', [PrestationController::class, 'show']);
+            Route::put('prestations/{prestation}', [PrestationController::class, 'update']);
+            Route::delete('prestations/{prestation}', [PrestationController::class, 'destroy']);
             Route::post('prestations/{prestation}/calculer-prix', [PrestationController::class, 'calculerPrix']);
 
             // Settings (admin uniquement)

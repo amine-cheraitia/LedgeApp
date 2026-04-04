@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { useToast } from 'primevue/usetoast'
-import { prestationsApi } from '@/api/modules/prestations'
+import { prestationsApi, type PrestationPayload } from '@/api/modules/prestations'
 import type { Prestation } from '@/types'
 
 export function usePrestations() {
@@ -20,7 +20,27 @@ export function usePrestations() {
     }
   }
 
-  async function calculerPrix(prestationId: number, regime_fiscal: string, categorie: string) {
+  async function createPrestation(data: PrestationPayload) {
+    const response = await prestationsApi.create(data)
+    toast.add({ severity: 'success', summary: 'Succes', detail: 'Prestation creee.', life: 3000 })
+    await fetchPrestations()
+    return response.data
+  }
+
+  async function updatePrestation(id: number, data: Partial<PrestationPayload>) {
+    const response = await prestationsApi.update(id, data)
+    toast.add({ severity: 'success', summary: 'Succes', detail: 'Prestation mise a jour.', life: 3000 })
+    await fetchPrestations()
+    return response.data
+  }
+
+  async function deletePrestation(id: number) {
+    await prestationsApi.delete(id)
+    toast.add({ severity: 'success', summary: 'Succes', detail: 'Prestation supprimee.', life: 3000 })
+    await fetchPrestations()
+  }
+
+  function calculerPrix(prestationId: number, regime_fiscal: string, categorie: string) {
     return prestationsApi.calculerPrix(prestationId, regime_fiscal, categorie)
   }
 
@@ -28,6 +48,9 @@ export function usePrestations() {
     prestations,
     loading,
     fetchPrestations,
+    createPrestation,
+    updatePrestation,
+    deletePrestation,
     calculerPrix,
   }
 }

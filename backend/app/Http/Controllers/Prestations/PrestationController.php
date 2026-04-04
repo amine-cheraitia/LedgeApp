@@ -1,8 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Prestations;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Prestations\StorePrestationRequest;
+use App\Http\Requests\Prestations\UpdatePrestationRequest;
 use App\Http\Resources\Prestations\PrestationResource;
 use App\Models\Prestation;
 use Illuminate\Http\JsonResponse;
@@ -19,6 +23,33 @@ class PrestationController extends Controller
     public function show(Prestation $prestation): PrestationResource
     {
         return new PrestationResource($prestation);
+    }
+
+    public function store(StorePrestationRequest $request): JsonResponse
+    {
+        $prestation = Prestation::create($request->validated() + ['actif' => $request->boolean('actif', true)]);
+
+        return (new PrestationResource($prestation))
+            ->response()
+            ->setStatusCode(201);
+    }
+
+    public function update(UpdatePrestationRequest $request, Prestation $prestation): PrestationResource
+    {
+        $prestation->update($request->validated());
+
+        return new PrestationResource($prestation);
+    }
+
+    public function destroy(Prestation $prestation): JsonResponse
+    {
+        if ($prestation->missions()->exists()) {
+            return response()->json(['message' => 'Impossible de supprimer une prestation liee a des missions.'], 409);
+        }
+
+        $prestation->delete();
+
+        return response()->json(['message' => 'Prestation supprimee.']);
     }
 
     public function calculerPrix(Request $request, Prestation $prestation): JsonResponse
