@@ -11,7 +11,6 @@ import Select from 'primevue/select'
 import MultiSelect from 'primevue/multiselect'
 import DatePicker from 'primevue/datepicker'
 import Textarea from 'primevue/textarea'
-import ConfirmDialog from 'primevue/confirmdialog'
 import { useDevis } from '@/composables/useDevis'
 import { useEntreprises } from '@/composables/useEntreprises'
 import { usePrestations } from '@/composables/usePrestations'
@@ -21,7 +20,7 @@ import type { Devis } from '@/types'
 const confirm = useConfirm()
 const {
   devisList, loading, totalRecords, filters,
-  fetchDevis, createDevis, envoyerDevis, accepterDevis, refuserDevis,
+  fetchDevis, createDevis, updateDevis, envoyerDevis, accepterDevis, refuserDevis,
   convertirDevisEnMission, telechargerPdf, deleteDevis, onPage, onSearch,
 } = useDevis()
 
@@ -38,6 +37,16 @@ const form = reactive({
   entreprise_id: null as number | null,
   prestation_id: null as number | null,
   date_devis: null as Date | null,
+  date_validite: null as Date | null,
+  notes: '',
+})
+
+// Dialog modification devis
+const editDevisVisible = ref(false)
+const editDevisSaving = ref(false)
+const editDevisId = ref<number | null>(null)
+const editDevisNumero = ref('')
+const editDevisForm = reactive({
   date_validite: null as Date | null,
   notes: '',
 })
@@ -98,6 +107,30 @@ async function onSubmit() {
     // erreur geree par le composable
   } finally {
     saving.value = false
+  }
+}
+
+function openEditDevis(devis: Devis) {
+  editDevisId.value = devis.id
+  editDevisNumero.value = devis.numero
+  editDevisForm.date_validite = devis.date_validite ? new Date(devis.date_validite) : null
+  editDevisForm.notes = devis.notes ?? ''
+  editDevisVisible.value = true
+}
+
+async function onSubmitEditDevis() {
+  if (!editDevisId.value) return
+  editDevisSaving.value = true
+  try {
+    await updateDevis(editDevisId.value, {
+      date_validite: editDevisForm.date_validite ? toIsoDate(editDevisForm.date_validite) : undefined,
+      notes: editDevisForm.notes || undefined,
+    })
+    editDevisVisible.value = false
+  } catch {
+    // erreur geree par le composable
+  } finally {
+    editDevisSaving.value = false
   }
 }
 
@@ -216,7 +249,16 @@ onMounted(() => {
             v-tooltip.top="'Telecharger PDF'"
             @click="telechargerPdf(data.id, data.numero)"
           />
-          <!-- Brouillon : envoyer + supprimer -->
+          <!-- Brouillon : modifier + envoyer + supprimer -->
+          <Button
+            v-if="data.statut === 'brouillon'"
+            icon="pi pi-pencil"
+            text
+            severity="secondary"
+            aria-label="Modifier le devis"
+            v-tooltip.top="'Modifier'"
+            @click="openEditDevis(data)"
+          />
           <Button
             v-if="data.statut === 'brouillon'"
             icon="pi pi-send"
@@ -267,8 +309,6 @@ onMounted(() => {
         </template>
       </Column>
     </DataTable>
-
-    <ConfirmDialog />
 
     <!-- Dialog creation devis -->
     <Dialog
@@ -324,6 +364,31 @@ onMounted(() => {
         <div class="dialog-actions">
           <Button label="Annuler" severity="secondary" text @click="dialogVisible = false" />
           <Button type="submit" label="Creer" icon="pi pi-check" :loading="saving" />
+        </div>
+      </form>
+    </Dialog>
+
+    <!-- Dialog modification devis -->
+    <Dialog
+      v-model:visible="editDevisVisible"
+      :header="`Modifier le devis ${editDevisNumero}`"
+      :modal="true"
+      :style="{ width: '32rem' }"
+    >
+      <form @submit.prevent="onSubmitEditDevis" class="dialog-form">
+        <div class="form-field">
+          <label for="ed-validite">Date validite</label>
+          <DatePicker id="ed-validite" v-model="editDevisForm.date_validite" dateFormat="dd/mm/yy" fluid />
+        </div>
+
+        <div class="form-field">
+          <label for="ed-notes">Notes</label>
+          <Textarea id="ed-notes" v-model="editDevisForm.notes" rows="3" fluid />
+        </div>
+
+        <div class="dialog-actions">
+          <Button label="Annuler" severity="secondary" text @click="editDevisVisible = false" type="button" />
+          <Button type="submit" label="Enregistrer" icon="pi pi-check" :loading="editDevisSaving" />
         </div>
       </form>
     </Dialog>

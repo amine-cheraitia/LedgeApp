@@ -12,7 +12,6 @@ import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
 import DatePicker from 'primevue/datepicker'
 import Textarea from 'primevue/textarea'
-import ConfirmDialog from 'primevue/confirmdialog'
 import { useFactures } from '@/composables/useFactures'
 import { useMissions } from '@/composables/useMissions'
 import { avoirsApi } from '@/api/modules/avoirs'
@@ -184,7 +183,9 @@ const avoirForm = reactive({
 
 function openAvoir(facture: Facture) {
   avoirFacture.value = facture
-  avoirForm.montant_ht = 0
+  avoirForm.montant_ht = parseFloat(
+    (facture.montant_restant * (facture.montant_ht / facture.montant_ttc)).toFixed(2)
+  )
   avoirForm.date_avoir = new Date()
   avoirForm.motif = ''
   avoirDialogVisible.value = true
@@ -316,8 +317,6 @@ onMounted(() => {
         </template>
       </Column>
     </DataTable>
-
-    <ConfirmDialog />
 
     <!-- Dialog création facture -->
     <Dialog

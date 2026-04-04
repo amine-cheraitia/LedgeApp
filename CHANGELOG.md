@@ -9,6 +9,17 @@
 
 ## [Unreleased]
 
+### Correctifs — Bugs UI missions / devis / avoir (issues #20, #21, #22)
+
+#### Frontend
+- **[#20] Double modale de confirmation** : suppression du `<ConfirmDialog />` en double dans `MissionListPage.vue`, `DevisListPage.vue` et `FactureListPage.vue` — le composant global dans `AppLayout.vue` est suffisant (PrimeVue ConfirmationService est global)
+- **[#21] Bouton Modifier manquant** :
+  - **Missions** : ajout bouton `pi pi-pencil` + dialog pré-rempli (date_debut, date_fin, collaborateurs, notes) — réutilise `updateMission()` de `useMissions.ts`
+  - **Devis** : ajout bouton `pi pi-pencil` visible uniquement sur statut `brouillon` + dialog (date_validite, notes) — ajout `updateDevis()` dans `useDevis.ts` (appelle `devisApi.update()` existant)
+- **[#22] Avoir non pré-rempli** : `openAvoir()` dans `FactureListPage.vue` calcule désormais `montant_ht = montant_restant × (montant_ht / montant_ttc)` pour restituer le HT restant proportionnel
+
+---
+
 ### Ajouts — Dashboard KPI (US-33)
 
 #### Backend

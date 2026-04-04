@@ -75,6 +75,12 @@ export function useDevis() {
     }
   }
 
+  async function updateDevis(id: number, data: { notes?: string; date_validite?: string }) {
+    await devisApi.update(id, data)
+    toast.add({ severity: 'success', summary: 'Succes', detail: 'Devis mis a jour.', life: 3000 })
+    await fetchDevis()
+  }
+
   async function deleteDevis(id: number) {
     await devisApi.delete(id)
     toast.add({ severity: 'success', summary: 'Succes', detail: 'Devis supprime.', life: 3000 })
@@ -99,6 +105,7 @@ export function useDevis() {
     filters,
     fetchDevis,
     createDevis,
+    updateDevis,
     envoyerDevis,
     accepterDevis,
     refuserDevis,

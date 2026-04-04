@@ -12,7 +12,6 @@ import Select from 'primevue/select'
 import MultiSelect from 'primevue/multiselect'
 import DatePicker from 'primevue/datepicker'
 import Textarea from 'primevue/textarea'
-import ConfirmDialog from 'primevue/confirmdialog'
 import { useMissions } from '@/composables/useMissions'
 import { useEntreprises } from '@/composables/useEntreprises'
 import { usePrestations } from '@/composables/usePrestations'
@@ -24,7 +23,7 @@ const router = useRouter()
 const confirm = useConfirm()
 const {
   missions, loading, totalRecords,
-  fetchMissions, createMission, deleteMission,
+  fetchMissions, createMission, updateMission, deleteMission,
   onPage, onSearch,
 } = useMissions()
 
@@ -38,6 +37,17 @@ const saving = ref(false)
 const dateDebut = ref<Date | null>(null)
 const dateFin = ref<Date | null>(null)
 
+// Edit dialog
+const editDialogVisible = ref(false)
+const editSaving = ref(false)
+const editMission = ref<Mission | null>(null)
+const editDateDebut = ref<Date | null>(null)
+const editDateFin = ref<Date | null>(null)
+const editForm = ref<{ collaborateur_ids: number[]; notes: string }>({
+  collaborateur_ids: [],
+  notes: '',
+})
+
 const form = ref<MissionPayload>({
   entreprise_id: 0,
   prestation_id: 0,
@@ -50,6 +60,33 @@ const form = ref<MissionPayload>({
 function toIsoDate(d: Date | null): string {
   if (!d) return ''
   return d.toISOString().split('T')[0]
+}
+
+function openEdit(mission: Mission) {
+  editMission.value = mission
+  editDateDebut.value = new Date(mission.date_debut)
+  editDateFin.value = mission.date_fin ? new Date(mission.date_fin) : null
+  editForm.value.collaborateur_ids = mission.collaborateurs?.map((c: any) => c.id) ?? []
+  editForm.value.notes = mission.notes ?? ''
+  editDialogVisible.value = true
+}
+
+async function onSubmitEdit() {
+  if (!editMission.value || !editDateDebut.value) return
+  editSaving.value = true
+  try {
+    await updateMission(editMission.value.id, {
+      date_debut: toIsoDate(editDateDebut.value),
+      date_fin: toIsoDate(editDateFin.value),
+      collaborateur_ids: editForm.value.collaborateur_ids,
+      notes: editForm.value.notes,
+    })
+    editDialogVisible.value = false
+  } catch {
+    // erreur geree par le composable
+  } finally {
+    editSaving.value = false
+  }
 }
 
 function openCreate() {
@@ -160,12 +197,11 @@ onMounted(() => {
       <Column header="Actions">
         <template #body="{ data }">
           <Button icon="pi pi-eye" text rounded @click="goToDetail(data)" aria-label="Voir detail" />
+          <Button icon="pi pi-pencil" text rounded severity="secondary" @click="openEdit(data)" aria-label="Modifier la mission" v-tooltip.top="'Modifier'" />
           <Button icon="pi pi-trash" text rounded severity="danger" @click="confirmDelete(data)" aria-label="Supprimer" />
         </template>
       </Column>
     </DataTable>
-
-    <ConfirmDialog />
 
     <Dialog
       v-model:visible="dialogVisible"
@@ -234,6 +270,48 @@ onMounted(() => {
         <div class="form-actions">
           <Button label="Annuler" severity="secondary" @click="dialogVisible = false" type="button" />
           <Button label="Creer" type="submit" :loading="saving" />
+        </div>
+      </form>
+    </Dialog>
+    <!-- Dialog modifier mission -->
+    <Dialog
+      v-model:visible="editDialogVisible"
+      header="Modifier la mission"
+      :modal="true"
+      :style="{ width: '32rem' }"
+    >
+      <form @submit.prevent="onSubmitEdit" class="dialog-form">
+        <div class="form-field">
+          <label for="e-debut">Date debut *</label>
+          <DatePicker id="e-debut" v-model="editDateDebut" dateFormat="dd/mm/yy" required fluid />
+        </div>
+
+        <div class="form-field">
+          <label for="e-fin">Date fin</label>
+          <DatePicker id="e-fin" v-model="editDateFin" dateFormat="dd/mm/yy" fluid />
+        </div>
+
+        <div class="form-field">
+          <label for="e-collabs">Collaborateurs</label>
+          <MultiSelect
+            id="e-collabs"
+            v-model="editForm.collaborateur_ids"
+            :options="users"
+            optionLabel="name"
+            optionValue="id"
+            placeholder="Selectionner des collaborateurs..."
+            fluid
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="e-notes">Notes</label>
+          <Textarea id="e-notes" v-model="editForm.notes" rows="3" fluid />
+        </div>
+
+        <div class="form-actions">
+          <Button label="Annuler" severity="secondary" @click="editDialogVisible = false" type="button" />
+          <Button label="Enregistrer" type="submit" :loading="editSaving" :disabled="!editDateDebut" />
         </div>
       </form>
     </Dialog>
