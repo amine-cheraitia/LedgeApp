@@ -230,7 +230,7 @@
 
 ---
 
-### US-23 · Calendrier interactif FullCalendar · M · 8 pts · Sprint 2
+### US-23 · Calendrier interactif FullCalendar · M · 8 pts · Sprint 2 ✅
 
 **En tant qu'administrateur**, je veux visualiser toutes les missions et taches dans un calendrier interactif **afin d'** avoir une vue globale de la charge equipe.
 
@@ -522,7 +522,7 @@
 | Sprint | US | Pts | Contenu principal |
 |---|---|---|---|
 | Sprint 1 | US-01 ✅, 02 ✅, 03 ✅, 04 ✅, 05 ✅, 06 ✅, 07 ✅, 08, 09, 11 ✅, 12, 17 ✅, 18 ✅, 40 ✅, 43 | 49 pts | Auth · Referentiel · Clients · Devis · Mission · Exercice |
-| Sprint 2 | US-10, 13 ✅, 14 ✅, 15 ✅, 16 ✅, 19 ✅, 20 ✅, 21 ✅, 22 ✅, 23, 24, 25 ✅, 26 ✅, 27 ✅, 28 ✅, 29 ✅, 30 ✅, 31 ✅, 32, 33, 34 | 96 pts | Factures · Taches · Portail · Relances · KPI |
+| Sprint 2 | US-10, 13 ✅, 14 ✅, 15 ✅, 16 ✅, 19 ✅, 20 ✅, 21 ✅, 22 ✅, 23 ✅, 24, 25 ✅, 26 ✅, 27 ✅, 28 ✅, 29 ✅, 30 ✅, 31 ✅, 32, 33 ✅, 34 | 96 pts | Factures · Taches · Portail · Relances · KPI |
 | Sprint 3 | US-35, 36, 37, 38, 39, 41, 42 | 27 pts | Qualite · OWASP · RGAA · Tests · MCO |
 | **Total** | **43 US** | **170 pts** | |
 

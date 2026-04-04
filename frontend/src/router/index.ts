@@ -51,6 +51,11 @@ const router = createRouter({
           component: () => import('@/pages/missions/MissionDetailPage.vue'),
         },
         {
+          path: 'planning',
+          name: 'planning',
+          component: () => import('@/pages/planning/PlanningCalendarPage.vue'),
+        },
+        {
           path: 'devis',
           name: 'devis',
           component: () => import('@/pages/devis/DevisListPage.vue'),

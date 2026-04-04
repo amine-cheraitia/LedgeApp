@@ -11,6 +11,7 @@ use App\Http\Controllers\Facturation\DevisController;
 use App\Http\Controllers\Facturation\FactureController;
 use App\Http\Controllers\Facturation\PaiementController;
 use App\Http\Controllers\Facturation\RelanceController;
+use App\Http\Controllers\Planning\CalendarController;
 use App\Http\Controllers\Planning\MissionController;
 use App\Http\Controllers\Planning\TacheCommentaireController;
 use App\Http\Controllers\Planning\TacheController;
@@ -64,6 +65,9 @@ Route::prefix('v1')->group(function () {
             // Settings (admin uniquement)
             Route::get('settings', [SettingController::class, 'index']);
             Route::put('settings', [SettingController::class, 'update']);
+
+            // Planning — Calendrier
+            Route::get('calendar', [CalendarController::class, 'index']);
 
             // Planning — Missions
             Route::apiResource('missions', MissionController::class);
