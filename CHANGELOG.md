@@ -9,6 +9,22 @@
 
 ## [Unreleased]
 
+### Ajouts — CRUD prestations (US-43)
+
+#### Backend
+- **`PrestationController::store()`** : création avec `StorePrestationRequest` (code unique, tarif, durée, actif)
+- **`PrestationController::update()`** : modification partielle avec `UpdatePrestationRequest` (unique ignore id courant)
+- **`PrestationController::destroy()`** : suppression protégée — HTTP 409 si missions associées
+- **`Prestation::missions()`** : relation `hasMany` ajoutée pour la protection suppression
+- **Routes** : `POST /prestations`, `PUT /prestations/{prestation}`, `DELETE /prestations/{prestation}`
+
+#### Frontend
+- **`api/modules/prestations.ts`** : ajout `create()`, `update()`, `delete()` + interface `PrestationPayload`
+- **`composables/usePrestations.ts`** : ajout `createPrestation()`, `updatePrestation()`, `deletePrestation()`
+- **`pages/prestations/PrestationListPage.vue`** : refonte — bouton Nouvelle prestation, dialog création, dialog modification pré-rempli, confirmation suppression avec message d'erreur 409
+
+---
+
 ### Ajouts — Tri, recherche réactive, filtre exercice et onglet Avoirs
 
 #### Backend — SRP / Services
