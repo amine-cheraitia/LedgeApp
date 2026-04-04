@@ -6,6 +6,7 @@ export interface DevisFilters {
   per_page?: number
   search?: string
   exercice_id?: number
+  entreprise_id?: number
   statut?: string
   sort_field?: string
   sort_direction?: 'asc' | 'desc'

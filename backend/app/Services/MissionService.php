@@ -33,6 +33,7 @@ class MissionService
 
         return Mission::with('entreprise', 'prestation', 'exercice')
             ->when($filters['exercice_id'] ?? null, fn ($q, $v) => $q->where('exercice_id', $v))
+            ->when($filters['entreprise_id'] ?? null, fn ($q, $v) => $q->where('entreprise_id', $v))
             ->when($filters['statut'] ?? null, fn ($q, $v) => $q->where('statut', $v))
             ->when($filters['search'] ?? null, fn ($q, $s) => $q
                 ->where('reference', 'like', "%{$s}%")

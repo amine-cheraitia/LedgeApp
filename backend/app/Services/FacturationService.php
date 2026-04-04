@@ -64,6 +64,7 @@ class FacturationService
 
         return Devis::with('entreprise', 'prestation')
             ->when($filters['exercice_id'] ?? null, fn ($q, $v) => $q->where('exercice_id', $v))
+            ->when($filters['entreprise_id'] ?? null, fn ($q, $v) => $q->where('entreprise_id', $v))
             ->when($filters['statut'] ?? null, fn ($q, $v) => $q->where('statut', $v))
             ->when($filters['search'] ?? null, fn ($q, $s) => $q
                 ->where('numero', 'like', "%{$s}%")
@@ -82,6 +83,7 @@ class FacturationService
 
         return Facture::with('entreprise', 'mission', 'lignes')
             ->when($filters['exercice_id'] ?? null, fn ($q, $v) => $q->where('exercice_id', $v))
+            ->when($filters['entreprise_id'] ?? null, fn ($q, $v) => $q->where('entreprise_id', $v))
             ->when($filters['statut_paiement'] ?? null, fn ($q, $v) => $q->where('statut_paiement', $v))
             ->when($filters['type'] ?? null, fn ($q, $v) => $q->where('type', $v))
             ->when($filters['search'] ?? null, fn ($q, $s) => $q

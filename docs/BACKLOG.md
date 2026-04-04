@@ -368,7 +368,7 @@
 
 ---
 
-### US-10 · Vue 360° client · S · 5 pts · Sprint 2
+### US-10 · Vue 360° client · S · 5 pts · Sprint 2 ✅
 
 **En tant qu'administrateur**, je veux voir l'historique complet d'un client (missions, factures, paiements, relances) **afin d'** avoir une vue 360° de la relation.
 

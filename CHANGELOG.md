@@ -9,6 +9,27 @@
 
 ## [Unreleased]
 
+### Ajouts — Vue 360° client (US-10)
+
+#### Backend
+- **`MissionService::listerMissions()`** : filtre `entreprise_id` ajouté
+- **`FacturationService::listerDevis()` / `listerFactures()`** : filtre `entreprise_id` ajouté
+- **`EntrepriseController::show()`** : eager load `contacts` + `users` inclus dans la réponse
+- **`EntrepriseResource`** : exposition de `contacts` via `ContactResource::collection(whenLoaded)`
+
+#### Frontend
+- **`MissionFilters` / `DevisFilters` / `FactureFilters`** : champ `entreprise_id` ajouté
+- **`EntrepriseDetailPage.vue`** (`/entreprises/:id`) : page dossier complet avec
+  - KPIs en-tête : impayé TTC (badge orange si > 0), CA total facturé, missions actives
+  - Filtre exercice partagé (missions + devis + factures rechargés simultanément)
+  - Colonne gauche : coordonnées, contacts avec badge Principal, notes
+  - Onglets Missions | Devis | Factures avec compteur par onglet
+  - Lien cliquable vers le détail mission
+- **Router** : route `entreprises/:id` → `EntrepriseDetailPage`
+- **`EntrepriseListPage`** : bouton "Dossier 360°" (icône pi-eye) ajouté dans la colonne Actions
+
+---
+
 ### Ajouts — Recherche et filtres entreprises (US-09)
 
 #### Backend

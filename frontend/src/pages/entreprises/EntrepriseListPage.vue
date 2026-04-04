@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import DataTable from 'primevue/datatable'
@@ -20,6 +21,7 @@ import type { ContactPayload } from '@/api/modules/contacts'
 
 const confirm = useConfirm()
 const toast = useToast()
+const router = useRouter()
 const {
   entreprises, loading, totalRecords, filters,
   fetchEntreprises, createEntreprise, updateEntreprise, deleteEntreprise,
@@ -422,8 +424,17 @@ onMounted(() => {
         </template>
       </Column>
       <Column field="wilaya" header="Wilaya" />
-      <Column header="Actions" style="width: 10rem">
+      <Column header="Actions" style="width: 13rem">
         <template #body="{ data }">
+          <Button
+            icon="pi pi-eye"
+            text
+            rounded
+            severity="secondary"
+            aria-label="Voir le dossier complet"
+            v-tooltip.top="'Dossier 360°'"
+            @click="router.push(`/entreprises/${data.id}`)"
+          />
           <Button
             icon="pi pi-users"
             text
