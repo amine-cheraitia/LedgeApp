@@ -123,7 +123,7 @@
 
 ## Couche 2
 
-### US-08 · Contacts entreprise · M · 2 pts · Sprint 1
+### US-08 · Contacts entreprise · M · 2 pts · Sprint 1 ✅
 
 **En tant qu'administrateur**, je veux gerer les contacts d'une entreprise **afin de** savoir a qui adresser les communications.
 

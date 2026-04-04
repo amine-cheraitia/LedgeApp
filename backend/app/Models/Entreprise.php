@@ -18,6 +18,11 @@ class Entreprise extends Model
         'statut', 'notes',
     ];
 
+    public function contacts(): HasMany
+    {
+        return $this->hasMany(Contact::class);
+    }
+
     public function users(): HasMany
     {
         return $this->hasMany(User::class);

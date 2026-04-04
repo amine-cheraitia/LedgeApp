@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\Dashboard\DashboardController;
+use App\Http\Controllers\Entreprises\ContactController;
 use App\Http\Controllers\Entreprises\EntrepriseController;
 use App\Http\Controllers\Exercices\ExerciceController;
 use App\Http\Controllers\Facturation\AvoirController;
@@ -52,6 +53,12 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('entreprises', EntrepriseController::class);
             Route::post('entreprises/{entreprise}/activer-portail', [EntrepriseController::class, 'activerPortail']);
             Route::post('entreprises/{entreprise}/toggle-portail', [EntrepriseController::class, 'togglePortail']);
+
+            // Contacts entreprise
+            Route::get('entreprises/{entreprise}/contacts', [ContactController::class, 'index']);
+            Route::post('entreprises/{entreprise}/contacts', [ContactController::class, 'store']);
+            Route::put('entreprises/{entreprise}/contacts/{contact}', [ContactController::class, 'update']);
+            Route::delete('entreprises/{entreprise}/contacts/{contact}', [ContactController::class, 'destroy']);
 
             // Exercices
             Route::get('exercices/current', [ExerciceController::class, 'current']);
