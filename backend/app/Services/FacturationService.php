@@ -17,6 +17,7 @@ use App\Models\TvaTaux;
 use Carbon\Carbon;
 use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 class FacturationService
@@ -72,6 +73,14 @@ class FacturationService
             )
             ->orderBy($sortField, $sortDir)
             ->paginate($filters['per_page'] ?? 15);
+    }
+
+    public function listerCreances(): Collection
+    {
+        return Facture::with(['entreprise', 'mission.prestation'])
+            ->whereIn('statut_paiement', ['en_attente', 'partiel'])
+            ->orderBy('date_echeance', 'asc')
+            ->get();
     }
 
     public function listerFactures(array $filters): LengthAwarePaginator
