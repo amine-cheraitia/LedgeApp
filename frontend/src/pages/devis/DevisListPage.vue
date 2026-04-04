@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, watch, onMounted } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -63,6 +63,24 @@ const conversionForm = reactive({
   date_debut: null as Date | null,
   date_fin: null as Date | null,
   collaborateur_ids: [] as number[],
+})
+
+// Auto-fill date_validite = date_devis + 2 mois (création)
+watch(() => form.date_devis, (newDate) => {
+  if (newDate) {
+    const d = new Date(newDate)
+    d.setMonth(d.getMonth() + 2)
+    form.date_validite = d
+  }
+})
+
+// Auto-fill date_validite = date_devis + 2 mois (modification)
+watch(() => editDevisForm.date_devis, (newDate) => {
+  if (newDate) {
+    const d = new Date(newDate)
+    d.setMonth(d.getMonth() + 2)
+    editDevisForm.date_validite = d
+  }
 })
 
 function toIsoDate(d: Date | null): string {
@@ -361,7 +379,7 @@ onMounted(() => {
           </div>
           <div class="form-field">
             <label for="dv-validite">Date validite *</label>
-            <DatePicker id="dv-validite" v-model="form.date_validite" dateFormat="dd/mm/yy" fluid />
+            <DatePicker id="dv-validite" v-model="form.date_validite" dateFormat="dd/mm/yy" :minDate="form.date_devis ?? undefined" fluid />
           </div>
         </div>
 
@@ -419,7 +437,7 @@ onMounted(() => {
           </div>
           <div class="form-field">
             <label for="ed-validite">Date validite *</label>
-            <DatePicker id="ed-validite" v-model="editDevisForm.date_validite" dateFormat="dd/mm/yy" fluid />
+            <DatePicker id="ed-validite" v-model="editDevisForm.date_validite" dateFormat="dd/mm/yy" :minDate="editDevisForm.date_devis ?? undefined" fluid />
           </div>
         </div>
 

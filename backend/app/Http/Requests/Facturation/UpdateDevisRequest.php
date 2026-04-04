@@ -22,7 +22,7 @@ class UpdateDevisRequest extends FormRequest
             'entreprise_id' => ['sometimes', 'exists:entreprises,id'],
             'prestation_id' => ['sometimes', 'exists:prestations,id'],
             'date_devis' => ['sometimes', 'date'],
-            'date_validite' => ['sometimes', 'date'],
+            'date_validite' => ['sometimes', 'date', 'after_or_equal:date_devis'],
             'notes' => ['nullable', 'string'],
         ];
     }
