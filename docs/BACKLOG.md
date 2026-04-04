@@ -110,7 +110,7 @@
 
 ---
 
-### US-43 · CRUD prestations · S · 3 pts · Sprint 1
+### US-43 · CRUD prestations · S · 3 pts · Sprint 1 ✅
 
 **En tant qu'administrateur**, je veux ajouter, modifier et supprimer des prestations depuis l'interface **afin de** faire evoluer le catalogue tarifaire sans intervention technique.
 
