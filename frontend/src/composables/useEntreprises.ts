@@ -57,6 +57,23 @@ export function useEntreprises() {
     fetchEntreprises()
   }
 
+  function setStatut(statut: string | null) {
+    filters.value.statut = statut ?? undefined
+    filters.value.page = 1
+    fetchEntreprises()
+  }
+
+  function setWilaya(wilaya: string | null) {
+    filters.value.wilaya = wilaya ?? undefined
+    filters.value.page = 1
+    fetchEntreprises()
+  }
+
+  function resetFilters() {
+    filters.value = { page: 1, per_page: 15 }
+    fetchEntreprises()
+  }
+
   return {
     entreprises,
     loading,
@@ -68,5 +85,8 @@ export function useEntreprises() {
     deleteEntreprise,
     onPage,
     onSearch,
+    setStatut,
+    setWilaya,
+    resetFilters,
   }
 }

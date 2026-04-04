@@ -134,7 +134,7 @@
 
 ---
 
-### US-09 · Recherche et filtres entreprises · S · 3 pts · Sprint 1
+### US-09 · Recherche et filtres entreprises · S · 3 pts · Sprint 1 ✅
 
 **En tant qu'administrateur**, je veux rechercher et filtrer les entreprises **afin de** retrouver rapidement un dossier.
 

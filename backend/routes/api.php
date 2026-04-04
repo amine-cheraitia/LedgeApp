@@ -50,6 +50,8 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('users', UserController::class);
 
             // Entreprises
+            Route::get('entreprises/wilayas', [EntrepriseController::class, 'wilayas']);
+            Route::get('entreprises/export-csv', [EntrepriseController::class, 'exportCsv']);
             Route::apiResource('entreprises', EntrepriseController::class);
             Route::post('entreprises/{entreprise}/activer-portail', [EntrepriseController::class, 'activerPortail']);
             Route::post('entreprises/{entreprise}/toggle-portail', [EntrepriseController::class, 'togglePortail']);

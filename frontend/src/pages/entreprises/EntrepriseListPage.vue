@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import DataTable from 'primevue/datatable'
@@ -23,10 +23,63 @@ const toast = useToast()
 const {
   entreprises, loading, totalRecords, filters,
   fetchEntreprises, createEntreprise, updateEntreprise, deleteEntreprise,
-  onPage, onSearch,
+  onPage, onSearch, setStatut, setWilaya, resetFilters,
 } = useEntreprises()
 
 const search = ref('')
+const filtreStatut = ref<string | null>(null)
+const filtreWilaya = ref<string | null>(null)
+const wilayas = ref<string[]>([])
+const exportLoading = ref(false)
+
+watch(search, (val) => {
+  onSearch(val)
+})
+
+watch(filtreStatut, (val) => {
+  setStatut(val)
+})
+
+watch(filtreWilaya, (val) => {
+  setWilaya(val)
+})
+
+async function loadWilayas() {
+  try {
+    const response = await entreprisesApi.wilayas()
+    wilayas.value = response.data
+  } catch {
+    // silencieux
+  }
+}
+
+function handleReset() {
+  search.value = ''
+  filtreStatut.value = null
+  filtreWilaya.value = null
+  resetFilters()
+}
+
+async function handleExportCsv() {
+  exportLoading.value = true
+  try {
+    const blob = await entreprisesApi.exportCsv({
+      search: filters.value.search,
+      statut: filters.value.statut,
+      wilaya: filters.value.wilaya,
+    })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'entreprises.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch {
+    toast.add({ severity: 'error', summary: 'Erreur', detail: "Impossible d'exporter.", life: 3000 })
+  } finally {
+    exportLoading.value = false
+  }
+}
 const dialogVisible = ref(false)
 const editMode = ref(false)
 const saving = ref(false)
@@ -126,10 +179,6 @@ function confirmDelete(entreprise: Entreprise) {
     rejectLabel: 'Annuler',
     accept: () => deleteEntreprise(entreprise.id),
   })
-}
-
-function handleSearch() {
-  onSearch(search.value)
 }
 
 // --- Portail ---
@@ -251,7 +300,10 @@ function confirmDeleteContact(contact: Contact) {
   })
 }
 
-onMounted(fetchEntreprises)
+onMounted(() => {
+  fetchEntreprises()
+  loadWilayas()
+})
 </script>
 
 <template>
@@ -262,15 +314,60 @@ onMounted(fetchEntreprises)
     </div>
 
     <div class="page-toolbar">
-      <form @submit.prevent="handleSearch" role="search" class="search-form">
-        <label for="search-entreprises" class="sr-only">Rechercher une entreprise</label>
-        <InputText
-          id="search-entreprises"
-          v-model="search"
-          placeholder="Rechercher..."
+      <div class="toolbar-filters">
+        <div class="search-wrapper">
+          <label for="search-entreprises" class="sr-only">Rechercher une entreprise</label>
+          <span class="p-input-icon-left">
+            <i class="pi pi-search" />
+            <InputText
+              id="search-entreprises"
+              v-model="search"
+              placeholder="Raison sociale, NIF, email..."
+              style="padding-left: 2.25rem; min-width: 18rem;"
+            />
+          </span>
+        </div>
+
+        <Select
+          v-model="filtreStatut"
+          :options="[{ label: 'Tous les statuts', value: null }, ...statutOptions]"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Statut"
+          aria-label="Filtrer par statut"
+          style="min-width: 12rem;"
         />
-        <Button icon="pi pi-search" aria-label="Lancer la recherche" @click="handleSearch" />
-      </form>
+
+        <Select
+          v-model="filtreWilaya"
+          :options="[{ label: 'Toutes les wilayas', value: null }, ...wilayas.map(w => ({ label: w, value: w }))]"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Wilaya"
+          aria-label="Filtrer par wilaya"
+          style="min-width: 12rem;"
+        />
+
+        <Button
+          v-if="filtreStatut || filtreWilaya || search"
+          icon="pi pi-filter-slash"
+          label="Reinitialiser"
+          severity="secondary"
+          text
+          aria-label="Reinitialiser les filtres"
+          @click="handleReset"
+        />
+      </div>
+
+      <Button
+        icon="pi pi-download"
+        label="Export CSV"
+        severity="secondary"
+        outlined
+        :loading="exportLoading"
+        aria-label="Exporter en CSV"
+        @click="handleExportCsv"
+      />
     </div>
 
     <DataTable
@@ -635,8 +732,21 @@ onMounted(fetchEntreprises)
   align-items: center;
   margin-bottom: 1rem;
 }
-.page-toolbar { margin-bottom: 1rem; }
-.search-form { display: flex; gap: 0.5rem; max-width: 20rem; }
+.page-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.toolbar-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.search-wrapper { position: relative; }
 .dialog-form { display: flex; flex-direction: column; gap: 0.75rem; }
 .form-field { display: flex; flex-direction: column; gap: 0.25rem; flex: 1; }
 .form-field label { font-size: 0.875rem; font-weight: 500; }
