@@ -12,10 +12,15 @@ import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
 import DatePicker from 'primevue/datepicker'
 import Textarea from 'primevue/textarea'
+import Tabs from 'primevue/tabs'
+import TabList from 'primevue/tablist'
+import Tab from 'primevue/tab'
+import TabPanels from 'primevue/tabpanels'
+import TabPanel from 'primevue/tabpanel'
 import { useFactures } from '@/composables/useFactures'
 import { useMissions } from '@/composables/useMissions'
 import { avoirsApi } from '@/api/modules/avoirs'
-import type { Facture } from '@/types'
+import type { Facture, Avoir } from '@/types'
 import type { PaiementPayload } from '@/api/modules/factures'
 
 const toast = useToast()
@@ -28,6 +33,40 @@ const {
 } = useFactures()
 
 const { missions, fetchMissions } = useMissions()
+
+// Onglet actif
+const activeTab = ref('factures')
+
+// Avoirs
+const avoirs = ref<Avoir[]>([])
+const avoirsLoading = ref(false)
+
+async function fetchAvoirs() {
+  avoirsLoading.value = true
+  try {
+    const res = await avoirsApi.getAll()
+    avoirs.value = res.data
+  } catch {
+    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de charger les avoirs.', life: 3000 })
+  } finally {
+    avoirsLoading.value = false
+  }
+}
+
+function confirmDeleteAvoir(avoir: Avoir) {
+  confirm.require({
+    message: `Supprimer l'avoir "${avoir.numero}" ?`,
+    header: 'Confirmation',
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: 'Supprimer',
+    rejectLabel: 'Annuler',
+    accept: async () => {
+      await avoirsApi.delete(avoir.id)
+      toast.add({ severity: 'success', summary: 'Succes', detail: 'Avoir supprime.', life: 3000 })
+      fetchAvoirs()
+    },
+  })
+}
 
 const search = ref('')
 
@@ -94,7 +133,6 @@ function modePaiementLabel(mode: string) {
   return map[mode] ?? mode
 }
 
-// Tranche suivante pour une mission donnée
 function trancheLabel(mission_id: number | null): string {
   if (!mission_id) return '—'
   const nb = factures.value.filter((f: Facture) => f.mission_id === mission_id).length
@@ -201,6 +239,7 @@ async function onSubmitAvoir() {
     toast.add({ severity: 'success', summary: 'Avoir créé', detail: 'L\'avoir a été émis avec succès.', life: 4000 })
     avoirDialogVisible.value = false
     fetchFactures()
+    fetchAvoirs()
   } catch (err: any) {
     const detail = err.response?.data?.message ?? 'Erreur lors de la création de l\'avoir.'
     toast.add({ severity: 'error', summary: 'Erreur', detail, life: 5000 })
@@ -209,112 +248,173 @@ async function onSubmitAvoir() {
   }
 }
 
-
 onMounted(() => {
   fetchFactures()
   fetchMissions()
+  fetchAvoirs()
 })
 </script>
 
 <template>
   <div>
     <div class="page-header">
-      <h2>Factures</h2>
-      <Button label="Nouvelle facture" icon="pi pi-plus" aria-label="Creer une facture" @click="openCreate" />
+      <h2>Facturation</h2>
+      <Button
+        v-if="activeTab === 'factures'"
+        label="Nouvelle facture"
+        icon="pi pi-plus"
+        aria-label="Creer une facture"
+        @click="openCreate"
+      />
     </div>
 
-    <div class="page-toolbar">
-      <form @submit.prevent="handleSearch" role="search" class="search-form">
-        <label for="search-factures" class="sr-only">Rechercher une facture</label>
-        <InputText id="search-factures" v-model="search" placeholder="Rechercher par numero..." />
-        <Button icon="pi pi-search" aria-label="Lancer la recherche" @click="handleSearch" />
-      </form>
-    </div>
+    <Tabs v-model:value="activeTab">
+      <TabList>
+        <Tab value="factures">
+          Factures
+          <span class="tab-badge">{{ totalRecords }}</span>
+        </Tab>
+        <Tab value="avoirs">
+          Avoirs
+          <span class="tab-badge">{{ avoirs.length }}</span>
+        </Tab>
+      </TabList>
 
-    <DataTable
-      :value="factures"
-      :loading="loading"
-      :paginator="true"
-      :rows="filters.per_page"
-      :totalRecords="totalRecords"
-      :lazy="true"
-      @page="onPage"
-      dataKey="id"
-      responsiveLayout="scroll"
-      stripedRows
-    >
-      <Column field="numero" header="Numero" />
-      <Column header="Mission">
-        <template #body="{ data }">
-          {{ data.mission?.reference ?? '-' }}
-        </template>
-      </Column>
-      <Column header="Entreprise">
-        <template #body="{ data }">
-          {{ data.entreprise?.raison_sociale ?? '-' }}
-        </template>
-      </Column>
-      <Column field="date_facture" header="Date" />
-      <Column field="date_echeance" header="Echeance" />
-      <Column header="Montant TTC">
-        <template #body="{ data }">
-          {{ formatMontant(data.montant_ttc) }}
-        </template>
-      </Column>
-      <Column header="Paye">
-        <template #body="{ data }">
-          {{ formatMontant(data.montant_paye) }}
-        </template>
-      </Column>
-      <Column header="Mode">
-        <template #body="{ data }">
-          {{ modePaiementLabel(data.mode_paiement) }}
-        </template>
-      </Column>
-      <Column header="Statut">
-        <template #body="{ data }">
-          <Tag :value="data.statut_paiement" :severity="statutPaiementColor(data.statut_paiement)" />
-        </template>
-      </Column>
-      <Column header="Actions" style="width: 10rem">
-        <template #body="{ data }">
-          <Button
-            icon="pi pi-file-pdf"
-            text
-            severity="secondary"
-            aria-label="Telecharger le PDF"
-            v-tooltip.top="'Telecharger PDF'"
-            @click="telechargerPdf(data.id, data.numero)"
-          />
-          <Button
-            v-if="data.statut_paiement !== 'solde'"
-            icon="pi pi-wallet"
-            text
-            severity="success"
-            aria-label="Enregistrer un paiement"
-            v-tooltip.top="'Paiement'"
-            @click="openPaiement(data)"
-          />
-          <Button
-            icon="pi pi-file-edit"
-            text
-            severity="secondary"
-            aria-label="Émettre un avoir"
-            v-tooltip.top="'Émettre un avoir'"
-            @click="openAvoir(data)"
-          />
-          <Button
-            v-if="!data.paiements || data.paiements.length === 0"
-            icon="pi pi-trash"
-            text
-            severity="danger"
-            aria-label="Supprimer"
-            v-tooltip.top="'Supprimer'"
-            @click="confirmDelete(data)"
-          />
-        </template>
-      </Column>
-    </DataTable>
+      <TabPanels>
+        <!-- Onglet Factures -->
+        <TabPanel value="factures">
+          <div class="page-toolbar">
+            <form @submit.prevent="handleSearch" role="search" class="search-form">
+              <label for="search-factures" class="sr-only">Rechercher une facture</label>
+              <InputText id="search-factures" v-model="search" placeholder="Rechercher par numero..." />
+              <Button icon="pi pi-search" aria-label="Lancer la recherche" @click="handleSearch" />
+            </form>
+          </div>
+
+          <DataTable
+            :value="factures"
+            :loading="loading"
+            :paginator="true"
+            :rows="filters.per_page"
+            :totalRecords="totalRecords"
+            :lazy="true"
+            @page="onPage"
+            dataKey="id"
+            responsiveLayout="scroll"
+            stripedRows
+          >
+            <Column field="numero" header="Numero" />
+            <Column header="Mission">
+              <template #body="{ data }">{{ data.mission?.reference ?? '-' }}</template>
+            </Column>
+            <Column header="Entreprise">
+              <template #body="{ data }">{{ data.entreprise?.raison_sociale ?? '-' }}</template>
+            </Column>
+            <Column field="date_facture" header="Date" />
+            <Column field="date_echeance" header="Echeance" />
+            <Column header="Montant TTC">
+              <template #body="{ data }">{{ formatMontant(data.montant_ttc) }}</template>
+            </Column>
+            <Column header="Paye">
+              <template #body="{ data }">{{ formatMontant(data.montant_paye) }}</template>
+            </Column>
+            <Column header="Mode">
+              <template #body="{ data }">{{ modePaiementLabel(data.mode_paiement) }}</template>
+            </Column>
+            <Column header="Statut">
+              <template #body="{ data }">
+                <Tag :value="data.statut_paiement" :severity="statutPaiementColor(data.statut_paiement)" />
+              </template>
+            </Column>
+            <Column header="Actions" style="width: 10rem">
+              <template #body="{ data }">
+                <Button
+                  icon="pi pi-file-pdf"
+                  text
+                  severity="secondary"
+                  aria-label="Telecharger le PDF"
+                  v-tooltip.top="'Telecharger PDF'"
+                  @click="telechargerPdf(data.id, data.numero)"
+                />
+                <Button
+                  v-if="data.statut_paiement !== 'solde'"
+                  icon="pi pi-wallet"
+                  text
+                  severity="success"
+                  aria-label="Enregistrer un paiement"
+                  v-tooltip.top="'Paiement'"
+                  @click="openPaiement(data)"
+                />
+                <Button
+                  icon="pi pi-file-edit"
+                  text
+                  severity="secondary"
+                  aria-label="Émettre un avoir"
+                  v-tooltip.top="'Émettre un avoir'"
+                  @click="openAvoir(data)"
+                />
+                <Button
+                  v-if="!data.paiements || data.paiements.length === 0"
+                  icon="pi pi-trash"
+                  text
+                  severity="danger"
+                  aria-label="Supprimer"
+                  v-tooltip.top="'Supprimer'"
+                  @click="confirmDelete(data)"
+                />
+              </template>
+            </Column>
+          </DataTable>
+        </TabPanel>
+
+        <!-- Onglet Avoirs -->
+        <TabPanel value="avoirs">
+          <DataTable
+            :value="avoirs"
+            :loading="avoirsLoading"
+            dataKey="id"
+            responsiveLayout="scroll"
+            stripedRows
+          >
+            <Column field="numero" header="Numero" />
+            <Column header="Facture d'origine">
+              <template #body="{ data }">{{ data.facture_origine?.numero ?? '-' }}</template>
+            </Column>
+            <Column header="Entreprise">
+              <template #body="{ data }">{{ data.facture_origine?.entreprise?.raison_sociale ?? '-' }}</template>
+            </Column>
+            <Column field="date_avoir" header="Date" />
+            <Column header="Montant HT">
+              <template #body="{ data }">{{ formatMontant(data.montant_ht) }}</template>
+            </Column>
+            <Column header="Montant TTC">
+              <template #body="{ data }">{{ formatMontant(data.montant_ttc) }}</template>
+            </Column>
+            <Column field="motif" header="Motif" />
+            <Column header="Actions" style="width: 7rem">
+              <template #body="{ data }">
+                <Button
+                  icon="pi pi-file-pdf"
+                  text
+                  severity="secondary"
+                  aria-label="Telecharger le PDF de l'avoir"
+                  v-tooltip.top="'Telecharger PDF'"
+                  @click="avoirsApi.telechargerPdf(data.facture_origine_id, data.id, data.numero)"
+                />
+                <Button
+                  icon="pi pi-trash"
+                  text
+                  severity="danger"
+                  aria-label="Supprimer l'avoir"
+                  v-tooltip.top="'Supprimer'"
+                  @click="confirmDeleteAvoir(data)"
+                />
+              </template>
+            </Column>
+          </DataTable>
+        </TabPanel>
+      </TabPanels>
+    </Tabs>
 
     <!-- Dialog création facture -->
     <Dialog
@@ -523,7 +623,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
 }
-
 .avoir-recap {
   background: var(--p-surface-ground);
   border: 1px solid var(--p-surface-border);
@@ -536,6 +635,20 @@ onMounted(() => {
 .recap-row { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
 .recap-label { font-size: 0.8rem; color: var(--p-text-muted-color); }
 .montant-restant { font-weight: 700; color: var(--p-red-600); }
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--p-primary-color);
+  color: var(--p-primary-contrast-color);
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.35rem;
+  margin-left: 0.4rem;
+}
 
 @media (max-width: 640px) {
   .form-row { flex-direction: column; }

@@ -8,11 +8,17 @@ export interface StoreAvoirPayload {
 }
 
 export const avoirsApi = {
+  getAll: (): Promise<{ data: Avoir[] }> =>
+    api.get('/avoirs').then(r => r.data),
+
   index: (factureId: number) =>
     api.get<{ data: Avoir[] }>(`/factures/${factureId}/avoirs`),
 
   store: (factureId: number, payload: StoreAvoirPayload) =>
     api.post<{ data: Avoir }>(`/factures/${factureId}/avoirs`, payload),
+
+  delete: (avoirId: number): Promise<void> =>
+    api.delete(`/avoirs/${avoirId}`),
 
   telechargerPdf: (factureId: number, avoirId: number, numero: string) =>
     api.get(`/factures/${factureId}/avoirs/${avoirId}/pdf`, { responseType: 'blob' }).then((res) => {

@@ -188,7 +188,7 @@ export interface Avoir {
   montant_tva: number
   montant_ttc: number
   motif: string
-  facture_origine?: Facture
+  facture_origine?: { id: number; numero: string; entreprise?: { raison_sociale: string } | null }
   created_at: string
 }
 
