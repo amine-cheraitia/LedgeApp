@@ -10,10 +10,13 @@ import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
+import ToggleSwitch from 'primevue/toggleswitch'
 import ConfirmDialog from 'primevue/confirmdialog'
 import { useEntreprises } from '@/composables/useEntreprises'
+import { useContacts } from '@/composables/useContacts'
 import { entreprisesApi } from '@/api/modules/entreprises'
-import type { Entreprise } from '@/types'
+import type { Contact, Entreprise } from '@/types'
+import type { ContactPayload } from '@/api/modules/contacts'
 
 const confirm = useConfirm()
 const toast = useToast()
@@ -178,6 +181,76 @@ function copyCredentials() {
   toast.add({ severity: 'info', summary: 'Copie', detail: 'Identifiants copies dans le presse-papier.', life: 2000 })
 }
 
+// --- Contacts ---
+
+const { contacts, loading: contactsLoading, fetchContacts, createContact, updateContact, deleteContact } = useContacts()
+
+const contactsDialogVisible = ref(false)
+const contactsEntreprise = ref<Entreprise | null>(null)
+
+const contactFormVisible = ref(false)
+const contactEditMode = ref(false)
+const contactSaving = ref(false)
+const contactEditId = ref<number | null>(null)
+const emptyContactForm = (): ContactPayload => ({ nom: '', prenom: null, email: null, telephone: null, poste: null, est_principal: false })
+const contactForm = ref<ContactPayload>(emptyContactForm())
+
+function openContacts(entreprise: Entreprise) {
+  contactsEntreprise.value = entreprise
+  contactsDialogVisible.value = true
+  fetchContacts(entreprise.id)
+}
+
+function openContactCreate() {
+  contactForm.value = emptyContactForm()
+  contactEditMode.value = false
+  contactEditId.value = null
+  contactFormVisible.value = true
+}
+
+function openContactEdit(contact: Contact) {
+  contactForm.value = {
+    nom: contact.nom,
+    prenom: contact.prenom,
+    email: contact.email,
+    telephone: contact.telephone,
+    poste: contact.poste,
+    est_principal: contact.est_principal,
+  }
+  contactEditId.value = contact.id
+  contactEditMode.value = true
+  contactFormVisible.value = true
+}
+
+async function onSubmitContact() {
+  if (!contactsEntreprise.value) return
+  contactSaving.value = true
+  try {
+    if (contactEditMode.value && contactEditId.value) {
+      await updateContact(contactsEntreprise.value.id, contactEditId.value, contactForm.value)
+    } else {
+      await createContact(contactsEntreprise.value.id, contactForm.value)
+    }
+    contactFormVisible.value = false
+  } catch {
+    // erreur geree par le composable
+  } finally {
+    contactSaving.value = false
+  }
+}
+
+function confirmDeleteContact(contact: Contact) {
+  if (!contactsEntreprise.value) return
+  confirm.require({
+    message: `Supprimer le contact "${contact.nom}${contact.prenom ? ' ' + contact.prenom : ''}" ?`,
+    header: 'Confirmation',
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: 'Supprimer',
+    rejectLabel: 'Annuler',
+    accept: () => deleteContact(contactsEntreprise.value!.id, contact.id),
+  })
+}
+
 onMounted(fetchEntreprises)
 </script>
 
@@ -252,10 +325,35 @@ onMounted(fetchEntreprises)
         </template>
       </Column>
       <Column field="wilaya" header="Wilaya" />
-      <Column header="Actions" style="width: 8rem">
+      <Column header="Actions" style="width: 10rem">
         <template #body="{ data }">
-          <Button icon="pi pi-pencil" text severity="info" aria-label="Modifier" @click="openEdit(data)" />
-          <Button icon="pi pi-trash" text severity="danger" aria-label="Supprimer" @click="confirmDelete(data)" />
+          <Button
+            icon="pi pi-users"
+            text
+            rounded
+            severity="secondary"
+            aria-label="Gerer les contacts"
+            v-tooltip.top="'Contacts'"
+            @click="openContacts(data)"
+          />
+          <Button
+            icon="pi pi-pencil"
+            text
+            rounded
+            severity="info"
+            aria-label="Modifier l'entreprise"
+            v-tooltip.top="'Modifier'"
+            @click="openEdit(data)"
+          />
+          <Button
+            icon="pi pi-trash"
+            text
+            rounded
+            severity="danger"
+            aria-label="Supprimer l'entreprise"
+            v-tooltip.top="'Supprimer'"
+            @click="confirmDelete(data)"
+          />
         </template>
       </Column>
     </DataTable>
@@ -384,6 +482,122 @@ onMounted(fetchEntreprises)
       </form>
     </Dialog>
 
+    <!-- Dialog contacts -->
+    <Dialog
+      v-model:visible="contactsDialogVisible"
+      :header="`Contacts — ${contactsEntreprise?.raison_sociale ?? ''}`"
+      :modal="true"
+      :style="{ width: '38rem' }"
+    >
+      <div class="contacts-header">
+        <span class="contacts-count">{{ contacts.length }} contact{{ contacts.length !== 1 ? 's' : '' }}</span>
+        <Button
+          label="Ajouter un contact"
+          icon="pi pi-plus"
+          size="small"
+          @click="openContactCreate"
+        />
+      </div>
+
+      <DataTable
+        :value="contacts"
+        :loading="contactsLoading"
+        dataKey="id"
+        size="small"
+        stripedRows
+      >
+        <Column field="nom" header="Nom">
+          <template #body="{ data }">
+            <span :class="{ 'contact-principal': data.est_principal }">
+              {{ data.nom }}{{ data.prenom ? ' ' + data.prenom : '' }}
+            </span>
+            <Tag v-if="data.est_principal" value="Principal" severity="info" class="ml-2" />
+          </template>
+        </Column>
+        <Column field="poste" header="Poste" />
+        <Column field="email" header="Email" />
+        <Column field="telephone" header="Tel" />
+        <Column header="" style="width: 6rem">
+          <template #body="{ data }">
+            <Button
+              icon="pi pi-pencil"
+              text
+              rounded
+              size="small"
+              severity="secondary"
+              aria-label="Modifier le contact"
+              @click="openContactEdit(data)"
+            />
+            <Button
+              icon="pi pi-trash"
+              text
+              rounded
+              size="small"
+              severity="danger"
+              aria-label="Supprimer le contact"
+              @click="confirmDeleteContact(data)"
+            />
+          </template>
+        </Column>
+      </DataTable>
+
+      <div v-if="contacts.length === 0 && !contactsLoading" class="contacts-empty">
+        Aucun contact. Cliquez sur "Ajouter un contact" pour commencer.
+      </div>
+    </Dialog>
+
+    <!-- Dialog formulaire contact -->
+    <Dialog
+      v-model:visible="contactFormVisible"
+      :header="contactEditMode ? 'Modifier le contact' : 'Nouveau contact'"
+      :modal="true"
+      :style="{ width: '30rem' }"
+    >
+      <form @submit.prevent="onSubmitContact" class="dialog-form">
+        <div class="form-row">
+          <div class="form-field">
+            <label for="c-nom">Nom *</label>
+            <InputText id="c-nom" v-model="contactForm.nom" required fluid />
+          </div>
+          <div class="form-field">
+            <label for="c-prenom">Prenom</label>
+            <InputText id="c-prenom" v-model="contactForm.prenom" fluid />
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="c-poste">Poste</label>
+          <InputText id="c-poste" v-model="contactForm.poste" fluid />
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label for="c-email">Email</label>
+            <InputText id="c-email" v-model="contactForm.email" type="email" fluid />
+          </div>
+          <div class="form-field">
+            <label for="c-tel">Telephone</label>
+            <InputText id="c-tel" v-model="contactForm.telephone" fluid />
+          </div>
+        </div>
+
+        <div class="form-field form-field--inline">
+          <label for="c-principal">Contact principal</label>
+          <ToggleSwitch id="c-principal" v-model="contactForm.est_principal" aria-label="Definir comme contact principal" />
+        </div>
+
+        <div class="dialog-actions">
+          <Button label="Annuler" severity="secondary" text @click="contactFormVisible = false" type="button" />
+          <Button
+            :label="contactEditMode ? 'Enregistrer' : 'Ajouter'"
+            type="submit"
+            :loading="contactSaving"
+            :disabled="!contactForm.nom"
+          />
+        </div>
+      </form>
+    </Dialog>
+
     <!-- Dialog credentials -->
     <Dialog
       v-model:visible="credentialsDialogVisible"
@@ -452,6 +666,27 @@ onMounted(fetchEntreprises)
   font-size: 0.9rem;
   user-select: all;
 }
+
+.form-field--inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+}
+.contacts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+.contacts-count { font-size: 0.875rem; color: var(--p-text-muted-color, #666); }
+.contacts-empty {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--p-text-muted-color, #999);
+  font-size: 0.875rem;
+}
+.contact-principal { font-weight: 600; }
+.ml-2 { margin-left: 0.5rem; }
 
 @media (max-width: 640px) {
   .form-row { flex-direction: column; }

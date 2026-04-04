@@ -9,6 +9,27 @@
 
 ## [Unreleased]
 
+### Ajouts — Contacts entreprise (US-08)
+
+#### Backend
+- **Migration `create_contacts_table`** : table `contacts` (entreprise_id FK cascade, nom, prenom, email, telephone, poste, est_principal)
+- **`Contact`** : modèle Eloquent avec `belongsTo(Entreprise)`, cast boolean `est_principal`
+- **`Entreprise::contacts()`** : relation `hasMany(Contact)` ajoutée
+- **`ContactService::creer()`** : création avec dévalidation automatique du contact principal précédent si `est_principal = true`
+- **`ContactService::mettreAJour()`** : mise à jour avec même logique de dévalidation principale
+- **`ContactController`** : CRUD imbriqué — `index`, `store`, `update`, `destroy` (thin controller, délègue au service)
+- **`StoreContactRequest` / `UpdateContactRequest`** : validation FormRequest avec `sometimes` pour la mise à jour partielle
+- **`ContactResource`** : sérialisation JSON complète du contact
+- **Routes** : `GET/POST /entreprises/{entreprise}/contacts`, `PUT/DELETE /entreprises/{entreprise}/contacts/{contact}`
+
+#### Frontend
+- **`types/index.ts`** : interface `Contact` ajoutée
+- **`api/modules/contacts.ts`** : module API avec `getAll()`, `create()`, `update()`, `delete()` + interface `ContactPayload`
+- **`composables/useContacts.ts`** : composable réactif avec `fetchContacts`, `createContact`, `updateContact`, `deleteContact`
+- **`EntrepriseListPage.vue`** : bouton "Contacts" (icône pi-users) par ligne → dialog liste des contacts avec ajout/modification/suppression ; badge contact principal ; formulaire avec nom, prénom, poste, email, téléphone, toggle principal
+
+---
+
 ### Ajouts — CRUD prestations (US-43)
 
 #### Backend

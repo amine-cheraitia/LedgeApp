@@ -41,6 +41,19 @@ export interface Entreprise {
   updated_at: string
 }
 
+export interface Contact {
+  id: number
+  entreprise_id: number
+  nom: string
+  prenom: string | null
+  email: string | null
+  telephone: string | null
+  poste: string | null
+  est_principal: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface Exercice {
   id: number
   annee: number
