@@ -9,6 +9,21 @@
 
 ## [Unreleased]
 
+### Ajouts — Recherche et filtres entreprises (US-09)
+
+#### Backend
+- **`EntrepriseController::index()`** : recherche full-text élargie à raison_sociale, NIF, NIS, email, téléphone, ville + filtre combinable `wilaya`
+- **`EntrepriseController::wilayas()`** : `GET /entreprises/wilayas` — liste distincte des wilayas enregistrées (ordered alphabetically)
+- **`EntrepriseController::exportCsv()`** : `GET /entreprises/export-csv` — export CSV streamé avec BOM UTF-8 (compatible Excel), respecte les filtres actifs, chunk 500 lignes
+
+#### Frontend
+- **`EntrepriseFilters`** : champ `wilaya` ajouté
+- **`entreprisesApi`** : méthodes `wilayas()` et `exportCsv()` ajoutées
+- **`useEntreprises`** : `setStatut()`, `setWilaya()`, `resetFilters()` ajoutés
+- **`EntrepriseListPage.vue`** : toolbar enrichie — champ recherche réactif (`watch`), Select statut, Select wilaya (options chargées dynamiquement), bouton "Réinitialiser" conditionnel, bouton "Export CSV"
+
+---
+
 ### Ajouts — Contacts entreprise (US-08)
 
 #### Backend
