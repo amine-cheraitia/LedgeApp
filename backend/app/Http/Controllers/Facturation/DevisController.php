@@ -30,12 +30,9 @@ class DevisController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $devis = Devis::with('entreprise', 'prestation')
-            ->when($request->entreprise_id, fn ($q, $id) => $q->where('entreprise_id', $id))
-            ->when($request->statut, fn ($q, $s) => $q->where('statut', $s))
-            ->when($request->search, fn ($q, $s) => $q->where('numero', 'like', "%{$s}%"))
-            ->latest()
-            ->paginate($request->per_page ?? 15);
+        $devis = $this->facturationService->listerDevis($request->only([
+            'exercice_id', 'statut', 'search', 'sort_field', 'sort_direction', 'per_page',
+        ]));
 
         return DevisResource::collection($devis);
     }

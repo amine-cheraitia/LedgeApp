@@ -5,9 +5,10 @@ export interface FactureFilters {
   page?: number
   per_page?: number
   search?: string
-  entreprise_id?: number
-  mission_id?: number
+  exercice_id?: number
   statut_paiement?: string
+  sort_field?: string
+  sort_direction?: 'asc' | 'desc'
 }
 
 export interface FacturePayload {

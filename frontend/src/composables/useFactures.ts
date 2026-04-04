@@ -10,6 +10,8 @@ export function useFactures() {
   const totalRecords = ref(0)
   const filters = ref<FactureFilters>({ page: 1, per_page: 15 })
 
+  let _debounceTimer: ReturnType<typeof setTimeout> | null = null
+
   async function fetchFactures() {
     loading.value = true
     try {
@@ -66,7 +68,23 @@ export function useFactures() {
   }
 
   function onSearch(search: string) {
-    filters.value.search = search
+    if (_debounceTimer) clearTimeout(_debounceTimer)
+    _debounceTimer = setTimeout(() => {
+      filters.value.search = search
+      filters.value.page = 1
+      fetchFactures()
+    }, 300)
+  }
+
+  function onSort(event: { sortField?: string | ((item: any) => string) | null; sortOrder?: number | null }) {
+    filters.value.sort_field = typeof event.sortField === 'string' ? event.sortField : undefined
+    filters.value.sort_direction = event.sortOrder === 1 ? 'asc' : 'desc'
+    filters.value.page = 1
+    fetchFactures()
+  }
+
+  function setExercice(exerciceId: number | undefined) {
+    filters.value.exercice_id = exerciceId
     filters.value.page = 1
     fetchFactures()
   }
@@ -83,5 +101,7 @@ export function useFactures() {
     telechargerPdf,
     onPage,
     onSearch,
+    onSort,
+    setExercice,
   }
 }

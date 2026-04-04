@@ -5,8 +5,10 @@ export interface MissionFilters {
   page?: number
   per_page?: number
   search?: string
-  entreprise_id?: number
+  exercice_id?: number
   statut?: string
+  sort_field?: string
+  sort_direction?: 'asc' | 'desc'
 }
 
 export interface MissionPayload {

@@ -26,7 +26,13 @@ class AvoirResource extends JsonResource
             'montant_tva' => $this->montant_tva,
             'montant_ttc' => $this->montant_ttc,
             'motif' => $this->motif,
-            'facture_origine' => $this->whenLoaded('factureOrigine'),
+            'facture_origine' => $this->whenLoaded('factureOrigine', fn () => [
+                'id' => $this->factureOrigine->id,
+                'numero' => $this->factureOrigine->numero,
+                'entreprise' => $this->factureOrigine->relationLoaded('entreprise') && $this->factureOrigine->entreprise
+                    ? ['raison_sociale' => $this->factureOrigine->entreprise->raison_sociale]
+                    : null,
+            ]),
             'created_at' => $this->created_at,
         ];
     }

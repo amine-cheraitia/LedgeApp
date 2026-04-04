@@ -538,7 +538,7 @@
 | Statut | US | Pts |
 |---|---|---|
 | ✅ Termine | 28 US | 102 pts |
-| 🔧 En cours | — | — |
+| 🔧 En cours | feature/list-exercice-search-sort (US-16 étendu, refactoring SRP lists) | — |
 | A faire | 15 US | 68 pts |
 
 ### Noeuds critiques

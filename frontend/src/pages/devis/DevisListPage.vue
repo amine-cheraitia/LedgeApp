@@ -15,20 +15,26 @@ import { useDevis } from '@/composables/useDevis'
 import { useEntreprises } from '@/composables/useEntreprises'
 import { usePrestations } from '@/composables/usePrestations'
 import { useUsers } from '@/composables/useUsers'
+import { useExercices } from '@/composables/useExercices'
 import type { Devis } from '@/types'
 
 const confirm = useConfirm()
 const {
   devisList, loading, totalRecords, filters,
   fetchDevis, createDevis, updateDevis, envoyerDevis, accepterDevis, refuserDevis,
-  convertirDevisEnMission, telechargerPdf, deleteDevis, onPage, onSearch,
+  convertirDevisEnMission, telechargerPdf, deleteDevis, onPage, onSearch, onSort, setExercice,
 } = useDevis()
 
 const { entreprises, fetchEntreprises } = useEntreprises()
 const { prestations, fetchPrestations } = usePrestations()
 const { users, fetchUsers } = useUsers()
+const { exercices, exerciceCourant, fetchExercices, fetchExerciceCourant } = useExercices()
 
 const search = ref('')
+const exerciceSelectionne = ref<number | undefined>(undefined)
+
+watch(search, (val) => onSearch(val))
+watch(exerciceSelectionne, (val) => setExercice(val))
 
 // Dialog creation devis
 const dialogVisible = ref(false)
@@ -198,11 +204,10 @@ function confirmDelete(devis: Devis) {
   })
 }
 
-function handleSearch() {
-  onSearch(search.value)
-}
-
-onMounted(() => {
+onMounted(async () => {
+  await fetchExerciceCourant()
+  await fetchExercices()
+  exerciceSelectionne.value = exerciceCourant.value?.id
   fetchDevis()
   fetchEntreprises()
   fetchPrestations()
@@ -218,11 +223,23 @@ onMounted(() => {
     </div>
 
     <div class="page-toolbar">
-      <form @submit.prevent="handleSearch" role="search" class="search-form">
+      <div class="toolbar-left">
         <label for="search-devis" class="sr-only">Rechercher un devis</label>
-        <InputText id="search-devis" v-model="search" placeholder="Rechercher par numero..." />
-        <Button icon="pi pi-search" aria-label="Lancer la recherche" @click="handleSearch" />
-      </form>
+        <InputText id="search-devis" v-model="search" placeholder="Rechercher par numero ou client..." style="width: 22rem" />
+      </div>
+      <div class="toolbar-right">
+        <label for="dv-exercice" class="sr-only">Filtrer par exercice</label>
+        <Select
+          id="dv-exercice"
+          v-model="exerciceSelectionne"
+          :options="exercices"
+          optionLabel="annee"
+          optionValue="id"
+          placeholder="Tous les exercices"
+          showClear
+          style="width: 14rem"
+        />
+      </div>
     </div>
 
     <DataTable
@@ -232,12 +249,16 @@ onMounted(() => {
       :rows="filters.per_page"
       :totalRecords="totalRecords"
       :lazy="true"
+      :sortField="filters.sort_field"
+      :sortOrder="filters.sort_direction === 'asc' ? 1 : -1"
       @page="onPage"
+      @sort="onSort"
       dataKey="id"
       responsiveLayout="scroll"
       stripedRows
+      removableSort
     >
-      <Column field="numero" header="Numero" />
+      <Column field="numero" header="Numero" sortable />
       <Column header="Entreprise">
         <template #body="{ data }">
           {{ data.entreprise?.raison_sociale ?? '-' }}
@@ -248,18 +269,19 @@ onMounted(() => {
           {{ data.prestation?.designation ?? '-' }}
         </template>
       </Column>
-      <Column field="date_devis" header="Date" />
-      <Column header="Prix HT (DA)">
+      <Column field="date_devis" header="Date" sortable />
+      <Column field="date_validite" header="Validite" sortable />
+      <Column field="prix_ht" header="Prix HT (DA)" sortable>
         <template #body="{ data }">
           {{ formatMontant(data.prix_ht) }}
         </template>
       </Column>
-      <Column header="Montant TTC (DA)">
+      <Column field="montant_ttc" header="Montant TTC (DA)" sortable>
         <template #body="{ data }">
           {{ formatMontant(data.montant_ttc) }}
         </template>
       </Column>
-      <Column header="Statut">
+      <Column field="statut" header="Statut" sortable>
         <template #body="{ data }">
           <Tag :value="data.statut" :severity="statutColor(data.statut)" />
         </template>
@@ -507,8 +529,9 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 1rem;
 }
-.page-toolbar { margin-bottom: 1rem; }
-.search-form { display: flex; gap: 0.5rem; max-width: 20rem; }
+.page-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.toolbar-left { display: flex; gap: 0.5rem; align-items: center; }
+.toolbar-right { display: flex; gap: 0.5rem; align-items: center; }
 .dialog-form { display: flex; flex-direction: column; gap: 0.75rem; }
 .form-field { display: flex; flex-direction: column; gap: 0.25rem; flex: 1; }
 .form-field label { font-size: 0.875rem; font-weight: 500; }

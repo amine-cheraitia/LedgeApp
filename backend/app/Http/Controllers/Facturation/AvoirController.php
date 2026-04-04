@@ -13,6 +13,7 @@ use App\Services\FacturationService;
 use App\Services\PdfService;
 use DomainException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response as HttpResponse;
 
@@ -23,11 +24,32 @@ class AvoirController extends Controller
         private readonly PdfService $pdfService,
     ) {}
 
+    public function indexAll(Request $request): AnonymousResourceCollection
+    {
+        $avoirs = Avoir::with('factureOrigine.entreprise')
+            ->when($request->exercice_id, fn ($q, $v) => $q->where('exercice_id', $v))
+            ->when($request->search, fn ($q, $s) => $q
+                ->where('numero', 'like', "%{$s}%")
+                ->orWhereHas('factureOrigine.entreprise', fn ($eq) => $eq->where('raison_sociale', 'like', "%{$s}%"))
+            )
+            ->latest()
+            ->paginate((int) ($request->per_page ?? 15));
+
+        return AvoirResource::collection($avoirs);
+    }
+
     public function index(Facture $facture): AnonymousResourceCollection
     {
         $avoirs = $facture->avoirs()->latest()->get();
 
         return AvoirResource::collection($avoirs);
+    }
+
+    public function destroy(Avoir $avoir): HttpResponse
+    {
+        $avoir->delete();
+
+        return response()->noContent();
     }
 
     public function store(StoreAvoirRequest $request, Facture $facture): JsonResponse

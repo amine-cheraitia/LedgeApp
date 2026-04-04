@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConfirm } from 'primevue/useconfirm'
 import DataTable from 'primevue/datatable'
@@ -16,22 +16,28 @@ import { useMissions } from '@/composables/useMissions'
 import { useEntreprises } from '@/composables/useEntreprises'
 import { usePrestations } from '@/composables/usePrestations'
 import { useUsers } from '@/composables/useUsers'
+import { useExercices } from '@/composables/useExercices'
 import type { Mission } from '@/types'
 import type { MissionPayload } from '@/api/modules/missions'
 
 const router = useRouter()
 const confirm = useConfirm()
 const {
-  missions, loading, totalRecords,
+  missions, loading, totalRecords, filters,
   fetchMissions, createMission, updateMission, deleteMission,
-  onPage, onSearch,
+  onPage, onSearch, onSort, setExercice,
 } = useMissions()
 
 const { entreprises, fetchEntreprises } = useEntreprises()
 const { prestations, fetchPrestations } = usePrestations()
 const { users, fetchUsers } = useUsers()
+const { exercices, exerciceCourant, fetchExercices, fetchExerciceCourant } = useExercices()
 
 const search = ref('')
+const exerciceSelectionne = ref<number | undefined>(undefined)
+
+watch(search, (val) => onSearch(val))
+watch(exerciceSelectionne, (val) => setExercice(val))
 const dialogVisible = ref(false)
 const saving = ref(false)
 const dateDebut = ref<Date | null>(null)
@@ -141,11 +147,10 @@ function formatMontant(v: number) {
   return new Intl.NumberFormat('fr-DZ').format(v) + ' DA'
 }
 
-function doSearch() {
-  onSearch(search.value)
-}
-
-onMounted(() => {
+onMounted(async () => {
+  await fetchExerciceCourant()
+  await fetchExercices()
+  exerciceSelectionne.value = exerciceCourant.value?.id
   fetchMissions()
   fetchEntreprises()
   fetchPrestations()
@@ -160,45 +165,69 @@ onMounted(() => {
       <Button label="Nouvelle mission" icon="pi pi-plus" @click="openCreate" />
     </div>
 
-    <div class="search-bar">
-      <InputText v-model="search" placeholder="Rechercher par reference..." @keyup.enter="doSearch" fluid />
-      <Button icon="pi pi-search" @click="doSearch" aria-label="Rechercher" />
+    <div class="page-toolbar">
+      <div class="toolbar-left">
+        <label for="m-search" class="sr-only">Rechercher une mission</label>
+        <InputText
+          id="m-search"
+          v-model="search"
+          placeholder="Rechercher par reference ou client..."
+          style="width: 22rem"
+        />
+      </div>
+      <div class="toolbar-right">
+        <label for="m-exercice" class="sr-only">Filtrer par exercice</label>
+        <Select
+          id="m-exercice"
+          v-model="exerciceSelectionne"
+          :options="exercices"
+          optionLabel="annee"
+          optionValue="id"
+          placeholder="Tous les exercices"
+          showClear
+          style="width: 14rem"
+        />
+      </div>
     </div>
 
     <DataTable
       :value="missions"
       :loading="loading"
       :paginator="true"
-      :rows="15"
+      :rows="filters.per_page"
       :totalRecords="totalRecords"
       :lazy="true"
+      :sortField="filters.sort_field"
+      :sortOrder="filters.sort_direction === 'asc' ? 1 : -1"
       @page="onPage"
+      @sort="onSort"
       dataKey="id"
       stripedRows
+      removableSort
     >
-      <Column field="reference" header="Reference" />
-      <Column header="Entreprise">
+      <Column field="reference" header="Reference" sortable />
+      <Column header="Entreprise" sortField="entreprise_id">
         <template #body="{ data }">{{ data.entreprise?.raison_sociale ?? '-' }}</template>
       </Column>
       <Column header="Prestation">
         <template #body="{ data }">{{ data.prestation?.designation ?? '-' }}</template>
       </Column>
-      <Column header="Prix HT">
+      <Column field="prix_ht" header="Prix HT" sortable>
         <template #body="{ data }">{{ formatMontant(data.prix_ht) }}</template>
       </Column>
-      <Column header="Debut">
+      <Column field="date_debut" header="Debut" sortable>
         <template #body="{ data }">{{ formatDate(data.date_debut) }}</template>
       </Column>
-      <Column header="Statut">
+      <Column field="statut" header="Statut" sortable>
         <template #body="{ data }">
           <Tag :value="data.statut" :severity="statutSeverity(data.statut)" />
         </template>
       </Column>
-      <Column header="Actions">
+      <Column header="Actions" style="width: 8rem">
         <template #body="{ data }">
-          <Button icon="pi pi-eye" text rounded @click="goToDetail(data)" aria-label="Voir detail" />
+          <Button icon="pi pi-eye" text rounded @click="goToDetail(data)" aria-label="Voir detail" v-tooltip.top="'Voir detail'" />
           <Button icon="pi pi-pencil" text rounded severity="secondary" @click="openEdit(data)" aria-label="Modifier la mission" v-tooltip.top="'Modifier'" />
-          <Button icon="pi pi-trash" text rounded severity="danger" @click="confirmDelete(data)" aria-label="Supprimer" />
+          <Button icon="pi pi-trash" text rounded severity="danger" @click="confirmDelete(data)" aria-label="Supprimer" v-tooltip.top="'Supprimer'" />
         </template>
       </Column>
     </DataTable>
@@ -325,12 +354,16 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 1.5rem;
 }
-.search-bar {
+.page-toolbar {
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   margin-bottom: 1rem;
-  max-width: 400px;
+  flex-wrap: wrap;
 }
+.toolbar-left { display: flex; gap: 0.5rem; align-items: center; }
+.toolbar-right { display: flex; gap: 0.5rem; align-items: center; }
 .dialog-form {
   display: flex;
   flex-direction: column;

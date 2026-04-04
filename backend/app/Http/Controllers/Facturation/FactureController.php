@@ -25,14 +25,9 @@ class FactureController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $factures = Facture::with('entreprise', 'mission', 'lignes')
-            ->when($request->entreprise_id, fn ($q, $id) => $q->where('entreprise_id', $id))
-            ->when($request->mission_id, fn ($q, $id) => $q->where('mission_id', $id))
-            ->when($request->type, fn ($q, $t) => $q->where('type', $t))
-            ->when($request->statut_paiement, fn ($q, $s) => $q->where('statut_paiement', $s))
-            ->when($request->search, fn ($q, $s) => $q->where('numero', 'like', "%{$s}%"))
-            ->latest()
-            ->paginate($request->per_page ?? 15);
+        $factures = $this->facturationService->listerFactures($request->only([
+            'exercice_id', 'statut_paiement', 'type', 'search', 'sort_field', 'sort_direction', 'per_page',
+        ]));
 
         return FactureResource::collection($factures);
     }

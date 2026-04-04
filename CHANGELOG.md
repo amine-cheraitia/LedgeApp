@@ -9,6 +9,40 @@
 
 ## [Unreleased]
 
+### Ajouts — Tri, recherche réactive, filtre exercice et onglet Avoirs
+
+#### Backend — SRP / Services
+- **`MissionService::listerMissions()`** : filtre `exercice_id`, recherche `reference` + `raison_sociale` (orWhereHas), tri avec whitelist sécurisée
+- **`MissionService::mettreAJourMission()`** : extraction depuis `MissionController::update()` — SRP
+- **`FacturationService::listerDevis()`** : même pattern — filtre exercice, recherche numero + raison_sociale, tri
+- **`FacturationService::listerFactures()`** : idem
+- **`MissionController::index()` / `update()`** délèguent entièrement au service (thin controllers)
+- **`DevisController::index()` / `FactureController::index()`** idem
+- **`AvoirController::indexAll()`** : `GET /api/v1/avoirs` — liste paginée avec filtre `exercice_id` + recherche numero / raison_sociale
+- **`AvoirController::destroy()`** : `DELETE /api/v1/avoirs/{avoir}` — suppression d'un avoir
+- **`AvoirResource`** : `facture_origine` expose un sous-ensemble `{ id, numero, entreprise.raison_sociale }` (eager load `factureOrigine.entreprise`)
+- **Routes** : `GET avoirs`, `DELETE avoirs/{avoir}` dans le groupe `backoffice`
+
+#### Frontend
+- **`api/modules/avoirs.ts`** : ajout `getAll(params?)` + `delete(avoirId)` — retourne `PaginatedResponse<Avoir>`
+- **`types/index.ts`** : `Avoir.facture_origine` typé en sous-ensemble `{ id, numero, entreprise? }` (aligné avec AvoirResource)
+- **`composables/useMissions.ts`** : `onSort()`, `setExercice()`, debounce 300ms sur `onSearch()`
+- **`composables/useDevis.ts`** : idem — `updateDevis()` étendu (`entreprise_id`, `prestation_id`, `date_devis`)
+- **`composables/useFactures.ts`** : `onSort()`, `setExercice()` ajoutés
+- **`pages/missions/MissionListPage.vue`** : recherche réactive (`watch`), filtre exercice pré-sélectionné, DataTable tri serveur (reference, prix_ht, date_debut, statut)
+- **`pages/devis/DevisListPage.vue`** : idem + colonne date_validite + dialog Modifier étendu (tous les champs brouillon) + auto-fill date_validite = date_devis + 2 mois avec `minDate`
+- **`pages/factures/FactureListPage.vue`** : refonte avec onglets **Factures | Avoirs**, filtre exercice partagé, recherche réactive par onglet, DataTable tri serveur (numero, date_facture, date_echeance, montant_ttc, statut_paiement), onglet Avoirs avec PDF + suppression
+
+---
+
+### Correctifs — Devis brouillon édition étendue + avoir pré-rempli
+
+- **Devis brouillon** : dialog "Modifier" ouvre désormais tous les champs éditables (entreprise, prestation, date_devis, date_validite, notes) — auparavant limité à date_validite + notes uniquement
+- **date_validite auto** : pré-remplie à `date_devis + 2 mois` à l'ouverture, contrainte `minDate = date_devis`, modifiable par l'utilisateur
+- **Avoir pré-rempli** : `openAvoir()` utilise `facture.montant_ht` directement — l'ancien calcul proportionnel renvoyait 0 sur les factures soldées
+
+---
+
 ### Correctifs — Bugs UI missions / devis / avoir (issues #20, #21, #22)
 
 #### Frontend
