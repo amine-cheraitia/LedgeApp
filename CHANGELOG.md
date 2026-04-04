@@ -20,6 +20,22 @@
 
 ---
 
+### Ajouts — Calendrier interactif FullCalendar (US-23)
+
+#### Backend
+- **`CalendarController::index()`** : endpoint `GET /api/v1/calendar?from=&to=&collaborateur_id=` — protégé par middleware `backoffice`
+- **`CalendarService::getEvents()`** : logique métier centralisée — overlap missions (date_debut/date_fin/englobant), tâches par date_echeance, filtre collaborateur optionnel
+- **`CalendarRequest`** : validation `from` (required, date), `to` (required, date, after_or_equal), `collaborateur_id` (nullable, exists:users)
+- **Tests** : 8 tests `CalendarApiTest` — mission dans range, hors range, englobante, tâche dans range, hors range, filtre collaborateur, 401 non auth, 403 client
+
+#### Frontend
+- **6 packages FullCalendar** installés : `@fullcalendar/vue3`, `core`, `daygrid`, `timegrid`, `interaction`, `list`
+- **`api/modules/planning.ts`** : `planningApi.getCalendar()` + interfaces `CalendarMission`, `CalendarTache`, `CalendarData`
+- **`composables/usePlanning.ts`** : `fetchEvents()` (source FullCalendar), `onEventDrop()` (drag & drop missions + tâches), `onEventResize()` (missions), `fetchCollaborateurs()` — couleurs par statut
+- **`pages/planning/PlanningCalendarPage.vue`** : vues mois/semaine/jour/liste, locale française, drag & drop, filtre collaborateur, dialog détail au clic, légende des couleurs, RGAA (aria-label, role="region", focus-visible, sr-only)
+- **`router/index.ts`** : route `/planning` ajoutée dans le layout backoffice
+- **`layout/AppMenu.vue`** : item "Planning" ajouté dans le groupe "Gestion" (visible isStaff)
+
 ### Ajouts — Dashboard KPI (US-33)
 
 #### Backend

@@ -23,6 +23,7 @@ const model = computed(() => [
     items: [
       { label: 'Entreprises', icon: 'pi pi-fw pi-building', to: '/entreprises' },
       { label: 'Missions', icon: 'pi pi-fw pi-briefcase', to: '/missions' },
+      { label: 'Planning', icon: 'pi pi-fw pi-calendar-clock', to: '/planning' },
     ],
   },
   {
