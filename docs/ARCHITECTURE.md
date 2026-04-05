@@ -45,22 +45,30 @@ backend/app/
 ├── Http/
 │   ├── Controllers/
 │   │   ├── Auth/              # AuthController, UserController
-│   │   ├── Entreprises/       # EntrepriseController
+│   │   ├── Dashboard/         # DashboardController (KPI stats)
+│   │   ├── Entreprises/       # EntrepriseController, ContactController
 │   │   ├── Exercices/         # ExerciceController
 │   │   ├── Prestations/       # PrestationController
 │   │   ├── Settings/          # SettingController
-│   │   ├── Facturation/       # DevisController, FactureController, PaiementController
-│   │   └── Planning/          # MissionController, TacheController
+│   │   ├── Facturation/       # DevisController, FactureController, PaiementController, AvoirController, CreanceController, RelanceController
+│   │   ├── Planning/          # MissionController, TacheController, TacheCommentaireController, CalendarController
+│   │   └── Portail/           # PortailController, PortailFactureController, PortailMissionController, PortailDocumentController
 │   ├── Requests/              # FormRequests par domaine (Auth/, Entreprises/, Facturation/, Planning/)
 │   └── Resources/             # API Resources JSON par domaine (Facturation/, Planning/)
 ├── Services/
-│   ├── FacturationService.php # Logique metier : numerotation, transitions devis, creation devis/factures, paiements
-│   ├── MissionService.php     # Logique metier : calcul prix HT, CRUD missions (délègue genererNumero à FacturationService)
-│   └── PdfService.php         # Generation PDF DomPDF : genererDevis() — extensible pour genererFacture() (US-14)
+│   ├── CalendarService.php    # Evenements calendrier (missions + taches dans une plage de dates)
+│   ├── ContactService.php     # CRUD contacts entreprise
+│   ├── DashboardService.php   # Calcul KPI (CA, TVA, taux recouvrement, alertes)
+│   ├── EntrepriseService.php  # Lister, creer, exporter CSV, wilayas
+│   ├── FacturationService.php # Numerotation, devis, factures, paiements, avoirs, relances
+│   ├── MissionService.php     # Calcul prix HT, CRUD missions, numerotation convention/mandat
+│   ├── PdfService.php         # Generation PDF DomPDF : devis, facture, avoir, convention, mandat
+│   ├── PortailService.php     # Portail client : factures, missions, documents (scope entreprise_id)
+│   └── RelanceService.php     # Envoi relances manuelles, regles automatiques
 ├── Events/                    # MissionCreated, InvoicePaid
 ├── Listeners/                 # ConvertProspectToClient, CancelRelancesOnPayment
 ├── Observers/                 # MissionObserver
-├── Models/                    # 18 modeles Eloquent
+├── Models/                    # 21 modeles Eloquent
 └── Providers/                 # AppServiceProvider (observers, events)
 ```
 

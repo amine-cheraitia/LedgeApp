@@ -1,6 +1,6 @@
 # Ledge — Contexte Projet
 
-> Derniere mise a jour : 24 Mars 2026 — Architecture N-tier (Vue.js + Laravel API)
+> Derniere mise a jour : 05 Avril 2026 — Architecture N-tier (Vue.js + Laravel API)
 > RNCP 39583 - Expert en Developpement Logiciel - YNOV
 
 ---
@@ -63,7 +63,7 @@ Ledge/
 │   │   │   ├── Requests/      # FormRequests par domaine
 │   │   │   ├── Resources/     # API Resources JSON par domaine
 │   │   │   └── Middleware/    # EnsureBackofficeAccess, EnsurePortailAccess
-│   │   ├── Models/            # 18 modeles Eloquent
+│   │   ├── Models/            # 21 modeles Eloquent
 │   │   └── Providers/
 │   ├── routes/api.php         # Toutes les routes API /api/v1/*
 │   ├── database/              # Migrations + seeders
@@ -248,7 +248,7 @@ Routes Vue.js separees (`/portail`) — role `client` uniquement, lecture seule.
 5. Le client definit son mot de passe et accede au portail
 6. L'Admin peut revoquer l'acces a tout moment via `portail_actif = 0`
 
-Le client accede 24h/24 a ses factures filtrees par exercice fiscal, telecharge ses documents, consulte l'historique de ses missions. Le scope Eloquent garantit qu'il ne voit que les donnees de **son** entreprise.
+Le client accede 24h/24 a ses factures filtrees par exercice fiscal, consulte l'historique de ses missions et telecharge ses documents contractuels (conventions, mandats) partages par l'admin via le flag `visible_portail`. Le scope Eloquent garantit qu'il ne voit que les donnees de **son** entreprise.
 
 ---
 
@@ -375,7 +375,7 @@ settings               -> parametres cle/valeur (cabinet, facturation, relances)
 prestations            -> catalogue avec tarif_initial
 regimes_fiscaux        -> Forfait (x1.0) / Reel (x1.5)
 categories_entreprise  -> TPE (x1.0) / PME (x1.75) / GE (x2.0)
-missions               -> missions par entreprise + exercice + prestation
+missions               -> missions par entreprise + exercice + prestation (visible_portail, convention_numero, mandat_numero)
 mission_user           -> affectation collaborateurs aux missions
 taches                 -> taches par mission, assignees a un collaborateur
 tache_commentaires     -> commentaires sur taches
