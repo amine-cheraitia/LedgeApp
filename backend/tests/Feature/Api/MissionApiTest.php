@@ -7,6 +7,7 @@ namespace Tests\Feature\Api;
 use App\Models\CategorieEntreprise;
 use App\Models\Entreprise;
 use App\Models\Exercice;
+use App\Models\Mission;
 use App\Models\Prestation;
 use App\Models\RegimeFiscal;
 use App\Models\Setting;
@@ -252,7 +253,7 @@ class MissionApiTest extends TestCase
         $this->assertDatabaseHas('missions', [
             'id' => $mission['id'],
         ]);
-        $missionUpdated = \App\Models\Mission::find($mission['id']);
+        $missionUpdated = Mission::find($mission['id']);
         $this->assertNotNull($missionUpdated->convention_numero);
         $this->assertStringStartsWith('CV', $missionUpdated->convention_numero);
 
@@ -283,7 +284,7 @@ class MissionApiTest extends TestCase
         $response->assertOk();
         $response->assertHeader('Content-Type', 'application/pdf');
 
-        $missionUpdated = \App\Models\Mission::find($mission['id']);
+        $missionUpdated = Mission::find($mission['id']);
         $this->assertNotNull($missionUpdated->mandat_numero);
         $this->assertStringStartsWith('MD', $missionUpdated->mandat_numero);
     }
