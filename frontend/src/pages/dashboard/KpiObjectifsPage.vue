@@ -28,12 +28,6 @@ const typesObjectif = [
   { key: 'taches_terminees' as KpiObjectifType, label: 'Tâches terminées', unit: '', icon: 'pi pi-check-circle' },
 ]
 
-// Stats réalisées seulement — pas d'objectif saisissable
-const statsInfo = [
-  { key: 'taches_en_retard' as const, label: 'Tâches en retard', unit: '', icon: 'pi pi-exclamation-triangle', severity: 'danger' },
-  { key: 'delai_moyen_tache' as const, label: 'Délai moyen / tâche', unit: 'jours', icon: 'pi pi-clock', severity: 'info' },
-]
-
 async function fetchExercices() {
   const res = await exercicesApi.getAll()
   exercices.value = res.data
