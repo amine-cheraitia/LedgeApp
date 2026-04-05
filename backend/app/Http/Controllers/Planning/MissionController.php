@@ -10,14 +10,17 @@ use App\Http\Requests\Planning\UpdateMissionRequest;
 use App\Http\Resources\Planning\MissionResource;
 use App\Models\Mission;
 use App\Services\MissionService;
+use App\Services\PdfService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Symfony\Component\HttpFoundation\Response;
 
 class MissionController extends Controller
 {
     public function __construct(
         private MissionService $missionService,
+        private PdfService $pdfService,
     ) {}
 
     public function index(Request $request): AnonymousResourceCollection
@@ -50,6 +53,24 @@ class MissionController extends Controller
         $mission = $this->missionService->mettreAJourMission($mission, $request->validated());
 
         return new MissionResource($mission);
+    }
+
+    public function conventionPdf(Mission $mission): Response
+    {
+        $this->missionService->obtenirNumeroConvention($mission);
+        $mission->refresh();
+
+        return $this->pdfService->genererConvention($mission)
+            ->stream('convention-'.$mission->convention_numero.'.pdf');
+    }
+
+    public function mandatPdf(Mission $mission): Response
+    {
+        $this->missionService->obtenirNumeroMandat($mission);
+        $mission->refresh();
+
+        return $this->pdfService->genererMandat($mission)
+            ->stream('mandat-'.$mission->mandat_numero.'.pdf');
     }
 
     public function destroy(Mission $mission): JsonResponse

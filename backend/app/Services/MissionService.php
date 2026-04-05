@@ -54,6 +54,41 @@ class MissionService
         return $mission->load('entreprise', 'prestation', 'collaborateurs');
     }
 
+    /**
+     * Retourne le numero de convention existant ou en genere un nouveau.
+     * Le numero est genere une seule fois et stocke de facon immuable sur la mission.
+     */
+    public function obtenirNumeroConvention(Mission $mission): string
+    {
+        if ($mission->convention_numero) {
+            return $mission->convention_numero;
+        }
+
+        $exercice = $mission->exercice ?? Exercice::find($mission->exercice_id);
+        $prefixe = Setting::get('convention_prefixe', 'CV');
+        $numero = $this->facturationService->genererNumero($prefixe, 'missions', $exercice, 'convention_numero');
+        $mission->update(['convention_numero' => $numero]);
+
+        return $numero;
+    }
+
+    /**
+     * Retourne le numero de mandat existant ou en genere un nouveau.
+     */
+    public function obtenirNumeroMandat(Mission $mission): string
+    {
+        if ($mission->mandat_numero) {
+            return $mission->mandat_numero;
+        }
+
+        $exercice = $mission->exercice ?? Exercice::find($mission->exercice_id);
+        $prefixe = Setting::get('mandat_prefixe', 'MD');
+        $numero = $this->facturationService->genererNumero($prefixe, 'missions', $exercice, 'mandat_numero');
+        $mission->update(['mandat_numero' => $numero]);
+
+        return $numero;
+    }
+
     public function creerMission(array $data): Mission
     {
         return DB::transaction(function () use ($data) {

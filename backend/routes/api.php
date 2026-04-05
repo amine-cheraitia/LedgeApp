@@ -82,6 +82,8 @@ Route::prefix('v1')->group(function () {
             Route::get('calendar', [CalendarController::class, 'index']);
 
             // Planning — Missions
+            Route::get('missions/{mission}/convention/pdf', [MissionController::class, 'conventionPdf']);
+            Route::get('missions/{mission}/mandat/pdf', [MissionController::class, 'mandatPdf']);
             Route::apiResource('missions', MissionController::class);
             Route::apiResource('missions.taches', TacheController::class)->except(['show'])->parameters(['taches' => 'tache']);
             Route::apiResource('taches.commentaires', TacheCommentaireController::class)->except(['show'])->parameters(['commentaires' => 'commentaire']);
