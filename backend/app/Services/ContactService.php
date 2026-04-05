@@ -30,4 +30,9 @@ class ContactService
 
         return $contact->fresh();
     }
+
+    public function supprimer(Contact $contact): void
+    {
+        $contact->delete();
+    }
 }

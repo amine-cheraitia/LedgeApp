@@ -43,7 +43,7 @@ class ContactController extends Controller
 
     public function destroy(Entreprise $entreprise, Contact $contact): JsonResponse
     {
-        $contact->delete();
+        $this->contactService->supprimer($contact);
 
         return response()->json(['message' => 'Contact supprime.']);
     }

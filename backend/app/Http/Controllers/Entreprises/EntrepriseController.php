@@ -10,6 +10,7 @@ use App\Http\Requests\Entreprises\UpdateEntrepriseRequest;
 use App\Http\Resources\Auth\UserResource;
 use App\Http\Resources\Entreprises\EntrepriseResource;
 use App\Models\Entreprise;
+use App\Services\EntrepriseService;
 use App\Services\PortailService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,92 +19,32 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class EntrepriseController extends Controller
 {
+    public function __construct(private readonly EntrepriseService $entrepriseService) {}
+
     public function index(Request $request): AnonymousResourceCollection
     {
-        $entreprises = Entreprise::query()
-            ->when($request->search, function ($q, $s) {
-                $q->where(function ($inner) use ($s) {
-                    $inner->where('raison_sociale', 'like', "%{$s}%")
-                        ->orWhere('nif', 'like', "%{$s}%")
-                        ->orWhere('nis', 'like', "%{$s}%")
-                        ->orWhere('email', 'like', "%{$s}%")
-                        ->orWhere('telephone', 'like', "%{$s}%")
-                        ->orWhere('ville', 'like', "%{$s}%");
-                });
-            })
-            ->when($request->statut, fn ($q, $s) => $q->where('statut', $s))
-            ->when($request->wilaya, fn ($q, $w) => $q->where('wilaya', $w))
-            ->with('users')
-            ->withCount('missions', 'factures')
-            ->latest()
-            ->paginate($request->per_page ?? 15);
+        $entreprises = $this->entrepriseService->lister($request->only([
+            'search', 'statut', 'wilaya', 'per_page',
+        ]));
 
         return EntrepriseResource::collection($entreprises);
     }
 
     public function wilayas(): JsonResponse
     {
-        $wilayas = Entreprise::query()
-            ->whereNotNull('wilaya')
-            ->distinct()
-            ->orderBy('wilaya')
-            ->pluck('wilaya');
-
-        return response()->json(['data' => $wilayas]);
+        return response()->json(['data' => $this->entrepriseService->wilayas()]);
     }
 
     public function exportCsv(Request $request): StreamedResponse
     {
-        $query = Entreprise::query()
-            ->when($request->search, function ($q, $s) {
-                $q->where(function ($inner) use ($s) {
-                    $inner->where('raison_sociale', 'like', "%{$s}%")
-                        ->orWhere('nif', 'like', "%{$s}%")
-                        ->orWhere('nis', 'like', "%{$s}%")
-                        ->orWhere('email', 'like', "%{$s}%")
-                        ->orWhere('telephone', 'like', "%{$s}%")
-                        ->orWhere('ville', 'like', "%{$s}%");
-                });
-            })
-            ->when($request->statut, fn ($q, $s) => $q->where('statut', $s))
-            ->when($request->wilaya, fn ($q, $w) => $q->where('wilaya', $w))
-            ->orderBy('raison_sociale');
-
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="entreprises.csv"',
-        ];
-
-        return response()->streamDownload(function () use ($query) {
-            $handle = fopen('php://output', 'w');
-            // BOM UTF-8 pour Excel
-            fwrite($handle, "\xEF\xBB\xBF");
-            fputcsv($handle, ['Raison sociale', 'NIF', 'NIS', 'Statut', 'Regime fiscal', 'Categorie', 'Wilaya', 'Ville', 'Email', 'Telephone'], ';');
-
-            $query->chunk(500, function ($entreprises) use ($handle) {
-                foreach ($entreprises as $e) {
-                    fputcsv($handle, [
-                        $e->raison_sociale,
-                        $e->nif ?? '',
-                        $e->nis ?? '',
-                        $e->statut,
-                        $e->regime_fiscal,
-                        $e->categorie,
-                        $e->wilaya ?? '',
-                        $e->ville ?? '',
-                        $e->email ?? '',
-                        $e->telephone ?? '',
-                    ], ';');
-                }
-            });
-
-            fclose($handle);
-        }, 'entreprises.csv', $headers);
+        return $this->entrepriseService->exportCsv($request->only([
+            'search', 'statut', 'wilaya',
+        ]));
     }
 
     public function store(StoreEntrepriseRequest $request): JsonResponse
     {
-        $entreprise = Entreprise::create($request->validated());
+        $entreprise = $this->entrepriseService->creer($request->validated());
 
         return (new EntrepriseResource($entreprise))
             ->response()
