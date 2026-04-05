@@ -227,4 +227,64 @@ class MissionApiTest extends TestCase
         $ref = $response2->json('data.reference');
         $this->assertStringEndsWith('-002', $ref);
     }
+
+    public function test_convention_pdf_generates_and_stores_numero(): void
+    {
+        Setting::set('cabinet_nom', 'Cabinet Test');
+
+        $mission = $this->actingAs($this->admin)
+            ->postJson('/api/v1/missions', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_debut' => '2026-04-01',
+                'date_fin' => '2027-03-31',
+            ])
+            ->json('data');
+
+        // Premier appel : génère le numéro
+        $response = $this->actingAs($this->admin)
+            ->get("/api/v1/missions/{$mission['id']}/convention/pdf");
+
+        $response->assertOk();
+        $response->assertHeader('Content-Type', 'application/pdf');
+
+        // Le numéro a été stocké
+        $this->assertDatabaseHas('missions', [
+            'id' => $mission['id'],
+        ]);
+        $missionUpdated = \App\Models\Mission::find($mission['id']);
+        $this->assertNotNull($missionUpdated->convention_numero);
+        $this->assertStringStartsWith('CV', $missionUpdated->convention_numero);
+
+        // Deuxième appel : réutilise le même numéro
+        $this->actingAs($this->admin)
+            ->get("/api/v1/missions/{$mission['id']}/convention/pdf")
+            ->assertOk();
+
+        $this->assertSame($missionUpdated->convention_numero, $missionUpdated->fresh()->convention_numero);
+    }
+
+    public function test_mandat_pdf_generates_and_stores_numero(): void
+    {
+        Setting::set('cabinet_nom', 'Cabinet Test');
+
+        $mission = $this->actingAs($this->admin)
+            ->postJson('/api/v1/missions', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_debut' => '2026-04-01',
+                'date_fin' => '2027-03-31',
+            ])
+            ->json('data');
+
+        $response = $this->actingAs($this->admin)
+            ->get("/api/v1/missions/{$mission['id']}/mandat/pdf");
+
+        $response->assertOk();
+        $response->assertHeader('Content-Type', 'application/pdf');
+
+        $missionUpdated = \App\Models\Mission::find($mission['id']);
+        $this->assertNotNull($missionUpdated->mandat_numero);
+        $this->assertStringStartsWith('MD', $missionUpdated->mandat_numero);
+    }
 }

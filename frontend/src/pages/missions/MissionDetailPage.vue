@@ -28,6 +28,8 @@ const mission = ref<Mission | null>(null)
 const taches = ref<Tache[]>([])
 const loading = ref(true)
 const updatingStatut = ref(false)
+const loadingConvention = ref(false)
+const loadingMandat = ref(false)
 const tacheDialogVisible = ref(false)
 const savingTache = ref(false)
 const dateEcheance = ref<Date | null>(null)
@@ -88,6 +90,28 @@ async function changerStatutMission(statut: string) {
     toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de mettre a jour le statut.', life: 3000 })
   } finally {
     updatingStatut.value = false
+  }
+}
+
+async function telechargerConvention() {
+  if (!mission.value) return
+  loadingConvention.value = true
+  try {
+    window.open(missionsApi.conventionPdfUrl(missionId.value), '_blank')
+    await loadMission()
+  } finally {
+    loadingConvention.value = false
+  }
+}
+
+async function telechargerMandat() {
+  if (!mission.value) return
+  loadingMandat.value = true
+  try {
+    window.open(missionsApi.mandatPdfUrl(missionId.value), '_blank')
+    await loadMission()
+  } finally {
+    loadingMandat.value = false
   }
 }
 
@@ -257,6 +281,51 @@ onMounted(() => {
 
       <div v-if="mission.notes" class="mission-notes">
         <strong>Notes :</strong> {{ mission.notes }}
+      </div>
+    </div>
+
+    <!-- Documents mission -->
+    <div class="section">
+      <h2>Documents</h2>
+      <div class="documents-grid">
+        <div class="doc-card">
+          <div class="doc-info">
+            <i class="pi pi-file-pdf" style="font-size: 1.4rem; color: #1e3a5f;"></i>
+            <div>
+              <div class="doc-label">Convention de prestation</div>
+              <div class="doc-ref" v-if="mission.convention_numero">{{ mission.convention_numero }}</div>
+              <div class="doc-ref" v-else style="color: #94a3b8;">Non générée</div>
+            </div>
+          </div>
+          <Button
+            :label="mission.convention_numero ? 'Imprimer la convention' : 'Générer la convention'"
+            :icon="mission.convention_numero ? 'pi pi-print' : 'pi pi-cog'"
+            severity="secondary"
+            size="small"
+            :loading="loadingConvention"
+            aria-label="Télécharger la convention de prestation"
+            @click="telechargerConvention"
+          />
+        </div>
+
+        <div class="doc-card">
+          <div class="doc-info">
+            <i class="pi pi-file-pdf" style="font-size: 1.4rem; color: #1e3a5f;"></i>
+            <div>
+              <div class="doc-label">Mandat d'acceptation</div>
+              <div class="doc-ref" v-if="mission.mandat_numero">{{ mission.mandat_numero }}</div>
+              <div class="doc-ref" v-else style="color: #94a3b8;">Non généré</div>
+            </div>
+          </div>
+          <Button
+            :label="mission.mandat_numero ? 'Imprimer le mandat' : 'Générer le mandat'"
+            :icon="mission.mandat_numero ? 'pi pi-print' : 'pi pi-cog'"
+            size="small"
+            :loading="loadingMandat"
+            aria-label="Télécharger le mandat d'acceptation"
+            @click="telechargerMandat"
+          />
+        </div>
       </div>
     </div>
 
@@ -477,6 +546,28 @@ onMounted(() => {
   gap: 0.25rem;
 }
 .mt-action { margin-top: 0.5rem; }
+.documents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+.doc-card {
+  background: var(--p-surface-card);
+  border: 1px solid var(--p-surface-border);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.doc-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.doc-label { font-weight: 600; font-size: 0.9rem; }
+.doc-ref { font-size: 0.8rem; color: var(--p-text-muted-color); margin-top: 2px; }
 .loading-center { text-align: center; padding: 3rem; }
 .dialog-form {
   display: flex;

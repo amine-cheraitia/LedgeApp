@@ -9,6 +9,28 @@
 
 ## [Unreleased]
 
+### Ajouts — US-24 : PDF convention et mandat de mission
+
+#### Backend
+- **Migration** : colonnes `convention_numero` (unique, nullable) et `mandat_numero` (unique, nullable) ajoutées à la table `missions`
+- **`Mission::$fillable`** : exposition de `convention_numero` et `mandat_numero`
+- **`MissionService::obtenirNumeroConvention()`** : génère et stocke le numéro CV{annee}-{seq} à la première demande (lazy, immuable ensuite) — réutilise `FacturationService::genererNumero()`
+- **`MissionService::obtenirNumeroMandat()`** : idem pour MD{annee}-{seq}
+- **`PdfService::genererConvention(Mission)`** : render Blade `pdf.convention` — 9 articles, honoraires 30/30/40, signatures double
+- **`PdfService::genererMandat(Mission)`** : render Blade `pdf.mandat` — acceptation de mandat 1 page, signature cabinet seul
+- **`PdfService::getCabinetInfo()`** : ajout clés `agrement` et `soustitre` (depuis settings)
+- **`MissionController::conventionPdf()`** / **`mandatPdf()`** : endpoints `GET /api/v1/missions/{id}/convention/pdf` et `/mandat/pdf`
+- **Routes** : 2 nouvelles routes GET dans le groupe backoffice
+- **`MissionResource`** : exposition de `convention_numero` et `mandat_numero`
+- **Tests** : 2 nouveaux tests `MissionApiTest` — génération + stockage numéro + header Content-Type PDF (105 tests / 269 assertions)
+
+#### Frontend
+- **`api/modules/missions.ts`** : ajout `conventionPdfUrl(id)` et `mandatPdfUrl(id)`
+- **`types/index.ts`** : `Mission.convention_numero` et `Mission.mandat_numero` ajoutés
+- **`MissionDetailPage.vue`** : section "Documents" entre les infos et les tranches — 2 cartes (Convention / Mandat) avec bouton "Générer" (1er appel) ou "Imprimer" (numéro déjà attribué), rechargement automatique après génération
+
+---
+
 ### Correctifs — Reset CSRF token après logout (fix/csrf-token-reconnexion)
 
 #### Frontend

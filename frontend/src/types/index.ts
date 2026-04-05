@@ -91,6 +91,8 @@ export interface Mission {
   exercice_id: number
   prestation_id: number
   reference: string
+  convention_numero: string | null
+  mandat_numero: string | null
   prix_ht: number
   date_debut: string
   date_fin: string | null

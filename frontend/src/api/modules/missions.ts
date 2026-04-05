@@ -49,4 +49,12 @@ export const missionsApi = {
   delete(id: number): Promise<void> {
     return api.delete(`/missions/${id}`)
   },
+
+  conventionPdfUrl(id: number): string {
+    return `/api/v1/missions/${id}/convention/pdf`
+  },
+
+  mandatPdfUrl(id: number): string {
+    return `/api/v1/missions/${id}/mandat/pdf`
+  },
 }
