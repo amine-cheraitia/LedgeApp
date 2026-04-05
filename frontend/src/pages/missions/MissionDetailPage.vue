@@ -12,7 +12,6 @@ import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
 import DatePicker from 'primevue/datepicker'
 import Select from 'primevue/select'
-import ConfirmDialog from 'primevue/confirmdialog'
 import { missionsApi } from '@/api/modules/missions'
 import { tachesApi, type TachePayload } from '@/api/modules/taches'
 import { useUsers } from '@/composables/useUsers'
@@ -350,8 +349,6 @@ onMounted(() => {
         </Column>
       </DataTable>
     </div>
-
-    <ConfirmDialog />
 
     <!-- Dialog ajout tâche -->
     <Dialog

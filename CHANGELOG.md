@@ -9,6 +9,25 @@
 
 ## [Unreleased]
 
+### Correctifs — Reset CSRF token après logout (fix/csrf-token-reconnexion)
+
+#### Frontend
+- **`api/client.ts`** : export `resetCsrf()` — remet `csrfInitialized = false`
+- **`stores/auth.ts`** : `logout()` appelle `resetCsrf()` après déconnexion — évite le 419 intermittent à la reconnexion (Laravel régénère le token CSRF à chaque `session()->regenerateToken()`)
+
+---
+
+### Refactoring — SOLID/SRP : thin controllers (refactor/solid-controllers)
+
+#### Backend
+- **`EntrepriseService`** (nouveau) : `lister()`, `wilayas()`, `creer()`, `exportCsv()` extraits de `EntrepriseController`
+- **`EntrepriseController`** : réécrit thin — valide, délègue à `EntrepriseService`, retourne Resource
+- **`ContactService::supprimer()`** : ajouté — `ContactController::destroy()` délègue
+- **`FacturationService::listerCreances()`** : ajouté — `CreanceController` réécrit thin
+- **`PortailService::listerFactures()` / `listerMissions()`** : ajoutés — `PortailFactureController` et `PortailMissionController` réécrits thin
+
+---
+
 ### Ajouts — Vue 360° client (US-10)
 
 #### Backend

@@ -9,7 +9,6 @@ import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
 import Password from 'primevue/password'
-import ConfirmDialog from 'primevue/confirmdialog'
 import { useUsers } from '@/composables/useUsers'
 import type { User } from '@/types'
 import type { UserPayload } from '@/api/modules/users'
@@ -160,8 +159,6 @@ onMounted(fetchUsers)
         </template>
       </Column>
     </DataTable>
-
-    <ConfirmDialog />
 
     <Dialog
       v-model:visible="dialogVisible"
