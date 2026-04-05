@@ -12,7 +12,6 @@ import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
 import ToggleSwitch from 'primevue/toggleswitch'
-import ConfirmDialog from 'primevue/confirmdialog'
 import { useEntreprises } from '@/composables/useEntreprises'
 import { useContacts } from '@/composables/useContacts'
 import { entreprisesApi } from '@/api/modules/entreprises'
@@ -465,8 +464,6 @@ onMounted(() => {
         </template>
       </Column>
     </DataTable>
-
-    <ConfirmDialog />
 
     <!-- Dialog creation/edition entreprise -->
     <Dialog
