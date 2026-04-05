@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\Dashboard\DashboardController;
+use App\Http\Controllers\Dashboard\KpiController;
 use App\Http\Controllers\Entreprises\ContactController;
 use App\Http\Controllers\Entreprises\EntrepriseController;
 use App\Http\Controllers\Exercices\ExerciceController;
@@ -46,6 +47,11 @@ Route::prefix('v1')->group(function () {
 
             // Dashboard stats
             Route::get('/stats', [DashboardController::class, 'stats']);
+
+            // KPI objectifs collaborateurs (US-34)
+            Route::get('/kpi/objectifs', [KpiController::class, 'index']);
+            Route::post('/kpi/objectifs', [KpiController::class, 'upsert']);
+            Route::delete('/kpi/objectifs/{objectif}', [KpiController::class, 'destroy']);
 
             // Users
             Route::apiResource('users', UserController::class);
