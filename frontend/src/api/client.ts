@@ -12,6 +12,10 @@ const api = axios.create({
 // Intercepteur : CSRF cookie avant les requêtes mutantes
 let csrfInitialized = false
 
+export function resetCsrf(): void {
+  csrfInitialized = false
+}
+
 api.interceptors.request.use(async (config) => {
   const mutatingMethods = ['post', 'put', 'patch', 'delete']
   if (mutatingMethods.includes(config.method ?? '') && !csrfInitialized) {
