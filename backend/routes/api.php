@@ -17,6 +17,7 @@ use App\Http\Controllers\Planning\MissionController;
 use App\Http\Controllers\Planning\TacheCommentaireController;
 use App\Http\Controllers\Planning\TacheController;
 use App\Http\Controllers\Portail\PortailController;
+use App\Http\Controllers\Portail\PortailDocumentController;
 use App\Http\Controllers\Portail\PortailFactureController;
 use App\Http\Controllers\Portail\PortailMissionController;
 use App\Http\Controllers\Prestations\PrestationController;
@@ -131,6 +132,11 @@ Route::prefix('v1')->group(function () {
             // US-31 — Mes missions
             Route::get('missions', [PortailMissionController::class, 'index']);
             Route::get('missions/{mission}', [PortailMissionController::class, 'show']);
+
+            // US-32 — Mes documents
+            Route::get('documents', [PortailDocumentController::class, 'index']);
+            Route::get('documents/{mission}/convention/pdf', [PortailDocumentController::class, 'conventionPdf']);
+            Route::get('documents/{mission}/mandat/pdf', [PortailDocumentController::class, 'mandatPdf']);
         });
     });
 });

@@ -9,6 +9,7 @@ use App\Models\Facture;
 use App\Models\Mission;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -85,6 +86,22 @@ class PortailService
             ->when($filters['statut'] ?? null, fn ($q, $v) => $q->where('statut', $v))
             ->latest()
             ->paginate($filters['per_page'] ?? 15);
+    }
+
+    /**
+     * Retourne les missions avec documents partages (convention ou mandat genere, visible_portail = true).
+     */
+    public function listerDocuments(int $entrepriseId): Collection
+    {
+        return Mission::with('prestation', 'exercice')
+            ->where('entreprise_id', $entrepriseId)
+            ->where('visible_portail', true)
+            ->where(function ($q) {
+                $q->whereNotNull('convention_numero')
+                    ->orWhereNotNull('mandat_numero');
+            })
+            ->latest()
+            ->get();
     }
 
     /**

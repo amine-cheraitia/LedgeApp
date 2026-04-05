@@ -9,6 +9,29 @@
 
 ## [Unreleased]
 
+### Ajouts — US-32 : Portail mes documents (feature/portail-documents)
+
+#### Backend
+- **Migration** : colonne `visible_portail` (boolean, default false) ajoutée à la table `missions`
+- **`Mission::$fillable` / `$casts`** : exposition de `visible_portail` en booléen
+- **`MissionResource`** : champ `visible_portail` exposé
+- **`UpdateMissionRequest`** : règle `sometimes|boolean` pour `visible_portail`
+- **`PortailService::listerDocuments()`** : retourne les missions de l'entreprise avec `visible_portail = true` ET au moins un numéro (convention ou mandat) généré
+- **`PortailDocumentController`** : 3 actions — `index()`, `conventionPdf()`, `mandatPdf()` — scope `entreprise_id` + contrôle `visible_portail` + 403 si non autorisé
+- **Routes** : `GET /portail/documents`, `GET /portail/documents/{id}/convention/pdf`, `GET /portail/documents/{id}/mandat/pdf`
+- **Tests** : 9 tests `PortailDocumentTest` (scope isolation, visibilité, PDF, 403) — 114 tests / 286 assertions
+
+#### Frontend
+- **`api/modules/portail.ts`** : `getDocuments()`, `telechargerConventionPdf()`, `telechargerMandatPdf()`
+- **`api/modules/missions.ts`** : champ `visible_portail` ajouté à `MissionUpdatePayload`
+- **`types/index.ts`** : `Mission.visible_portail: boolean`
+- **`PortailDocumentsPage.vue`** : liste des documents partagés par le cabinet, téléchargement PDF direct, catégorisé par mission (convention + mandat)
+- **`PortailLayout.vue`** : lien "Mes documents" ajouté dans la nav portail
+- **`router/index.ts`** : route `/portail/documents` (portail-documents)
+- **`MissionDetailPage.vue`** : bouton "Visible portail / Masqué portail" dans la section Documents — toggle `visible_portail` via `PUT /missions/{id}`, désactivé si aucun document généré
+
+---
+
 ### Correctifs — Settings : sauvegarde et clés manquantes (fix/settings-save-agrement)
 
 #### Backend

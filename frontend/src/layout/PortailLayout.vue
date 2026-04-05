@@ -36,6 +36,10 @@ async function handleLogout() {
           <i class="pi pi-briefcase" aria-hidden="true"></i>
           <span>Mes missions</span>
         </router-link>
+        <router-link to="/portail/documents" class="portail-nav-link" aria-label="Mes documents">
+          <i class="pi pi-folder" aria-hidden="true"></i>
+          <span>Mes documents</span>
+        </router-link>
       </nav>
 
       <div class="portail-topbar-right">

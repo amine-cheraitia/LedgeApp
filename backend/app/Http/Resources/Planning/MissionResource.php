@@ -23,6 +23,7 @@ class MissionResource extends JsonResource
             'reference' => $this->reference,
             'convention_numero' => $this->convention_numero,
             'mandat_numero' => $this->mandat_numero,
+            'visible_portail' => (bool) $this->visible_portail,
             'prix_ht' => (float) $this->prix_ht,
             'date_debut' => $this->date_debut?->toDateString(),
             'date_fin' => $this->date_fin?->toDateString(),
