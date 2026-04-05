@@ -9,6 +9,25 @@
 
 ## [Unreleased]
 
+### Ajouts — US-34 : KPI objectifs collaborateurs (feature/kpi-objectifs-collaborateurs)
+
+#### Backend
+- **Migration** : table `kpi_objectifs` — `user_id`, `exercice_id`, `type` (enum ca_ht / missions_cloturees / delai_moyen_facturation), `valeur`, contrainte unique `(user_id, exercice_id, type)`
+- **`KpiObjectif`** : modèle Eloquent avec relations `user` et `exercice`
+- **`User::kpiObjectifs()`** : relation `HasMany` vers `KpiObjectif`
+- **`KpiService::getCollaborateurs(?exerciceId)`** : retourne tous les collaborateurs et admins avec leurs objectifs et leur réalisé calculé dynamiquement (CA HT, missions clôturées, délai moyen facturation)
+- **`KpiService::upsertObjectif()`** : création ou mise à jour d'un objectif (`updateOrCreate`)
+- **`KpiController`** : `GET /kpi/objectifs`, `POST /kpi/objectifs`, `DELETE /kpi/objectifs/{id}` — backoffice uniquement
+- **Tests** : 8 tests `KpiObjectifsTest` — 122 tests / 306 assertions
+
+#### Frontend
+- **`api/modules/stats.ts`** : `getKpiObjectifs()`, `upsertKpiObjectif()`, `deleteKpiObjectif()` + type `KpiCollaborateur`
+- **`KpiObjectifsPage.vue`** : tableau par collaborateur — réalisé vs objectif éditable en ligne, barre de progression colorée (rouge < 40%, orange < 70%, bleu < 100%, vert = 100%), filtre par exercice
+- **`router/index.ts`** : route `/kpi/objectifs`
+- **`AppMenu.vue`** : lien "KPI Objectifs" dans la section Accueil (admin uniquement)
+
+---
+
 ### Ajouts — US-32 : Portail mes documents (feature/portail-documents)
 
 #### Backend

@@ -15,6 +15,7 @@ const model = computed(() => [
     label: 'Accueil',
     items: [
       { label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' },
+      { label: 'KPI Objectifs', icon: 'pi pi-fw pi-chart-bar', to: '/kpi/objectifs', visible: isAdmin.value },
     ],
   },
   {

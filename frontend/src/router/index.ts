@@ -21,6 +21,11 @@ const router = createRouter({
           component: () => import('@/pages/dashboard/DashboardPage.vue'),
         },
         {
+          path: 'kpi/objectifs',
+          name: 'kpi-objectifs',
+          component: () => import('@/pages/dashboard/KpiObjectifsPage.vue'),
+        },
+        {
           path: 'users',
           name: 'users',
           component: () => import('@/pages/users/UserListPage.vue'),

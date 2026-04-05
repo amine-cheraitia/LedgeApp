@@ -43,9 +43,33 @@ export interface DashboardStats {
   }
 }
 
+export interface KpiCollaborateur {
+  user: { id: number; name: string; email: string }
+  objectifs: Partial<Record<'ca_ht' | 'missions_cloturees' | 'delai_moyen_facturation', number>>
+  realise: Record<'ca_ht' | 'missions_cloturees' | 'delai_moyen_facturation', number>
+}
+
 export const statsApi = {
   getDashboard(exerciceId?: number | null): Promise<{ data: DashboardStats }> {
     const params = exerciceId ? { exercice_id: exerciceId } : {}
     return api.get('/stats', { params }).then((r) => r.data)
+  },
+
+  getKpiObjectifs(exerciceId?: number | null): Promise<{ data: KpiCollaborateur[] }> {
+    const params = exerciceId ? { exercice_id: exerciceId } : {}
+    return api.get('/kpi/objectifs', { params }).then((r) => r.data)
+  },
+
+  upsertKpiObjectif(data: {
+    user_id: number
+    exercice_id: number
+    type: string
+    valeur: number
+  }): Promise<{ data: { id: number; type: string; valeur: number } }> {
+    return api.post('/kpi/objectifs', data).then((r) => r.data)
+  },
+
+  deleteKpiObjectif(id: number): Promise<void> {
+    return api.delete(`/kpi/objectifs/${id}`)
   },
 }
