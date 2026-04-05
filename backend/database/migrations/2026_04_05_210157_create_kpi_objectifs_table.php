@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('exercice_id')->constrained()->cascadeOnDelete();
-            $table->enum('type', ['ca_ht', 'missions_cloturees', 'delai_moyen_facturation']);
+            $table->enum('type', ['ca_ht', 'missions_cloturees', 'taches_terminees']);
             $table->decimal('valeur', 12, 2);
             $table->timestamps();
 

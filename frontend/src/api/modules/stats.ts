@@ -43,10 +43,12 @@ export interface DashboardStats {
   }
 }
 
+export type KpiObjectifType = 'ca_ht' | 'missions_cloturees' | 'taches_terminees'
+
 export interface KpiCollaborateur {
   user: { id: number; name: string; email: string }
-  objectifs: Partial<Record<'ca_ht' | 'missions_cloturees' | 'delai_moyen_facturation', number>>
-  realise: Record<'ca_ht' | 'missions_cloturees' | 'delai_moyen_facturation', number>
+  objectifs: Partial<Record<KpiObjectifType, number>>
+  realise: Record<KpiObjectifType | 'taches_en_retard' | 'delai_moyen_tache', number>
 }
 
 export const statsApi = {
