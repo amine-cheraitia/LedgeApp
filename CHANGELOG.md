@@ -9,6 +9,15 @@
 
 ## [Unreleased]
 
+### Correctifs — Settings : sauvegarde et clés manquantes (fix/settings-save-agrement)
+
+#### Backend
+- **`Setting::set()`** : remplacé `update()` par `updateOrCreate()` — les clés inexistantes sont désormais créées automatiquement (fix silencieux)
+- **`SettingController::update()`** : validation `value` passée de `required` à `nullable` — permet de sauvegarder des champs vides (NIF, NIS, RIB…)
+- **`SettingsSeeder`** : ajout des clés manquantes `cabinet_agrement` (N° d'agrément), `cabinet_soustitre`, `cabinet_ville`, `convention_prefixe` (CV), `mandat_prefixe` (MD)
+
+---
+
 ### Ajouts — US-24 : PDF convention et mandat de mission
 
 #### Backend
