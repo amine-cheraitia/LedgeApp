@@ -27,6 +27,7 @@ export interface MissionUpdatePayload {
   statut?: string
   collaborateur_ids?: number[]
   notes?: string
+  visible_portail?: boolean
 }
 
 export const missionsApi = {

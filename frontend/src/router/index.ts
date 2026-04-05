@@ -107,6 +107,11 @@ const router = createRouter({
           name: 'portail-missions',
           component: () => import('@/pages/portail/PortailMissionsPage.vue'),
         },
+        {
+          path: 'documents',
+          name: 'portail-documents',
+          component: () => import('@/pages/portail/PortailDocumentsPage.vue'),
+        },
       ],
     },
   ],

@@ -30,6 +30,7 @@ const loading = ref(true)
 const updatingStatut = ref(false)
 const loadingConvention = ref(false)
 const loadingMandat = ref(false)
+const togglingPortail = ref(false)
 const tacheDialogVisible = ref(false)
 const savingTache = ref(false)
 const dateEcheance = ref<Date | null>(null)
@@ -90,6 +91,21 @@ async function changerStatutMission(statut: string) {
     toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de mettre a jour le statut.', life: 3000 })
   } finally {
     updatingStatut.value = false
+  }
+}
+
+async function toggleVisiblePortail() {
+  if (!mission.value) return
+  togglingPortail.value = true
+  try {
+    const response = await missionsApi.update(missionId.value, { visible_portail: !mission.value.visible_portail })
+    mission.value = response.data
+    const etat = mission.value.visible_portail ? 'visible' : 'masqué'
+    toast.add({ severity: 'success', summary: 'Succes', detail: `Documents ${etat} dans le portail.`, life: 3000 })
+  } catch {
+    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de modifier la visibilité.', life: 3000 })
+  } finally {
+    togglingPortail.value = false
   }
 }
 
@@ -286,7 +302,20 @@ onMounted(() => {
 
     <!-- Documents mission -->
     <div class="section">
-      <h2>Documents</h2>
+      <div class="section-header">
+        <h2>Documents</h2>
+        <Button
+          :label="mission.visible_portail ? 'Visible portail' : 'Masqué portail'"
+          :icon="mission.visible_portail ? 'pi pi-eye' : 'pi pi-eye-slash'"
+          :severity="mission.visible_portail ? 'success' : 'secondary'"
+          size="small"
+          outlined
+          :loading="togglingPortail"
+          :aria-label="mission.visible_portail ? 'Masquer les documents du portail client' : 'Rendre les documents visibles dans le portail client'"
+          :disabled="!mission.convention_numero && !mission.mandat_numero"
+          @click="toggleVisiblePortail"
+        />
+      </div>
       <div class="documents-grid">
         <div class="doc-card">
           <div class="doc-info">

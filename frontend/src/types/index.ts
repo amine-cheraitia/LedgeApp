@@ -93,6 +93,7 @@ export interface Mission {
   reference: string
   convention_numero: string | null
   mandat_numero: string | null
+  visible_portail: boolean
   prix_ht: number
   date_debut: string
   date_fin: string | null
