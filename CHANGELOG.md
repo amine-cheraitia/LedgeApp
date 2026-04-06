@@ -12,17 +12,19 @@
 ### Ajouts — US-34 : KPI objectifs collaborateurs (feature/kpi-objectifs-collaborateurs)
 
 #### Backend
-- **Migration** : table `kpi_objectifs` — `user_id`, `exercice_id`, `type` (enum ca_ht / missions_cloturees / delai_moyen_facturation), `valeur`, contrainte unique `(user_id, exercice_id, type)`
+- **Migration** `create_kpi_objectifs_table` : table `kpi_objectifs` — `user_id`, `exercice_id`, `type` (enum ca_ht / missions_cloturees / taches_terminees), `valeur`, contrainte unique `(user_id, exercice_id, type)`
+- **Migration** `alter_kpi_objectifs_type_enum` : remplacement de `delai_moyen_facturation` par `taches_terminees` dans l'enum (MySQL uniquement, SQLite skippé)
 - **`KpiObjectif`** : modèle Eloquent avec relations `user` et `exercice`
 - **`User::kpiObjectifs()`** : relation `HasMany` vers `KpiObjectif`
-- **`KpiService::getCollaborateurs(?exerciceId)`** : retourne tous les collaborateurs et admins avec leurs objectifs et leur réalisé calculé dynamiquement (CA HT, missions clôturées, délai moyen facturation)
+- **`KpiService::getCollaborateurs(?exerciceId)`** : retourne collaborateurs et admins avec objectifs et réalisé — 5 indicateurs : CA HT, missions clôturées, tâches terminées (avec objectif), tâches en retard, délai moyen traitement tâche (réalisé seulement)
 - **`KpiService::upsertObjectif()`** : création ou mise à jour d'un objectif (`updateOrCreate`)
 - **`KpiController`** : `GET /kpi/objectifs`, `POST /kpi/objectifs`, `DELETE /kpi/objectifs/{id}` — backoffice uniquement
-- **Tests** : 8 tests `KpiObjectifsTest` — 122 tests / 306 assertions
+- **Fix** : `JULIANDAY()` remplacé par `Carbon::diffInDays()` (compatibilité MySQL + SQLite)
+- **Tests** : 11 tests `KpiObjectifsTest` — 125 tests / 315 assertions
 
 #### Frontend
-- **`api/modules/stats.ts`** : `getKpiObjectifs()`, `upsertKpiObjectif()`, `deleteKpiObjectif()` + type `KpiCollaborateur`
-- **`KpiObjectifsPage.vue`** : tableau par collaborateur — réalisé vs objectif éditable en ligne, barre de progression colorée (rouge < 40%, orange < 70%, bleu < 100%, vert = 100%), filtre par exercice
+- **`api/modules/stats.ts`** : type `KpiObjectifType` exporté, `KpiCollaborateur` mis à jour (5 champs réalisé)
+- **`KpiObjectifsPage.vue`** : section "Objectifs annuels" (3 KPIs avec cible + barre de progression) + section "Indicateurs de suivi" (tâches terminées/en retard, délai moyen tâche) — 1 bouton "Sauvegarder les objectifs" par collaborateur, refresh silencieux post-save
 - **`router/index.ts`** : route `/kpi/objectifs`
 - **`AppMenu.vue`** : lien "KPI Objectifs" dans la section Accueil (admin uniquement)
 

@@ -6,7 +6,7 @@ import InputNumber from 'primevue/inputnumber'
 import Button from 'primevue/button'
 import ProgressBar from 'primevue/progressbar'
 import Tag from 'primevue/tag'
-import { statsApi, type KpiCollaborateur } from '@/api/modules/stats'
+import { statsApi, type KpiCollaborateur, type KpiObjectifType } from '@/api/modules/stats'
 import { exercicesApi } from '@/api/modules/exercices'
 import type { Exercice } from '@/types'
 
@@ -16,18 +16,17 @@ const exercices = ref<Exercice[]>([])
 const exerciceId = ref<number | null>(null)
 const collaborateurs = ref<KpiCollaborateur[]>([])
 const loading = ref(false)
-const saving = ref<string | null>(null)
+const saving = ref<number | null>(null)
 
 // Valeurs en cours d'édition : clé = `${userId}-${type}`
 const editing = ref<Record<string, number | null>>({})
 
-const types = [
-  { key: 'ca_ht', label: 'CA HT (DA)', unit: 'DA', icon: 'pi pi-chart-line' },
-  { key: 'missions_cloturees', label: 'Missions clôturées', unit: '', icon: 'pi pi-briefcase' },
-  { key: 'delai_moyen_facturation', label: 'Délai moyen facturation', unit: 'jours', icon: 'pi pi-clock' },
-] as const
-
-type KpiType = 'ca_ht' | 'missions_cloturees' | 'delai_moyen_facturation'
+// KPIs avec objectif saisissable (cible annuelle)
+const typesObjectif = [
+  { key: 'ca_ht' as KpiObjectifType, label: 'CA HT cible (DA)', unit: 'DA', icon: 'pi pi-chart-line' },
+  { key: 'missions_cloturees' as KpiObjectifType, label: 'Missions clôturées', unit: '', icon: 'pi pi-briefcase' },
+  { key: 'taches_terminees' as KpiObjectifType, label: 'Tâches terminées', unit: '', icon: 'pi pi-check-circle' },
+]
 
 async function fetchExercices() {
   const res = await exercicesApi.getAll()
@@ -41,12 +40,10 @@ async function fetchKpi() {
   try {
     const res = await statsApi.getKpiObjectifs(exerciceId.value)
     collaborateurs.value = res.data
-    // Initialise les valeurs d'édition depuis les objectifs existants
     editing.value = {}
     for (const collab of res.data) {
-      for (const type of types) {
-        const key = `${collab.user.id}-${type.key}`
-        editing.value[key] = collab.objectifs[type.key] ?? null
+      for (const t of typesObjectif) {
+        editing.value[`${collab.user.id}-${t.key}`] = collab.objectifs[t.key] ?? null
       }
     }
   } catch {
@@ -56,26 +53,47 @@ async function fetchKpi() {
   }
 }
 
-async function sauvegarder(collab: KpiCollaborateur, type: KpiType) {
+async function sauvegarder(collab: KpiCollaborateur) {
   if (!exerciceId.value) return
-  const key = `${collab.user.id}-${type}`
-  const valeur = editing.value[key]
-  if (valeur === null || valeur === undefined) return
 
-  saving.value = key
+  const appels = typesObjectif
+    .map((t) => ({ type: t.key, valeur: editing.value[`${collab.user.id}-${t.key}`] }))
+    .filter((e): e is { type: KpiObjectifType; valeur: number } => e.valeur !== null && e.valeur !== undefined)
+
+  if (appels.length === 0) return
+
+  saving.value = collab.user.id
   try {
-    await statsApi.upsertKpiObjectif({
-      user_id: collab.user.id,
-      exercice_id: exerciceId.value,
-      type,
-      valeur,
-    })
-    toast.add({ severity: 'success', summary: 'Sauvegardé', detail: 'Objectif mis à jour.', life: 2000 })
-    await fetchKpi()
+    await Promise.all(
+      appels.map((e) =>
+        statsApi.upsertKpiObjectif({
+          user_id: collab.user.id,
+          exercice_id: exerciceId.value!,
+          type: e.type,
+          valeur: e.valeur,
+        }),
+      ),
+    )
+    toast.add({ severity: 'success', summary: 'Sauvegardé', detail: 'Objectifs mis à jour.', life: 2000 })
+    await fetchKpiSilent()
   } catch {
     toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de sauvegarder.', life: 3000 })
   } finally {
     saving.value = null
+  }
+}
+
+async function fetchKpiSilent() {
+  try {
+    const res = await statsApi.getKpiObjectifs(exerciceId.value)
+    collaborateurs.value = res.data
+    for (const collab of res.data) {
+      for (const t of typesObjectif) {
+        editing.value[`${collab.user.id}-${t.key}`] = collab.objectifs[t.key] ?? null
+      }
+    }
+  } catch {
+    // silencieux — ne pas interrompre l'UI après sauvegarde
   }
 }
 
@@ -112,7 +130,7 @@ onMounted(async () => {
     <header class="page-header">
       <div>
         <h1 id="page-title">KPI objectifs collaborateurs</h1>
-        <p class="page-subtitle">Définissez les cibles et suivez le réalisé par collaborateur</p>
+        <p class="page-subtitle">Définissez les cibles annuelles et suivez le réalisé par collaborateur</p>
       </div>
       <div class="toolbar">
         <label for="filtre-exercice" class="sr-only">Exercice</label>
@@ -145,6 +163,7 @@ onMounted(async () => {
         class="collab-card"
         :aria-label="`Objectifs de ${collab.user.name}`"
       >
+        <!-- En-tête collaborateur -->
         <div class="collab-header">
           <div class="collab-avatar" aria-hidden="true">{{ collab.user.name.charAt(0).toUpperCase() }}</div>
           <div>
@@ -153,12 +172,10 @@ onMounted(async () => {
           </div>
         </div>
 
+        <!-- Objectifs avec cible saisissable -->
+        <div class="section-title">Objectifs annuels</div>
         <div class="kpi-grid">
-          <div
-            v-for="type in types"
-            :key="type.key"
-            class="kpi-row"
-          >
+          <div v-for="type in typesObjectif" :key="type.key" class="kpi-row">
             <div class="kpi-label">
               <i :class="type.icon" aria-hidden="true"></i>
               <span>{{ type.label }}</span>
@@ -174,32 +191,19 @@ onMounted(async () => {
               <!-- Objectif éditable -->
               <div class="kpi-objectif">
                 <label :for="`obj-${collab.user.id}-${type.key}`" class="kpi-val-label">Objectif</label>
-                <div class="kpi-input-row">
-                  <InputNumber
-                    :id="`obj-${collab.user.id}-${type.key}`"
-                    v-model="editing[`${collab.user.id}-${type.key}`]"
-                    :min="0"
-                    :max-fraction-digits="type.key === 'delai_moyen_facturation' ? 1 : 0"
-                    :aria-label="`Objectif ${type.label} pour ${collab.user.name}`"
-                    class="kpi-input"
-                    :disabled="!exerciceId"
-                  />
-                  <Button
-                    icon="pi pi-check"
-                    text
-                    rounded
-                    size="small"
-                    severity="success"
-                    :loading="saving === `${collab.user.id}-${type.key}`"
-                    :disabled="editing[`${collab.user.id}-${type.key}`] === null || !exerciceId"
-                    :aria-label="`Sauvegarder objectif ${type.label} de ${collab.user.name}`"
-                    @click="sauvegarder(collab, type.key)"
-                  />
-                </div>
+                <InputNumber
+                  :id="`obj-${collab.user.id}-${type.key}`"
+                  v-model="editing[`${collab.user.id}-${type.key}`]"
+                  :min="0"
+                  :max-fraction-digits="0"
+                  :aria-label="`Objectif ${type.label} pour ${collab.user.name}`"
+                  class="kpi-input"
+                  :disabled="!exerciceId"
+                />
               </div>
 
               <!-- Progression -->
-              <div class="kpi-progress" v-if="collab.objectifs[type.key]">
+              <div v-if="collab.objectifs[type.key]" class="kpi-progress">
                 <div class="kpi-pct-row">
                   <span class="kpi-val-label">Progression</span>
                   <Tag
@@ -218,6 +222,46 @@ onMounted(async () => {
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Stats réalisées seulement -->
+        <div class="section-title" style="margin-top: 1.25rem;">Indicateurs de suivi</div>
+        <div class="stats-grid">
+          <!-- Tâches terminées / en retard -->
+          <div class="stat-card">
+            <i class="pi pi-list-check stat-icon" aria-hidden="true"></i>
+            <div class="stat-body">
+              <span class="stat-label">Tâches terminées / en retard</span>
+              <div class="stat-values">
+                <span class="stat-ok">{{ Math.round(collab.realise.taches_terminees) }} terminées</span>
+                <span class="stat-sep">·</span>
+                <span :class="collab.realise.taches_en_retard > 0 ? 'stat-warn' : 'stat-ok'">
+                  {{ Math.round(collab.realise.taches_en_retard) }} en retard
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Délai moyen tâche -->
+          <div class="stat-card">
+            <i class="pi pi-clock stat-icon" aria-hidden="true"></i>
+            <div class="stat-body">
+              <span class="stat-label">Délai moyen de traitement d'une tâche</span>
+              <strong class="stat-val">{{ collab.realise.delai_moyen_tache.toFixed(1) }} j</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bouton sauvegarde -->
+        <div class="collab-footer">
+          <Button
+            label="Sauvegarder les objectifs"
+            icon="pi pi-save"
+            :loading="saving === collab.user.id"
+            :disabled="!exerciceId"
+            :aria-label="`Sauvegarder les objectifs de ${collab.user.name}`"
+            @click="sauvegarder(collab)"
+          />
         </div>
       </section>
     </div>
@@ -312,15 +356,24 @@ onMounted(async () => {
   color: var(--p-text-muted-color);
 }
 
+.section-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--p-text-muted-color);
+  margin-bottom: 0.75rem;
+}
+
 .kpi-grid {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .kpi-row {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 200px 1fr;
   gap: 1rem;
   align-items: start;
   padding: 0.75rem;
@@ -357,14 +410,8 @@ onMounted(async () => {
   color: var(--p-text-color);
 }
 
-.kpi-input-row {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
 .kpi-input {
-  width: 120px;
+  width: 130px;
 }
 
 .kpi-pct-row {
@@ -377,6 +424,65 @@ onMounted(async () => {
   padding-top: 0.25rem;
 }
 
+/* Stats indicateurs */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.stat-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: var(--p-surface-ground);
+  border-radius: 6px;
+}
+
+.stat-icon {
+  font-size: 1.1rem;
+  color: var(--p-text-muted-color);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.stat-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--p-text-muted-color);
+}
+
+.stat-values {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.stat-ok { color: var(--p-green-500); }
+.stat-warn { color: var(--p-red-500); }
+.stat-sep { color: var(--p-text-muted-color); }
+
+.stat-val {
+  font-size: 0.95rem;
+  color: var(--p-text-color);
+}
+
+.collab-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--p-surface-border);
+}
+
 @media (max-width: 900px) {
   .kpi-row {
     grid-template-columns: 1fr;
@@ -384,6 +490,10 @@ onMounted(async () => {
 
   .kpi-valeurs {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
   }
 }
 

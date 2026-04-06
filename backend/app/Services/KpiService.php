@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\Exercice;
-use App\Models\Facture;
 use App\Models\KpiObjectif;
 use App\Models\Mission;
+use App\Models\Tache;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -62,6 +61,7 @@ class KpiService
      */
     private function calculerRealise(User $user, ?int $exerciceId): array
     {
+        // Missions assignées à ce collaborateur via la table pivot mission_user
         $missionIds = DB::table('mission_user')
             ->where('user_id', $user->id)
             ->pluck('mission_id');
@@ -74,32 +74,48 @@ class KpiService
         $caHt = (float) $missionsTerminees->sum('prix_ht');
         $missionsCloturees = $missionsTerminees->count();
 
-        $delaiMoyen = $this->calculerDelaiMoyenFacturation($missionIds, $exerciceId);
+        // Tâches assignées à ce collaborateur
+        $tachesTerminees = Tache::where('assigned_to', $user->id)
+            ->where('statut', 'terminee')
+            ->whereHas('mission', fn ($q) => $q
+                ->when($exerciceId, fn ($q) => $q->where('exercice_id', $exerciceId))
+            )
+            ->count();
+
+        $tachesEnRetard = Tache::where('assigned_to', $user->id)
+            ->whereNotIn('statut', ['terminee'])
+            ->whereNotNull('date_echeance')
+            ->where('date_echeance', '<', now()->toDateString())
+            ->whereHas('mission', fn ($q) => $q
+                ->when($exerciceId, fn ($q) => $q->where('exercice_id', $exerciceId))
+            )
+            ->count();
+
+        $delaiMoyenTache = $this->calculerDelaiMoyenTache($user->id, $exerciceId);
 
         return [
             'ca_ht' => $caHt,
             'missions_cloturees' => (float) $missionsCloturees,
-            'delai_moyen_facturation' => $delaiMoyen,
+            'taches_terminees' => (float) $tachesTerminees,
+            'taches_en_retard' => (float) $tachesEnRetard,
+            'delai_moyen_tache' => $delaiMoyenTache,
         ];
     }
 
     /**
-     * Délai moyen entre date_debut mission et date première facture (en jours).
+     * Délai moyen de traitement d'une tâche (de la création à la clôture).
+     * Calculé en PHP via Carbon pour être compatible MySQL et SQLite (tests).
      */
-    private function calculerDelaiMoyenFacturation(Collection $missionIds, ?int $exerciceId): float
+    private function calculerDelaiMoyenTache(int $userId, ?int $exerciceId): float
     {
-        if ($missionIds->isEmpty()) {
-            return 0.0;
-        }
-
-        $delais = Facture::where('factures.type', 'FF')
-            ->whereIn('factures.mission_id', $missionIds)
-            ->when($exerciceId, fn ($q) => $q->where('factures.exercice_id', $exerciceId))
-            ->join('missions', 'factures.mission_id', '=', 'missions.id')
-            ->selectRaw('CAST(JULIANDAY(MIN(factures.date_facture)) - JULIANDAY(missions.date_debut) AS INTEGER) as delai, factures.mission_id')
-            ->groupBy('factures.mission_id', 'missions.date_debut')
-            ->pluck('delai')
-            ->filter(fn ($d) => $d !== null && $d >= 0);
+        $delais = Tache::where('assigned_to', $userId)
+            ->where('statut', 'terminee')
+            ->whereHas('mission', fn ($q) => $q
+                ->when($exerciceId, fn ($q) => $q->where('exercice_id', $exerciceId))
+            )
+            ->get(['created_at', 'updated_at'])
+            ->map(fn (Tache $t) => $t->created_at->diffInDays($t->updated_at))
+            ->filter(fn (int $d) => $d >= 0);
 
         if ($delais->isEmpty()) {
             return 0.0;
