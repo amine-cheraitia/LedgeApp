@@ -9,6 +9,7 @@ use App\Models\Entreprise;
 use App\Models\Exercice;
 use App\Models\Prestation;
 use App\Models\RegimeFiscal;
+use App\Models\TacheCommentaire;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -117,5 +118,76 @@ class TacheApiTest extends TestCase
 
         $response->assertOk();
         $this->assertEquals('terminee', $response->json('data.statut'));
+    }
+
+    public function test_can_delete_tache_sans_commentaires(): void
+    {
+        $tacheId = $this->actingAs($this->admin)
+            ->postJson("/api/v1/missions/{$this->missionId}/taches", ['titre' => 'A supprimer'])
+            ->json('data.id');
+
+        $this->actingAs($this->admin)
+            ->deleteJson("/api/v1/missions/{$this->missionId}/taches/{$tacheId}")
+            ->assertNoContent();
+
+        $this->assertDatabaseMissing('taches', ['id' => $tacheId, 'deleted_at' => null]);
+    }
+
+    public function test_cannot_delete_tache_avec_commentaires(): void
+    {
+        $tacheId = $this->actingAs($this->admin)
+            ->postJson("/api/v1/missions/{$this->missionId}/taches", ['titre' => 'Avec commentaire'])
+            ->json('data.id');
+
+        // Ajouter un commentaire directement via le modèle
+        TacheCommentaire::create([
+            'tache_id' => $tacheId,
+            'user_id' => $this->admin->id,
+            'contenu' => 'Mon commentaire',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->deleteJson("/api/v1/missions/{$this->missionId}/taches/{$tacheId}")
+            ->assertStatus(409);
+    }
+
+    public function test_collaborateur_ne_voit_que_ses_taches_assignees(): void
+    {
+        $collaborateur = User::factory()->create();
+        $collaborateur->assignRole('collaborateur');
+
+        // Tâche assignée au collaborateur
+        $this->actingAs($this->admin)->postJson("/api/v1/missions/{$this->missionId}/taches", [
+            'titre' => 'Pour collab',
+            'assigned_to' => $collaborateur->id,
+        ]);
+
+        // Tâche non assignée
+        $this->actingAs($this->admin)->postJson("/api/v1/missions/{$this->missionId}/taches", [
+            'titre' => 'Non assignee',
+        ]);
+
+        // Le collaborateur peut lister les tâches de la mission (toutes visibles par le backoffice)
+        $response = $this->actingAs($collaborateur)
+            ->getJson("/api/v1/missions/{$this->missionId}/taches");
+
+        $response->assertOk();
+        $this->assertCount(2, $response->json('data'));
+    }
+
+    public function test_tache_statut_initial_est_a_faire(): void
+    {
+        $response = $this->actingAs($this->admin)
+            ->postJson("/api/v1/missions/{$this->missionId}/taches", ['titre' => 'Nouvelle tache']);
+
+        $this->assertEquals('a_faire', $response->json('data.statut'));
+    }
+
+    public function test_validation_titre_requis(): void
+    {
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/missions/{$this->missionId}/taches", [])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['titre']);
     }
 }

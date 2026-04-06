@@ -9,6 +9,16 @@
 
 ## [Unreleased]
 
+### Ajouts — US-38 : Tests unitaires (feature/tests-unitaires)
+
+- **`tests/Unit/Services/FacturationServiceTest`** (14 tests) : numérotation séquentielle + reset par exercice, tranches 30%/30%/40%, 4ème tranche impossible, TVA historisée snapshot à la date de facturation, statut paiement auto (en_attente → partiel → solde), snapshots immuables
+- **`tests/Unit/Models/ExerciceTest`** (6 tests) : `current()` retourne l'exercice ouvert de l'année, null si absent ou clôturé, `isOuvert()`, relations HasMany
+- **`tests/Feature/Api/TacheApiTest`** : +5 tests — suppression sans commentaires, protection suppression avec commentaires (409), scope collaborateur, statut initial, validation titre
+- **`phpunit.xml`** : ajout section `<coverage>` + exclusions Middleware/Providers/Console
+- **150 tests / 351 assertions** — modules critiques couverts : FacturationService 84%, KpiService 100%, MissionService 93%, PdfService 88%, PortailService 98%, Exercice 100%
+
+---
+
 ### Ajouts — US-34 : KPI objectifs collaborateurs (feature/kpi-objectifs-collaborateurs)
 
 #### Backend
