@@ -9,6 +9,19 @@
 
 ## [Unreleased]
 
+### Supervision — (feature/supervision-mco)
+
+#### Backend
+- **Laravel Health** : endpoint `GET /health` — 4 checks configurés : base de données, cache, espace disque (warn >70%, fail >90%), mode debug
+- **`config/health.php`** : publication de la config Spatie Health — résultats stockés en base via `EloquentHealthResultStore`, historique conservé 5 jours
+- **Migration `create_health_tables`** : table `health_check_result_history_items` pour l'historique des checks
+- **Sentry** : SDK `sentry/sentry-laravel ^4.25` installé — auto-découverte via Laravel, config dans `config/sentry.php` — activé via `SENTRY_LARAVEL_DSN` en `.env`
+- **Logs rotatifs** : `LOG_CHANNEL=daily` par défaut — fichiers `storage/logs/laravel-YYYY-MM-DD.log`, rotation sur 14 jours
+- **`.env.example`** : ajout des variables `SENTRY_LARAVEL_DSN`, `SENTRY_TRACES_SAMPLE_RATE`, `HEALTH_SECRET_TOKEN`
+- **150 tests / 351 assertions** — aucune régression
+
+---
+
 ### Accessibilité — (feature/accessibilite-rgaa)
 
 #### Frontend
