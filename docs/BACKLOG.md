@@ -474,7 +474,7 @@
 
 ---
 
-### US-39 · Supervision MCO · M · 3 pts · Sprint 3 `C4.1.2 ★`
+### US-39 · Supervision MCO · M · 3 pts · Sprint 3 `C4.1.2 ★` ✅
 
 **En tant qu'administrateur**, je veux que l'application soit supervisee **afin d'** etre alerte immediatement en cas d'anomalie.
 
@@ -528,7 +528,7 @@
 |---|---|---|---|
 | Sprint 1 | US-01 ✅, 02 ✅, 03 ✅, 04 ✅, 05 ✅, 06 ✅, 07 ✅, 08 ✅, 09 ✅, 11 ✅, 12 ✅, 17 ✅, 18 ✅, 40 ✅, 43 ✅ | 49 pts | Auth · Referentiel · Clients · Devis · Mission · Exercice |
 | Sprint 2 | US-10 ✅, 13 ✅, 14 ✅, 15 ✅, 16 ✅, 19 ✅, 20 ✅, 21 ✅, 22 ✅, 23 ✅, 24 ✅, 25 ✅, 26 ✅, 27 ✅, 28 ✅, 29 ✅, 30 ✅, 31 ✅, 32 ✅, 33 ✅, 34 ✅ | 96 pts | Factures · Taches · Portail · Relances · KPI |
-| Sprint 3 | US-35, 36 ✅, 37 ✅, 38 ✅, 39, 41, 42 | 27 pts | Qualite · OWASP · RGAA · Tests · MCO |
+| Sprint 3 | US-35, 36 ✅, 37 ✅, 38 ✅, 39 ✅, 41, 42 | 27 pts | Qualite · OWASP · RGAA · Tests · MCO |
 | **Total** | **43 US** | **170 pts** | |
 
 ### Par priorite MoSCoW
@@ -542,9 +542,9 @@
 
 | Statut | US | Pts |
 |---|---|---|
-| ✅ Termine | 38 US | 141 pts |
+| ✅ Termine | 39 US | 144 pts |
 | 🔧 En cours | — | — |
-| A faire | 5 US | 29 pts |
+| A faire | 4 US | 26 pts |
 
 ### Noeuds critiques
 
@@ -553,8 +553,8 @@
 | **US-18 Mission** ⭐ ✅ | Debloque 11 US en aval (taches, factures, calendrier, portail, KPI, relances) |
 | **US-13 Facture** ⭐ ✅ | Debloque 9 US en aval (PDF DGI, paiements, avoirs, relances, portail, KPI) |
 
-> Sprint 3 en cours : US-37 (RGAA) ✅, US-36 (OWASP) ✅, US-38 (Tests) ✅.
-> Restants Sprint 3 : US-35 (rapport clôture), US-39 (MCO), US-41 (protections suppression), US-42 (dashboard collaborateur).
+> Sprint 3 en cours : US-36 ✅, US-37 ✅, US-38 ✅, US-39 ✅.
+> Restants Sprint 3 : US-35 (rapport clôture), US-41 (protections suppression), US-42 (dashboard collaborateur).
 
 ---
 
