@@ -447,7 +447,7 @@
 
 ---
 
-### US-37 · RGAA accessibilite · M · 5 pts · Sprint 3 `C2.2.3 ★`
+### US-37 · RGAA accessibilite · M · 5 pts · Sprint 3 `C2.2.3 ★` ✅
 
 **En tant que developpeur**, je veux integrer les criteres RGAA **afin de** valider la competence C2.2.3.
 
@@ -528,7 +528,7 @@
 |---|---|---|---|
 | Sprint 1 | US-01 ✅, 02 ✅, 03 ✅, 04 ✅, 05 ✅, 06 ✅, 07 ✅, 08 ✅, 09 ✅, 11 ✅, 12 ✅, 17 ✅, 18 ✅, 40 ✅, 43 ✅ | 49 pts | Auth · Referentiel · Clients · Devis · Mission · Exercice |
 | Sprint 2 | US-10 ✅, 13 ✅, 14 ✅, 15 ✅, 16 ✅, 19 ✅, 20 ✅, 21 ✅, 22 ✅, 23 ✅, 24 ✅, 25 ✅, 26 ✅, 27 ✅, 28 ✅, 29 ✅, 30 ✅, 31 ✅, 32 ✅, 33 ✅, 34 ✅ | 96 pts | Factures · Taches · Portail · Relances · KPI |
-| Sprint 3 | US-35, 36, 37, 38, 39, 41, 42 | 27 pts | Qualite · OWASP · RGAA · Tests · MCO |
+| Sprint 3 | US-35, 36 ✅, 37 ✅, 38 ✅, 39, 41, 42 | 27 pts | Qualite · OWASP · RGAA · Tests · MCO |
 | **Total** | **43 US** | **170 pts** | |
 
 ### Par priorite MoSCoW
@@ -542,9 +542,9 @@
 
 | Statut | US | Pts |
 |---|---|---|
-| ✅ Termine | 37 US | 136 pts |
+| ✅ Termine | 38 US | 141 pts |
 | 🔧 En cours | — | — |
-| A faire | 9 US | 47 pts |
+| A faire | 5 US | 29 pts |
 
 ### Noeuds critiques
 
@@ -553,8 +553,8 @@
 | **US-18 Mission** ⭐ ✅ | Debloque 11 US en aval (taches, factures, calendrier, portail, KPI, relances) |
 | **US-13 Facture** ⭐ ✅ | Debloque 9 US en aval (PDF DGI, paiements, avoirs, relances, portail, KPI) |
 
-> US-18, US-13, US-14, US-15, US-16, US-19, US-20, US-21, US-22, US-25, US-26, US-27, US-28, US-29, US-30, US-31 livrees.
-> Sprint 2 peut continuer : US-33 (dashboard KPI), US-23 (calendrier), US-24 (PDF convention/mandat).
+> Sprint 3 en cours : US-37 (RGAA) ✅, US-36 (OWASP) ✅, US-38 (Tests) ✅.
+> Restants Sprint 3 : US-35 (rapport clôture), US-39 (MCO), US-41 (protections suppression), US-42 (dashboard collaborateur).
 
 ---
 
