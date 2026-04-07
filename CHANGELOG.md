@@ -9,7 +9,16 @@
 
 ## [Unreleased]
 
-### Sécurité — US-36 : OWASP Top 10 (feature/owasp-securite)
+### Accessibilité — (feature/accessibilite-rgaa)
+
+#### Frontend
+- **`AppTopbar.vue`** : remplacement du `<div class="layout-topbar">` par `<header role="banner">` — sémantique HTML correcte pour la barre de navigation principale
+- **`AppLayout.vue`** : ajout de `aria-hidden="true"` sur le masque overlay mobile — élément décoratif retiré de l'arbre d'accessibilité
+- **`DashboardPage.vue`** : ajout d'un `<section aria-labelledby="dashboard-title">` autour du contenu principal et `id="dashboard-title"` sur le `<h2>` — navigation par titres opérationnelle pour les lecteurs d'écran
+
+---
+
+### Sécurité — (feature/owasp-securite)
 
 #### Backend
 - **`SetSecurityHeaders` middleware** : ajout des headers HTTP sécurisés sur toutes les réponses — `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: geolocation=(), microphone=(), camera=()`, `Content-Security-Policy: default-src 'self'`

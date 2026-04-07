@@ -56,12 +56,13 @@ function statutMissionLabel(statut: string): string {
 </script>
 
 <template>
+  <section aria-labelledby="dashboard-title">
   <div class="grid grid-cols-12 gap-8">
     <!-- Header -->
     <div class="col-span-12">
       <div class="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h2 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">Tableau de bord</h2>
+          <h2 id="dashboard-title" class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">Tableau de bord</h2>
           <p class="text-muted-color mt-1">Bienvenue, {{ auth.user?.name }}.</p>
         </div>
         <div v-if="stats">
@@ -368,6 +369,7 @@ function statutMissionLabel(statut: string): string {
       </div>
     </template>
   </div>
+  </section>
 </template>
 
 <style scoped>

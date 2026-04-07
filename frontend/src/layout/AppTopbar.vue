@@ -15,7 +15,7 @@ async function handleLogout() {
 </script>
 
 <template>
-  <div class="layout-topbar">
+  <header class="layout-topbar" role="banner">
     <div class="layout-topbar-logo-container">
       <button class="layout-menu-button layout-topbar-action" aria-label="Ouvrir le menu" @click="toggleMenu">
         <i class="pi pi-bars"></i>
@@ -69,5 +69,5 @@ async function handleLogout() {
         </div>
       </div>
     </div>
-  </div>
+  </header>
 </template>
