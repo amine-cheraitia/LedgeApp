@@ -34,6 +34,8 @@ class MissionController extends Controller
 
     public function store(StoreMissionRequest $request): JsonResponse
     {
+        $this->authorize('create', Mission::class);
+
         $mission = $this->missionService->creerMission($request->validated());
 
         return (new MissionResource($mission))
@@ -50,6 +52,8 @@ class MissionController extends Controller
 
     public function update(UpdateMissionRequest $request, Mission $mission): MissionResource
     {
+        $this->authorize('update', $mission);
+
         $mission = $this->missionService->mettreAJourMission($mission, $request->validated());
 
         return new MissionResource($mission);
@@ -75,6 +79,8 @@ class MissionController extends Controller
 
     public function destroy(Mission $mission): JsonResponse
     {
+        $this->authorize('delete', $mission);
+
         if ($mission->factures()->exists()) {
             return response()->json([
                 'message' => 'Impossible de supprimer une mission avec des factures associees.',

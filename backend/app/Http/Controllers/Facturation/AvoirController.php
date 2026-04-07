@@ -47,6 +47,8 @@ class AvoirController extends Controller
 
     public function destroy(Avoir $avoir): HttpResponse
     {
+        $this->authorize('delete', $avoir);
+
         $avoir->delete();
 
         return response()->noContent();
@@ -54,6 +56,8 @@ class AvoirController extends Controller
 
     public function store(StoreAvoirRequest $request, Facture $facture): JsonResponse
     {
+        $this->authorize('create', Avoir::class);
+
         try {
             $avoir = $this->facturationService->creerAvoir(
                 $facture,

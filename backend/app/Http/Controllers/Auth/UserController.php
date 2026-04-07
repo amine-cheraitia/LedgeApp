@@ -26,6 +26,8 @@ class UserController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $this->authorize('create', User::class);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
@@ -60,6 +62,8 @@ class UserController extends Controller
 
     public function update(Request $request, User $user): UserResource
     {
+        $this->authorize('update', $user);
+
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'email', 'unique:users,email,'.$user->id],
@@ -86,6 +90,8 @@ class UserController extends Controller
 
     public function destroy(User $user): JsonResponse
     {
+        $this->authorize('delete', $user);
+
         $user->delete();
 
         return response()->json(['message' => 'Utilisateur supprimé.']);

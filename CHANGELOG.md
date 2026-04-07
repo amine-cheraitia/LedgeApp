@@ -9,6 +9,19 @@
 
 ## [Unreleased]
 
+### Sécurité — US-36 : OWASP Top 10 (feature/owasp-securite)
+
+#### Backend
+- **`SetSecurityHeaders` middleware** : ajout des headers HTTP sécurisés sur toutes les réponses — `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: geolocation=(), microphone=(), camera=()`, `Content-Security-Policy: default-src 'self'`
+- **Throttle brute-force login** : `throttle:5,1` sur `POST /api/v1/login` (5 tentatives max par minute par IP)
+- **Authorization Policies** : 7 Policies créées — `UserPolicy`, `PrestationPolicy`, `SettingPolicy`, `FacturePolicy`, `DevisPolicy`, `MissionPolicy`, `AvoirPolicy` — avec `$this->authorize()` dans chaque controller concerné
+- **`Controller` base** : ajout du trait `AuthorizesRequests` (manquant en Laravel 12)
+- **CORS** : `allowed_headers` restreint à `['Content-Type', 'X-Requested-With', 'X-XSRF-TOKEN']` (suppression du wildcard `'*'`)
+- **Déjà conformes** : FormRequests sur tous les `store()`/`update()` (23 FormRequests), Eloquent uniquement (0 `DB::raw()` avec input user), 0 `v-html` avec données utilisateur (XSS), CSRF Sanctum cookie-based, session `http_only=true` + `same_site=lax`
+- **150 tests / 351 assertions** — tous verts après ajout des policies
+
+---
+
 ### Ajouts — US-38 : Tests unitaires (feature/tests-unitaires)
 
 - **`tests/Unit/Services/FacturationServiceTest`** (14 tests) : numérotation séquentielle + reset par exercice, tranches 30%/30%/40%, 4ème tranche impossible, TVA historisée snapshot à la date de facturation, statut paiement auto (en_attente → partiel → solde), snapshots immuables

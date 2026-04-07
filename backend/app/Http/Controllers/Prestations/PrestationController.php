@@ -27,6 +27,8 @@ class PrestationController extends Controller
 
     public function store(StorePrestationRequest $request): JsonResponse
     {
+        $this->authorize('create', Prestation::class);
+
         $prestation = Prestation::create($request->validated() + ['actif' => $request->boolean('actif', true)]);
 
         return (new PrestationResource($prestation))
@@ -36,6 +38,8 @@ class PrestationController extends Controller
 
     public function update(UpdatePrestationRequest $request, Prestation $prestation): PrestationResource
     {
+        $this->authorize('update', $prestation);
+
         $prestation->update($request->validated());
 
         return new PrestationResource($prestation);
@@ -43,6 +47,8 @@ class PrestationController extends Controller
 
     public function destroy(Prestation $prestation): JsonResponse
     {
+        $this->authorize('delete', $prestation);
+
         if ($prestation->missions()->exists()) {
             return response()->json(['message' => 'Impossible de supprimer une prestation liee a des missions.'], 409);
         }
