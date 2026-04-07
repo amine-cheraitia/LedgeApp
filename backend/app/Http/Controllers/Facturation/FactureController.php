@@ -34,6 +34,8 @@ class FactureController extends Controller
 
     public function store(StoreFactureRequest $request): JsonResponse
     {
+        $this->authorize('create', Facture::class);
+
         try {
             $facture = $this->facturationService->creerFacture(
                 $request->validated(),
@@ -63,6 +65,8 @@ class FactureController extends Controller
 
     public function destroy(Facture $facture): JsonResponse
     {
+        $this->authorize('delete', $facture);
+
         if ($facture->paiements()->exists()) {
             return response()->json([
                 'message' => 'Impossible de supprimer une facture avec des paiements.',

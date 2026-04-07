@@ -431,13 +431,18 @@
 
 ## Couche 8 — Qualite transversale · Sprint 3
 
-### US-36 · OWASP Top 10 · M · 5 pts · Sprint 3 `C2.2.3 ★`
+### US-36 · OWASP Top 10 · M · 5 pts · Sprint 3 `C2.2.3 ★` ✅
 
 **En tant que developpeur**, je veux implementer les controles OWASP Top 10 **afin que** l'application soit securisee pour un usage en production.
 
-- CSRF sur tous les formulaires · Eloquent uniquement (jamais `DB::raw()` avec input)
-- Form Request sur tout `store()` et `update()` · brute-force login · headers HTTP securises
-- Pas de `v-html` avec donnees utilisateur (XSS)
+- ✅ CSRF sur tous les formulaires (Sanctum cookie-based)
+- ✅ Eloquent uniquement (jamais `DB::raw()` avec input utilisateur)
+- ✅ Form Request sur tout `store()` et `update()` (23 FormRequests)
+- ✅ Brute-force login : `throttle:5,1` sur POST /login
+- ✅ Headers HTTP securises : CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
+- ✅ Policies Laravel sur chaque ressource : User, Prestation, Setting, Facture, Devis, Mission, Avoir
+- ✅ Pas de `v-html` avec donnees utilisateur (XSS)
+- ✅ CORS : allowed_headers restrictifs (suppression wildcard)
 - Depend de : tout le code
 
 ---
@@ -537,9 +542,9 @@
 
 | Statut | US | Pts |
 |---|---|---|
-| ✅ Termine | 36 US | 131 pts |
+| ✅ Termine | 37 US | 136 pts |
 | 🔧 En cours | — | — |
-| A faire | 10 US | 52 pts |
+| A faire | 9 US | 47 pts |
 
 ### Noeuds critiques
 

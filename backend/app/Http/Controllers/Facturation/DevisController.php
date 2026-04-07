@@ -39,6 +39,8 @@ class DevisController extends Controller
 
     public function store(StoreDevisRequest $request): JsonResponse
     {
+        $this->authorize('create', Devis::class);
+
         $devis = $this->facturationService->creerDevis(
             $request->validated(),
             $request->user()->id,
@@ -56,6 +58,8 @@ class DevisController extends Controller
 
     public function update(UpdateDevisRequest $request, Devis $devis): DevisResource|JsonResponse
     {
+        $this->authorize('update', $devis);
+
         try {
             $devis = $this->facturationService->mettreAJourDevis($devis, $request->validated());
         } catch (DomainException $e) {
@@ -125,6 +129,8 @@ class DevisController extends Controller
 
     public function destroy(Devis $devis): JsonResponse
     {
+        $this->authorize('delete', $devis);
+
         try {
             $this->facturationService->supprimerDevis($devis);
         } catch (DomainException $e) {
