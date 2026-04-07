@@ -11,6 +11,11 @@ use App\Observers\MissionObserver;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Health\Facades\Health;
+use Spatie\Health\Checks\Checks\DatabaseCheck;
+use Spatie\Health\Checks\Checks\CacheCheck;
+use Spatie\Health\Checks\Checks\UsedDiskSpaceCheck;
+use Spatie\Health\Checks\Checks\DebugModeCheck;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,5 +32,14 @@ class AppServiceProvider extends ServiceProvider
 
         Event::listen(MissionCreated::class, ConvertProspectToClient::class);
         Event::listen(InvoicePaid::class, CancelRelancesOnPayment::class);
+
+        Health::checks([
+            DatabaseCheck::new(),
+            CacheCheck::new(),
+            UsedDiskSpaceCheck::new()
+                ->warnWhenUsedSpaceIsAbovePercentage(70)
+                ->failWhenUsedSpaceIsAbovePercentage(90),
+            DebugModeCheck::new(),
+        ]);
     }
 }
