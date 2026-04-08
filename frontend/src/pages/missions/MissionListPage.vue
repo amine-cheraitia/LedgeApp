@@ -17,11 +17,13 @@ import { useEntreprises } from '@/composables/useEntreprises'
 import { usePrestations } from '@/composables/usePrestations'
 import { useUsers } from '@/composables/useUsers'
 import { useExercices } from '@/composables/useExercices'
+import { useAuthStore } from '@/stores/auth'
 import type { Mission } from '@/types'
 import type { MissionPayload } from '@/api/modules/missions'
 
 const router = useRouter()
 const confirm = useConfirm()
+const auth = useAuthStore()
 const {
   missions, loading, totalRecords, filters,
   fetchMissions, createMission, updateMission, deleteMission,
@@ -148,13 +150,16 @@ function formatMontant(v: number) {
 }
 
 onMounted(async () => {
-  await fetchExerciceCourant()
-  await fetchExercices()
-  exerciceSelectionne.value = exerciceCourant.value?.id
+  // Collaborateur : pas d'accès aux référentiels — on charge uniquement ses missions
+  if (!auth.isCollaborateur) {
+    await fetchExerciceCourant()
+    await fetchExercices()
+    exerciceSelectionne.value = exerciceCourant.value?.id
+    fetchEntreprises()
+    fetchPrestations()
+    fetchUsers()
+  }
   fetchMissions()
-  fetchEntreprises()
-  fetchPrestations()
-  fetchUsers()
 })
 </script>
 
@@ -162,7 +167,7 @@ onMounted(async () => {
   <div>
     <div class="page-header">
       <h1>Missions</h1>
-      <Button label="Nouvelle mission" icon="pi pi-plus" @click="openCreate" />
+      <Button v-if="!auth.isCollaborateur" label="Nouvelle mission" icon="pi pi-plus" aria-label="Créer une nouvelle mission" @click="openCreate" />
     </div>
 
     <div class="page-toolbar">
@@ -175,7 +180,7 @@ onMounted(async () => {
           style="width: 22rem"
         />
       </div>
-      <div class="toolbar-right">
+      <div v-if="!auth.isCollaborateur" class="toolbar-right">
         <label for="m-exercice" class="sr-only">Filtrer par exercice</label>
         <Select
           id="m-exercice"
@@ -225,9 +230,9 @@ onMounted(async () => {
       </Column>
       <Column header="Actions" style="width: 8rem">
         <template #body="{ data }">
-          <Button icon="pi pi-eye" text rounded @click="goToDetail(data)" aria-label="Voir detail" v-tooltip.top="'Voir detail'" />
-          <Button icon="pi pi-pencil" text rounded severity="secondary" @click="openEdit(data)" aria-label="Modifier la mission" v-tooltip.top="'Modifier'" />
-          <Button icon="pi pi-trash" text rounded severity="danger" @click="confirmDelete(data)" aria-label="Supprimer" v-tooltip.top="'Supprimer'" />
+          <Button icon="pi pi-eye" text rounded @click="goToDetail(data)" aria-label="Voir le détail de la mission" v-tooltip.top="'Voir detail'" />
+          <Button v-if="!auth.isCollaborateur" icon="pi pi-pencil" text rounded severity="secondary" @click="openEdit(data)" aria-label="Modifier la mission" v-tooltip.top="'Modifier'" />
+          <Button v-if="!auth.isCollaborateur" icon="pi pi-trash" text rounded severity="danger" @click="confirmDelete(data)" aria-label="Supprimer la mission" v-tooltip.top="'Supprimer'" />
         </template>
       </Column>
     </DataTable>

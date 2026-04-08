@@ -7,6 +7,7 @@ namespace Tests\Feature\Api;
 use App\Models\CategorieEntreprise;
 use App\Models\Entreprise;
 use App\Models\Exercice;
+use App\Models\Mission;
 use App\Models\Prestation;
 use App\Models\RegimeFiscal;
 use App\Models\TacheCommentaire;
@@ -156,6 +157,9 @@ class TacheApiTest extends TestCase
         $collaborateur = User::factory()->create();
         $collaborateur->assignRole('collaborateur');
 
+        // Attacher le collaborateur a la mission (mission_user)
+        Mission::find($this->missionId)->collaborateurs()->attach($collaborateur->id);
+
         // Tâche assignée au collaborateur
         $this->actingAs($this->admin)->postJson("/api/v1/missions/{$this->missionId}/taches", [
             'titre' => 'Pour collab',
@@ -167,7 +171,7 @@ class TacheApiTest extends TestCase
             'titre' => 'Non assignee',
         ]);
 
-        // Le collaborateur peut lister les tâches de la mission (toutes visibles par le backoffice)
+        // Le collaborateur peut lister toutes les tâches de sa mission (US-45)
         $response = $this->actingAs($collaborateur)
             ->getJson("/api/v1/missions/{$this->missionId}/taches");
 

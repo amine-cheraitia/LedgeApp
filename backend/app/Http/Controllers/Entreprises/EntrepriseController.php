@@ -23,6 +23,8 @@ class EntrepriseController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Entreprise::class);
+
         $entreprises = $this->entrepriseService->lister($request->only([
             'search', 'statut', 'wilaya', 'per_page',
         ]));
@@ -32,11 +34,15 @@ class EntrepriseController extends Controller
 
     public function wilayas(): JsonResponse
     {
+        $this->authorize('viewAny', Entreprise::class);
+
         return response()->json(['data' => $this->entrepriseService->wilayas()]);
     }
 
     public function exportCsv(Request $request): StreamedResponse
     {
+        $this->authorize('viewAny', Entreprise::class);
+
         return $this->entrepriseService->exportCsv($request->only([
             'search', 'statut', 'wilaya',
         ]));
@@ -44,6 +50,8 @@ class EntrepriseController extends Controller
 
     public function store(StoreEntrepriseRequest $request): JsonResponse
     {
+        $this->authorize('create', Entreprise::class);
+
         $entreprise = $this->entrepriseService->creer($request->validated());
 
         return (new EntrepriseResource($entreprise))
@@ -53,6 +61,8 @@ class EntrepriseController extends Controller
 
     public function show(Entreprise $entreprise): EntrepriseResource
     {
+        $this->authorize('view', $entreprise);
+
         $entreprise->load('users', 'contacts');
         $entreprise->loadCount('missions', 'factures');
 
@@ -61,6 +71,8 @@ class EntrepriseController extends Controller
 
     public function update(UpdateEntrepriseRequest $request, Entreprise $entreprise): EntrepriseResource
     {
+        $this->authorize('update', $entreprise);
+
         $entreprise->update($request->validated());
 
         return new EntrepriseResource($entreprise);
@@ -68,6 +80,7 @@ class EntrepriseController extends Controller
 
     public function destroy(Entreprise $entreprise): JsonResponse
     {
+        $this->authorize('delete', $entreprise);
         if ($entreprise->missions()->exists() || $entreprise->devis()->exists()) {
             return response()->json([
                 'message' => 'Impossible de supprimer cette entreprise : des missions ou devis y sont associes.',

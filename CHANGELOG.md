@@ -9,6 +9,40 @@
 
 ## [Unreleased]
 
+### Droits collaborateur — (feature/droits-collaborateur)
+
+#### Backend
+- **`bootstrap/app.php`** : enregistrement des middleware Spatie (`role`, `permission`, `role_or_permission`) — prérequis pour les groupes de routes par rôle
+- **`routes/api.php`** : restructuration complète en 3 groupes de middleware :
+  - `role:admin` → écriture utilisateurs, paramètres, entreprises, exercices, prestations, KPI
+  - `role:admin|secretaire` → stats dashboard, lecture référentiels, toute la facturation (devis, factures, paiements, avoirs, relances, créances)
+  - tous rôles backoffice → lecture users/settings, calendar, missions, tâches, commentaires
+- **`EntreprisePolicy`** (nouveau) : `viewAny/view` réservés à admin/secrétaire ; `create/update/delete` admin uniquement
+- **`EntrepriseController`** : `$this->authorize()` ajouté sur toutes les méthodes
+- **`MissionPolicy`** : ajout de `viewAny` et `view` — collaborateurs restreints à leurs missions assignées (`mission_user` pivot) ; `update` désormais admin/secrétaire uniquement
+- **`MissionService::listerMissions()`** : ajout du paramètre `User $user` — filtre automatique `whereHas('collaborateurs')` pour les collaborateurs
+- **`MissionController`** : `index()` et `show()` branchés sur les gates `viewAny` et `view`
+- **`TachePolicy`** (nouveau) : `update` — collaborateur uniquement si `assigned_to === user->id` ; `delete` — admin/secrétaire uniquement
+- **`TacheController`** : `index()` protégé par `authorize('view', $mission)` ; `store`, `update`, `destroy` protégés par les policies ; payload `update` restreint à `statut` pour les collaborateurs
+- **`TacheCommentaireController`** : `index()` protégé par `authorize('view', $tache->mission)` ; `store()` vérifie l'accès à la mission via `MissionPolicy::view`
+- **`CalendarController`** : injection du filtre `collaborateur_id` automatiquement pour les collaborateurs — chaque collaborateur ne voit que les événements de ses missions assignées
+- **`TacheApiTest`** : correction du test `collaborateur_ne_voit_que_ses_taches` — attach du collaborateur à `mission_user` avant la requête
+- **Migration `add_visible_portail_to_tache_commentaires`** : colonne `visible_portail` (boolean, default false) sur `tache_commentaires` — prépare le rapport de clôture (US-35) et le partage client
+- **`TacheCommentaire`** : `visible_portail` ajouté au `$fillable`
+- **150 tests / 351 assertions** — aucune régression
+
+#### Frontend
+- **`stores/auth.ts`** : ajout des computed `isCollaborateur` et `isSecretaire` exportés
+- **`types/index.ts`** : ajout de l'interface `TacheCommentaire` (`id`, `tache_id`, `user_id`, `contenu`, `visible_portail`, `user`, `created_at`, `updated_at`)
+- **`api/modules/commentaires.ts`** (nouveau) : module API CRUD commentaires — `getAll`, `create`, `update`, `delete` sur `/taches/{tacheId}/commentaires`
+- **`composables/useCommentaires.ts`** (nouveau) : composable réactif — `fetchCommentaires`, `createCommentaire`, `updateCommentaire`, `deleteCommentaire` avec gestion toast succès/erreur
+- **`MissionDetailPage.vue`** : section commentaires par tâche (ligne expandable DataTable) — liste commentaires avec auteur/date, saisie inline, guards auteur/admin sur edit/delete, badge `visible_portail` admin uniquement ; guards rôle sur boutons créer/supprimer tâche, statut mission, statut tâche (désactivé si non-assigné), sections documents/tranches/factures ; RGAA : `aria-labelledby`, `role="status"`, `aria-expanded`, `aria-live`, `sr-only`
+- **`layout/AppMenu.vue`** : menu Entreprises désormais masqué pour les collaborateurs (`visible: isAdmin || isSecretaire`)
+- **`pages/dashboard/DashboardPage.vue`** : panel de bienvenue collaborateur avec liens vers Missions et Planning ; les stats financières (`GET /stats`) ne sont pas appelées pour les collaborateurs (évite le 403)
+- **`pages/missions/MissionListPage.vue`** : guards `!auth.isCollaborateur` sur les appels référentiels au montage, sur le bouton "Nouvelle mission", le filtre exercice, et les boutons modifier/supprimer du tableau
+
+---
+
 ### Supervision — (feature/supervision-mco)
 
 #### Backend

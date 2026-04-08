@@ -9,6 +9,7 @@ use App\Models\Exercice;
 use App\Models\Mission;
 use App\Models\Prestation;
 use App\Models\Setting;
+use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -24,7 +25,7 @@ class MissionService
      */
     private const SORT_FIELDS = ['reference', 'date_debut', 'date_fin', 'statut', 'prix_ht'];
 
-    public function listerMissions(array $filters): LengthAwarePaginator
+    public function listerMissions(array $filters, User $user): LengthAwarePaginator
     {
         $sortField = in_array($filters['sort_field'] ?? '', self::SORT_FIELDS)
             ? $filters['sort_field']
@@ -32,6 +33,10 @@ class MissionService
         $sortDir = ($filters['sort_direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
 
         return Mission::with('entreprise', 'prestation', 'exercice')
+            ->when(
+                $user->hasRole('collaborateur'),
+                fn ($q) => $q->whereHas('collaborateurs', fn ($c) => $c->where('user_id', $user->id))
+            )
             ->when($filters['exercice_id'] ?? null, fn ($q, $v) => $q->where('exercice_id', $v))
             ->when($filters['entreprise_id'] ?? null, fn ($q, $v) => $q->where('entreprise_id', $v))
             ->when($filters['statut'] ?? null, fn ($q, $v) => $q->where('statut', $v))

@@ -25,9 +25,12 @@ class MissionController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $missions = $this->missionService->listerMissions($request->only([
-            'exercice_id', 'statut', 'search', 'sort_field', 'sort_direction', 'per_page',
-        ]));
+        $this->authorize('viewAny', Mission::class);
+
+        $missions = $this->missionService->listerMissions(
+            $request->only(['exercice_id', 'statut', 'search', 'sort_field', 'sort_direction', 'per_page']),
+            $request->user(),
+        );
 
         return MissionResource::collection($missions);
     }
@@ -45,6 +48,8 @@ class MissionController extends Controller
 
     public function show(Mission $mission): MissionResource
     {
+        $this->authorize('view', $mission);
+
         return new MissionResource(
             $mission->load('entreprise', 'prestation', 'exercice', 'collaborateurs', 'taches.assignee', 'factures')
         );

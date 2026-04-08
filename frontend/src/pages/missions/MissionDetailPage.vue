@@ -15,14 +15,18 @@ import Select from 'primevue/select'
 import { missionsApi } from '@/api/modules/missions'
 import { tachesApi, type TachePayload } from '@/api/modules/taches'
 import { useUsers } from '@/composables/useUsers'
-import type { Mission, Tache } from '@/types'
+import { useCommentaires } from '@/composables/useCommentaires'
+import { useAuthStore } from '@/stores/auth'
+import type { Mission, Tache, TacheCommentaire } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const confirm = useConfirm()
+const auth = useAuthStore()
 
 const { users, fetchUsers } = useUsers()
+const { commentaires, loading: loadingCommentaires, fetchCommentaires, createCommentaire, updateCommentaire, deleteCommentaire } = useCommentaires()
 
 const mission = ref<Mission | null>(null)
 const taches = ref<Tache[]>([])
@@ -34,6 +38,13 @@ const togglingPortail = ref(false)
 const tacheDialogVisible = ref(false)
 const savingTache = ref(false)
 const dateEcheance = ref<Date | null>(null)
+
+// Commentaires — état par tâche
+const expandedTacheIds = ref<Set<number>>(new Set())
+const newCommentaire = ref<Record<number, string>>({})
+const sendingCommentaire = ref<Record<number, boolean>>({})
+const editingCommentaire = ref<{ tacheId: number; commentaire: TacheCommentaire } | null>(null)
+const editContenu = ref('')
 
 const missionId = computed(() => Number(route.params.id))
 
@@ -187,6 +198,88 @@ async function deleteTache(tache: Tache) {
   }
 }
 
+// ─── Commentaires ──────────────────────────────────────────────────────────
+
+function isTacheStatutEditable(tache: Tache): boolean {
+  if (auth.isAdmin || auth.isSecretaire) return true
+  return auth.isCollaborateur && tache.assigned_to === auth.user?.id
+}
+
+async function toggleCommentaires(tache: Tache) {
+  if (expandedTacheIds.value.has(tache.id)) {
+    expandedTacheIds.value.delete(tache.id)
+  } else {
+    expandedTacheIds.value.add(tache.id)
+    await fetchCommentaires(tache.id)
+  }
+}
+
+function commentairesDeTache(tacheId: number): TacheCommentaire[] {
+  return commentaires.value.filter((c: TacheCommentaire) => c.tache_id === tacheId)
+}
+
+async function envoyerCommentaire(tache: Tache) {
+  const contenu = (newCommentaire.value[tache.id] ?? '').trim()
+  if (!contenu) return
+  sendingCommentaire.value[tache.id] = true
+  try {
+    await createCommentaire(tache.id, contenu)
+    newCommentaire.value[tache.id] = ''
+    await fetchCommentaires(tache.id)
+  } finally {
+    sendingCommentaire.value[tache.id] = false
+  }
+}
+
+function ouvrirEditionCommentaire(tache: Tache, commentaire: TacheCommentaire) {
+  editingCommentaire.value = { tacheId: tache.id, commentaire }
+  editContenu.value = commentaire.contenu
+}
+
+async function sauvegarderEditionCommentaire() {
+  if (!editingCommentaire.value) return
+  const { tacheId, commentaire } = editingCommentaire.value
+  await updateCommentaire(tacheId, commentaire.id, editContenu.value.trim())
+  editingCommentaire.value = null
+  editContenu.value = ''
+}
+
+function annulerEditionCommentaire() {
+  editingCommentaire.value = null
+  editContenu.value = ''
+}
+
+function peutModifierCommentaire(commentaire: TacheCommentaire): boolean {
+  return auth.isAdmin || commentaire.user_id === auth.user?.id
+}
+
+function confirmDeleteCommentaire(tache: Tache, commentaire: TacheCommentaire) {
+  confirm.require({
+    message: 'Supprimer ce commentaire ?',
+    header: 'Confirmation',
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: 'Supprimer',
+    rejectLabel: 'Annuler',
+    accept: () => supprimerCommentaire(tache, commentaire),
+  })
+}
+
+async function supprimerCommentaire(tache: Tache, commentaire: TacheCommentaire) {
+  await deleteCommentaire(tache.id, commentaire.id)
+  await fetchCommentaires(tache.id)
+}
+
+function initiales(name: string | undefined): string {
+  if (!name) return '?'
+  return name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)
+}
+
+function formatDateRelative(d: string): string {
+  return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+
 function statutMissionSeverity(statut: string) {
   const map: Record<string, string> = {
     en_cours: 'info', terminee: 'success', suspendue: 'warn', annulee: 'danger',
@@ -216,7 +309,7 @@ const tranches = computed(() => {
 onMounted(() => {
   loadMission()
   loadTaches()
-  fetchUsers()
+  if (!auth.isCollaborateur) fetchUsers()
 })
 </script>
 
@@ -239,8 +332,11 @@ onMounted(() => {
         />
       </div>
 
-      <!-- Actions statut mission -->
-      <div class="header-actions" v-if="mission.statut !== 'terminee' && mission.statut !== 'annulee'">
+      <!-- Actions statut mission — admin et secretaire uniquement -->
+      <div
+        v-if="!auth.isCollaborateur && mission.statut !== 'terminee' && mission.statut !== 'annulee'"
+        class="header-actions"
+      >
         <Button
           v-if="mission.statut === 'suspendue'"
           label="Reprendre"
@@ -300,11 +396,13 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Documents mission -->
-    <div class="section">
+    <!-- Documents mission — admin et secretaire uniquement -->
+    <div v-if="!auth.isCollaborateur" class="section">
       <div class="section-header">
         <h2>Documents</h2>
+        <!-- Toggle visible portail — admin uniquement -->
         <Button
+          v-if="auth.isAdmin"
           :label="mission.visible_portail ? 'Visible portail' : 'Masqué portail'"
           :icon="mission.visible_portail ? 'pi pi-eye' : 'pi pi-eye-slash'"
           :severity="mission.visible_portail ? 'success' : 'secondary'"
@@ -319,7 +417,7 @@ onMounted(() => {
       <div class="documents-grid">
         <div class="doc-card">
           <div class="doc-info">
-            <i class="pi pi-file-pdf" style="font-size: 1.4rem; color: #1e3a5f;"></i>
+            <i class="pi pi-file-pdf" style="font-size: 1.4rem; color: #1e3a5f;" aria-hidden="true"></i>
             <div>
               <div class="doc-label">Convention de prestation</div>
               <div class="doc-ref" v-if="mission.convention_numero">{{ mission.convention_numero }}</div>
@@ -339,7 +437,7 @@ onMounted(() => {
 
         <div class="doc-card">
           <div class="doc-info">
-            <i class="pi pi-file-pdf" style="font-size: 1.4rem; color: #1e3a5f;"></i>
+            <i class="pi pi-file-pdf" style="font-size: 1.4rem; color: #1e3a5f;" aria-hidden="true"></i>
             <div>
               <div class="doc-label">Mandat d'acceptation</div>
               <div class="doc-ref" v-if="mission.mandat_numero">{{ mission.mandat_numero }}</div>
@@ -358,8 +456,8 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Tranches suggérées -->
-    <div class="section">
+    <!-- Tranches suggérées — admin et secretaire uniquement -->
+    <div v-if="!auth.isCollaborateur" class="section">
       <h2>Tranches de facturation suggerees</h2>
       <div class="tranches-grid">
         <div v-for="t in tranches" :key="t.label" class="tranche-card">
@@ -376,8 +474,8 @@ onMounted(() => {
       />
     </div>
 
-    <!-- Factures liées -->
-    <div class="section" v-if="mission.factures && mission.factures.length > 0">
+    <!-- Factures liées — admin et secretaire uniquement -->
+    <div v-if="!auth.isCollaborateur && mission.factures && mission.factures.length > 0" class="section">
       <h2>Factures liees</h2>
       <DataTable :value="mission.factures" dataKey="id" stripedRows>
         <Column field="numero" header="Numero" />
@@ -396,19 +494,36 @@ onMounted(() => {
     </div>
 
     <!-- Tâches -->
-    <div class="section">
+    <section aria-labelledby="taches-title" class="section">
       <div class="section-header">
-        <h2>Taches</h2>
+        <h2 id="taches-title">Taches</h2>
+        <!-- Ajouter une tâche — admin et secretaire uniquement -->
         <Button
+          v-if="!auth.isCollaborateur"
           label="Ajouter une tache"
           icon="pi pi-plus"
           size="small"
-          aria-label="Ajouter une tache"
+          aria-label="Ajouter une tache a cette mission"
           @click="openTacheDialog"
         />
       </div>
 
       <DataTable :value="taches" dataKey="id" stripedRows>
+        <!-- Chevron expand commentaires -->
+        <Column style="width: 3rem; padding-right: 0;">
+          <template #body="{ data }">
+            <Button
+              :icon="expandedTacheIds.has(data.id) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+              text
+              rounded
+              size="small"
+              :aria-label="expandedTacheIds.has(data.id) ? `Masquer les commentaires de ${data.titre}` : `Voir les commentaires de ${data.titre}`"
+              :aria-expanded="expandedTacheIds.has(data.id)"
+              @click="toggleCommentaires(data)"
+            />
+          </template>
+        </Column>
+
         <Column field="titre" header="Titre" />
         <Column header="Assignee">
           <template #body="{ data }">{{ data.assignee?.name ?? 'Non assigne' }}</template>
@@ -426,27 +541,146 @@ onMounted(() => {
               :options="statutOptions"
               optionLabel="label"
               optionValue="value"
-              aria-label="Statut de la tache"
+              :disabled="!isTacheStatutEditable(data)"
+              :aria-label="`Statut de la tache ${data.titre}`"
               style="min-width: 8rem;"
-              @update:modelValue="(v: string) => updateTacheStatut(data, v)"
+              @update:modelValue="(v) => updateTacheStatut(data, v)"
             />
           </template>
         </Column>
-        <Column header="Actions" style="width: 5rem">
+        <!-- Actions — admin et secretaire uniquement -->
+        <Column v-if="!auth.isCollaborateur" header="Actions" style="width: 5rem">
           <template #body="{ data }">
             <Button
               icon="pi pi-trash"
               text
               rounded
               severity="danger"
-              aria-label="Supprimer la tache"
+              :aria-label="`Supprimer la tache ${data.titre}`"
               v-tooltip.top="'Supprimer'"
               @click="confirmDeleteTache(data)"
             />
           </template>
         </Column>
+
+        <!-- Ligne expandable — commentaires -->
+        <template #expansion="{ data: tache }">
+          <div v-if="expandedTacheIds.has(tache.id)" class="commentaires-panel" role="region" :aria-labelledby="`commentaires-title-${tache.id}`">
+            <h3 :id="`commentaires-title-${tache.id}`" class="commentaires-titre">
+              Commentaires
+              <span
+                role="status"
+                :aria-label="`${commentairesDeTache(tache.id).length} commentaire(s)`"
+                class="commentaires-count"
+              >{{ commentairesDeTache(tache.id).length }}</span>
+            </h3>
+
+            <!-- Liste des commentaires -->
+            <div v-if="loadingCommentaires" class="commentaires-loading" aria-live="polite">
+              <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+            </div>
+
+            <ul v-else class="commentaires-liste" aria-live="polite">
+              <li
+                v-for="c in commentairesDeTache(tache.id)"
+                :key="c.id"
+                class="commentaire-item"
+              >
+                <!-- Mode lecture -->
+                <template v-if="!editingCommentaire || editingCommentaire.commentaire.id !== c.id">
+                  <div class="commentaire-avatar" aria-hidden="true">{{ initiales(c.user?.name) }}</div>
+                  <div class="commentaire-body">
+                    <div class="commentaire-meta">
+                      <span class="commentaire-auteur">{{ c.user?.name ?? 'Inconnu' }}</span>
+                      <span class="commentaire-date">{{ formatDateRelative(c.created_at) }}</span>
+                      <span v-if="c.visible_portail && auth.isAdmin" class="commentaire-portail-badge">portail</span>
+                    </div>
+                    <p class="commentaire-contenu">{{ c.contenu }}</p>
+                    <div v-if="peutModifierCommentaire(c)" class="commentaire-actions">
+                      <Button
+                        icon="pi pi-pencil"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="`Modifier le commentaire de ${c.user?.name}`"
+                        v-tooltip.top="'Modifier'"
+                        @click="ouvrirEditionCommentaire(tache, c)"
+                      />
+                      <Button
+                        icon="pi pi-trash"
+                        text
+                        rounded
+                        size="small"
+                        severity="danger"
+                        :aria-label="`Supprimer le commentaire de ${c.user?.name}`"
+                        v-tooltip.top="'Supprimer'"
+                        @click="confirmDeleteCommentaire(tache, c)"
+                      />
+                    </div>
+                  </div>
+                </template>
+
+                <!-- Mode edition -->
+                <template v-else>
+                  <div class="commentaire-avatar" aria-hidden="true">{{ initiales(c.user?.name) }}</div>
+                  <div class="commentaire-body commentaire-edit">
+                    <label :for="`edit-commentaire-${c.id}`" class="sr-only">Modifier le commentaire</label>
+                    <Textarea
+                      :id="`edit-commentaire-${c.id}`"
+                      v-model="editContenu"
+                      rows="3"
+                      fluid
+                      aria-required="true"
+                    />
+                    <div class="commentaire-edit-actions">
+                      <Button
+                        label="Sauvegarder"
+                        icon="pi pi-check"
+                        size="small"
+                        :disabled="!editContenu.trim()"
+                        @click="sauvegarderEditionCommentaire"
+                      />
+                      <Button
+                        label="Annuler"
+                        severity="secondary"
+                        size="small"
+                        @click="annulerEditionCommentaire"
+                      />
+                    </div>
+                  </div>
+                </template>
+              </li>
+
+              <li v-if="commentairesDeTache(tache.id).length === 0" class="commentaire-vide">
+                Aucun commentaire pour cette tache.
+              </li>
+            </ul>
+
+            <!-- Formulaire nouveau commentaire -->
+            <form class="commentaire-form" @submit.prevent="envoyerCommentaire(tache)">
+              <label :for="`nouveau-commentaire-${tache.id}`" class="sr-only">Nouveau commentaire pour la tache {{ tache.titre }}</label>
+              <Textarea
+                :id="`nouveau-commentaire-${tache.id}`"
+                v-model="newCommentaire[tache.id]"
+                :placeholder="`Ajouter un commentaire sur «\u00a0${tache.titre}\u00a0»…`"
+                rows="2"
+                fluid
+                aria-required="false"
+              />
+              <Button
+                type="submit"
+                label="Envoyer"
+                icon="pi pi-send"
+                size="small"
+                :loading="sendingCommentaire[tache.id]"
+                :disabled="!(newCommentaire[tache.id] ?? '').trim()"
+                :aria-label="`Envoyer un commentaire sur la tache ${tache.titre}`"
+              />
+            </form>
+          </div>
+        </template>
       </DataTable>
-    </div>
+    </section>
 
     <!-- Dialog ajout tâche -->
     <Dialog
@@ -504,8 +738,8 @@ onMounted(() => {
     </Dialog>
   </div>
 
-  <div v-else-if="loading" class="loading-center">
-    <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
+  <div v-else-if="loading" class="loading-center" aria-busy="true" aria-label="Chargement de la mission">
+    <i class="pi pi-spin pi-spinner" style="font-size: 2rem;" aria-hidden="true"></i>
   </div>
 </template>
 
@@ -616,8 +850,140 @@ onMounted(() => {
   margin-top: 0.5rem;
 }
 
+/* ─── Commentaires ─────────────────────────────────────────────────────── */
+.commentaires-panel {
+  padding: 1rem 1.5rem 1rem 3rem;
+  background: var(--p-surface-ground);
+  border-top: 1px solid var(--p-surface-border);
+}
+.commentaires-titre {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--p-text-color);
+}
+.commentaires-count {
+  background: var(--p-primary-100);
+  color: var(--p-primary-700);
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 1rem;
+  padding: 0.1rem 0.5rem;
+  min-width: 1.5rem;
+  text-align: center;
+}
+.commentaires-loading {
+  text-align: center;
+  padding: 1rem;
+  color: var(--p-text-muted-color);
+}
+.commentaires-liste {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.commentaire-item {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+.commentaire-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--p-primary-200);
+  color: var(--p-primary-800);
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.commentaire-body {
+  flex: 1;
+  min-width: 0;
+}
+.commentaire-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+  flex-wrap: wrap;
+}
+.commentaire-auteur {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.commentaire-date {
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+}
+.commentaire-portail-badge {
+  font-size: 0.65rem;
+  background: var(--p-green-100);
+  color: var(--p-green-700);
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.4rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.commentaire-contenu {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+.commentaire-actions {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+.commentaire-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.commentaire-edit-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.commentaire-vide {
+  font-size: 0.85rem;
+  color: var(--p-text-muted-color);
+  padding: 0.5rem 0;
+}
+.commentaire-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+/* Accessibilité — classe utilitaire screen-reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 @media (max-width: 640px) {
   .tranches-grid { grid-template-columns: 1fr; }
   .header-actions { width: 100%; }
+  .commentaires-panel { padding: 0.75rem 0.75rem 0.75rem 1rem; }
+  .commentaire-form { flex-direction: column; }
 }
 </style>

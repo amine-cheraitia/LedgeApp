@@ -38,3 +38,6 @@ frontend/.env.*.local
 
 # Claude
 .claude/settings.local.json
+
+# Notes locales
+docs/notes/

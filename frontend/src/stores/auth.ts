@@ -10,6 +10,8 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!user.value)
   const isAdmin = computed(() => user.value?.roles?.includes('admin') ?? false)
   const isClient = computed(() => user.value?.roles?.includes('client') ?? false)
+  const isSecretaire = computed(() => user.value?.roles?.includes('secretaire') ?? false)
+  const isCollaborateur = computed(() => user.value?.roles?.includes('collaborateur') ?? false)
   const isBackoffice = computed(() => {
     const roles = user.value?.roles ?? []
     return roles.some(r => ['admin', 'collaborateur', 'secretaire'].includes(r))
@@ -49,5 +51,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, loading, isAuthenticated, isAdmin, isClient, isBackoffice, login, logout, fetchUser }
+  return { user, loading, isAuthenticated, isAdmin, isClient, isSecretaire, isCollaborateur, isBackoffice, login, logout, fetchUser }
 })
