@@ -7,6 +7,17 @@ on:
     branches: [main, develop]
 
 jobs:
+  gitflow-guard:
+    name: Gitflow — feature/* ne peut pas cibler main
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Bloquer PR feature/* vers main
+        if: startsWith(github.head_ref, 'feature/') && github.base_ref == 'main'
+        run: |
+          echo "::error::Les branches feature/* doivent cibler 'develop', pas 'main'. Gitflow : feature -> develop -> main."
+          exit 1
+
   backend:
     name: Backend (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
