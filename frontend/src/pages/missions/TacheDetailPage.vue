@@ -344,37 +344,42 @@ onMounted(async () => {
             <div class="commentaire-avatar" aria-hidden="true">{{ initiales(c.user?.name) }}</div>
             <div class="commentaire-body">
               <div class="commentaire-meta">
-                <span class="commentaire-auteur">{{ c.user?.name ?? 'Inconnu' }}</span>
-                <span class="commentaire-date">{{ formatDateRelative(c.created_at) }}</span>
-                <Tag
-                  v-if="c.visible_portail && auth.isAdmin"
-                  value="portail"
-                  severity="info"
-                  class="portail-badge"
-                />
+                <div class="commentaire-meta-left">
+                  <span class="commentaire-auteur">{{ c.user?.name ?? 'Inconnu' }}</span>
+                  <span class="commentaire-sep" aria-hidden="true">·</span>
+                  <time class="commentaire-date" :datetime="c.created_at" :title="c.created_at">
+                    {{ formatDateRelative(c.created_at) }}
+                  </time>
+                  <Tag
+                    v-if="c.visible_portail && auth.isAdmin"
+                    value="portail"
+                    severity="info"
+                    class="portail-badge"
+                  />
+                </div>
+                <div v-if="peutModifierCommentaire(c)" class="commentaire-actions">
+                  <Button
+                    icon="pi pi-pencil"
+                    text
+                    rounded
+                    size="small"
+                    :aria-label="`Modifier le commentaire de ${c.user?.name}`"
+                    v-tooltip.top="'Modifier'"
+                    @click="ouvrirEdition(c)"
+                  />
+                  <Button
+                    icon="pi pi-trash"
+                    text
+                    rounded
+                    size="small"
+                    severity="danger"
+                    :aria-label="`Supprimer le commentaire de ${c.user?.name}`"
+                    v-tooltip.top="'Supprimer'"
+                    @click="confirmDeleteCommentaire(c)"
+                  />
+                </div>
               </div>
               <p class="commentaire-contenu">{{ c.contenu }}</p>
-              <div v-if="peutModifierCommentaire(c)" class="commentaire-actions">
-                <Button
-                  icon="pi pi-pencil"
-                  text
-                  rounded
-                  size="small"
-                  :aria-label="`Modifier le commentaire de ${c.user?.name}`"
-                  v-tooltip.top="'Modifier'"
-                  @click="ouvrirEdition(c)"
-                />
-                <Button
-                  icon="pi pi-trash"
-                  text
-                  rounded
-                  size="small"
-                  severity="danger"
-                  :aria-label="`Supprimer le commentaire de ${c.user?.name}`"
-                  v-tooltip.top="'Supprimer'"
-                  @click="confirmDeleteCommentaire(c)"
-                />
-              </div>
             </div>
           </template>
 
@@ -685,10 +690,8 @@ onMounted(async () => {
   gap: 0.875rem;
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--p-surface-border);
-  transition: background 0.15s;
 }
 .commentaire-item:last-child { border-bottom: none; }
-.commentaire-item:hover { background: var(--p-surface-hover); }
 .commentaire-avatar {
   width: 2.25rem;
   height: 2.25rem;
@@ -710,13 +713,25 @@ onMounted(async () => {
 .commentaire-meta {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  margin-bottom: 0.4rem;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+.commentaire-meta-left {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
   flex-wrap: wrap;
 }
 .commentaire-auteur {
-  font-weight: 600;
-  font-size: 0.9rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--p-text-color);
+}
+.commentaire-sep {
+  color: var(--p-text-muted-color);
+  font-size: 0.75rem;
 }
 .commentaire-date {
   font-size: 0.8rem;
@@ -724,18 +739,17 @@ onMounted(async () => {
 }
 .portail-badge { font-size: 0.7rem; }
 .commentaire-contenu {
-  margin: 0 0 0.5rem;
-  line-height: 1.6;
+  margin: 0;
+  line-height: 1.65;
   white-space: pre-wrap;
   font-size: 0.9rem;
+  color: var(--p-text-color);
 }
 .commentaire-actions {
   display: flex;
-  gap: 0.25rem;
-  opacity: 0;
-  transition: opacity 0.15s;
+  gap: 0.1rem;
+  flex-shrink: 0;
 }
-.commentaire-item:hover .commentaire-actions { opacity: 1; }
 .commentaire-edit-mode {
   display: flex;
   flex-direction: column;
