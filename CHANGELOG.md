@@ -9,6 +9,25 @@
 
 ## [Unreleased]
 
+### Page dédiée tâche + corrections commentaires — (develop)
+
+#### Backend
+- **`TacheController::show()`** (nouveau) : endpoint `GET /missions/{mission}/taches/{tache}` — chargement d'une tâche individuelle avec son assigné
+- **`routes/api.php`** : route `missions.taches` désormais complète (plus d'exclusion de `show`)
+- **`TacheCommentaireResource`** : ajout de `user_id` en top-level — nécessaire pour la comparaison auteur côté frontend
+- **Fix route commentaires** : paramètre `{tach}` (Laravel tronquait `taches`) corrigé en `{tache}` via `->parameters(['taches' => 'tache'])` — le model binding fonctionnait pas
+
+#### Frontend
+- **`TacheDetailPage.vue`** (nouveau) : page dédiée `/missions/:id/taches/:tacheId` — carte infos tâche (assigné, échéance, priorité, statut), section commentaires complète avec CRUD, dialog modification tâche
+- **`MissionDetailPage.vue`** : tableau tâches simplifié — 3 boutons par ligne (voir ▶ page dédiée, modifier, supprimer), plus de chevrons expandables
+- **`api/modules/taches.ts`** : ajout de `getOne(missionId, tacheId)` pour charger une tâche individuelle
+- **`router/index.ts`** : route `tache-detail` ajoutée (`missions/:id/taches/:tacheId`)
+- **Commentaires** : boutons modifier/supprimer toujours visibles (plus de opacity:0 au hover) — auteur en gras + heure sur la même ligne en header du commentaire, boutons à droite
+- **Fix droits commentaires** : `peutModifierCommentaire()` utilisait `c.user_id` absent de la resource → corrigé avec fallback `c.user?.id` ; un collaborateur peut désormais modifier/supprimer ses propres commentaires
+- **CI gitflow guard** : job bloquant les PR `feature/* → main` ajouté dans `ci.yml`
+
+---
+
 ### Droits collaborateur — (feature/droits-collaborateur)
 
 #### Backend
