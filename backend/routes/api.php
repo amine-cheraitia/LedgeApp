@@ -159,7 +159,7 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('missions.taches', TacheController::class)->except(['show'])->parameters(['taches' => 'tache']);
 
             // Planning — Commentaires (gate mission dans TacheCommentaireController)
-            Route::apiResource('taches.commentaires', TacheCommentaireController::class)->except(['show'])->parameters(['commentaires' => 'commentaire']);
+            Route::apiResource('taches.commentaires', TacheCommentaireController::class)->except(['show'])->parameters(['taches' => 'tache', 'commentaires' => 'commentaire']);
         });
 
         // ─── Portail client ───────────────────────────────────────────────────
