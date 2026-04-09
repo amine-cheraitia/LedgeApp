@@ -115,7 +115,8 @@ const isStatutEditable = computed(() => {
 })
 
 function peutModifierCommentaire(c: TacheCommentaire) {
-  return auth.isAdmin || c.user_id === auth.user?.id
+  const auteurId = c.user_id ?? c.user?.id
+  return auth.isAdmin || auteurId === auth.user?.id
 }
 
 async function loadTache() {
