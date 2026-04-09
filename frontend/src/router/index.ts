@@ -61,6 +61,11 @@ const router = createRouter({
           component: () => import('@/pages/missions/MissionDetailPage.vue'),
         },
         {
+          path: 'missions/:id/taches/:tacheId',
+          name: 'tache-detail',
+          component: () => import('@/pages/missions/TacheDetailPage.vue'),
+        },
+        {
           path: 'planning',
           name: 'planning',
           component: () => import('@/pages/planning/PlanningCalendarPage.vue'),

@@ -35,6 +35,13 @@ class TacheController extends Controller
             ->setStatusCode(201);
     }
 
+    public function show(Mission $mission, Tache $tache): TacheResource
+    {
+        $this->authorize('view', $mission);
+
+        return new TacheResource($tache->load('assignee'));
+    }
+
     public function update(UpdateTacheRequest $request, Mission $mission, Tache $tache): TacheResource
     {
         $this->authorize('update', $tache);

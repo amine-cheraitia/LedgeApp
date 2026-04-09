@@ -15,9 +15,8 @@ import Select from 'primevue/select'
 import { missionsApi } from '@/api/modules/missions'
 import { tachesApi, type TachePayload } from '@/api/modules/taches'
 import { useUsers } from '@/composables/useUsers'
-import { useCommentaires } from '@/composables/useCommentaires'
 import { useAuthStore } from '@/stores/auth'
-import type { Mission, Tache, TacheCommentaire } from '@/types'
+import type { Mission, Tache } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -26,7 +25,6 @@ const confirm = useConfirm()
 const auth = useAuthStore()
 
 const { users, fetchUsers } = useUsers()
-const { commentaires, loading: loadingCommentaires, fetchCommentaires, createCommentaire, updateCommentaire, deleteCommentaire } = useCommentaires()
 
 const mission = ref<Mission | null>(null)
 const taches = ref<Tache[]>([])
@@ -35,20 +33,12 @@ const updatingStatut = ref(false)
 const loadingConvention = ref(false)
 const loadingMandat = ref(false)
 const togglingPortail = ref(false)
-const tacheDialogVisible = ref(false)
-const savingTache = ref(false)
-const dateEcheance = ref<Date | null>(null)
 
-// Commentaires — état par tâche
-const expandedTacheIds = ref<Set<number>>(new Set())
-const newCommentaire = ref<Record<number, string>>({})
-const sendingCommentaire = ref<Record<number, boolean>>({})
-const editingCommentaire = ref<{ tacheId: number; commentaire: TacheCommentaire } | null>(null)
-const editContenu = ref('')
-
-const missionId = computed(() => Number(route.params.id))
-
-const tacheForm = ref<TachePayload>({
+// Dialog création tâche
+const createDialogVisible = ref(false)
+const savingCreate = ref(false)
+const createDateEcheance = ref<Date | null>(null)
+const createForm = ref<TachePayload>({
   titre: '',
   description: '',
   assigned_to: null,
@@ -57,16 +47,37 @@ const tacheForm = ref<TachePayload>({
   priorite: 1,
 })
 
-const statutOptions = [
-  { label: 'A faire', value: 'a_faire' },
+// Dialog modification tâche
+const editDialogVisible = ref(false)
+const savingEdit = ref(false)
+const editTache = ref<Tache | null>(null)
+const editDateEcheance = ref<Date | null>(null)
+const editForm = ref<TachePayload>({
+  titre: '',
+  description: '',
+  assigned_to: null,
+  statut: 'a_faire',
+  priorite: 1,
+})
+
+const missionId = computed(() => Number(route.params.id))
+
+const prioriteOptions = [
+  { label: 'Faible', value: 1 },
+  { label: 'Normale', value: 2 },
+  { label: 'Haute', value: 3 },
+  { label: 'Urgente', value: 4 },
+]
+
+const statutTacheOptions = [
+  { label: 'À faire', value: 'a_faire' },
   { label: 'En cours', value: 'en_cours' },
-  { label: 'Terminee', value: 'terminee' },
-  { label: 'Bloquee', value: 'bloquee' },
+  { label: 'Terminée', value: 'terminee' },
+  { label: 'Bloquée', value: 'bloquee' },
 ]
 
 function toIsoDate(d: Date | null): string | null {
-  if (!d) return null
-  return d.toISOString().split('T')[0]
+  return d ? d.toISOString().split('T')[0] : null
 }
 
 async function loadMission() {
@@ -97,9 +108,9 @@ async function changerStatutMission(statut: string) {
   try {
     const response = await missionsApi.update(missionId.value, { statut })
     mission.value = response.data
-    toast.add({ severity: 'success', summary: 'Succes', detail: 'Statut mis a jour.', life: 3000 })
+    toast.add({ severity: 'success', summary: 'Succès', detail: 'Statut mis à jour.', life: 3000 })
   } catch {
-    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de mettre a jour le statut.', life: 3000 })
+    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de mettre à jour le statut.', life: 3000 })
   } finally {
     updatingStatut.value = false
   }
@@ -112,7 +123,7 @@ async function toggleVisiblePortail() {
     const response = await missionsApi.update(missionId.value, { visible_portail: !mission.value.visible_portail })
     mission.value = response.data
     const etat = mission.value.visible_portail ? 'visible' : 'masqué'
-    toast.add({ severity: 'success', summary: 'Succes', detail: `Documents ${etat} dans le portail.`, life: 3000 })
+    toast.add({ severity: 'success', summary: 'Succès', detail: `Documents ${etat} dans le portail.`, life: 3000 })
   } catch {
     toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de modifier la visibilité.', life: 3000 })
   } finally {
@@ -142,43 +153,70 @@ async function telechargerMandat() {
   }
 }
 
-function openTacheDialog() {
-  tacheForm.value = { titre: '', description: '', assigned_to: null, statut: 'a_faire', date_echeance: null, priorite: 1 }
-  dateEcheance.value = null
-  tacheDialogVisible.value = true
+// ─── Tâches ────────────────────────────────────────────────────────────────
+
+function openCreateDialog() {
+  createForm.value = { titre: '', description: '', assigned_to: null, statut: 'a_faire', date_echeance: null, priorite: 1 }
+  createDateEcheance.value = null
+  createDialogVisible.value = true
 }
 
-async function onSubmitTache() {
-  if (!tacheForm.value.titre) return
-  savingTache.value = true
+async function onSubmitCreate() {
+  if (!createForm.value.titre) return
+  savingCreate.value = true
   try {
     await tachesApi.create(missionId.value, {
-      ...tacheForm.value,
-      date_echeance: toIsoDate(dateEcheance.value),
+      ...createForm.value,
+      date_echeance: toIsoDate(createDateEcheance.value),
     })
-    toast.add({ severity: 'success', summary: 'Succes', detail: 'Tache creee.', life: 3000 })
-    tacheDialogVisible.value = false
+    toast.add({ severity: 'success', summary: 'Succès', detail: 'Tâche créée.', life: 3000 })
+    createDialogVisible.value = false
     await loadTaches()
   } catch {
-    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de creer la tache.', life: 3000 })
+    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de créer la tâche.', life: 3000 })
   } finally {
-    savingTache.value = false
+    savingCreate.value = false
   }
 }
 
-async function updateTacheStatut(tache: Tache, newStatut: string) {
+function openEditDialog(tache: Tache) {
+  editTache.value = tache
+  editForm.value = {
+    titre: tache.titre,
+    description: tache.description ?? '',
+    assigned_to: tache.assigned_to,
+    statut: tache.statut,
+    priorite: tache.priorite,
+  }
+  editDateEcheance.value = tache.date_echeance ? new Date(tache.date_echeance) : null
+  editDialogVisible.value = true
+}
+
+async function onSubmitEdit() {
+  if (!editTache.value) return
+  savingEdit.value = true
   try {
-    await tachesApi.update(missionId.value, tache.id, { statut: newStatut })
-    toast.add({ severity: 'success', summary: 'Succes', detail: 'Statut mis a jour.', life: 3000 })
+    await tachesApi.update(missionId.value, editTache.value.id, {
+      ...editForm.value,
+      date_echeance: toIsoDate(editDateEcheance.value),
+    })
+    toast.add({ severity: 'success', summary: 'Succès', detail: 'Tâche modifiée.', life: 3000 })
+    editDialogVisible.value = false
     await loadTaches()
   } catch {
-    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Erreur mise a jour.', life: 3000 })
+    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de modifier la tâche.', life: 3000 })
+  } finally {
+    savingEdit.value = false
   }
+}
+
+function goToTache(tache: Tache) {
+  router.push({ name: 'tache-detail', params: { id: missionId.value, tacheId: tache.id } })
 }
 
 function confirmDeleteTache(tache: Tache) {
   confirm.require({
-    message: `Supprimer la tache "${tache.titre}" ?`,
+    message: `Supprimer la tâche "${tache.titre}" ?`,
     header: 'Confirmation',
     icon: 'pi pi-exclamation-triangle',
     acceptLabel: 'Supprimer',
@@ -190,95 +228,15 @@ function confirmDeleteTache(tache: Tache) {
 async function deleteTache(tache: Tache) {
   try {
     await tachesApi.delete(missionId.value, tache.id)
-    toast.add({ severity: 'success', summary: 'Succes', detail: 'Tache supprimee.', life: 3000 })
+    toast.add({ severity: 'success', summary: 'Succès', detail: 'Tâche supprimée.', life: 3000 })
     await loadTaches()
   } catch (err: any) {
-    const detail = err.response?.data?.message ?? 'Impossible de supprimer la tache.'
+    const detail = err.response?.data?.message ?? 'Impossible de supprimer la tâche.'
     toast.add({ severity: 'error', summary: 'Erreur', detail, life: 4000 })
   }
 }
 
-// ─── Commentaires ──────────────────────────────────────────────────────────
-
-function isTacheStatutEditable(tache: Tache): boolean {
-  if (auth.isAdmin || auth.isSecretaire) return true
-  return auth.isCollaborateur && tache.assigned_to === auth.user?.id
-}
-
-async function toggleCommentaires(tache: Tache) {
-  if (expandedTacheIds.value.has(tache.id)) {
-    expandedTacheIds.value.delete(tache.id)
-  } else {
-    expandedTacheIds.value.add(tache.id)
-    await fetchCommentaires(tache.id)
-  }
-}
-
-function commentairesDeTache(tacheId: number): TacheCommentaire[] {
-  return commentaires.value.filter((c: TacheCommentaire) => c.tache_id === tacheId)
-}
-
-async function envoyerCommentaire(tache: Tache) {
-  const contenu = (newCommentaire.value[tache.id] ?? '').trim()
-  if (!contenu) return
-  sendingCommentaire.value[tache.id] = true
-  try {
-    await createCommentaire(tache.id, contenu)
-    newCommentaire.value[tache.id] = ''
-    await fetchCommentaires(tache.id)
-  } finally {
-    sendingCommentaire.value[tache.id] = false
-  }
-}
-
-function ouvrirEditionCommentaire(tache: Tache, commentaire: TacheCommentaire) {
-  editingCommentaire.value = { tacheId: tache.id, commentaire }
-  editContenu.value = commentaire.contenu
-}
-
-async function sauvegarderEditionCommentaire() {
-  if (!editingCommentaire.value) return
-  const { tacheId, commentaire } = editingCommentaire.value
-  await updateCommentaire(tacheId, commentaire.id, editContenu.value.trim())
-  editingCommentaire.value = null
-  editContenu.value = ''
-}
-
-function annulerEditionCommentaire() {
-  editingCommentaire.value = null
-  editContenu.value = ''
-}
-
-function peutModifierCommentaire(commentaire: TacheCommentaire): boolean {
-  return auth.isAdmin || commentaire.user_id === auth.user?.id
-}
-
-function confirmDeleteCommentaire(tache: Tache, commentaire: TacheCommentaire) {
-  confirm.require({
-    message: 'Supprimer ce commentaire ?',
-    header: 'Confirmation',
-    icon: 'pi pi-exclamation-triangle',
-    acceptLabel: 'Supprimer',
-    rejectLabel: 'Annuler',
-    accept: () => supprimerCommentaire(tache, commentaire),
-  })
-}
-
-async function supprimerCommentaire(tache: Tache, commentaire: TacheCommentaire) {
-  await deleteCommentaire(tache.id, commentaire.id)
-  await fetchCommentaires(tache.id)
-}
-
-function initiales(name: string | undefined): string {
-  if (!name) return '?'
-  return name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)
-}
-
-function formatDateRelative(d: string): string {
-  return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
-
-// ──────────────────────────────────────────────────────────────────────────
+// ─── Utilitaires ──────────────────────────────────────────────────────────
 
 function statutMissionSeverity(statut: string) {
   const map: Record<string, string> = {
@@ -287,8 +245,30 @@ function statutMissionSeverity(statut: string) {
   return map[statut] ?? 'secondary'
 }
 
+function statutTacheSeverity(statut: string) {
+  const map: Record<string, string> = {
+    a_faire: 'secondary', en_cours: 'info', terminee: 'success', bloquee: 'danger',
+  }
+  return map[statut] ?? 'secondary'
+}
+
+function statutTacheLabel(statut: string) {
+  const map: Record<string, string> = {
+    a_faire: 'À faire', en_cours: 'En cours', terminee: 'Terminée', bloquee: 'Bloquée',
+  }
+  return map[statut] ?? statut
+}
+
+function prioriteLabel(p: number) {
+  return ['', 'Faible', 'Normale', 'Haute', 'Urgente'][p] ?? p.toString()
+}
+
+function prioriteSeverity(p: number) {
+  return ['', 'secondary', 'info', 'warn', 'danger'][p] ?? 'secondary'
+}
+
 function formatDate(d: string | null) {
-  if (!d) return '-'
+  if (!d) return '—'
   return new Date(d).toLocaleDateString('fr-FR')
 }
 
@@ -332,7 +312,6 @@ onMounted(() => {
         />
       </div>
 
-      <!-- Actions statut mission — admin et secretaire uniquement -->
       <div
         v-if="!auth.isCollaborateur && mission.statut !== 'terminee' && mission.statut !== 'annulee'"
         class="header-actions"
@@ -379,10 +358,10 @@ onMounted(() => {
     <!-- Info mission -->
     <div class="mission-info">
       <div class="info-grid">
-        <div><strong>Entreprise</strong><br>{{ mission.entreprise?.raison_sociale ?? '-' }}</div>
-        <div><strong>Prestation</strong><br>{{ mission.prestation?.designation ?? '-' }}</div>
+        <div><strong>Entreprise</strong><br>{{ mission.entreprise?.raison_sociale ?? '—' }}</div>
+        <div><strong>Prestation</strong><br>{{ mission.prestation?.designation ?? '—' }}</div>
         <div><strong>Prix HT</strong><br>{{ formatMontant(mission.prix_ht) }}</div>
-        <div><strong>Debut</strong><br>{{ formatDate(mission.date_debut) }}</div>
+        <div><strong>Début</strong><br>{{ formatDate(mission.date_debut) }}</div>
         <div><strong>Fin</strong><br>{{ formatDate(mission.date_fin) }}</div>
       </div>
 
@@ -396,11 +375,10 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Documents mission — admin et secretaire uniquement -->
+    <!-- Documents -->
     <div v-if="!auth.isCollaborateur" class="section">
       <div class="section-header">
         <h2>Documents</h2>
-        <!-- Toggle visible portail — admin uniquement -->
         <Button
           v-if="auth.isAdmin"
           :label="mission.visible_portail ? 'Visible portail' : 'Masqué portail'"
@@ -425,7 +403,7 @@ onMounted(() => {
             </div>
           </div>
           <Button
-            :label="mission.convention_numero ? 'Imprimer la convention' : 'Générer la convention'"
+            :label="mission.convention_numero ? 'Imprimer' : 'Générer'"
             :icon="mission.convention_numero ? 'pi pi-print' : 'pi pi-cog'"
             severity="secondary"
             size="small"
@@ -445,7 +423,7 @@ onMounted(() => {
             </div>
           </div>
           <Button
-            :label="mission.mandat_numero ? 'Imprimer le mandat' : 'Générer le mandat'"
+            :label="mission.mandat_numero ? 'Imprimer' : 'Générer'"
             :icon="mission.mandat_numero ? 'pi pi-print' : 'pi pi-cog'"
             size="small"
             :loading="loadingMandat"
@@ -456,9 +434,9 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Tranches suggérées — admin et secretaire uniquement -->
+    <!-- Tranches -->
     <div v-if="!auth.isCollaborateur" class="section">
-      <h2>Tranches de facturation suggerees</h2>
+      <h2>Tranches de facturation suggérées</h2>
       <div class="tranches-grid">
         <div v-for="t in tranches" :key="t.label" class="tranche-card">
           <span>{{ t.label }}</span>
@@ -466,7 +444,7 @@ onMounted(() => {
         </div>
       </div>
       <Button
-        label="Creer une facture"
+        label="Créer une facture"
         icon="pi pi-receipt"
         severity="secondary"
         @click="router.push({ name: 'factures' })"
@@ -474,11 +452,11 @@ onMounted(() => {
       />
     </div>
 
-    <!-- Factures liées — admin et secretaire uniquement -->
+    <!-- Factures liées -->
     <div v-if="!auth.isCollaborateur && mission.factures && mission.factures.length > 0" class="section">
-      <h2>Factures liees</h2>
+      <h2>Factures liées</h2>
       <DataTable :value="mission.factures" dataKey="id" stripedRows>
-        <Column field="numero" header="Numero" />
+        <Column field="numero" header="Numéro" />
         <Column header="Montant TTC">
           <template #body="{ data }">{{ formatMontant(data.montant_ttc) }}</template>
         </Column>
@@ -496,243 +474,143 @@ onMounted(() => {
     <!-- Tâches -->
     <section aria-labelledby="taches-title" class="section">
       <div class="section-header">
-        <h2 id="taches-title">Taches</h2>
-        <!-- Ajouter une tâche — admin et secretaire uniquement -->
+        <h2 id="taches-title">Tâches <span class="taches-count">{{ taches.length }}</span></h2>
         <Button
           v-if="!auth.isCollaborateur"
-          label="Ajouter une tache"
+          label="Ajouter une tâche"
           icon="pi pi-plus"
           size="small"
-          aria-label="Ajouter une tache a cette mission"
-          @click="openTacheDialog"
+          aria-label="Ajouter une tâche à cette mission"
+          @click="openCreateDialog"
         />
       </div>
 
       <DataTable :value="taches" dataKey="id" stripedRows>
-        <!-- Chevron expand commentaires -->
-        <Column style="width: 3rem; padding-right: 0;">
+        <Column field="titre" header="Titre" />
+        <Column header="Assignée à">
           <template #body="{ data }">
-            <Button
-              :icon="expandedTacheIds.has(data.id) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
-              text
-              rounded
-              size="small"
-              :aria-label="expandedTacheIds.has(data.id) ? `Masquer les commentaires de ${data.titre}` : `Voir les commentaires de ${data.titre}`"
-              :aria-expanded="expandedTacheIds.has(data.id)"
-              @click="toggleCommentaires(data)"
-            />
+            <div v-if="data.assignee" class="assignee-cell">
+              <span class="assignee-avatar-sm" aria-hidden="true">
+                {{ data.assignee.name.split(' ').map((p: string) => p[0]).join('').toUpperCase().slice(0, 2) }}
+              </span>
+              {{ data.assignee.name }}
+            </div>
+            <span v-else class="text-muted">Non assignée</span>
           </template>
         </Column>
-
-        <Column field="titre" header="Titre" />
-        <Column header="Assignee">
-          <template #body="{ data }">{{ data.assignee?.name ?? 'Non assigne' }}</template>
-        </Column>
-        <Column header="Echeance">
+        <Column header="Échéance" style="width: 8rem;">
           <template #body="{ data }">{{ formatDate(data.date_echeance) }}</template>
         </Column>
-        <Column header="Priorite" style="width: 6rem">
-          <template #body="{ data }">{{ data.priorite }}</template>
-        </Column>
-        <Column header="Statut" style="width: 11rem">
+        <Column header="Priorité" style="width: 7rem;">
           <template #body="{ data }">
-            <Select
-              :modelValue="data.statut"
-              :options="statutOptions"
-              optionLabel="label"
-              optionValue="value"
-              :disabled="!isTacheStatutEditable(data)"
-              :aria-label="`Statut de la tache ${data.titre}`"
-              style="min-width: 8rem;"
-              @update:modelValue="(v) => updateTacheStatut(data, v)"
-            />
+            <Tag :value="prioriteLabel(data.priorite)" :severity="prioriteSeverity(data.priorite)" />
           </template>
         </Column>
-        <!-- Actions — admin et secretaire uniquement -->
-        <Column v-if="!auth.isCollaborateur" header="Actions" style="width: 5rem">
+        <Column header="Statut" style="width: 8rem;">
           <template #body="{ data }">
-            <Button
-              icon="pi pi-trash"
-              text
-              rounded
-              severity="danger"
-              :aria-label="`Supprimer la tache ${data.titre}`"
-              v-tooltip.top="'Supprimer'"
-              @click="confirmDeleteTache(data)"
-            />
+            <Tag :value="statutTacheLabel(data.statut)" :severity="statutTacheSeverity(data.statut)" />
           </template>
         </Column>
-
-        <!-- Ligne expandable — commentaires -->
-        <template #expansion="{ data: tache }">
-          <div v-if="expandedTacheIds.has(tache.id)" class="commentaires-panel" role="region" :aria-labelledby="`commentaires-title-${tache.id}`">
-            <h3 :id="`commentaires-title-${tache.id}`" class="commentaires-titre">
-              Commentaires
-              <span
-                role="status"
-                :aria-label="`${commentairesDeTache(tache.id).length} commentaire(s)`"
-                class="commentaires-count"
-              >{{ commentairesDeTache(tache.id).length }}</span>
-            </h3>
-
-            <!-- Liste des commentaires -->
-            <div v-if="loadingCommentaires" class="commentaires-loading" aria-live="polite">
-              <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
-            </div>
-
-            <ul v-else class="commentaires-liste" aria-live="polite">
-              <li
-                v-for="c in commentairesDeTache(tache.id)"
-                :key="c.id"
-                class="commentaire-item"
-              >
-                <!-- Mode lecture -->
-                <template v-if="!editingCommentaire || editingCommentaire.commentaire.id !== c.id">
-                  <div class="commentaire-avatar" aria-hidden="true">{{ initiales(c.user?.name) }}</div>
-                  <div class="commentaire-body">
-                    <div class="commentaire-meta">
-                      <span class="commentaire-auteur">{{ c.user?.name ?? 'Inconnu' }}</span>
-                      <span class="commentaire-date">{{ formatDateRelative(c.created_at) }}</span>
-                      <span v-if="c.visible_portail && auth.isAdmin" class="commentaire-portail-badge">portail</span>
-                    </div>
-                    <p class="commentaire-contenu">{{ c.contenu }}</p>
-                    <div v-if="peutModifierCommentaire(c)" class="commentaire-actions">
-                      <Button
-                        icon="pi pi-pencil"
-                        text
-                        rounded
-                        size="small"
-                        :aria-label="`Modifier le commentaire de ${c.user?.name}`"
-                        v-tooltip.top="'Modifier'"
-                        @click="ouvrirEditionCommentaire(tache, c)"
-                      />
-                      <Button
-                        icon="pi pi-trash"
-                        text
-                        rounded
-                        size="small"
-                        severity="danger"
-                        :aria-label="`Supprimer le commentaire de ${c.user?.name}`"
-                        v-tooltip.top="'Supprimer'"
-                        @click="confirmDeleteCommentaire(tache, c)"
-                      />
-                    </div>
-                  </div>
-                </template>
-
-                <!-- Mode edition -->
-                <template v-else>
-                  <div class="commentaire-avatar" aria-hidden="true">{{ initiales(c.user?.name) }}</div>
-                  <div class="commentaire-body commentaire-edit">
-                    <label :for="`edit-commentaire-${c.id}`" class="sr-only">Modifier le commentaire</label>
-                    <Textarea
-                      :id="`edit-commentaire-${c.id}`"
-                      v-model="editContenu"
-                      rows="3"
-                      fluid
-                      aria-required="true"
-                    />
-                    <div class="commentaire-edit-actions">
-                      <Button
-                        label="Sauvegarder"
-                        icon="pi pi-check"
-                        size="small"
-                        :disabled="!editContenu.trim()"
-                        @click="sauvegarderEditionCommentaire"
-                      />
-                      <Button
-                        label="Annuler"
-                        severity="secondary"
-                        size="small"
-                        @click="annulerEditionCommentaire"
-                      />
-                    </div>
-                  </div>
-                </template>
-              </li>
-
-              <li v-if="commentairesDeTache(tache.id).length === 0" class="commentaire-vide">
-                Aucun commentaire pour cette tache.
-              </li>
-            </ul>
-
-            <!-- Formulaire nouveau commentaire -->
-            <form class="commentaire-form" @submit.prevent="envoyerCommentaire(tache)">
-              <label :for="`nouveau-commentaire-${tache.id}`" class="sr-only">Nouveau commentaire pour la tache {{ tache.titre }}</label>
-              <Textarea
-                :id="`nouveau-commentaire-${tache.id}`"
-                v-model="newCommentaire[tache.id]"
-                :placeholder="`Ajouter un commentaire sur «\u00a0${tache.titre}\u00a0»…`"
-                rows="2"
-                fluid
-                aria-required="false"
+        <Column header="Actions" style="width: 9rem;">
+          <template #body="{ data }">
+            <div class="actions-cell">
+              <Button
+                icon="pi pi-eye"
+                text
+                rounded
+                size="small"
+                :aria-label="`Voir la tâche ${data.titre}`"
+                v-tooltip.top="'Voir'"
+                @click="goToTache(data)"
               />
               <Button
-                type="submit"
-                label="Envoyer"
-                icon="pi pi-send"
+                v-if="!auth.isCollaborateur"
+                icon="pi pi-pencil"
+                text
+                rounded
                 size="small"
-                :loading="sendingCommentaire[tache.id]"
-                :disabled="!(newCommentaire[tache.id] ?? '').trim()"
-                :aria-label="`Envoyer un commentaire sur la tache ${tache.titre}`"
+                severity="secondary"
+                :aria-label="`Modifier la tâche ${data.titre}`"
+                v-tooltip.top="'Modifier'"
+                @click="openEditDialog(data)"
               />
-            </form>
-          </div>
-        </template>
+              <Button
+                v-if="!auth.isCollaborateur"
+                icon="pi pi-trash"
+                text
+                rounded
+                size="small"
+                severity="danger"
+                :aria-label="`Supprimer la tâche ${data.titre}`"
+                v-tooltip.top="'Supprimer'"
+                @click="confirmDeleteTache(data)"
+              />
+            </div>
+          </template>
+        </Column>
       </DataTable>
     </section>
 
-    <!-- Dialog ajout tâche -->
-    <Dialog
-      v-model:visible="tacheDialogVisible"
-      header="Nouvelle tache"
-      :modal="true"
-      :style="{ width: '30rem' }"
-    >
-      <form @submit.prevent="onSubmitTache" class="dialog-form">
+    <!-- Dialog création tâche -->
+    <Dialog v-model:visible="createDialogVisible" header="Nouvelle tâche" :modal="true" :style="{ width: '30rem' }">
+      <form @submit.prevent="onSubmitCreate" class="dialog-form">
         <div class="form-field">
-          <label for="t-titre">Titre *</label>
-          <InputText id="t-titre" v-model="tacheForm.titre" required fluid />
+          <label for="c-titre">Titre *</label>
+          <InputText id="c-titre" v-model="createForm.titre" required fluid />
         </div>
-
         <div class="form-field">
-          <label for="t-assigne">Assigne a</label>
-          <Select
-            id="t-assigne"
-            v-model="tacheForm.assigned_to"
-            :options="users"
-            optionLabel="name"
-            optionValue="id"
-            placeholder="Non assigne"
-            showClear
-            fluid
-          />
+          <label for="c-assigne">Assignée à</label>
+          <Select id="c-assigne" v-model="createForm.assigned_to" :options="users" optionLabel="name" optionValue="id" placeholder="Non assignée" showClear fluid />
         </div>
-
         <div class="form-field">
-          <label for="t-echeance">Echeance</label>
-          <DatePicker id="t-echeance" v-model="dateEcheance" dateFormat="dd/mm/yy" fluid />
+          <label for="c-echeance">Échéance</label>
+          <DatePicker id="c-echeance" v-model="createDateEcheance" dateFormat="dd/mm/yy" fluid />
         </div>
-
         <div class="form-field">
-          <label for="t-desc">Description</label>
-          <Textarea id="t-desc" v-model="tacheForm.description" rows="3" fluid />
+          <label for="c-priorite">Priorité</label>
+          <Select id="c-priorite" v-model="createForm.priorite" :options="prioriteOptions" optionLabel="label" optionValue="value" fluid />
         </div>
-
+        <div class="form-field">
+          <label for="c-desc">Description</label>
+          <Textarea id="c-desc" v-model="createForm.description" rows="3" fluid />
+        </div>
         <div class="form-actions">
-          <Button
-            label="Annuler"
-            severity="secondary"
-            type="button"
-            @click="tacheDialogVisible = false"
-          />
-          <Button
-            label="Creer"
-            type="submit"
-            icon="pi pi-check"
-            :loading="savingTache"
-            :disabled="!tacheForm.titre"
-          />
+          <Button label="Annuler" severity="secondary" type="button" @click="createDialogVisible = false" />
+          <Button label="Créer" type="submit" icon="pi pi-check" :loading="savingCreate" :disabled="!createForm.titre" />
+        </div>
+      </form>
+    </Dialog>
+
+    <!-- Dialog modification tâche -->
+    <Dialog v-model:visible="editDialogVisible" header="Modifier la tâche" :modal="true" :style="{ width: '30rem' }">
+      <form @submit.prevent="onSubmitEdit" class="dialog-form">
+        <div class="form-field">
+          <label for="e-titre">Titre *</label>
+          <InputText id="e-titre" v-model="editForm.titre" required fluid />
+        </div>
+        <div class="form-field">
+          <label for="e-assigne">Assignée à</label>
+          <Select id="e-assigne" v-model="editForm.assigned_to" :options="users" optionLabel="name" optionValue="id" placeholder="Non assignée" showClear fluid />
+        </div>
+        <div class="form-field">
+          <label for="e-echeance">Échéance</label>
+          <DatePicker id="e-echeance" v-model="editDateEcheance" dateFormat="dd/mm/yy" fluid />
+        </div>
+        <div class="form-field">
+          <label for="e-priorite">Priorité</label>
+          <Select id="e-priorite" v-model="editForm.priorite" :options="prioriteOptions" optionLabel="label" optionValue="value" fluid />
+        </div>
+        <div class="form-field">
+          <label for="e-statut">Statut</label>
+          <Select id="e-statut" v-model="editForm.statut" :options="statutTacheOptions" optionLabel="label" optionValue="value" fluid />
+        </div>
+        <div class="form-field">
+          <label for="e-desc">Description</label>
+          <Textarea id="e-desc" v-model="editForm.description" rows="3" fluid />
+        </div>
+        <div class="form-actions">
+          <Button label="Annuler" severity="secondary" type="button" @click="editDialogVisible = false" />
+          <Button label="Enregistrer" type="submit" icon="pi pi-check" :loading="savingEdit" :disabled="!editForm.titre" />
         </div>
       </form>
     </Dialog>
@@ -850,140 +728,38 @@ onMounted(() => {
   margin-top: 0.5rem;
 }
 
-/* ─── Commentaires ─────────────────────────────────────────────────────── */
-.commentaires-panel {
-  padding: 1rem 1.5rem 1rem 3rem;
-  background: var(--p-surface-ground);
-  border-top: 1px solid var(--p-surface-border);
-}
-.commentaires-titre {
-  font-size: 0.9rem;
-  font-weight: 600;
-  margin: 0 0 0.75rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--p-text-color);
-}
-.commentaires-count {
+/* Tâches */
+.taches-count {
   background: var(--p-primary-100);
   color: var(--p-primary-700);
   font-size: 0.75rem;
   font-weight: 700;
   border-radius: 1rem;
-  padding: 0.1rem 0.5rem;
-  min-width: 1.5rem;
-  text-align: center;
+  padding: 0.1rem 0.55rem;
+  margin-left: 0.4rem;
+  vertical-align: middle;
 }
-.commentaires-loading {
-  text-align: center;
-  padding: 1rem;
-  color: var(--p-text-muted-color);
-}
-.commentaires-liste {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 1rem;
+.actions-cell {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.1rem;
 }
-.commentaire-item {
+.assignee-cell {
   display: flex;
-  gap: 0.75rem;
-  align-items: flex-start;
+  align-items: center;
+  gap: 0.4rem;
 }
-.commentaire-avatar {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  background: var(--p-primary-200);
-  color: var(--p-primary-800);
-  font-size: 0.7rem;
-  font-weight: 700;
-  display: flex;
+.assignee-avatar-sm {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--p-primary-100);
+  color: var(--p-primary-700);
+  font-size: 0.65rem;
+  font-weight: 700;
   flex-shrink: 0;
 }
-.commentaire-body {
-  flex: 1;
-  min-width: 0;
-}
-.commentaire-meta {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.25rem;
-  flex-wrap: wrap;
-}
-.commentaire-auteur {
-  font-weight: 600;
-  font-size: 0.85rem;
-}
-.commentaire-date {
-  font-size: 0.75rem;
-  color: var(--p-text-muted-color);
-}
-.commentaire-portail-badge {
-  font-size: 0.65rem;
-  background: var(--p-green-100);
-  color: var(--p-green-700);
-  border-radius: 0.25rem;
-  padding: 0.1rem 0.4rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-.commentaire-contenu {
-  margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  word-break: break-word;
-  white-space: pre-wrap;
-}
-.commentaire-actions {
-  display: flex;
-  gap: 0.25rem;
-  margin-top: 0.25rem;
-}
-.commentaire-edit {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-.commentaire-edit-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-.commentaire-vide {
-  font-size: 0.85rem;
-  color: var(--p-text-muted-color);
-  padding: 0.5rem 0;
-}
-.commentaire-form {
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-end;
-}
-
-/* Accessibilité — classe utilitaire screen-reader only */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-@media (max-width: 640px) {
-  .tranches-grid { grid-template-columns: 1fr; }
-  .header-actions { width: 100%; }
-  .commentaires-panel { padding: 0.75rem 0.75rem 0.75rem 1rem; }
-  .commentaire-form { flex-direction: column; }
-}
+.text-muted { color: var(--p-text-muted-color); font-size: 0.875rem; }
 </style>
