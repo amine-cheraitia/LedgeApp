@@ -11,10 +11,17 @@ const stats = ref<DashboardStats | null>(null)
 const exerciceId = ref<number | null>(null)
 
 async function fetchStats() {
+  // Le collaborateur n'a pas accès aux stats financières
+  if (auth.isCollaborateur) {
+    loading.value = false
+    return
+  }
   loading.value = true
   try {
     const res = await statsApi.getDashboard(exerciceId.value)
     stats.value = res.data
+  } catch {
+    // Silencieux — stats non disponibles
   } finally {
     loading.value = false
   }
@@ -83,6 +90,25 @@ function statutMissionLabel(statut: string): string {
     <!-- Loading -->
     <div v-if="loading" class="col-span-12 flex justify-center py-20">
       <ProgressSpinner aria-label="Chargement du tableau de bord" />
+    </div>
+
+    <!-- Vue collaborateur — pas de stats financières -->
+    <div v-if="!loading && auth.isCollaborateur" class="col-span-12">
+      <div class="collab-welcome" role="region" aria-labelledby="collab-welcome-title">
+        <i class="pi pi-briefcase collab-welcome-icon" aria-hidden="true"></i>
+        <h3 id="collab-welcome-title">Bonjour, {{ auth.user?.name }}</h3>
+        <p>Retrouvez ici vos missions assignées et le planning de votre activité.</p>
+        <div class="collab-welcome-actions">
+          <a href="/missions" class="p-button p-button-primary" aria-label="Accéder à mes missions">
+            <i class="pi pi-list" aria-hidden="true"></i>
+            Mes missions
+          </a>
+          <a href="/planning" class="p-button p-button-outlined" aria-label="Accéder au planning">
+            <i class="pi pi-calendar" aria-hidden="true"></i>
+            Mon planning
+          </a>
+        </div>
+      </div>
     </div>
 
     <template v-if="stats && !loading">
@@ -392,5 +418,71 @@ function statutMissionLabel(statut: string): string {
 
 .fill-warn {
   background: var(--p-orange-500, #f97316);
+}
+
+.collab-welcome {
+  background: var(--p-surface-card);
+  border: 1px solid var(--p-surface-border);
+  border-radius: 12px;
+  padding: 3rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.collab-welcome-icon {
+  font-size: 3rem;
+  color: var(--p-primary-500);
+}
+
+.collab-welcome h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.collab-welcome p {
+  color: var(--p-text-muted-color);
+  margin: 0;
+  max-width: 30rem;
+}
+
+.collab-welcome-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.collab-welcome-actions .p-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  border-radius: 6px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.collab-welcome-actions .p-button-primary {
+  background: var(--p-primary-500);
+  color: white;
+  border: none;
+}
+
+.collab-welcome-actions .p-button-outlined {
+  background: transparent;
+  color: var(--p-primary-500);
+  border: 1px solid var(--p-primary-500);
+}
+
+.collab-welcome-actions .p-button:focus-visible {
+  outline: 2px solid var(--p-primary-500);
+  outline-offset: 2px;
 }
 </style>

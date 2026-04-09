@@ -486,6 +486,24 @@
 
 ---
 
+### US-45 · Droits collaborateur — isolation missions/taches · M · 3 pts · Sprint 3 ✅
+
+**En tant que collaborateur**, je veux n'avoir acces qu'aux missions auxquelles je suis affecte et ne pouvoir modifier que mes propres taches **afin de** respecter le principe de moindre privilege.
+
+- Routes restructurees en 3 groupes Spatie (`role:admin`, `role:admin|secretaire`, tous backoffice) — collaborateur bloque sur facturation, entreprises, referentiels en ecriture
+- Missions : visibles uniquement si dans `mission_user` — `MissionPolicy::view` + `MissionService::listerMissions(User)` filtre par `whereHas('collaborateurs')`
+- Missions : modification/creation/suppression reservees a admin/secretaire
+- Taches : lecture de toutes les taches de la mission autorisee — modification reservee a `assigned_to === user->id` (statut uniquement) via `TachePolicy`
+- Taches : creation/suppression reservees a admin/secretaire
+- Calendrier : filtre automatique par `collaborateur_id` cote serveur — chaque collaborateur ne voit que ses evenements
+- Commentaires : creation autorisee si acces a la mission — modification/suppression reservees a l'auteur ou admin
+- `visible_portail` sur `tache_commentaires` : prepare le rapport de cloture (US-35) et le partage client depuis le portail
+- Frontend : interface commentaires integree dans `MissionDetailPage` (expandable par tache), guards role complets, panel bienvenue collaborateur sur dashboard, menus/boutons conditionnes par role
+- RGAA : `aria-labelledby`, `role="status"`, `aria-expanded`, `aria-live` sur tous les nouveaux elements
+- Depend de : **US-18, US-19, US-22**
+
+---
+
 ### US-41 · Protections de suppression · S · 3 pts · Sprint 3
 
 **En tant que developpeur**, je veux mettre en place des protections de suppression sur les entites liees **afin d'** eviter la destruction accidentelle de donnees critiques.
@@ -528,8 +546,8 @@
 |---|---|---|---|
 | Sprint 1 | US-01 ✅, 02 ✅, 03 ✅, 04 ✅, 05 ✅, 06 ✅, 07 ✅, 08 ✅, 09 ✅, 11 ✅, 12 ✅, 17 ✅, 18 ✅, 40 ✅, 43 ✅ | 49 pts | Auth · Referentiel · Clients · Devis · Mission · Exercice |
 | Sprint 2 | US-10 ✅, 13 ✅, 14 ✅, 15 ✅, 16 ✅, 19 ✅, 20 ✅, 21 ✅, 22 ✅, 23 ✅, 24 ✅, 25 ✅, 26 ✅, 27 ✅, 28 ✅, 29 ✅, 30 ✅, 31 ✅, 32 ✅, 33 ✅, 34 ✅ | 96 pts | Factures · Taches · Portail · Relances · KPI |
-| Sprint 3 | US-35, 36 ✅, 37 ✅, 38 ✅, 39 ✅, 41, 42 | 27 pts | Qualite · OWASP · RGAA · Tests · MCO |
-| **Total** | **43 US** | **170 pts** | |
+| Sprint 3 | US-35, 36 ✅, 37 ✅, 38 ✅, 39 ✅, 41, 42, 45 ✅ | 30 pts | Qualite · OWASP · RGAA · Tests · MCO · Droits |
+| **Total** | **44 US** | **173 pts** | |
 
 ### Par priorite MoSCoW
 
@@ -542,7 +560,7 @@
 
 | Statut | US | Pts |
 |---|---|---|
-| ✅ Termine | 39 US | 144 pts |
+| ✅ Termine | 40 US | 147 pts |
 | 🔧 En cours | — | — |
 | A faire | 4 US | 26 pts |
 
@@ -553,7 +571,7 @@
 | **US-18 Mission** ⭐ ✅ | Debloque 11 US en aval (taches, factures, calendrier, portail, KPI, relances) |
 | **US-13 Facture** ⭐ ✅ | Debloque 9 US en aval (PDF DGI, paiements, avoirs, relances, portail, KPI) |
 
-> Sprint 3 en cours : US-36 ✅, US-37 ✅, US-38 ✅, US-39 ✅.
+> Sprint 3 en cours : US-36 ✅, US-37 ✅, US-38 ✅, US-39 ✅, US-45 ✅.
 > Restants Sprint 3 : US-35 (rapport clôture), US-41 (protections suppression), US-42 (dashboard collaborateur).
 
 ---

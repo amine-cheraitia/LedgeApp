@@ -42,92 +42,127 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/me', [AuthController::class, 'me']);
 
-        // Back-office
+        // ─── Back-office ─────────────────────────────────────────────────────
         Route::middleware('backoffice')->group(function () {
 
-            // Dashboard stats
-            Route::get('/stats', [DashboardController::class, 'stats']);
+            // ── Admin uniquement ─────────────────────────────────────────────
+            Route::middleware('role:admin')->group(function () {
+                // Gestion utilisateurs
+                Route::post('users', [UserController::class, 'store']);
+                Route::put('users/{user}', [UserController::class, 'update']);
+                Route::delete('users/{user}', [UserController::class, 'destroy']);
 
-            // KPI objectifs collaborateurs (US-34)
-            Route::get('/kpi/objectifs', [KpiController::class, 'index']);
-            Route::post('/kpi/objectifs', [KpiController::class, 'upsert']);
-            Route::delete('/kpi/objectifs/{objectif}', [KpiController::class, 'destroy']);
+                // Parametres cabinet (ecriture)
+                Route::put('settings', [SettingController::class, 'update']);
 
-            // Users
-            Route::apiResource('users', UserController::class);
+                // Entreprises (ecriture + portail)
+                Route::post('entreprises', [EntrepriseController::class, 'store']);
+                Route::put('entreprises/{entreprise}', [EntrepriseController::class, 'update']);
+                Route::delete('entreprises/{entreprise}', [EntrepriseController::class, 'destroy']);
+                Route::post('entreprises/{entreprise}/activer-portail', [EntrepriseController::class, 'activerPortail']);
+                Route::post('entreprises/{entreprise}/toggle-portail', [EntrepriseController::class, 'togglePortail']);
 
-            // Entreprises
-            Route::get('entreprises/wilayas', [EntrepriseController::class, 'wilayas']);
-            Route::get('entreprises/export-csv', [EntrepriseController::class, 'exportCsv']);
-            Route::apiResource('entreprises', EntrepriseController::class);
-            Route::post('entreprises/{entreprise}/activer-portail', [EntrepriseController::class, 'activerPortail']);
-            Route::post('entreprises/{entreprise}/toggle-portail', [EntrepriseController::class, 'togglePortail']);
+                // Exercices (ecriture)
+                Route::post('exercices', [ExerciceController::class, 'store']);
+                Route::put('exercices/{exercice}', [ExerciceController::class, 'update']);
+                Route::delete('exercices/{exercice}', [ExerciceController::class, 'destroy']);
 
-            // Contacts entreprise
-            Route::get('entreprises/{entreprise}/contacts', [ContactController::class, 'index']);
-            Route::post('entreprises/{entreprise}/contacts', [ContactController::class, 'store']);
-            Route::put('entreprises/{entreprise}/contacts/{contact}', [ContactController::class, 'update']);
-            Route::delete('entreprises/{entreprise}/contacts/{contact}', [ContactController::class, 'destroy']);
+                // Prestations (ecriture)
+                Route::post('prestations', [PrestationController::class, 'store']);
+                Route::put('prestations/{prestation}', [PrestationController::class, 'update']);
+                Route::delete('prestations/{prestation}', [PrestationController::class, 'destroy']);
 
-            // Exercices
-            Route::get('exercices/current', [ExerciceController::class, 'current']);
-            Route::apiResource('exercices', ExerciceController::class);
+                // KPI objectifs (ecriture)
+                Route::post('/kpi/objectifs', [KpiController::class, 'upsert']);
+                Route::delete('/kpi/objectifs/{objectif}', [KpiController::class, 'destroy']);
+            });
 
-            // Prestations
-            Route::get('prestations', [PrestationController::class, 'index']);
-            Route::post('prestations', [PrestationController::class, 'store']);
-            Route::get('prestations/{prestation}', [PrestationController::class, 'show']);
-            Route::put('prestations/{prestation}', [PrestationController::class, 'update']);
-            Route::delete('prestations/{prestation}', [PrestationController::class, 'destroy']);
-            Route::post('prestations/{prestation}/calculer-prix', [PrestationController::class, 'calculerPrix']);
+            // ── Admin + Secretaire ───────────────────────────────────────────
+            Route::middleware('role:admin|secretaire')->group(function () {
+                // Dashboard stats financieres
+                Route::get('/stats', [DashboardController::class, 'stats']);
 
-            // Settings (admin uniquement)
+                // KPI objectifs (lecture)
+                Route::get('/kpi/objectifs', [KpiController::class, 'index']);
+
+                // Entreprises (lecture + export)
+                Route::get('entreprises/wilayas', [EntrepriseController::class, 'wilayas']);
+                Route::get('entreprises/export-csv', [EntrepriseController::class, 'exportCsv']);
+                Route::get('entreprises', [EntrepriseController::class, 'index']);
+                Route::get('entreprises/{entreprise}', [EntrepriseController::class, 'show']);
+
+                // Contacts entreprise
+                Route::get('entreprises/{entreprise}/contacts', [ContactController::class, 'index']);
+                Route::post('entreprises/{entreprise}/contacts', [ContactController::class, 'store']);
+                Route::put('entreprises/{entreprise}/contacts/{contact}', [ContactController::class, 'update']);
+                Route::delete('entreprises/{entreprise}/contacts/{contact}', [ContactController::class, 'destroy']);
+
+                // Exercices (lecture)
+                Route::get('exercices/current', [ExerciceController::class, 'current']);
+                Route::get('exercices', [ExerciceController::class, 'index']);
+                Route::get('exercices/{exercice}', [ExerciceController::class, 'show']);
+
+                // Prestations (lecture + calcul)
+                Route::get('prestations', [PrestationController::class, 'index']);
+                Route::get('prestations/{prestation}', [PrestationController::class, 'show']);
+                Route::post('prestations/{prestation}/calculer-prix', [PrestationController::class, 'calculerPrix']);
+
+                // Facturation — Devis
+                Route::get('devis/{devis}/pdf', [DevisController::class, 'pdf']);
+                Route::post('devis/{devis}/envoyer', [DevisController::class, 'envoyer']);
+                Route::post('devis/{devis}/accepter', [DevisController::class, 'accepter']);
+                Route::post('devis/{devis}/refuser', [DevisController::class, 'refuser']);
+                Route::post('devis/{devis}/convertir-en-mission', [DevisController::class, 'convertirEnMission']);
+                Route::apiResource('devis', DevisController::class)->parameters(['devis' => 'devis']);
+
+                // Facturation — Factures
+                Route::get('factures/{facture}/pdf', [FactureController::class, 'pdf']);
+                Route::apiResource('factures', FactureController::class)->except(['update']);
+
+                // Facturation — Paiements (nested sous factures)
+                Route::get('factures/{facture}/paiements', [PaiementController::class, 'index']);
+                Route::post('factures/{facture}/paiements', [PaiementController::class, 'store']);
+                Route::delete('factures/{facture}/paiements/{paiement}', [PaiementController::class, 'destroy']);
+
+                // Facturation — Creances impayees
+                Route::get('creances', [CreanceController::class, 'index']);
+
+                // Facturation — Relances
+                Route::get('factures/{facture}/relances', [RelanceController::class, 'index']);
+                Route::post('factures/{facture}/relances', [RelanceController::class, 'store']);
+
+                // Facturation — Avoirs
+                Route::get('avoirs', [AvoirController::class, 'indexAll']);
+                Route::delete('avoirs/{avoir}', [AvoirController::class, 'destroy']);
+                Route::get('factures/{facture}/avoirs', [AvoirController::class, 'index']);
+                Route::post('factures/{facture}/avoirs', [AvoirController::class, 'store']);
+                Route::get('factures/{facture}/avoirs/{avoir}/pdf', [AvoirController::class, 'pdf']);
+            });
+
+            // ── Tous roles backoffice (admin + secretaire + collaborateur) ────
+            // Lecture utilisateurs (pour les selects d'assignation des taches)
+            Route::get('users', [UserController::class, 'index']);
+            Route::get('users/{user}', [UserController::class, 'show']);
+
+            // Parametres cabinet (lecture)
             Route::get('settings', [SettingController::class, 'index']);
-            Route::put('settings', [SettingController::class, 'update']);
 
-            // Planning — Calendrier
+            // Planning — Calendrier (filtre auto par user dans le service)
             Route::get('calendar', [CalendarController::class, 'index']);
 
-            // Planning — Missions
+            // Planning — Missions (filtre collaborateur dans MissionService + MissionPolicy)
             Route::get('missions/{mission}/convention/pdf', [MissionController::class, 'conventionPdf']);
             Route::get('missions/{mission}/mandat/pdf', [MissionController::class, 'mandatPdf']);
             Route::apiResource('missions', MissionController::class);
+
+            // Planning — Taches (gate mission dans TacheController::index)
             Route::apiResource('missions.taches', TacheController::class)->except(['show'])->parameters(['taches' => 'tache']);
+
+            // Planning — Commentaires (gate mission dans TacheCommentaireController)
             Route::apiResource('taches.commentaires', TacheCommentaireController::class)->except(['show'])->parameters(['commentaires' => 'commentaire']);
-
-            // Facturation — Devis
-            Route::get('devis/{devis}/pdf', [DevisController::class, 'pdf']);
-            Route::post('devis/{devis}/envoyer', [DevisController::class, 'envoyer']);
-            Route::post('devis/{devis}/accepter', [DevisController::class, 'accepter']);
-            Route::post('devis/{devis}/refuser', [DevisController::class, 'refuser']);
-            Route::post('devis/{devis}/convertir-en-mission', [DevisController::class, 'convertirEnMission']);
-            Route::apiResource('devis', DevisController::class)->parameters(['devis' => 'devis']);
-
-            // Facturation — Factures
-            Route::get('factures/{facture}/pdf', [FactureController::class, 'pdf']);
-            Route::apiResource('factures', FactureController::class)->except(['update']);
-
-            // Facturation — Paiements (nested sous factures)
-            Route::get('factures/{facture}/paiements', [PaiementController::class, 'index']);
-            Route::post('factures/{facture}/paiements', [PaiementController::class, 'store']);
-            Route::delete('factures/{facture}/paiements/{paiement}', [PaiementController::class, 'destroy']);
-
-            // Facturation — Creances impayees
-            Route::get('creances', [CreanceController::class, 'index']);
-
-            // Facturation — Relances
-            Route::get('factures/{facture}/relances', [RelanceController::class, 'index']);
-            Route::post('factures/{facture}/relances', [RelanceController::class, 'store']);
-
-            // Facturation — Avoirs
-            Route::get('avoirs', [AvoirController::class, 'indexAll']);
-            Route::delete('avoirs/{avoir}', [AvoirController::class, 'destroy']);
-            Route::get('factures/{facture}/avoirs', [AvoirController::class, 'index']);
-            Route::post('factures/{facture}/avoirs', [AvoirController::class, 'store']);
-            Route::get('factures/{facture}/avoirs/{avoir}/pdf', [AvoirController::class, 'pdf']);
         });
 
-        // Portail client
+        // ─── Portail client ───────────────────────────────────────────────────
         Route::middleware('portail')->prefix('portail')->group(function () {
             Route::get('me', [PortailController::class, 'me']);
 

@@ -17,6 +17,8 @@ class TacheCommentaireController extends Controller
 {
     public function index(Tache $tache): AnonymousResourceCollection
     {
+        $this->authorize('view', $tache->mission);
+
         return TacheCommentaireResource::collection(
             $tache->commentaires()->with('user')->latest()->get()
         );
@@ -24,6 +26,8 @@ class TacheCommentaireController extends Controller
 
     public function store(StoreTacheCommentaireRequest $request, Tache $tache): JsonResponse
     {
+        $this->authorize('view', $tache->mission);
+
         $commentaire = $tache->commentaires()->create([
             'user_id' => $request->user()->id,
             'contenu' => $request->validated('contenu'),

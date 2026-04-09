@@ -123,6 +123,17 @@ export interface Tache {
   updated_at: string
 }
 
+export interface TacheCommentaire {
+  id: number
+  tache_id: number
+  user_id: number
+  contenu: string
+  visible_portail: boolean
+  user?: Pick<User, 'id' | 'name'>
+  created_at: string
+  updated_at: string
+}
+
 export interface Devis {
   id: number
   entreprise_id: number

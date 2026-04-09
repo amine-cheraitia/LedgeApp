@@ -9,6 +9,20 @@ use App\Models\User;
 
 class MissionPolicy
 {
+    public function viewAny(User $user): bool
+    {
+        return $user->hasAnyRole(['admin', 'secretaire', 'collaborateur']);
+    }
+
+    public function view(User $user, Mission $mission): bool
+    {
+        if ($user->hasAnyRole(['admin', 'secretaire'])) {
+            return true;
+        }
+
+        return $mission->collaborateurs()->where('user_id', $user->id)->exists();
+    }
+
     public function create(User $user): bool
     {
         return $user->hasAnyRole(['admin', 'secretaire']);
@@ -16,8 +30,7 @@ class MissionPolicy
 
     public function update(User $user, Mission $mission): bool
     {
-        return $user->hasRole('admin')
-            || $mission->collaborateurs()->where('user_id', $user->id)->exists();
+        return $user->hasAnyRole(['admin', 'secretaire']);
     }
 
     public function delete(User $user, Mission $mission): bool
