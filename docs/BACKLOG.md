@@ -527,6 +527,21 @@
 
 ---
 
+### US-46 · Rapport de fin de mission PDF · S · 3 pts · Sprint 3 🔧
+
+**En tant qu'administrateur ou client**, je veux générer un rapport PDF de fin de mission **afin d'** avoir un récapitulatif complet des travaux effectués avec les commentaires associés.
+
+- DomPDF · en-tête cabinet · informations mission (client, prestation, dates, prix HT)
+- Tâches listées avec statut, assigné, priorité, échéance
+- Commentaires par tâche : auteur + date + contenu
+- Mode portail : uniquement les commentaires avec `visible_portail = true` · section facturation masquée
+- Accessible via `GET /api/v1/missions/{id}/rapport/pdf` (admin + secrétaire)
+- Accessible via `GET /api/v1/portail/missions/{id}/rapport/pdf` (client portail)
+- Bouton dans la section Documents de MissionDetailPage · bouton dans le dialog détail portail
+- Depend de : **US-18, US-22, US-29**
+
+---
+
 ### US-44 · Envoi devis par mail · C · 3 pts · Apres Sprint 3
 
 **En tant qu'administrateur**, je veux envoyer le devis par mail au contact principal de l'entreprise **afin que** le client le recoive directement sans manipulation manuelle.
@@ -546,8 +561,8 @@
 |---|---|---|---|
 | Sprint 1 | US-01 ✅, 02 ✅, 03 ✅, 04 ✅, 05 ✅, 06 ✅, 07 ✅, 08 ✅, 09 ✅, 11 ✅, 12 ✅, 17 ✅, 18 ✅, 40 ✅, 43 ✅ | 49 pts | Auth · Referentiel · Clients · Devis · Mission · Exercice |
 | Sprint 2 | US-10 ✅, 13 ✅, 14 ✅, 15 ✅, 16 ✅, 19 ✅, 20 ✅, 21 ✅, 22 ✅, 23 ✅, 24 ✅, 25 ✅, 26 ✅, 27 ✅, 28 ✅, 29 ✅, 30 ✅, 31 ✅, 32 ✅, 33 ✅, 34 ✅ | 96 pts | Factures · Taches · Portail · Relances · KPI |
-| Sprint 3 | US-35, 36 ✅, 37 ✅, 38 ✅, 39 ✅, 41, 42, 45 ✅ | 30 pts | Qualite · OWASP · RGAA · Tests · MCO · Droits |
-| **Total** | **44 US** | **173 pts** | |
+| Sprint 3 | US-35, 36 ✅, 37 ✅, 38 ✅, 39 ✅, 41, 42, 45 ✅, 46 🔧 | 33 pts | Qualite · OWASP · RGAA · Tests · MCO · Droits · PDF mission |
+| **Total** | **45 US** | **176 pts** | |
 
 ### Par priorite MoSCoW
 
@@ -561,7 +576,7 @@
 | Statut | US | Pts |
 |---|---|---|
 | ✅ Termine | 40 US | 147 pts |
-| 🔧 En cours | — | — |
+| 🔧 En cours | 1 US (US-46) | 3 pts |
 | A faire | 4 US | 26 pts |
 
 ### Noeuds critiques
@@ -571,8 +586,8 @@
 | **US-18 Mission** ⭐ ✅ | Debloque 11 US en aval (taches, factures, calendrier, portail, KPI, relances) |
 | **US-13 Facture** ⭐ ✅ | Debloque 9 US en aval (PDF DGI, paiements, avoirs, relances, portail, KPI) |
 
-> Sprint 3 en cours : US-36 ✅, US-37 ✅, US-38 ✅, US-39 ✅, US-45 ✅.
-> Restants Sprint 3 : US-35 (rapport clôture), US-41 (protections suppression), US-42 (dashboard collaborateur).
+> Sprint 3 en cours : US-36 ✅, US-37 ✅, US-38 ✅, US-39 ✅, US-45 ✅, US-46 🔧.
+> Restants Sprint 3 : US-35 (rapport clôture exercice), US-41 (protections suppression), US-42 (dashboard collaborateur).
 
 ---
 

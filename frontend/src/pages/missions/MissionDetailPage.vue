@@ -131,6 +131,10 @@ async function toggleVisiblePortail() {
   }
 }
 
+function telechargerRapport() {
+  window.open(missionsApi.rapportPdfUrl(missionId.value), '_blank')
+}
+
 async function telechargerConvention() {
   if (!mission.value) return
   loadingConvention.value = true
@@ -429,6 +433,24 @@ onMounted(() => {
             :loading="loadingMandat"
             aria-label="Télécharger le mandat d'acceptation"
             @click="telechargerMandat"
+          />
+        </div>
+
+        <div class="doc-card">
+          <div class="doc-info">
+            <i class="pi pi-file-pdf" style="font-size: 1.4rem; color: #c0392b;" aria-hidden="true"></i>
+            <div>
+              <div class="doc-label">Rapport de fin de mission</div>
+              <div class="doc-ref">Tâches · Commentaires · Facturation</div>
+            </div>
+          </div>
+          <Button
+            label="Générer"
+            icon="pi pi-download"
+            severity="secondary"
+            size="small"
+            aria-label="Télécharger le rapport de fin de mission en PDF"
+            @click="telechargerRapport"
           />
         </div>
       </div>

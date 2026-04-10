@@ -64,6 +64,15 @@ class MissionController extends Controller
         return new MissionResource($mission);
     }
 
+    public function rapportPdf(Mission $mission): Response
+    {
+        $this->authorize('view', $mission);
+
+        return $this->pdfService
+            ->genererRapportMission($mission, false)
+            ->stream('rapport-mission-'.$mission->reference.'.pdf');
+    }
+
     public function conventionPdf(Mission $mission): Response
     {
         $this->missionService->obtenirNumeroConvention($mission);

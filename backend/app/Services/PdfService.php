@@ -47,6 +47,33 @@ class PdfService
             ->setPaper('a4', 'portrait');
     }
 
+    public function genererRapportMission(Mission $mission, bool $portailMode = false): PdfInstance
+    {
+        $mission->load([
+            'entreprise',
+            'prestation',
+            'exercice',
+            'collaborateurs',
+            'taches.assignee',
+            'taches.commentaires.user',
+            'factures.paiements',
+        ]);
+
+        if ($portailMode) {
+            $mission->taches->each(function ($tache): void {
+                $tache->setRelation(
+                    'commentaires',
+                    $tache->commentaires->where('visible_portail', true)->values()
+                );
+            });
+        }
+
+        $cabinet = $this->getCabinetInfo();
+
+        return Pdf::loadView('pdf.rapport-mission', compact('mission', 'cabinet', 'portailMode'))
+            ->setPaper('a4', 'portrait');
+    }
+
     public function genererConvention(Mission $mission): PdfInstance
     {
         $mission->load('entreprise', 'prestation', 'exercice');
