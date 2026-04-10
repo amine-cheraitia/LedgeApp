@@ -51,6 +51,10 @@ export const portailApi = {
     return api.get(`/portail/missions/${id}`).then(r => r.data)
   },
 
+  rapportMissionPdfUrl(missionId: number): string {
+    return `/api/v1/portail/missions/${missionId}/rapport/pdf`
+  },
+
   // US-32 — Mes documents
   getDocuments(): Promise<{ data: Mission[] }> {
     return api.get('/portail/documents').then(r => r.data)

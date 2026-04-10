@@ -51,6 +51,10 @@ export const missionsApi = {
     return api.delete(`/missions/${id}`)
   },
 
+  rapportPdfUrl(id: number): string {
+    return `/api/v1/missions/${id}/rapport/pdf`
+  },
+
   conventionPdfUrl(id: number): string {
     return `/api/v1/missions/${id}/convention/pdf`
   },

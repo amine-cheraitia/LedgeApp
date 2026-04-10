@@ -151,6 +151,7 @@ Route::prefix('v1')->group(function () {
             Route::get('calendar', [CalendarController::class, 'index']);
 
             // Planning — Missions (filtre collaborateur dans MissionService + MissionPolicy)
+            Route::get('missions/{mission}/rapport/pdf', [MissionController::class, 'rapportPdf']);
             Route::get('missions/{mission}/convention/pdf', [MissionController::class, 'conventionPdf']);
             Route::get('missions/{mission}/mandat/pdf', [MissionController::class, 'mandatPdf']);
             Route::apiResource('missions', MissionController::class);
@@ -173,6 +174,7 @@ Route::prefix('v1')->group(function () {
             // US-31 — Mes missions
             Route::get('missions', [PortailMissionController::class, 'index']);
             Route::get('missions/{mission}', [PortailMissionController::class, 'show']);
+            Route::get('missions/{mission}/rapport/pdf', [PortailMissionController::class, 'rapportPdf']);
 
             // US-32 — Mes documents
             Route::get('documents', [PortailDocumentController::class, 'index']);

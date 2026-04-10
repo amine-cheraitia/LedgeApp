@@ -9,6 +9,24 @@
 
 ## [Unreleased]
 
+### Rapport PDF fin de mission — (feature/rapport-fin-mission)
+
+#### Backend
+- **`PdfService::genererRapportMission()`** : génération du rapport PDF enrichi — eager loading `factures.paiements`, filtre `visible_portail=true` en mode portail
+- **`rapport-mission.blade.php`** (nouveau) : template DomPDF complet avec 6 sections : résumé exécutif (durée / avancement / financier), informations mission, chronologie jalons, statistiques tâches par statut, tâches + commentaires filtrés, facturation avec paiements par facture et solde global
+- **`MissionController::rapportPdf()`** : endpoint `GET /missions/{mission}/rapport/pdf` — admin/secrétaire uniquement, mode back-office (commentaires internes inclus)
+- **`PortailMissionController::rapportPdf()`** : endpoint `GET /portail/missions/{mission}/rapport/pdf` — client uniquement, mode portail (commentaires `visible_portail=true` uniquement, montants HT et bloc total masqués)
+- **`routes/api.php`** : 2 routes rapport PDF ajoutées (backoffice + portail)
+- **150 tests / 351 assertions** — aucune régression
+
+#### Frontend
+- **`api/modules/missions.ts`** : ajout de `rapportPdfUrl(id)` pour l'URL de génération back-office
+- **`api/modules/portail.ts`** : ajout de `rapportMissionPdfUrl(missionId)` pour l'URL portail
+- **`MissionDetailPage.vue`** : bouton "Télécharger le rapport PDF" dans la section Documents (masqué pour les collaborateurs)
+- **`PortailMissionsPage.vue`** : bouton "Télécharger le rapport PDF" dans le dialog détail mission
+
+---
+
 ### Page dédiée tâche + corrections commentaires — (develop)
 
 #### Backend
