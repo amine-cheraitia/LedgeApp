@@ -110,7 +110,9 @@ class FacturationService
     public function creerDevis(array $data, int $userId): Devis
     {
         return DB::transaction(function () use ($data, $userId) {
-            $exercice = Exercice::current();
+            $exercice = isset($data['exercice_id'])
+                ? Exercice::findOrFail($data['exercice_id'])
+                : Exercice::current();
             $prefixe = Setting::get('devis_prefixe', 'DV');
 
             $entreprise = Entreprise::findOrFail($data['entreprise_id']);
@@ -244,7 +246,9 @@ class FacturationService
             $montantTva = round($montantHt * $tauxTva / 100, 2);
             $montantTtc = round($montantHt + $montantTva, 2);
 
-            $exercice = Exercice::current();
+            $exercice = isset($data['exercice_id'])
+                ? Exercice::findOrFail($data['exercice_id'])
+                : Exercice::current();
             $prefixe = Setting::get('facture_prefixe', 'FF');
             $designation = $mission->prestation->designation.' — '.($tranche['taux'] * 100).'%';
 

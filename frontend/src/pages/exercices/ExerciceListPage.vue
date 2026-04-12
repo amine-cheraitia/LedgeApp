@@ -9,14 +9,18 @@ import InputNumber from 'primevue/inputnumber'
 import DatePicker from 'primevue/datepicker'
 import Select from 'primevue/select'
 import { useExercices } from '@/composables/useExercices'
+import { useAuthStore } from '@/stores/auth'
+import { exercicesApi } from '@/api/modules/exercices'
 import type { Exercice } from '@/types'
 import type { ExercicePayload } from '@/api/modules/exercices'
 
 const { exercices, loading, fetchExercices, createExercice, updateExercice } = useExercices()
+const auth = useAuthStore()
 
 const dialogVisible = ref(false)
 const editMode = ref(false)
 const saving = ref(false)
+const downloadingId = ref<number | null>(null)
 
 const emptyForm = (): ExercicePayload => ({
   annee: new Date().getFullYear(),
@@ -88,6 +92,23 @@ async function onSubmit() {
   }
 }
 
+async function telechargerRapport(exercice: Exercice) {
+  downloadingId.value = exercice.id
+  try {
+    const blob = await exercicesApi.rapportCloturePdf(exercice.id)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `rapport-cloture-${exercice.annee}.pdf`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch {
+    // erreur silencieuse
+  } finally {
+    downloadingId.value = null
+  }
+}
+
 onMounted(fetchExercices)
 </script>
 
@@ -121,9 +142,27 @@ onMounted(fetchExercices)
           <Tag :value="data.statut" :severity="data.statut === 'ouvert' ? 'success' : 'secondary'" />
         </template>
       </Column>
-      <Column header="Actions" style="width: 5rem">
+      <Column header="Actions" style="width: 8rem">
         <template #body="{ data }">
-          <Button icon="pi pi-pencil" text severity="info" aria-label="Modifier" @click="openEdit(data)" />
+          <div style="display: flex; gap: 0.25rem; align-items: center;">
+            <Button
+              icon="pi pi-pencil"
+              text
+              severity="info"
+              aria-label="Modifier l'exercice"
+              @click="openEdit(data)"
+            />
+            <Button
+              v-if="auth.isAdmin"
+              icon="pi pi-file-pdf"
+              text
+              severity="secondary"
+              :loading="downloadingId === data.id"
+              :aria-label="`Télécharger le rapport de clôture ${data.annee}`"
+              :title="`Rapport de clôture ${data.annee}`"
+              @click="telechargerRapport(data)"
+            />
+          </div>
         </template>
       </Column>
     </DataTable>

@@ -20,13 +20,16 @@ import Textarea from 'primevue/textarea'
 import { useFactures } from '@/composables/useFactures'
 import { useMissions } from '@/composables/useMissions'
 import { useExercices } from '@/composables/useExercices'
+import { useAuthStore } from '@/stores/auth'
 import { avoirsApi } from '@/api/modules/avoirs'
 import type { Facture, Avoir } from '@/types'
 import type { PaiementPayload } from '@/api/modules/factures'
 
 const toast = useToast()
 const confirm = useConfirm()
+const auth = useAuthStore()
 const { exercices, exerciceCourant, fetchExercices, fetchExerciceCourant } = useExercices()
+const exercicesOuverts = computed(() => exercices.value.filter((e: { statut: string }) => e.statut === 'ouvert'))
 
 const {
   factures, loading, totalRecords, filters,
@@ -110,6 +113,7 @@ const dialogVisible = ref(false)
 const saving = ref(false)
 const form = reactive({
   mission_id: null as number | null,
+  exercice_id: null as number | null,
   date_facture: new Date() as Date,
   notes: '',
 })
@@ -132,6 +136,7 @@ function trancheLabel(mission_id: number | null): string {
 
 function openCreate() {
   form.mission_id = null
+  form.exercice_id = exerciceCourant.value?.id ?? null
   form.date_facture = new Date()
   form.notes = ''
   dialogVisible.value = true
@@ -143,6 +148,7 @@ async function onSubmitFacture() {
   try {
     await createFacture({
       mission_id: form.mission_id,
+      exercice_id: form.exercice_id ?? undefined,
       date_facture: toIsoDate(form.date_facture),
       notes: form.notes || null,
     })
@@ -508,6 +514,21 @@ onMounted(async () => {
       :style="{ width: '34rem' }"
     >
       <form @submit.prevent="onSubmitFacture" class="dialog-form">
+        <div v-if="auth.isAdmin" class="form-field">
+          <label for="f-exercice-create">Exercice *</label>
+          <Select
+            id="f-exercice-create"
+            v-model="form.exercice_id"
+            :options="exercicesOuverts"
+            optionLabel="annee"
+            optionValue="id"
+            placeholder="Exercice ouvert..."
+            required
+            fluid
+            aria-label="Sélectionner l'exercice fiscal"
+          />
+        </div>
+
         <div class="form-field">
           <label for="f-mission">Mission *</label>
           <Select

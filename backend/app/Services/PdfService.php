@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\Avoir;
 use App\Models\Devis;
+use App\Models\Exercice;
 use App\Models\Facture;
 use App\Models\Mission;
 use App\Models\Setting;
@@ -71,6 +72,42 @@ class PdfService
         $cabinet = $this->getCabinetInfo();
 
         return Pdf::loadView('pdf.rapport-mission', compact('mission', 'cabinet', 'portailMode'))
+            ->setPaper('a4', 'portrait');
+    }
+
+    public function genererRapportCloture(Exercice $exercice): PdfInstance
+    {
+        $factures = Facture::where('exercice_id', $exercice->id)
+            ->where('type', 'facture')
+            ->with('entreprise')
+            ->orderBy('date_facture')
+            ->get();
+
+        $mois = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $mois[$m] = ['ca' => 0.0, 'tva' => 0.0, 'timbre' => 0.0, 'nb' => 0];
+        }
+
+        foreach ($factures as $facture) {
+            $m = (int) $facture->date_facture->format('n');
+            $mois[$m]['ca'] += (float) $facture->montant_ht;
+            $mois[$m]['tva'] += (float) $facture->montant_tva;
+            $mois[$m]['timbre'] += (float) $facture->montant_timbre;
+            $mois[$m]['nb']++;
+        }
+
+        $totaux = [
+            'ca' => array_sum(array_column($mois, 'ca')),
+            'tva' => array_sum(array_column($mois, 'tva')),
+            'timbre' => array_sum(array_column($mois, 'timbre')),
+            'nb' => array_sum(array_column($mois, 'nb')),
+        ];
+
+        $impayes = $factures->filter(fn ($f) => $f->statut_paiement !== 'solde')->values();
+
+        $cabinet = $this->getCabinetInfo();
+
+        return Pdf::loadView('pdf.rapport-cloture', compact('exercice', 'mois', 'totaux', 'impayes', 'cabinet'))
             ->setPaper('a4', 'portrait');
     }
 

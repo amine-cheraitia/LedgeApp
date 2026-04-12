@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -16,9 +16,11 @@ import { useEntreprises } from '@/composables/useEntreprises'
 import { usePrestations } from '@/composables/usePrestations'
 import { useUsers } from '@/composables/useUsers'
 import { useExercices } from '@/composables/useExercices'
+import { useAuthStore } from '@/stores/auth'
 import type { Devis } from '@/types'
 
 const confirm = useConfirm()
+const auth = useAuthStore()
 const {
   devisList, loading, totalRecords, filters,
   fetchDevis, createDevis, updateDevis, envoyerDevis, accepterDevis, refuserDevis,
@@ -37,11 +39,14 @@ watch(search, (val) => onSearch(val))
 watch(exerciceSelectionne, (val) => setExercice(val))
 
 // Dialog creation devis
+const exercicesOuverts = computed(() => exercices.value.filter((e: { statut: string }) => e.statut === 'ouvert'))
+
 const dialogVisible = ref(false)
 const saving = ref(false)
 const form = reactive({
   entreprise_id: null as number | null,
   prestation_id: null as number | null,
+  exercice_id: null as number | null,
   date_devis: null as Date | null,
   date_validite: null as Date | null,
   notes: '',
@@ -112,6 +117,7 @@ function statutColor(statut: string) {
 function openCreate() {
   form.entreprise_id = null
   form.prestation_id = null
+  form.exercice_id = exerciceCourant.value?.id ?? null
   form.date_devis = null
   form.date_validite = null
   form.notes = ''
@@ -125,6 +131,7 @@ async function onSubmit() {
     await createDevis({
       entreprise_id: form.entreprise_id,
       prestation_id: form.prestation_id,
+      exercice_id: form.exercice_id ?? undefined,
       date_devis: toIsoDate(form.date_devis),
       date_validite: toIsoDate(form.date_validite),
       notes: form.notes || null,
@@ -367,6 +374,21 @@ onMounted(async () => {
       :style="{ width: '36rem' }"
     >
       <form @submit.prevent="onSubmit" class="dialog-form">
+        <div v-if="auth.isAdmin" class="form-field">
+          <label for="dv-exercice-create">Exercice *</label>
+          <Select
+            id="dv-exercice-create"
+            v-model="form.exercice_id"
+            :options="exercicesOuverts"
+            optionLabel="annee"
+            optionValue="id"
+            placeholder="Exercice ouvert..."
+            required
+            fluid
+            aria-label="Sélectionner l'exercice fiscal"
+          />
+        </div>
+
         <div class="form-field">
           <label for="dv-entreprise">Entreprise *</label>
           <Select

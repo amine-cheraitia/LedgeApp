@@ -97,7 +97,9 @@ class MissionService
     public function creerMission(array $data): Mission
     {
         return DB::transaction(function () use ($data) {
-            $exercice = Exercice::current();
+            $exercice = isset($data['exercice_id'])
+                ? Exercice::findOrFail($data['exercice_id'])
+                : Exercice::current();
             $entreprise = Entreprise::findOrFail($data['entreprise_id']);
             $prestation = Prestation::findOrFail($data['prestation_id']);
 

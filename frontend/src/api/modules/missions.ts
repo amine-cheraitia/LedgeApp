@@ -15,6 +15,7 @@ export interface MissionFilters {
 export interface MissionPayload {
   entreprise_id: number
   prestation_id: number
+  exercice_id?: number
   date_debut: string
   date_fin: string
   collaborateur_ids?: number[]
