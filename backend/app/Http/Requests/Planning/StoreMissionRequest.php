@@ -20,14 +20,14 @@ class StoreMissionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'entreprise_id'    => ['required', 'integer', 'exists:entreprises,id'],
-            'prestation_id'    => ['required', 'integer', 'exists:prestations,id'],
-            'exercice_id'      => ['nullable', 'integer', Rule::exists('exercices', 'id')->where('statut', 'ouvert')],
-            'date_debut'       => ['required', 'date'],
-            'date_fin'         => ['required', 'date', 'after_or_equal:date_debut'],
-            'collaborateur_ids'   => ['nullable', 'array'],
+            'entreprise_id' => ['required', 'integer', 'exists:entreprises,id'],
+            'prestation_id' => ['required', 'integer', 'exists:prestations,id'],
+            'exercice_id' => ['nullable', 'integer', Rule::exists('exercices', 'id')->where('statut', 'ouvert')],
+            'date_debut' => ['required', 'date'],
+            'date_fin' => ['required', 'date', 'after_or_equal:date_debut'],
+            'collaborateur_ids' => ['nullable', 'array'],
             'collaborateur_ids.*' => ['integer', 'exists:users,id'],
-            'notes'            => ['nullable', 'string', 'max:2000'],
+            'notes' => ['nullable', 'string', 'max:2000'],
         ];
     }
 

@@ -20,10 +20,10 @@ class StoreFactureRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'mission_id'  => ['required', 'exists:missions,id'],
+            'mission_id' => ['required', 'exists:missions,id'],
             'exercice_id' => ['nullable', 'integer', Rule::exists('exercices', 'id')->where('statut', 'ouvert')],
             'date_facture' => ['required', 'date'],
-            'notes'        => ['nullable', 'string', 'max:2000'],
+            'notes' => ['nullable', 'string', 'max:2000'],
         ];
     }
 

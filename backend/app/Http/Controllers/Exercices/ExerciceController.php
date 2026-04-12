@@ -57,7 +57,7 @@ class ExerciceController extends Controller
         $filename = 'rapport-cloture-'.$exercice->annee.'.pdf';
 
         return response()->streamDownload(
-            fn () => print($pdf->output()),
+            fn () => print ($pdf->output()),
             $filename,
             ['Content-Type' => 'application/pdf']
         );

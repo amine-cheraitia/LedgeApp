@@ -22,10 +22,10 @@ class StoreDevisRequest extends FormRequest
         return [
             'entreprise_id' => ['required', 'exists:entreprises,id'],
             'prestation_id' => ['required', 'exists:prestations,id'],
-            'exercice_id'   => ['nullable', 'integer', Rule::exists('exercices', 'id')->where('statut', 'ouvert')],
-            'date_devis'    => ['required', 'date'],
+            'exercice_id' => ['nullable', 'integer', Rule::exists('exercices', 'id')->where('statut', 'ouvert')],
+            'date_devis' => ['required', 'date'],
             'date_validite' => ['required', 'date', 'after_or_equal:date_devis'],
-            'notes'         => ['nullable', 'string'],
+            'notes' => ['nullable', 'string'],
         ];
     }
 
