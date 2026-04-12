@@ -69,7 +69,6 @@ export interface CollaborateurStats {
     mission_id: number
     titre: string
     statut: string
-    priorite: string
     date_fin: string | null
     mission_reference: string | null
     entreprise: string | null

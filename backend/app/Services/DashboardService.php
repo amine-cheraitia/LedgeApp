@@ -196,7 +196,7 @@ class DashboardService
             ->where('assigned_to', $user->id)
             ->whereIn('statut', ['a_faire', 'en_cours'])
             ->orderByRaw("CASE WHEN statut = 'en_cours' THEN 0 ELSE 1 END")
-            ->orderBy('date_fin')
+            ->orderBy('date_echeance')
             ->take(5)
             ->get()
             ->map(fn (Tache $t) => [
@@ -204,11 +204,10 @@ class DashboardService
                 'mission_id' => $t->mission_id,
                 'titre' => $t->titre,
                 'statut' => $t->statut,
-                'priorite' => $t->priorite ?? 'normale',
-                'date_fin' => $t->date_fin,
+                'date_fin' => $t->date_echeance,
                 'mission_reference' => $t->mission?->reference,
                 'entreprise' => $t->mission?->entreprise?->raison_sociale,
-                'en_retard' => $t->date_fin && Carbon::parse($t->date_fin)->isPast(),
+                'en_retard' => $t->date_echeance && Carbon::parse($t->date_echeance)->isPast(),
             ]);
 
         return [

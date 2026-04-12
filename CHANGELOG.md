@@ -20,6 +20,11 @@
 - **`api/modules/stats.ts`** : interface `CollaborateurStats` + méthode `getCollaborateurDashboard()`
 - **`DashboardPage.vue`** : dashboard collaborateur dédié — 4 cartes KPI (missions assignées, mes tâches, taux de complétion, tâches bloquées), tableau `mes_missions` avec ProgressBar, liste `mes_taches_urgentes` avec Tag statut et indicateur retard rouge
 
+#### Correctifs
+- **`DashboardService`** : colonne `date_fin` corrigée en `date_echeance` (nom réel dans `taches`) — le tri et le calcul retard fonctionnent désormais correctement
+- **`DashboardPage.vue`** : import `ProgressSpinner` manquant ajouté — le spinner de chargement s'affiche correctement
+- **`api/modules/stats.ts`** : champ `priorite` retiré du type `CollaborateurStats` (non utilisé en vue)
+
 ---
 
 ### Rapport PDF fin de mission — (feature/rapport-fin-mission)
