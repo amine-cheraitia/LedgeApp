@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Exercices;
 
 use App\Http\Controllers\Controller;
@@ -7,11 +9,15 @@ use App\Http\Requests\Exercices\StoreExerciceRequest;
 use App\Http\Requests\Exercices\UpdateExerciceRequest;
 use App\Http\Resources\Exercices\ExerciceResource;
 use App\Models\Exercice;
+use App\Services\PdfService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ExerciceController extends Controller
 {
+    public function __construct(private readonly PdfService $pdfService) {}
+
     public function index(): AnonymousResourceCollection
     {
         $exercices = Exercice::latest('annee')->get();
@@ -43,5 +49,17 @@ class ExerciceController extends Controller
     public function current(): ExerciceResource
     {
         return new ExerciceResource(Exercice::current());
+    }
+
+    public function rapportCloturePdf(Exercice $exercice): StreamedResponse
+    {
+        $pdf = $this->pdfService->genererRapportCloture($exercice);
+        $filename = 'rapport-cloture-'.$exercice->annee.'.pdf';
+
+        return response()->streamDownload(
+            fn () => print($pdf->output()),
+            $filename,
+            ['Content-Type' => 'application/pdf']
+        );
     }
 }

@@ -62,10 +62,11 @@ Route::prefix('v1')->group(function () {
                 Route::post('entreprises/{entreprise}/activer-portail', [EntrepriseController::class, 'activerPortail']);
                 Route::post('entreprises/{entreprise}/toggle-portail', [EntrepriseController::class, 'togglePortail']);
 
-                // Exercices (ecriture)
+                // Exercices (ecriture + rapport cloture)
                 Route::post('exercices', [ExerciceController::class, 'store']);
                 Route::put('exercices/{exercice}', [ExerciceController::class, 'update']);
                 Route::delete('exercices/{exercice}', [ExerciceController::class, 'destroy']);
+                Route::get('exercices/{exercice}/rapport-cloture/pdf', [ExerciceController::class, 'rapportCloturePdf']);
 
                 // Prestations (ecriture)
                 Route::post('prestations', [PrestationController::class, 'store']);

@@ -28,4 +28,8 @@ export const exercicesApi = {
   update(id: number, data: Partial<ExercicePayload>): Promise<{ data: Exercice }> {
     return api.put(`/exercices/${id}`, data).then(r => r.data)
   },
+
+  rapportCloturePdf(id: number): Promise<Blob> {
+    return api.get(`/exercices/${id}/rapport-cloture/pdf`, { responseType: 'blob' }).then(r => r.data)
+  },
 }
