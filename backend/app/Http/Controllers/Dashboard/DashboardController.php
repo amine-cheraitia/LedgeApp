@@ -21,4 +21,11 @@ class DashboardController extends Controller
             'data' => $this->dashboardService->getStats($exerciceId),
         ]);
     }
+
+    public function collaborateurStats(Request $request): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->dashboardService->getCollaborateurStats($request->user()),
+        ]);
+    }
 }

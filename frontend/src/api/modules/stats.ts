@@ -43,6 +43,40 @@ export interface DashboardStats {
   }
 }
 
+export interface CollaborateurStats {
+  missions: { total: number; en_cours: number; terminees: number }
+  taches: {
+    total: number
+    a_faire: number
+    en_cours: number
+    terminees: number
+    bloquees: number
+    taux_completion: number
+  }
+  mes_missions: {
+    id: number
+    reference: string
+    statut: string
+    entreprise: string | null
+    prestation: string | null
+    date_fin: string | null
+    taches_total: number
+    taches_terminees: number
+    progression: number
+  }[]
+  mes_taches_urgentes: {
+    id: number
+    mission_id: number
+    titre: string
+    statut: string
+    priorite: string
+    date_fin: string | null
+    mission_reference: string | null
+    entreprise: string | null
+    en_retard: boolean
+  }[]
+}
+
 export type KpiObjectifType = 'ca_ht' | 'missions_cloturees' | 'taches_terminees'
 
 export interface KpiCollaborateur {
@@ -55,6 +89,10 @@ export const statsApi = {
   getDashboard(exerciceId?: number | null): Promise<{ data: DashboardStats }> {
     const params = exerciceId ? { exercice_id: exerciceId } : {}
     return api.get('/stats', { params }).then((r) => r.data)
+  },
+
+  getCollaborateurDashboard(): Promise<{ data: CollaborateurStats }> {
+    return api.get('/collaborateur/stats').then((r) => r.data)
   },
 
   getKpiObjectifs(exerciceId?: number | null): Promise<{ data: KpiCollaborateur[] }> {

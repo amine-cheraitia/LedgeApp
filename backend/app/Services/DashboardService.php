@@ -10,6 +10,8 @@ use App\Models\Exercice;
 use App\Models\Facture;
 use App\Models\Mission;
 use App\Models\Setting;
+use App\Models\Tache;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 
@@ -150,5 +152,81 @@ class DashboardService
         }
 
         return $alertes;
+    }
+
+    public function getCollaborateurStats(User $user): array
+    {
+        $missionIds = Mission::whereHas('collaborateurs', fn ($q) => $q->where('users.id', $user->id))
+            ->pluck('id');
+
+        $totalMissions = $missionIds->count();
+        $enCours = Mission::whereIn('id', $missionIds)->where('statut', 'en_cours')->count();
+        $terminees = Mission::whereIn('id', $missionIds)->where('statut', 'terminee')->count();
+
+        $totalTaches = Tache::where('assigned_to', $user->id)->count();
+        $aFaire = Tache::where('assigned_to', $user->id)->where('statut', 'a_faire')->count();
+        $tachesEnCours = Tache::where('assigned_to', $user->id)->where('statut', 'en_cours')->count();
+        $tachesTerminees = Tache::where('assigned_to', $user->id)->where('statut', 'termine')->count();
+        $bloquees = Tache::where('assigned_to', $user->id)->where('statut', 'bloque')->count();
+        $tauxCompletion = $totalTaches > 0 ? round($tachesTerminees / $totalTaches * 100, 1) : 0;
+
+        $mesMissions = Mission::with('entreprise', 'prestation')
+            ->whereIn('id', $missionIds)
+            ->latest('updated_at')
+            ->take(5)
+            ->get()
+            ->map(function (Mission $m) {
+                $tTotal = $m->taches()->count();
+                $tDone = $m->taches()->where('statut', 'termine')->count();
+
+                return [
+                    'id' => $m->id,
+                    'reference' => $m->reference,
+                    'statut' => $m->statut,
+                    'entreprise' => $m->entreprise?->raison_sociale,
+                    'prestation' => $m->prestation?->designation,
+                    'date_fin' => $m->date_fin,
+                    'taches_total' => $tTotal,
+                    'taches_terminees' => $tDone,
+                    'progression' => $tTotal > 0 ? round($tDone / $tTotal * 100) : 0,
+                ];
+            });
+
+        $mesTachesUrgentes = Tache::with('mission.entreprise')
+            ->where('assigned_to', $user->id)
+            ->whereIn('statut', ['a_faire', 'en_cours'])
+            ->orderByRaw("CASE WHEN statut = 'en_cours' THEN 0 ELSE 1 END")
+            ->orderBy('date_fin')
+            ->take(5)
+            ->get()
+            ->map(fn (Tache $t) => [
+                'id' => $t->id,
+                'mission_id' => $t->mission_id,
+                'titre' => $t->titre,
+                'statut' => $t->statut,
+                'priorite' => $t->priorite ?? 'normale',
+                'date_fin' => $t->date_fin,
+                'mission_reference' => $t->mission?->reference,
+                'entreprise' => $t->mission?->entreprise?->raison_sociale,
+                'en_retard' => $t->date_fin && Carbon::parse($t->date_fin)->isPast(),
+            ]);
+
+        return [
+            'missions' => [
+                'total' => $totalMissions,
+                'en_cours' => $enCours,
+                'terminees' => $terminees,
+            ],
+            'taches' => [
+                'total' => $totalTaches,
+                'a_faire' => $aFaire,
+                'en_cours' => $tachesEnCours,
+                'terminees' => $tachesTerminees,
+                'bloquees' => $bloquees,
+                'taux_completion' => $tauxCompletion,
+            ],
+            'mes_missions' => $mesMissions,
+            'mes_taches_urgentes' => $mesTachesUrgentes,
+        ];
     }
 }

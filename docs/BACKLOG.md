@@ -504,20 +504,20 @@
 
 ---
 
-### US-41 · Protections de suppression · S · 3 pts · Sprint 3
+### US-41 · Protections de suppression · S · 3 pts · Sprint 3 ✅
 
 **En tant que developpeur**, je veux mettre en place des protections de suppression sur les entites liees **afin d'** eviter la destruction accidentelle de donnees critiques.
 
-- Entreprise bloquee si devis ou missions associes (deja en place — HTTP 409)
-- Mission bloquee si factures associees (deja en place — HTTP 409)
-- Facture bloquee si paiements ou avoirs associes (deja en place — HTTP 409)
-- Tache bloquee si commentaires associes
-- Reponse API `422` avec message explicite
+- ✅ Entreprise bloquee si devis ou missions associes (HTTP 409)
+- ✅ Mission bloquee si factures associees (HTTP 409)
+- ✅ Facture bloquee si paiements ou avoirs associes (HTTP 409)
+- ✅ Tache bloquee si commentaires associes (HTTP 409) — `TacheController::destroy`
+- ✅ Frontend affiche le message d'erreur via toast (MissionDetailPage)
 - Depend de : **US-11, US-13, US-15, US-18, US-22**
 
 ---
 
-### US-42 · Dashboard collaborateur · S · 3 pts · Sprint 3
+### US-42 · Dashboard collaborateur · S · 3 pts · Sprint 3 ✅
 
 **En tant que collaborateur**, je veux un dashboard dedie affichant mes missions et mes KPI personnels **afin d'** avoir une vue de mon propre perimetre.
 
@@ -561,7 +561,7 @@
 |---|---|---|---|
 | Sprint 1 | US-01 ✅, 02 ✅, 03 ✅, 04 ✅, 05 ✅, 06 ✅, 07 ✅, 08 ✅, 09 ✅, 11 ✅, 12 ✅, 17 ✅, 18 ✅, 40 ✅, 43 ✅ | 49 pts | Auth · Referentiel · Clients · Devis · Mission · Exercice |
 | Sprint 2 | US-10 ✅, 13 ✅, 14 ✅, 15 ✅, 16 ✅, 19 ✅, 20 ✅, 21 ✅, 22 ✅, 23 ✅, 24 ✅, 25 ✅, 26 ✅, 27 ✅, 28 ✅, 29 ✅, 30 ✅, 31 ✅, 32 ✅, 33 ✅, 34 ✅ | 96 pts | Factures · Taches · Portail · Relances · KPI |
-| Sprint 3 | US-35, 36 ✅, 37 ✅, 38 ✅, 39 ✅, 41, 42, 45 ✅, 46 ✅ | 33 pts | Qualite · OWASP · RGAA · Tests · MCO · Droits · PDF mission |
+| Sprint 3 | US-35 ✅, 36 ✅, 37 ✅, 38 ✅, 39 ✅, 41 ✅, 42, 45 ✅, 46 ✅ | 33 pts | Qualite · OWASP · RGAA · Tests · MCO · Droits · PDF mission |
 | **Total** | **45 US** | **176 pts** | |
 
 ### Par priorite MoSCoW
@@ -575,9 +575,9 @@
 
 | Statut | US | Pts |
 |---|---|---|
-| ✅ Termine | 41 US | 150 pts |
+| ✅ Termine | 42 US | 153 pts |
 | 🔧 En cours | 0 US | 0 pts |
-| A faire | 4 US | 26 pts |
+| A faire | 3 US | 23 pts |
 
 ### Noeuds critiques
 
@@ -586,8 +586,7 @@
 | **US-18 Mission** ⭐ ✅ | Debloque 11 US en aval (taches, factures, calendrier, portail, KPI, relances) |
 | **US-13 Facture** ⭐ ✅ | Debloque 9 US en aval (PDF DGI, paiements, avoirs, relances, portail, KPI) |
 
-> Sprint 3 en cours : US-36 ✅, US-37 ✅, US-38 ✅, US-39 ✅, US-45 ✅, US-46 ✅.
-> Restants Sprint 3 : US-35 (rapport clôture exercice), US-41 (protections suppression), US-42 (dashboard collaborateur).
+> Sprint 3 terminé : US-35 ✅, US-36 ✅, US-37 ✅, US-38 ✅, US-39 ✅, US-41 ✅, US-42 ✅, US-45 ✅, US-46 ✅.
 
 ---
 
