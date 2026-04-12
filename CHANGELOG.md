@@ -9,6 +9,19 @@
 
 ## [Unreleased]
 
+### Dashboard collaborateur — (feature/dashboard-collaborateur)
+
+#### Backend
+- **`DashboardService::getCollaborateurStats()`** : stats personnalisées par collaborateur — missions assignées (total / en cours / terminées), tâches (total / à faire / en cours / terminées / bloquées / taux de complétion), 5 missions les plus récentes avec progression, 5 tâches urgentes avec indicateur retard
+- **`DashboardController::collaborateurStats()`** : endpoint `GET /collaborateur/stats` — accessible à tous les rôles backoffice
+- **`routes/api.php`** : route `collaborateur/stats` déplacée dans le groupe tous-backoffice (admin + secrétaire + collaborateur)
+
+#### Frontend
+- **`api/modules/stats.ts`** : interface `CollaborateurStats` + méthode `getCollaborateurDashboard()`
+- **`DashboardPage.vue`** : dashboard collaborateur dédié — 4 cartes KPI (missions assignées, mes tâches, taux de complétion, tâches bloquées), tableau `mes_missions` avec ProgressBar, liste `mes_taches_urgentes` avec Tag statut et indicateur retard rouge
+
+---
+
 ### Rapport PDF fin de mission — (feature/rapport-fin-mission)
 
 #### Backend

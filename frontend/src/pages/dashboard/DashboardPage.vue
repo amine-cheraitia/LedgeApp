@@ -1,19 +1,30 @@
 <script setup lang="ts">
-import { statsApi, type DashboardStats } from '@/api/modules/stats'
+import { statsApi, type DashboardStats, type CollaborateurStats } from '@/api/modules/stats'
 import { useAuthStore } from '@/stores/auth'
 import { onMounted, ref } from 'vue'
 import Select from 'primevue/select'
 import Message from 'primevue/message'
+import Tag from 'primevue/tag'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import ProgressBar from 'primevue/progressbar'
 
 const auth = useAuthStore()
 const loading = ref(true)
 const stats = ref<DashboardStats | null>(null)
+const collabStats = ref<CollaborateurStats | null>(null)
 const exerciceId = ref<number | null>(null)
 
 async function fetchStats() {
-  // Le collaborateur n'a pas accès aux stats financières
   if (auth.isCollaborateur) {
-    loading.value = false
+    try {
+      const res = await statsApi.getCollaborateurDashboard()
+      collabStats.value = res.data
+    } catch {
+      // silencieux
+    } finally {
+      loading.value = false
+    }
     return
   }
   loading.value = true
@@ -92,24 +103,192 @@ function statutMissionLabel(statut: string): string {
       <ProgressSpinner aria-label="Chargement du tableau de bord" />
     </div>
 
-    <!-- Vue collaborateur — pas de stats financières -->
-    <div v-if="!loading && auth.isCollaborateur" class="col-span-12">
-      <div class="collab-welcome" role="region" aria-labelledby="collab-welcome-title">
-        <i class="pi pi-briefcase collab-welcome-icon" aria-hidden="true"></i>
-        <h3 id="collab-welcome-title">Bonjour, {{ auth.user?.name }}</h3>
-        <p>Retrouvez ici vos missions assignées et le planning de votre activité.</p>
-        <div class="collab-welcome-actions">
-          <a href="/missions" class="p-button p-button-primary" aria-label="Accéder à mes missions">
-            <i class="pi pi-list" aria-hidden="true"></i>
-            Mes missions
-          </a>
-          <a href="/planning" class="p-button p-button-outlined" aria-label="Accéder au planning">
-            <i class="pi pi-calendar" aria-hidden="true"></i>
-            Mon planning
-          </a>
+    <!-- Dashboard collaborateur -->
+    <template v-if="!loading && auth.isCollaborateur && collabStats">
+
+      <!-- KPI tâches -->
+      <div class="col-span-12 lg:col-span-6 xl:col-span-3">
+        <div class="card h-full">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-muted-color font-medium">Missions assignées</span>
+            <div class="flex items-center justify-center bg-blue-100 dark:bg-blue-400/10 rounded-border" style="width:2.5rem;height:2.5rem">
+              <i class="pi pi-briefcase text-blue-500 text-xl!" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="text-surface-900 dark:text-surface-0 font-bold text-3xl">{{ collabStats.missions.total }}</div>
+          <div class="flex items-center gap-2 mt-4 text-sm">
+            <span class="text-blue-500 font-medium">{{ collabStats.missions.en_cours }} en cours</span>
+            <span class="text-muted-color">&bull;</span>
+            <span class="text-green-500 font-medium">{{ collabStats.missions.terminees }} terminées</span>
+          </div>
         </div>
       </div>
-    </div>
+
+      <div class="col-span-12 lg:col-span-6 xl:col-span-3">
+        <div class="card h-full">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-muted-color font-medium">Mes tâches</span>
+            <div class="flex items-center justify-center bg-orange-100 dark:bg-orange-400/10 rounded-border" style="width:2.5rem;height:2.5rem">
+              <i class="pi pi-check-square text-orange-500 text-xl!" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="text-surface-900 dark:text-surface-0 font-bold text-3xl">{{ collabStats.taches.total }}</div>
+          <div class="flex items-center gap-2 mt-4 text-sm">
+            <span class="text-orange-500 font-medium">{{ collabStats.taches.en_cours }} en cours</span>
+            <span class="text-muted-color">&bull;</span>
+            <span class="text-muted-color">{{ collabStats.taches.a_faire }} à faire</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-span-12 lg:col-span-6 xl:col-span-3">
+        <div class="card h-full">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-muted-color font-medium">Taux de complétion</span>
+            <div
+              class="flex items-center justify-center rounded-border"
+              :class="collabStats.taches.taux_completion >= 70 ? 'bg-green-100 dark:bg-green-400/10' : 'bg-orange-100 dark:bg-orange-400/10'"
+              style="width:2.5rem;height:2.5rem"
+            >
+              <i
+                class="text-xl!"
+                :class="collabStats.taches.taux_completion >= 70 ? 'pi pi-check-circle text-green-500' : 'pi pi-clock text-orange-500'"
+                aria-hidden="true"
+              ></i>
+            </div>
+          </div>
+          <div
+            class="font-bold text-2xl"
+            :class="collabStats.taches.taux_completion >= 70 ? 'text-green-600' : 'text-orange-500'"
+          >
+            {{ collabStats.taches.taux_completion }}%
+          </div>
+          <div class="mt-3">
+            <ProgressBar
+              :value="collabStats.taches.taux_completion"
+              :showValue="false"
+              style="height:6px"
+              :aria-label="`Taux de complétion des tâches : ${collabStats.taches.taux_completion}%`"
+            />
+            <span class="text-muted-color text-xs mt-1 block">{{ collabStats.taches.terminees }} / {{ collabStats.taches.total }} tâches terminées</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-span-12 lg:col-span-6 xl:col-span-3">
+        <div class="card h-full">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-muted-color font-medium">Tâches bloquées</span>
+            <div
+              class="flex items-center justify-center rounded-border"
+              :class="collabStats.taches.bloquees > 0 ? 'bg-red-100 dark:bg-red-400/10' : 'bg-green-100 dark:bg-green-400/10'"
+              style="width:2.5rem;height:2.5rem"
+            >
+              <i
+                class="text-xl!"
+                :class="collabStats.taches.bloquees > 0 ? 'pi pi-ban text-red-500' : 'pi pi-check text-green-500'"
+                aria-hidden="true"
+              ></i>
+            </div>
+          </div>
+          <div
+            class="font-bold text-3xl"
+            :class="collabStats.taches.bloquees > 0 ? 'text-red-500' : 'text-green-600'"
+          >
+            {{ collabStats.taches.bloquees }}
+          </div>
+          <div class="mt-4 text-sm text-muted-color">
+            {{ collabStats.taches.bloquees > 0 ? 'À débloquer' : 'Aucun blocage' }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Mes missions -->
+      <div class="col-span-12 xl:col-span-7">
+        <div class="card h-full">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-surface-900 dark:text-surface-0 font-bold text-lg m-0">Mes missions</h3>
+            <router-link to="/missions" class="text-primary font-medium no-underline hover:underline text-sm" aria-label="Voir toutes mes missions">
+              Voir tout <i class="pi pi-arrow-right text-xs ml-1" aria-hidden="true"></i>
+            </router-link>
+          </div>
+          <DataTable :value="collabStats.mes_missions" responsiveLayout="scroll" aria-label="Liste de mes missions">
+            <Column header="Référence" style="min-width:8rem">
+              <template #body="{ data }">
+                <router-link :to="`/missions/${data.id}`" class="text-primary font-bold no-underline hover:underline">
+                  {{ data.reference }}
+                </router-link>
+              </template>
+            </Column>
+            <Column header="Client" style="min-width:9rem">
+              <template #body="{ data }">{{ data.entreprise ?? '—' }}</template>
+            </Column>
+            <Column header="Statut" style="min-width:7rem">
+              <template #body="{ data }">
+                <Tag :value="statutMissionLabel(data.statut)" :severity="statutMissionSeverity(data.statut)" />
+              </template>
+            </Column>
+            <Column header="Progression" style="min-width:10rem">
+              <template #body="{ data }">
+                <div class="flex items-center gap-2">
+                  <ProgressBar :value="data.progression" :showValue="false" style="height:6px;flex:1" :aria-label="`Progression ${data.progression}%`" />
+                  <span class="text-xs text-muted-color" style="min-width:2.5rem">{{ data.progression }}%</span>
+                </div>
+              </template>
+            </Column>
+          </DataTable>
+          <div v-if="collabStats.mes_missions.length === 0" class="text-center text-muted-color py-6">
+            Aucune mission assignée.
+          </div>
+        </div>
+      </div>
+
+      <!-- Tâches urgentes -->
+      <div class="col-span-12 xl:col-span-5">
+        <div class="card h-full">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-surface-900 dark:text-surface-0 font-bold text-lg m-0">Tâches à traiter</h3>
+            <router-link to="/missions" class="text-primary font-medium no-underline hover:underline text-sm" aria-label="Voir mes missions">
+              Voir tout <i class="pi pi-arrow-right text-xs ml-1" aria-hidden="true"></i>
+            </router-link>
+          </div>
+          <ul class="list-none p-0 m-0" role="list" aria-label="Tâches urgentes">
+            <li
+              v-for="tache in collabStats.mes_taches_urgentes"
+              :key="tache.id"
+              class="flex items-start justify-between py-3 border-b border-surface last:border-0 gap-3"
+            >
+              <div class="flex items-start gap-3 min-w-0">
+                <i
+                  class="pi mt-1 flex-shrink-0"
+                  :class="tache.en_retard ? 'pi-exclamation-triangle text-red-500' : tache.statut === 'en_cours' ? 'pi-spin pi-spinner text-blue-500' : 'pi-circle text-muted-color'"
+                  aria-hidden="true"
+                ></i>
+                <div class="min-w-0">
+                  <div class="font-medium text-surface-900 dark:text-surface-0 truncate">{{ tache.titre }}</div>
+                  <div class="text-xs text-muted-color mt-0.5">
+                    <router-link :to="`/missions/${tache.mission_id}`" class="text-primary no-underline hover:underline">
+                      {{ tache.mission_reference }}
+                    </router-link>
+                    <span v-if="tache.entreprise"> · {{ tache.entreprise }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                <Tag :value="tache.statut === 'en_cours' ? 'En cours' : 'À faire'" :severity="tache.statut === 'en_cours' ? 'info' : 'secondary'" />
+                <span v-if="tache.date_fin" class="text-xs" :class="tache.en_retard ? 'text-red-500 font-medium' : 'text-muted-color'">
+                  {{ formatDate(tache.date_fin) }}
+                </span>
+              </div>
+            </li>
+          </ul>
+          <div v-if="collabStats.mes_taches_urgentes.length === 0" class="text-center text-muted-color py-6">
+            Aucune tâche en cours.
+          </div>
+        </div>
+      </div>
+
+    </template>
 
     <template v-if="stats && !loading">
       <!-- Alertes -->
@@ -420,69 +599,4 @@ function statutMissionLabel(statut: string): string {
   background: var(--p-orange-500, #f97316);
 }
 
-.collab-welcome {
-  background: var(--p-surface-card);
-  border: 1px solid var(--p-surface-border);
-  border-radius: 12px;
-  padding: 3rem 2rem;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-}
-
-.collab-welcome-icon {
-  font-size: 3rem;
-  color: var(--p-primary-500);
-}
-
-.collab-welcome h3 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0;
-}
-
-.collab-welcome p {
-  color: var(--p-text-muted-color);
-  margin: 0;
-  max-width: 30rem;
-}
-
-.collab-welcome-actions {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin-top: 0.5rem;
-}
-
-.collab-welcome-actions .p-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1.25rem;
-  border-radius: 6px;
-  font-weight: 600;
-  text-decoration: none;
-  cursor: pointer;
-  transition: opacity 0.15s;
-}
-
-.collab-welcome-actions .p-button-primary {
-  background: var(--p-primary-500);
-  color: white;
-  border: none;
-}
-
-.collab-welcome-actions .p-button-outlined {
-  background: transparent;
-  color: var(--p-primary-500);
-  border: 1px solid var(--p-primary-500);
-}
-
-.collab-welcome-actions .p-button:focus-visible {
-  outline: 2px solid var(--p-primary-500);
-  outline-offset: 2px;
-}
 </style>

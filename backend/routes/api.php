@@ -141,6 +141,9 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Tous roles backoffice (admin + secretaire + collaborateur) ────
+            // Dashboard collaborateur
+            Route::get('collaborateur/stats', [DashboardController::class, 'collaborateurStats']);
+
             // Lecture utilisateurs (pour les selects d'assignation des taches)
             Route::get('users', [UserController::class, 'index']);
             Route::get('users/{user}', [UserController::class, 'show']);
