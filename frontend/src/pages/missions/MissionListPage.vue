@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConfirm } from 'primevue/useconfirm'
 import DataTable from 'primevue/datatable'
@@ -56,9 +56,12 @@ const editForm = ref<{ collaborateur_ids: number[]; notes: string }>({
   notes: '',
 })
 
+const exercicesOuverts = computed(() => exercices.value.filter((e: { statut: string }) => e.statut === 'ouvert'))
+
 const form = ref<MissionPayload>({
   entreprise_id: 0,
   prestation_id: 0,
+  exercice_id: undefined,
   date_debut: '',
   date_fin: '',
   collaborateur_ids: [],
@@ -98,7 +101,15 @@ async function onSubmitEdit() {
 }
 
 function openCreate() {
-  form.value = { entreprise_id: 0, prestation_id: 0, date_debut: '', date_fin: '', collaborateur_ids: [], notes: '' }
+  form.value = {
+    entreprise_id: 0,
+    prestation_id: 0,
+    exercice_id: exerciceCourant.value?.id,
+    date_debut: '',
+    date_fin: '',
+    collaborateur_ids: [],
+    notes: '',
+  }
   dateDebut.value = null
   dateFin.value = null
   dialogVisible.value = true
@@ -244,6 +255,21 @@ onMounted(async () => {
       :style="{ width: '32rem' }"
     >
       <form @submit.prevent="onSubmit" class="dialog-form">
+        <div v-if="auth.isAdmin" class="form-field">
+          <label for="m-exercice-create">Exercice *</label>
+          <Select
+            id="m-exercice-create"
+            v-model="form.exercice_id"
+            :options="exercicesOuverts"
+            optionLabel="annee"
+            optionValue="id"
+            placeholder="Exercice ouvert..."
+            required
+            fluid
+            aria-label="Sélectionner l'exercice fiscal"
+          />
+        </div>
+
         <div class="form-field">
           <label for="m-entreprise">Entreprise *</label>
           <Select

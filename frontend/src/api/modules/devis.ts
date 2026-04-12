@@ -15,6 +15,7 @@ export interface DevisFilters {
 export interface DevisPayload {
   entreprise_id: number
   prestation_id: number
+  exercice_id?: number
   date_devis: string
   date_validite: string
   notes?: string | null

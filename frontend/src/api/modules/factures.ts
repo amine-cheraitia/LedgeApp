@@ -14,6 +14,7 @@ export interface FactureFilters {
 
 export interface FacturePayload {
   mission_id: number
+  exercice_id?: number
   date_facture: string
   notes?: string | null
 }
