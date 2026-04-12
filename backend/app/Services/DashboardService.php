@@ -175,7 +175,7 @@ class DashboardService
             ->latest('updated_at')
             ->take(5)
             ->get()
-            ->map(function (Mission $m) use ($user) {
+            ->map(function (Mission $m) {
                 $tTotal = $m->taches()->count();
                 $tDone = $m->taches()->where('statut', 'termine')->count();
 
