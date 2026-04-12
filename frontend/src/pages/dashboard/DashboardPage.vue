@@ -8,6 +8,7 @@ import Tag from 'primevue/tag'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import ProgressBar from 'primevue/progressbar'
+import ProgressSpinner from 'primevue/progressspinner'
 
 const auth = useAuthStore()
 const loading = ref(true)
