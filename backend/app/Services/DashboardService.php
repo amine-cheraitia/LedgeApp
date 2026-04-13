@@ -163,12 +163,19 @@ class DashboardService
         $enCours = Mission::whereIn('id', $missionIds)->where('statut', 'en_cours')->count();
         $terminees = Mission::whereIn('id', $missionIds)->where('statut', 'terminee')->count();
 
+        $now = Carbon::now();
+
         $totalTaches = Tache::where('assigned_to', $user->id)->count();
         $aFaire = Tache::where('assigned_to', $user->id)->where('statut', 'a_faire')->count();
         $tachesEnCours = Tache::where('assigned_to', $user->id)->where('statut', 'en_cours')->count();
-        $tachesTerminees = Tache::where('assigned_to', $user->id)->where('statut', 'termine')->count();
-        $bloquees = Tache::where('assigned_to', $user->id)->where('statut', 'bloque')->count();
+        $tachesTerminees = Tache::where('assigned_to', $user->id)->where('statut', 'terminee')->count();
+        $bloquees = Tache::where('assigned_to', $user->id)->where('statut', 'bloquee')->count();
         $tauxCompletion = $totalTaches > 0 ? round($tachesTerminees / $totalTaches * 100, 1) : 0;
+        $tachesEnRetard = Tache::where('assigned_to', $user->id)
+            ->whereIn('statut', ['a_faire', 'en_cours'])
+            ->whereNotNull('date_echeance')
+            ->where('date_echeance', '<', $now)
+            ->count();
 
         $mesMissions = Mission::with('entreprise', 'prestation')
             ->whereIn('id', $missionIds)
@@ -177,7 +184,7 @@ class DashboardService
             ->get()
             ->map(function (Mission $m) {
                 $tTotal = $m->taches()->count();
-                $tDone = $m->taches()->where('statut', 'termine')->count();
+                $tDone = $m->taches()->where('statut', 'terminee')->count();
 
                 return [
                     'id' => $m->id,
@@ -204,10 +211,68 @@ class DashboardService
                 'mission_id' => $t->mission_id,
                 'titre' => $t->titre,
                 'statut' => $t->statut,
+                'priorite' => $t->priorite ?? 1,
                 'date_fin' => $t->date_echeance,
                 'mission_reference' => $t->mission?->reference,
                 'entreprise' => $t->mission?->entreprise?->raison_sociale,
                 'en_retard' => $t->date_echeance && Carbon::parse($t->date_echeance)->isPast(),
+            ]);
+
+        $echeances = collect()
+            ->merge(
+                Mission::whereIn('id', $missionIds)
+                    ->whereNotNull('date_fin')
+                    ->where('date_fin', '>=', $now->copy()->startOfDay())
+                    ->where('date_fin', '<=', $now->copy()->addDays(30))
+                    ->where('statut', 'en_cours')
+                    ->with('entreprise')
+                    ->get()
+                    ->map(fn (Mission $m) => [
+                        'type' => 'mission',
+                        'id' => $m->id,
+                        'titre' => $m->reference,
+                        'entreprise' => $m->entreprise?->raison_sociale,
+                        'mission_id' => $m->id,
+                        'mission_reference' => $m->reference,
+                        'date' => $m->date_fin,
+                        'en_retard' => Carbon::parse($m->date_fin)->isPast(),
+                    ])
+            )
+            ->merge(
+                Tache::where('assigned_to', $user->id)
+                    ->whereIn('statut', ['a_faire', 'en_cours'])
+                    ->whereNotNull('date_echeance')
+                    ->where('date_echeance', '>=', $now->copy()->startOfDay())
+                    ->where('date_echeance', '<=', $now->copy()->addDays(14))
+                    ->with('mission.entreprise')
+                    ->get()
+                    ->map(fn (Tache $t) => [
+                        'type' => 'tache',
+                        'id' => $t->id,
+                        'titre' => $t->titre,
+                        'entreprise' => $t->mission?->entreprise?->raison_sociale,
+                        'mission_id' => $t->mission_id,
+                        'mission_reference' => $t->mission?->reference,
+                        'date' => $t->date_echeance,
+                        'en_retard' => Carbon::parse($t->date_echeance)->isPast(),
+                    ])
+            )
+            ->sortBy('date')
+            ->take(8)
+            ->values();
+
+        $activiteRecente = Tache::where('assigned_to', $user->id)
+            ->where('statut', 'terminee')
+            ->with('mission')
+            ->latest('updated_at')
+            ->take(5)
+            ->get()
+            ->map(fn (Tache $t) => [
+                'id' => $t->id,
+                'titre' => $t->titre,
+                'mission_reference' => $t->mission?->reference,
+                'mission_id' => $t->mission_id,
+                'date' => $t->updated_at,
             ]);
 
         return [
@@ -223,9 +288,12 @@ class DashboardService
                 'terminees' => $tachesTerminees,
                 'bloquees' => $bloquees,
                 'taux_completion' => $tauxCompletion,
+                'en_retard' => $tachesEnRetard,
             ],
             'mes_missions' => $mesMissions,
             'mes_taches_urgentes' => $mesTachesUrgentes,
+            'echeances' => $echeances,
+            'activite_recente' => $activiteRecente,
         ];
     }
 }
