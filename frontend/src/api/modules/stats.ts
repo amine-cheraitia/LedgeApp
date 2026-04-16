@@ -52,6 +52,7 @@ export interface CollaborateurStats {
     terminees: number
     bloquees: number
     taux_completion: number
+    en_retard: number
   }
   mes_missions: {
     id: number
@@ -69,10 +70,28 @@ export interface CollaborateurStats {
     mission_id: number
     titre: string
     statut: string
+    priorite: number
     date_fin: string | null
     mission_reference: string | null
     entreprise: string | null
     en_retard: boolean
+  }[]
+  echeances: {
+    type: 'mission' | 'tache'
+    id: number
+    titre: string
+    entreprise: string | null
+    mission_id: number | null
+    mission_reference: string | null
+    date: string
+    en_retard: boolean
+  }[]
+  activite_recente: {
+    id: number
+    titre: string
+    mission_reference: string | null
+    mission_id: number | null
+    date: string
   }[]
 }
 
