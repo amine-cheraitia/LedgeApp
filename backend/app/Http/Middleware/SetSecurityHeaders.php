@@ -14,6 +14,11 @@ class SetSecurityHeaders
     {
         $response = $next($request);
 
+        // Telescope utilise du JS/CSS inline — le CSP strict le bloque
+        if ($request->is('telescope*') || $request->is('health*')) {
+            return $response;
+        }
+
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('X-Frame-Options', 'DENY');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
