@@ -443,6 +443,8 @@
 - ✅ Policies Laravel sur chaque ressource : User, Prestation, Setting, Facture, Devis, Mission, Avoir
 - ✅ Pas de `v-html` avec donnees utilisateur (XSS)
 - ✅ CORS : allowed_headers restrictifs (suppression wildcard)
+- ✅ A05 Security Misconfiguration : `ApiExceptionRenderer` — aucune fuite de SQL, host, port, stack, chemin fichier sur les routes API meme en `APP_DEBUG=true` (6 tests)
+- ✅ A09 Logging & Monitoring : toutes les exceptions API loguees avec contexte structure (URL, methode, IP, user_id) — relayees a Sentry
 - Depend de : tout le code
 
 ---

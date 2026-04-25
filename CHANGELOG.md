@@ -9,6 +9,27 @@
 
 ## [Unreleased]
 
+### Sécurité — gestion des erreurs API (fix/api-error-handling)
+
+#### Backend
+- **`app/Exceptions/ApiExceptionRenderer.php`** (nouveau) : renderer JSON unifié pour toutes les routes `api/*` — mappe chaque type d'exception (`ValidationException`, `AuthenticationException`, `AuthorizationException`, `ModelNotFoundException`, `NotFoundHttpException`, `MethodNotAllowedHttpException`, `TokenMismatchException`, `TooManyRequestsHttpException`, `QueryException`, `PDOException`, `HttpExceptionInterface`, catch-all `Throwable`) vers un statut HTTP correct + un message client générique en français
+- **`bootstrap/app.php`** : `shouldRenderJsonWhen` + `render` branchés sur le renderer — toute exception sur une route API renvoie désormais du JSON propre, **même quand `APP_DEBUG=true`** (plus aucune fuite de SQL, host, port, nom de DB, stack trace, chemin fichier)
+- Logging serveur complet (`Log::error` avec contexte URL/méthode/IP/user_id) — exploité par Sentry, jamais exposé au client
+- **6 tests** dans `ApiExceptionRendererTest` qui prouvent l'absence de fuite (SQL, SQLSTATE, host, port, stack, chemins)
+
+#### Frontend
+- **`types/api-error.ts`** (nouveau) : type `ApiError` discriminé (`network` / `timeout` / `validation` / `auth` / `forbidden` / `notfound` / `csrf` / `throttle` / `server` / `unavailable` / `unknown`)
+- **`api/client.ts`** : intercepteur réponse refait — détecte les erreurs réseau (WAMP éteint, DNS, CORS), les timeouts (15 s), les réponses non-JSON (page d'erreur HTML), produit un `ApiError` typé avec message FR adapté, et sanitize le `error.response.data.message` exposé au code existant
+- **`composables/useApiError.ts`** (nouveau) : helpers `getApiError()` / `getApiErrorMessage()` pour extraire un message safe sans accéder aux détails techniques
+- **`pages/auth/LoginPage.vue`** : utilise `getApiError()`, distingue 422 (identifiants) des autres erreurs, ajoute `aria-live="assertive"` + `aria-invalid` sur les champs en erreur
+- **CSS LoginPage** : surcharge `:-webkit-autofill` (plus de fond olive Chrome illisible en thème sombre), `word-break: break-word` sur le `Message` d'erreur (plus de cassure de layout sur message long), `:focus-visible` outline RGAA, `max-w-xl` sur le conteneur
+
+#### Sécurité (OWASP)
+- **A05 Security Misconfiguration** corrigé : `APP_DEBUG=true` ne fuite plus rien sur les routes API
+- **A09 Logging & Monitoring** : toutes les exceptions API sont loguées avec contexte structuré
+
+---
+
 ### Dashboard collaborateur — (feature/dashboard-collaborateur)
 
 #### Backend
