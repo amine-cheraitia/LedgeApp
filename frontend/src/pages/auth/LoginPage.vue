@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getApiError } from '@/composables/useApiError'
-import FloatingConfigurator from '@/components/FloatingConfigurator.vue'
+import LedgeLogo from '@/components/LedgeLogo.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -30,76 +30,160 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="bg-surface-50 dark:bg-surface-950 flex items-center justify-center min-h-screen min-w-screen overflow-hidden">
-    <FloatingConfigurator />
-    <div class="flex flex-col items-center justify-center w-full max-w-xl px-4">
-      <div class="w-full" style="border-radius: 56px; padding: 0.3rem; background: linear-gradient(180deg, var(--p-primary-color) 10%, rgba(33, 150, 243, 0) 30%)">
-        <div class="w-full bg-surface-0 dark:bg-surface-900 py-12 sm:py-20 px-6 sm:px-12 md:px-20" style="border-radius: 53px">
-          <div class="text-center mb-8">
-            <div class="mb-4">
-              <i class="pi pi-briefcase" style="font-size: 3rem; color: var(--p-primary-color)"></i>
-            </div>
-            <div class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">Bienvenue sur Ledge</div>
-            <span class="text-muted-color font-medium">Connectez-vous pour acceder a votre espace</span>
-          </div>
+  <div class="login-scene bg-surface-50 dark:bg-surface-950">
+    <div class="login-wrap">
 
-          <form @submit.prevent="handleLogin" novalidate>
-            <Message
-              v-if="error"
-              severity="error"
-              :closable="false"
-              class="mb-6 login-error"
-              role="alert"
-              aria-live="assertive"
-              :aria-describedby="undefined"
-            >
-              <span class="login-error-text">{{ error }}</span>
-            </Message>
+      <!-- Brand mark -->
+      <div class="login-brand">
+        <LedgeLogo :size="36" :with-wordmark="true" />
+      </div>
 
-            <label for="email" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Adresse email</label>
+      <!-- Card -->
+      <div class="login-card bg-surface-0 dark:bg-surface-900">
+
+        <!-- Card header -->
+        <div class="login-card-head">
+          <p class="ledger-eyebrow">Connexion</p>
+          <h1 class="login-title">Bienvenue sur Ledge</h1>
+          <p class="login-lede">Connectez-vous pour accéder à votre espace.</p>
+        </div>
+
+        <!-- Error -->
+        <Message
+          v-if="error"
+          severity="error"
+          :closable="false"
+          class="login-error"
+          role="alert"
+          aria-live="assertive"
+        >
+          <span class="login-error-text">{{ error }}</span>
+        </Message>
+
+        <form @submit.prevent="handleLogin" novalidate class="login-form">
+          <div class="login-field">
+            <label for="email" class="login-label">Adresse email</label>
             <InputText
               id="email"
               v-model="email"
               type="email"
               placeholder="admin@ledge.dz"
               autocomplete="email"
-              class="w-full mb-8 login-input"
+              class="w-full login-input"
               aria-label="Adresse email"
               :aria-invalid="!!error"
               required
             />
+          </div>
 
-            <label for="password" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">Mot de passe</label>
+          <div class="login-field">
+            <label for="password" class="login-label">Mot de passe</label>
             <Password
               id="password"
               v-model="password"
-              placeholder="Mot de passe"
+              placeholder="••••••••"
               :toggleMask="true"
               :feedback="false"
               autocomplete="current-password"
-              class="mb-8 login-password"
+              class="login-password"
               fluid
               aria-label="Mot de passe"
               :aria-invalid="!!error"
               required
             />
+          </div>
 
-            <Button
-              type="submit"
-              label="Se connecter"
-              :loading="auth.loading"
-              class="w-full"
-              aria-label="Se connecter"
-            />
-          </form>
-        </div>
+          <Button
+            type="submit"
+            label="Se connecter"
+            :loading="auth.loading"
+            class="w-full login-btn"
+            aria-label="Se connecter"
+          />
+        </form>
       </div>
+
+      <!-- Footer legal -->
+      <p class="login-footer">
+        Cabinet de conseil &amp; comptabilité — Ledge v2
+      </p>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* Empeche un long message d'erreur de casser le layout en largeur */
+/* ── Scene ──────────────────────────────────────────────────────────── */
+.login-scene {
+  min-height: 100vh;
+  min-width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.login-wrap {
+  width: 100%;
+  max-width: 26rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+/* ── Brand mark ─────────────────────────────────────────────────────── */
+.login-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Card ───────────────────────────────────────────────────────────── */
+.login-card {
+  width: 100%;
+  border-top: 3px solid var(--ledge-accent);
+  border-radius: var(--ledge-radius-sm, 2px);
+  padding: 2rem 2rem 2.5rem;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+}
+
+/* ── Card header (centers inline-flex eyebrow + title + lede) ──────── */
+.login-card-head {
+  text-align: center;
+  margin-bottom: 1.75rem;
+}
+
+.login-card-head .ledger-eyebrow {
+  margin-bottom: 0.5rem;
+}
+
+/* ── Title ──────────────────────────────────────────────────────────── */
+.login-title {
+  font-family: var(--ledge-ff-display);
+  font-weight: 400;
+  font-size: 1.65rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--p-text-color);
+  margin: 0 0 0.5rem;
+  text-align: center;
+  font-variation-settings: 'opsz' 144, 'SOFT' 30;
+}
+
+/* ── Lede ───────────────────────────────────────────────────────────── */
+.login-lede {
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+  text-align: center;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Error ──────────────────────────────────────────────────────────── */
+.login-error {
+  margin-bottom: 1.25rem;
+}
+
 .login-error :deep(.p-message-text),
 .login-error-text {
   display: block;
@@ -109,8 +193,48 @@ async function handleLogin() {
   white-space: pre-line;
 }
 
-/* Surcharge l'autofill Chrome/Edge qui force un fond jaune-olive
-   illisible par-dessus les themes clair/sombre */
+/* ── Form ───────────────────────────────────────────────────────────── */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ── Labels — mono uppercase ────────────────────────────────────────── */
+.login-label {
+  font-family: var(--ledge-ff-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--p-text-muted-color);
+}
+
+/* ── CTA button ─────────────────────────────────────────────────────── */
+.login-btn {
+  margin-top: 0.25rem;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────── */
+.login-footer {
+  font-family: var(--ledge-ff-mono);
+  font-size: 0.6rem;
+  color: var(--p-text-muted-color);
+  text-align: center;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0;
+  opacity: 0.6;
+}
+
+/* ── Autofill override (Chrome/Edge jaune-olive) ────────────────────── */
 .login-input :deep(input):-webkit-autofill,
 .login-input :deep(input):-webkit-autofill:hover,
 .login-input :deep(input):-webkit-autofill:focus,
@@ -123,10 +247,10 @@ async function handleLogin() {
   transition: background-color 9999s ease-in-out 0s;
 }
 
-/* Focus visible RGAA */
+/* ── Focus visible RGAA ─────────────────────────────────────────────── */
 .login-input :deep(input):focus-visible,
 .login-password :deep(input):focus-visible {
-  outline: 2px solid var(--p-primary-color);
+  outline: 2px solid var(--ledge-accent);
   outline-offset: 2px;
 }
 </style>

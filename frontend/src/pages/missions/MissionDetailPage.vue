@@ -298,27 +298,25 @@ onMounted(() => {
 </script>
 
 <template>
-  <div v-if="!loading && mission">
-    <div class="page-header">
-      <div class="header-left">
-        <Button
-          icon="pi pi-arrow-left"
-          text
-          rounded
+  <article v-if="!loading && mission" class="ledger-page">
+    <!-- ═══ Top rail ═══════════════════════════════════════════════ -->
+    <header class="ledger-rail">
+      <div class="ledger-rail-left">
+        <button
+          type="button"
+          class="ledger-back"
           aria-label="Retour aux missions"
           @click="router.push({ name: 'missions' })"
-        />
-        <h1 style="display: inline; margin-left: 0.5rem;">{{ mission.reference }}</h1>
-        <Tag
-          :value="mission.statut"
-          :severity="statutMissionSeverity(mission.statut)"
-          style="margin-left: 0.75rem;"
-        />
+        >
+          <span aria-hidden="true">←</span>
+          <span>Missions</span>
+        </button>
+        <span class="ledger-ref">{{ mission.reference }}</span>
       </div>
 
       <div
         v-if="!auth.isCollaborateur && mission.statut !== 'terminee' && mission.statut !== 'annulee'"
-        class="header-actions"
+        class="ledger-rail-right"
       >
         <Button
           v-if="mission.statut === 'suspendue'"
@@ -357,17 +355,57 @@ onMounted(() => {
           @click="changerStatutMission('annulee')"
         />
       </div>
-    </div>
+    </header>
 
-    <!-- Info mission -->
-    <div class="mission-info">
-      <div class="info-grid">
-        <div><strong>Entreprise</strong><br>{{ mission.entreprise?.raison_sociale ?? '—' }}</div>
-        <div><strong>Prestation</strong><br>{{ mission.prestation?.designation ?? '—' }}</div>
-        <div><strong>Prix HT</strong><br>{{ formatMontant(mission.prix_ht) }}</div>
-        <div><strong>Début</strong><br>{{ formatDate(mission.date_debut) }}</div>
-        <div><strong>Fin</strong><br>{{ formatDate(mission.date_fin) }}</div>
+    <!-- ═══ Hero ═══════════════════════════════════════════════════ -->
+    <section class="ledger-hero" aria-labelledby="mission-titre">
+      <p class="ledger-eyebrow">
+        Mission
+        <Tag
+          :value="mission.statut"
+          :severity="statutMissionSeverity(mission.statut)"
+          style="margin-left: 0.5rem;"
+        />
+      </p>
+      <h1 id="mission-titre" class="ledger-title">
+        {{ mission.prestation?.designation ?? 'Mission sans prestation' }}
+      </h1>
+      <p v-if="mission.entreprise?.raison_sociale" class="ledger-lede">
+        Pour <strong>{{ mission.entreprise.raison_sociale }}</strong>
+      </p>
+    </section>
+
+    <!-- ═══ Ledger grid (metadata) ═════════════════════════════════ -->
+    <section aria-labelledby="meta-heading">
+      <div class="ledger-section-head">
+        <h2 id="meta-heading" class="ledger-section-kicker">
+          Métadonnées <span class="ledger-section-code">[01]</span>
+        </h2>
+        <span class="ledger-rule" aria-hidden="true"></span>
       </div>
+
+      <dl class="ledger-grid">
+        <div class="ledger-cell">
+          <dt class="ledger-cell-key">Entreprise</dt>
+          <dd class="ledger-cell-val">{{ mission.entreprise?.raison_sociale ?? '—' }}</dd>
+        </div>
+        <div class="ledger-cell">
+          <dt class="ledger-cell-key">Prestation</dt>
+          <dd class="ledger-cell-val">{{ mission.prestation?.designation ?? '—' }}</dd>
+        </div>
+        <div class="ledger-cell">
+          <dt class="ledger-cell-key">Prix HT</dt>
+          <dd class="ledger-cell-val ledger-mono">{{ formatMontant(mission.prix_ht) }}</dd>
+        </div>
+        <div class="ledger-cell">
+          <dt class="ledger-cell-key">Début</dt>
+          <dd class="ledger-cell-val ledger-mono">{{ formatDate(mission.date_debut) }}</dd>
+        </div>
+        <div class="ledger-cell">
+          <dt class="ledger-cell-key">Fin</dt>
+          <dd class="ledger-cell-val ledger-mono">{{ formatDate(mission.date_fin) }}</dd>
+        </div>
+      </dl>
 
       <div v-if="mission.collaborateurs && mission.collaborateurs.length > 0" class="collaborateurs">
         <strong>Collaborateurs :</strong>
@@ -377,7 +415,7 @@ onMounted(() => {
       <div v-if="mission.notes" class="mission-notes">
         <strong>Notes :</strong> {{ mission.notes }}
       </div>
-    </div>
+    </section>
 
     <!-- Documents -->
     <div v-if="!auth.isCollaborateur" class="section">
@@ -636,7 +674,7 @@ onMounted(() => {
         </div>
       </form>
     </Dialog>
-  </div>
+  </article>
 
   <div v-else-if="loading" class="loading-center" aria-busy="true" aria-label="Chargement de la mission">
     <i class="pi pi-spin pi-spinner" style="font-size: 2rem;" aria-hidden="true"></i>

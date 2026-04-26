@@ -1,0 +1,272 @@
+/* ================================================================
+   Ledge — Editorial Ledger utilities
+   Vocabulaire visuel pour les pages de "lecture longue"
+   (detail mission, detail entreprise, detail tache, rapport)
+   ================================================================ */
+
+.ledger-page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0.5rem 0 3rem;
+  font-family: var(--ledge-ff-body);
+  color: var(--p-text-color);
+  position: relative;
+}
+
+/* === Top rail (back + ref code) ========================================= */
+.ledger-rail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.25rem 0 1rem;
+  flex-wrap: wrap;
+}
+
+.ledger-rail-left,
+.ledger-rail-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.ledger-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--p-surface-300);
+  border-radius: var(--ledge-radius-sm);
+  background: transparent;
+  color: var(--p-text-color);
+  font-family: var(--ledge-ff-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.ledger-back:hover {
+  background: var(--p-text-color);
+  color: var(--p-surface-0);
+  border-color: var(--p-text-color);
+}
+
+.ledger-back:focus-visible {
+  outline: 2px solid var(--ledge-accent);
+  outline-offset: 2px;
+}
+
+.ledger-ref {
+  font-family: var(--ledge-ff-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--p-text-muted-color);
+  letter-spacing: 0.06em;
+  padding-left: 1rem;
+  border-left: 1px solid var(--p-surface-300);
+}
+
+/* === Hero (eyebrow + title + lede) ====================================== */
+.ledger-hero {
+  padding: 1rem 0 1.5rem;
+}
+
+.ledger-eyebrow {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-family: var(--ledge-ff-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ledge-accent);
+  margin: 0 0 0.65rem;
+}
+
+.ledger-eyebrow::before {
+  content: '§';
+  font-family: var(--ledge-ff-display);
+  font-style: italic;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ledge-accent);
+}
+
+.ledger-title {
+  font-family: var(--ledge-ff-display);
+  font-weight: 400;
+  font-size: clamp(1.85rem, 4vw, 2.85rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--p-text-color);
+  margin: 0 0 0.85rem;
+  font-variation-settings: 'opsz' 144, 'SOFT' 30;
+}
+
+.ledger-lede {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--p-text-muted-color);
+  margin: 0;
+  max-width: 62ch;
+}
+
+/* === Section heading (kicker + rule) ==================================== */
+.ledger-section-head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.75rem 0 0.85rem;
+}
+
+.ledger-section-kicker {
+  margin: 0;
+  font-family: var(--ledge-ff-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--p-text-color);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.ledger-section-code {
+  font-family: var(--ledge-ff-mono);
+  font-size: 0.7rem;
+  color: var(--p-text-muted-color);
+  font-weight: 500;
+}
+
+.ledger-rule {
+  flex: 1;
+  height: 1px;
+  background: var(--p-surface-300);
+}
+
+/* === Ledger grid (metadata cells) ======================================= */
+.ledger-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0;
+  margin: 0;
+  border-top: 2px solid var(--p-text-color);
+  border-bottom: 1px solid var(--p-surface-300);
+}
+
+.ledger-cell {
+  padding: 0.85rem 1rem 0.85rem 1rem;
+  border-right: 1px dotted var(--p-surface-300);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ledger-cell:first-child {
+  padding-left: 0;
+}
+
+.ledger-cell:last-child {
+  border-right: none;
+}
+
+.ledger-cell-key {
+  font-family: var(--ledge-ff-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--p-text-muted-color);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin: 0;
+}
+
+.ledger-cell-val {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+  color: var(--p-text-color);
+  font-weight: 500;
+}
+
+.ledger-mono {
+  font-family: var(--ledge-ff-mono);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.ledger-muted {
+  color: var(--p-text-muted-color);
+  font-weight: 400;
+}
+
+/* === Stamp / chip ======================================================== */
+.ledger-stamp {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  background: var(--ledge-danger);
+  color: #FEF2F2;
+  font-family: var(--ledge-ff-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-radius: var(--ledge-radius-sm);
+  transform: rotate(-2deg);
+}
+
+.ledger-stamp--ok {
+  background: var(--ledge-success);
+}
+
+/* === Dark mode adjustments ============================================== */
+.app-dark .ledger-grid {
+  border-top-color: var(--p-text-color);
+  border-bottom-color: var(--p-surface-700);
+}
+
+.app-dark .ledger-cell {
+  border-right-color: var(--p-surface-700);
+}
+
+.app-dark .ledger-rule,
+.app-dark .ledger-back {
+  border-color: var(--p-surface-700);
+}
+
+.app-dark .ledger-ref {
+  border-left-color: var(--p-surface-700);
+}
+
+/* === Responsive ========================================================= */
+@media (max-width: 720px) {
+  .ledger-page {
+    padding: 0.5rem 0 2rem;
+  }
+
+  .ledger-cell {
+    padding-left: 1rem !important;
+    border-right: none;
+    border-bottom: 1px dotted var(--p-surface-300);
+  }
+
+  .ledger-cell:last-child {
+    border-bottom: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ledger-back {
+    transition: none !important;
+  }
+}

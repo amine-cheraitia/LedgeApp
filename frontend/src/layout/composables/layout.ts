@@ -6,6 +6,10 @@ function loadDarkPreference(): boolean {
   return window.matchMedia('(prefers-color-scheme: dark)').matches
 }
 
+function loadCollapsedPreference(): boolean {
+  return localStorage.getItem('ledge-sidebar-collapsed') === 'true'
+}
+
 const initialDark = loadDarkPreference()
 if (initialDark) {
   document.documentElement.classList.add('app-dark')
@@ -21,6 +25,7 @@ const layoutConfig = reactive({
 
 const layoutState = reactive({
   staticMenuInactive: false,
+  staticMenuCollapsed: loadCollapsedPreference(),
   overlayMenuActive: false,
   configSidebarVisible: false,
   sidebarExpanded: false,
@@ -58,6 +63,12 @@ export function useLayout() {
     }
   }
 
+  const toggleMenuCollapse = () => {
+    if (!isDesktop()) return
+    layoutState.staticMenuCollapsed = !layoutState.staticMenuCollapsed
+    localStorage.setItem('ledge-sidebar-collapsed', String(layoutState.staticMenuCollapsed))
+  }
+
   const toggleConfigSidebar = () => {
     layoutState.configSidebarVisible = !layoutState.configSidebarVisible
   }
@@ -86,6 +97,7 @@ export function useLayout() {
     toggleDarkMode,
     toggleConfigSidebar,
     toggleMenu,
+    toggleMenuCollapse,
     hideMobileMenu,
     changeMenuMode,
     isDesktop,

@@ -13,6 +13,7 @@ const containerClass = computed(() => ({
   'layout-overlay-active': layoutState.overlayMenuActive,
   'layout-mobile-active': layoutState.mobileMenuActive,
   'layout-static-inactive': layoutState.staticMenuInactive,
+  'layout-static-collapsed': layoutState.staticMenuCollapsed,
 }))
 </script>
 
