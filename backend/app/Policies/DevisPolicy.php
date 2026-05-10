@@ -9,6 +9,16 @@ use App\Models\User;
 
 class DevisPolicy
 {
+    public function viewAny(User $user): bool
+    {
+        return $user->hasAnyRole(['admin', 'secretaire', 'collaborateur']);
+    }
+
+    public function view(User $user, Devis $devis): bool
+    {
+        return $user->hasAnyRole(['admin', 'secretaire', 'collaborateur']);
+    }
+
     public function create(User $user): bool
     {
         return $user->hasAnyRole(['admin', 'secretaire']);

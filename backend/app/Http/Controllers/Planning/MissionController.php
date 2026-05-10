@@ -11,6 +11,7 @@ use App\Http\Resources\Planning\MissionResource;
 use App\Models\Mission;
 use App\Services\MissionService;
 use App\Services\PdfService;
+use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -19,8 +20,8 @@ use Symfony\Component\HttpFoundation\Response;
 class MissionController extends Controller
 {
     public function __construct(
-        private MissionService $missionService,
-        private PdfService $pdfService,
+        private readonly MissionService $missionService,
+        private readonly PdfService $pdfService,
     ) {}
 
     public function index(Request $request): AnonymousResourceCollection
@@ -28,7 +29,7 @@ class MissionController extends Controller
         $this->authorize('viewAny', Mission::class);
 
         $missions = $this->missionService->listerMissions(
-            $request->only(['exercice_id', 'statut', 'search', 'sort_field', 'sort_direction', 'per_page']),
+            $request->only(['entreprise_id', 'exercice_id', 'statut', 'search', 'sort_field', 'sort_direction', 'per_page']),
             $request->user(),
         );
 
@@ -75,6 +76,8 @@ class MissionController extends Controller
 
     public function conventionPdf(Mission $mission): Response
     {
+        $this->authorize('view', $mission);
+
         $this->missionService->obtenirNumeroConvention($mission);
         $mission->refresh();
 
@@ -84,6 +87,8 @@ class MissionController extends Controller
 
     public function mandatPdf(Mission $mission): Response
     {
+        $this->authorize('view', $mission);
+
         $this->missionService->obtenirNumeroMandat($mission);
         $mission->refresh();
 
@@ -95,14 +100,11 @@ class MissionController extends Controller
     {
         $this->authorize('delete', $mission);
 
-        if ($mission->factures()->exists()) {
-            return response()->json([
-                'message' => 'Impossible de supprimer une mission avec des factures associees.',
-            ], 409);
+        try {
+            $this->missionService->supprimerMission($mission);
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
         }
-
-        $mission->taches()->delete();
-        $mission->delete();
 
         return response()->json(null, 204);
     }

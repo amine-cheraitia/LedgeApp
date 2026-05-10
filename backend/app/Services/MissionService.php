@@ -10,6 +10,7 @@ use App\Models\Mission;
 use App\Models\Prestation;
 use App\Models\Setting;
 use App\Models\User;
+use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -129,6 +130,19 @@ class MissionService
             }
 
             return $mission->load('entreprise', 'prestation', 'collaborateurs');
+        });
+    }
+
+    public function supprimerMission(Mission $mission): void
+    {
+        if ($mission->factures()->exists()) {
+            throw new DomainException('Impossible de supprimer une mission avec des factures associees.');
+        }
+
+        DB::transaction(function () use ($mission) {
+            $mission->taches()->delete();
+            $mission->collaborateurs()->detach();
+            $mission->delete();
         });
     }
 }
