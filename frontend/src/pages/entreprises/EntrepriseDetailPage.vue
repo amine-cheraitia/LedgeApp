@@ -27,6 +27,8 @@ const entreprise = ref<Entreprise | null>(null)
 const missions = ref<Mission[]>([])
 const devisList = ref<Devis[]>([])
 const factures = ref<Facture[]>([])
+// Factures tous exercices confondus — utilisées uniquement pour les KPIs
+const facturesKpi = ref<Facture[]>([])
 const loadingEntreprise = ref(false)
 const loadingMissions = ref(false)
 const loadingDevis = ref(false)
@@ -36,17 +38,19 @@ const loadingFactures = ref(false)
 const { exercices, fetchExercices } = useExercices()
 const exerciceSelectionne = ref<number | null>(null)
 
-// --- KPIs calculés ---
-const totalImpaye = computed(() =>
-  factures.value
-    .filter(f => f.statut_paiement !== 'solde' && f.type === 'FF')
-    .reduce((sum, f) => sum + (f.montant_restant ?? 0), 0)
+// --- KPIs calculés (sur tous les exercices, pas seulement le courant) ---
+// CA = somme des montants HT des factures FF (le CA est toujours exprimé HT)
+const totalFacture = computed(() =>
+  facturesKpi.value
+    .filter(f => f.type === 'FF')
+    .reduce((sum, f) => sum + (Number(f.montant_ht) || 0), 0)
 )
 
-const totalFacture = computed(() =>
-  factures.value
-    .filter(f => f.type === 'FF')
-    .reduce((sum, f) => sum + f.montant_ttc, 0)
+// Impayés = créances clients restantes TTC (base de recouvrement)
+const totalImpaye = computed(() =>
+  facturesKpi.value
+    .filter(f => f.statut_paiement !== 'solde' && f.type === 'FF')
+    .reduce((sum, f) => sum + (Number(f.montant_restant) || 0), 0)
 )
 
 const missionsActives = computed(() =>
@@ -106,14 +110,29 @@ async function fetchFactures() {
   }
 }
 
+// Fetch sans filtre exercice — pour les KPIs CA total / impayés tous exercices
+async function fetchFacturesKpi() {
+  try {
+    const res = await facturesApi.getAll({
+      entreprise_id: entrepriseId,
+      per_page: 500,
+    })
+    facturesKpi.value = res.data
+  } catch {
+    facturesKpi.value = []
+  }
+}
+
 async function applyExercice(id: number | null) {
   exerciceSelectionne.value = id
   await Promise.all([fetchMissions(), fetchDevis(), fetchFactures()])
 }
 
 // --- Formatters ---
-function formatMontant(v: number) {
-  return Number(v).toLocaleString('fr-FR') + ' DA'
+function formatMontant(v: number | string | null | undefined) {
+  const n = Number(v)
+  if (isNaN(n)) return '0 DA'
+  return n.toLocaleString('fr-FR') + ' DA'
 }
 
 function formatDate(d: string | null) {
@@ -142,7 +161,7 @@ function statutEntrepriseColor(s: string) {
 }
 
 onMounted(async () => {
-  await Promise.all([fetchEntreprise(), fetchExercices()])
+  await Promise.all([fetchEntreprise(), fetchExercices(), fetchFacturesKpi()])
   // pré-sélectionner l'exercice courant
   const courant = exercices.value.find(e => e.statut === 'ouvert')
   if (courant) {
