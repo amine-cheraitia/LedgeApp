@@ -9,6 +9,40 @@
 
 ## [Unreleased]
 
+### Refonte sidebar & qualité backend — (feature/refonte-sidebar)
+
+#### Backend — SOLID / SRP
+- **`FacturationService::supprimerFacture()`** (nouveau) : invariant "pas de paiements" levé via `DomainException`, cascade `lignes()->delete()` + `delete()` en transaction atomique
+- **`MissionService::supprimerMission()`** (nouveau) : invariant "pas de factures associées" levé via `DomainException`, cascade `taches()->delete()` + `collaborateurs()->detach()` + `delete()` en transaction (les pivots n'étaient pas nettoyés avant)
+- **`FactureController::destroy` et `MissionController::destroy`** : logique métier sortie des controllers, délégation pure aux services — alignement sur `DevisController::destroy` déjà conforme
+
+#### Backend — autorisations harmonisées
+- **`DevisPolicy` et `FacturePolicy`** : ajout de `viewAny()` et `view()` (admin/secrétaire/collaborateur en lecture) — auparavant aucune Policy ne couvrait `index/show/pdf`
+- **`DevisController`** : `authorize()` ajouté sur `index`, `show`, `pdf`, et toutes les transitions de statut (`envoyer`, `accepter`, `refuser`, `convertirEnMission`) — mappées sur `update`
+- **`FactureController`** : `authorize()` ajouté sur `index`, `show`, `pdf`
+- **`MissionController`** : `authorize('view', ...)` ajouté sur `conventionPdf` et `mandatPdf`
+
+#### Backend — conventions
+- Les dépendances injectées des 3 controllers (`DevisController`, `FactureController`, `MissionController`) sont désormais `private readonly`
+- Ajout du filtre `entreprise_id` sur les listes devis / factures / missions (gestion déjà présente côté services)
+
+#### Frontend — fix calculs KPIs fiche entreprise
+- **`EntrepriseDetailPage.vue`** : CA recalculé sur `montant_ht` au lieu de `montant_ttc` (le chiffre d'affaires est par définition hors taxes)
+- Nouveau `fetchFacturesKpi()` qui charge les factures **tous exercices confondus** indépendamment du filtre exercice de la page — les KPIs CA total et impayés reflètent désormais la réalité globale du client
+- Filtrage `entreprise_id` côté API plutôt que côté front (réduction de la charge réseau)
+- `formatMontant()` sécurisé contre les valeurs `null` / `NaN`
+
+#### Frontend — refonte UI page de connexion
+- **`LoginPage.vue`** : nouveau layout en deux zones — panneau de branding (logo SVG inline, tagline, pills modules, mention version/RNCP) + zone formulaire principale mobile-first
+- Deux dialogs informatifs ajoutés (aide à la connexion + mot de passe oublié) — pas de dépendance sur des pages externes
+- A11y renforcée : skip link vers le formulaire, `aria-label` sur la zone branding, `role="alert"` + `aria-live` sur les messages d'erreur
+- Suppression du composant `LedgeLogo` au profit d'un visuel SVG embarqué (simplification, moins de dépendances sur une page critique)
+
+#### Tests
+- **156 tests / 374 assertions** — aucune régression sur le refacto backend
+
+---
+
 ### Sécurité — gestion des erreurs API (fix/api-error-handling)
 
 #### Backend
