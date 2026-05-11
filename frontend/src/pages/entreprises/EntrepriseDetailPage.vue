@@ -18,6 +18,8 @@ import { facturesApi } from '@/api/modules/factures'
 import { useExercices } from '@/composables/useExercices'
 import type { Entreprise, Mission, Devis, Facture } from '@/types'
 
+type TagSeverity = 'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast'
+
 const route = useRoute()
 const router = useRouter()
 const entrepriseId = Number(route.params.id)
@@ -140,24 +142,24 @@ function formatDate(d: string | null) {
   return new Date(d).toLocaleDateString('fr-FR')
 }
 
-function statutMissionColor(s: string) {
-  const map: Record<string, string> = { en_cours: 'info', terminee: 'success', suspendue: 'warn', annulee: 'danger' }
-  return (map[s] ?? 'secondary') as any
+function statutMissionColor(s: string): TagSeverity {
+  const map: Record<string, TagSeverity> = { en_cours: 'info', terminee: 'success', suspendue: 'warn', annulee: 'danger' }
+  return map[s] ?? 'secondary'
 }
 
-function statutDevisColor(s: string) {
-  const map: Record<string, string> = { brouillon: 'secondary', envoye: 'info', accepte: 'success', refuse: 'danger', expire: 'warn' }
-  return (map[s] ?? 'secondary') as any
+function statutDevisColor(s: string): TagSeverity {
+  const map: Record<string, TagSeverity> = { brouillon: 'secondary', envoye: 'info', accepte: 'success', refuse: 'danger', expire: 'warn' }
+  return map[s] ?? 'secondary'
 }
 
-function statutFactureColor(s: string) {
-  const map: Record<string, string> = { en_attente: 'warn', partiel: 'info', solde: 'success' }
-  return (map[s] ?? 'secondary') as any
+function statutFactureColor(s: string): TagSeverity {
+  const map: Record<string, TagSeverity> = { en_attente: 'warn', partiel: 'info', solde: 'success' }
+  return map[s] ?? 'secondary'
 }
 
-function statutEntrepriseColor(s: string) {
-  const map: Record<string, string> = { prospect: 'warn', client: 'success', ancien_client: 'secondary' }
-  return (map[s] ?? 'secondary') as any
+function statutEntrepriseColor(s: string): TagSeverity {
+  const map: Record<string, TagSeverity> = { prospect: 'warn', client: 'success', ancien_client: 'secondary' }
+  return map[s] ?? 'secondary'
 }
 
 onMounted(async () => {
@@ -539,6 +541,17 @@ onMounted(async () => {
 
 @media (max-width: 900px) {
   .detail-layout { grid-template-columns: 1fr; }
-  .header-kpis { display: none; }
+  .header-kpis {
+    width: 100%;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+  }
+  .kpi-card {
+    flex: 1;
+    min-width: 0;
+    padding: 0.4rem 0.5rem;
+  }
+  .kpi-label { font-size: 0.65rem; }
+  .kpi-value { font-size: 0.95rem; }
 }
 </style>
