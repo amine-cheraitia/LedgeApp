@@ -103,9 +103,6 @@ async function handleLogin() {
       >
         <div class="login-main-card">
           <header class="login-form-head">
-            <div class="login-form-logo-row">
-              <LedgeLogo :size="34" :with-wordmark="true" class="login-form-logo" />
-            </div>
             <h1 class="login-h1">Connexion</h1>
             <p id="login-subtitle" class="login-subtitle">Espace cabinet</p>
           </header>
@@ -409,18 +406,6 @@ async function handleLogin() {
 
 .login-form-head {
   margin-bottom: 1.5rem;
-}
-
-.login-form-logo-row {
-  margin-bottom: 1.25rem;
-}
-
-.login-form-logo :deep(.ledge-logo) {
-  color: var(--ledge-primary);
-}
-
-.app-dark .login-form-logo :deep(.ledge-logo) {
-  color: var(--p-text-color);
 }
 
 .login-h1 {
