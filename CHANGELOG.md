@@ -45,6 +45,7 @@
 - **`LoginPage.vue`** : retrait du composant `<LedgeLogo>` orphelin ligne 107 (référencé sans import depuis la refonte UI — produisait un warning `Failed to resolve component` et un logo manquant dans la zone formulaire). Wrapper `<div class="login-form-logo-row">` et CSS associés également nettoyés
 - **`EntrepriseDetailPage.vue`** : introduction d'un type local `TagSeverity` (`'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast'`) — les 4 fonctions `statut*Color()` retournent désormais ce type au lieu de `as any` (correction d'une dette TypeScript)
 - **`EntrepriseDetailPage.vue`** : KPIs `Impayé / CA total / Missions actives` désormais visibles sur mobile en version compacte (cartes en `flex nowrap`, paddings et tailles de police réduits) — auparavant `display: none` masquait totalement ces indicateurs sous 900 px, contrairement à la règle mobile-first
+- **`EntrepriseDetailPage.vue`** : correction du débordement de texte dans le panneau Coordonnées — `dd` en `flex: 1; min-width: 0; overflow-wrap: anywhere` pour casser proprement les chaînes non sécables (emails, identifiants) + `align-items: flex-start` sur `.info-row` pour aligner le label en haut quand la valeur wrappe sur plusieurs lignes
 
 ---
 

@@ -501,9 +501,25 @@ onMounted(async () => {
   margin: 0 0 0.75rem 0;
 }
 .info-list { display: flex; flex-direction: column; gap: 0.35rem; }
-.info-row { display: flex; gap: 0.5rem; font-size: 0.875rem; }
-.info-row dt { color: var(--p-text-muted-color, #888); min-width: 5.5rem; flex-shrink: 0; }
-.info-row dd { font-weight: 500; }
+.info-row {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  align-items: flex-start;
+}
+.info-row dt {
+  color: var(--p-text-muted-color, #888);
+  min-width: 5.5rem;
+  flex-shrink: 0;
+}
+.info-row dd {
+  font-weight: 500;
+  margin: 0;
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
 
 .contacts-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.75rem; }
 .contact-item { font-size: 0.875rem; }
