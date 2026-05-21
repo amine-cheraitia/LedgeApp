@@ -9,6 +9,14 @@
 
 ## [Unreleased]
 
+### Sécurité — mot de passe admin hors du code (chore/admin-seeder-env-password)
+
+#### Backend
+- **`AdminUserSeeder`** : le mot de passe de l'administrateur initial est lu depuis `ADMIN_PASSWORD` (et l'email depuis `ADMIN_EMAIL`) au lieu d'être codé en dur — plus aucun credential dans le code source (OWASP A07)
+- **Garde-fou production** : si `ADMIN_PASSWORD` est absent en environnement `production`, le seeder lève une `RuntimeException` au lieu de créer un admin avec un mot de passe par défaut
+- **Local / test** : comportement inchangé — fallback sur `password` si `ADMIN_PASSWORD` est vide
+- **`.env.example`** : documentation des variables `ADMIN_EMAIL` / `ADMIN_PASSWORD`
+
 ### Sécurité — gestion des erreurs API (fix/api-error-handling)
 
 #### Backend
