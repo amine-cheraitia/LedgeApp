@@ -130,7 +130,7 @@ onMounted(fetchActivites)
 </script>
 
 <template>
-  <main aria-labelledby="audit-title">
+  <section aria-labelledby="audit-title">
     <div class="page-header">
       <h1 id="audit-title">Journal d'audit</h1>
     </div>
@@ -266,7 +266,7 @@ onMounted(fetchActivites)
         <p v-else class="hint">Aucun detail de champ disponible pour cette action.</p>
       </div>
     </Dialog>
-  </main>
+  </section>
 </template>
 
 <style scoped>
