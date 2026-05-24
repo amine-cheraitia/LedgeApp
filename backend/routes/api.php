@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Audit\AuditController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\Dashboard\DashboardController;
@@ -76,6 +77,9 @@ Route::prefix('v1')->group(function () {
                 // KPI objectifs (ecriture)
                 Route::post('/kpi/objectifs', [KpiController::class, 'upsert']);
                 Route::delete('/kpi/objectifs/{objectif}', [KpiController::class, 'destroy']);
+
+                // Journal d'audit — piste d'audit des actions utilisateurs
+                Route::get('/audit-logs', [AuditController::class, 'index']);
             });
 
             // ── Admin + Secretaire ───────────────────────────────────────────

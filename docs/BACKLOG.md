@@ -444,7 +444,8 @@
 - ✅ Pas de `v-html` avec donnees utilisateur (XSS)
 - ✅ CORS : allowed_headers restrictifs (suppression wildcard)
 - ✅ A05 Security Misconfiguration : `ApiExceptionRenderer` — aucune fuite de SQL, host, port, stack, chemin fichier sur les routes API meme en `APP_DEBUG=true` (6 tests)
-- ✅ A09 Logging & Monitoring : toutes les exceptions API loguees avec contexte structure (URL, methode, IP, user_id) — relayees a Sentry
+- ✅ A09 Logging & Monitoring : toutes les exceptions API loguees avec contexte structure (URL, methode, IP, user_id) — relayees a Sentry ; journal d'audit metier des actions sensibles (US-47)
+- ✅ A06 Composants vulnerables : `composer audit` actif (advisories non silencees) — advisories Symfony 7.x heritees de Laravel 12 documentees et evaluees dans `docs/SECURITY.md` (impact reel faible a nul), remediation suivie
 - Depend de : tout le code
 
 ---
@@ -485,6 +486,21 @@
 - Sentry free tier — remontee automatique des erreurs PHP avec contexte
 - Logs rotatifs quotidiens `storage/logs/laravel-YYYY-MM-DD.log`
 - Depend de : deploiement staging
+
+---
+
+### US-47 · Journal d'audit — piste d'audit des actions utilisateurs · S · 3 pts · Sprint 3 ✅
+
+**En tant qu'administrateur**, je veux consulter une piste d'audit de toutes les actions effectuees sur les entites sensibles **afin de** garantir la tracabilite (qui a cree, modifie ou supprime quoi, et quand) et repondre aux exigences legales du cabinet.
+
+- Package `spatie/laravel-activitylog` · table `activity_log` (causer, sujet, evenement, diff des champs)
+- Modeles traces : `Facture`, `Avoir`, `Paiement`, `Devis`, `Entreprise`, `User`, `Setting` (trait `LogsActivity`, `logOnlyDirty`)
+- Securite : le `password` et le `remember_token` ne sont jamais journalises (`logExcept`)
+- Capture automatique de l'utilisateur connecte (causer) et du diff avant/apres
+- Lecture seule, **admin uniquement** : `GET /api/v1/audit-logs` paginee + filtres (entite, action, periode)
+- Frontend : page `Journal d'audit` (DataTable, filtres, dialog detail du diff) sous Administration · RGAA
+- Complement de l'audit OWASP A09 (US-36) qui ne loggait que les erreurs
+- Depend de : **US-36**
 
 ---
 
