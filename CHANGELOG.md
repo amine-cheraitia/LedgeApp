@@ -9,6 +9,26 @@
 
 ## [Unreleased]
 
+### Journal d'audit — piste d'audit des actions utilisateurs (feature/journal-audit)
+
+#### Backend
+- **`spatie/laravel-activitylog` (^4)** : nouvelle table `activity_log` (causer, sujet polymorphe, événement, diff des propriétés) — migrations publiées
+- **Trait `LogsActivity`** sur 7 modèles sensibles : `Facture`, `Avoir`, `Paiement`, `Devis`, `Entreprise`, `User`, `Setting` (`logFillable` + `logOnlyDirty` + `dontSubmitEmptyLogs`)
+- **Sécurité** : `User` journalise tout sauf `password` et `remember_token` (`logExcept`) — aucun hash de mot de passe en clair dans l'audit
+- **`AuditService`** : liste paginée du journal, filtrable par entité / action / période ; mapping label court ↔ classe Eloquent
+- **`AuditController` + `ActivityResource`** : `GET /api/v1/audit-logs` (controller mince → service → resource), exposant causer, diff `old`/`attributes`, entité et date
+- **Route admin uniquement** : `/audit-logs` placée dans le groupe `role:admin` (secrétaire/collaborateur → 403)
+- **Tests** : `AuditLogTest` (6 tests) — journalisation avec causer, diff des champs modifiés, exclusion du `password`, accès admin/403, filtre par événement
+
+#### Frontend
+- **`pages/audit/AuditLogPage.vue`** (nouveau) : DataTable paginée + filtres (entité, action, dates) + dialog détail du diff avant/après · RGAA (`<main>`, `aria-labelledby`, `aria-label`, `role="search"`)
+- **`api/modules/audit.ts`** (nouveau) + type `Activity` : appel `GET /audit-logs` via le module dédié
+- **Router** : route `audit-logs` ; **`AppMenu`** : entrée « Journal d'audit » sous Administration (admin)
+
+#### Sécurité — dépendances (OWASP A06)
+- **`docs/SECURITY.md`** (nouveau) : 8 advisories sur 5 paquets Symfony 7.x (`http-kernel`, `mailer`, `mime`, `routing`, `yaml`) tirés transitivement par Laravel 12 — **documentées et évaluées** (impact réel faible à nul : `MAIL_MAILER=log`/Resend, autorisation Laravel native, routing Laravel, `yaml` en dépendance dev), **non silencées** dans `composer audit`
+- Aucune version corrigée n'étant disponible dans la plage `symfony/* ^7.2`, l'install (local + CI) reste fonctionnelle car `composer install` lit depuis le lock sans re-résolution ; plan de remédiation suivi (`composer update symfony/*` dès patch publié)
+
 ### Sécurité — mot de passe admin hors du code (chore/admin-seeder-env-password)
 
 #### Backend

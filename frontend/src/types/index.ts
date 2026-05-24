@@ -252,6 +252,23 @@ export interface Paiement {
   updated_at: string
 }
 
+export type AuditEvent = 'created' | 'updated' | 'deleted'
+
+export interface Activity {
+  id: number
+  event: AuditEvent | null
+  description: string
+  log_name: string | null
+  subject_type: string
+  subject_id: number | null
+  causer: { id: number; name: string } | null
+  changes: {
+    attributes: Record<string, unknown>
+    old: Record<string, unknown>
+  }
+  created_at: string
+}
+
 export interface PaginatedResponse<T> {
   data: T[]
   meta: {

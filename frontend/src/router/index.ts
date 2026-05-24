@@ -95,6 +95,11 @@ const router = createRouter({
           name: 'relances-config',
           component: () => import('@/pages/relances/RelancesConfigPage.vue'),
         },
+        {
+          path: 'audit-logs',
+          name: 'audit-logs',
+          component: () => import('@/pages/audit/AuditLogPage.vue'),
+        },
       ],
     },
     {
