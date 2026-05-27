@@ -55,9 +55,7 @@ Route::prefix('v1')->group(function () {
                 // Parametres cabinet (ecriture)
                 Route::put('settings', [SettingController::class, 'update']);
 
-                // Entreprises (ecriture + portail)
-                Route::post('entreprises', [EntrepriseController::class, 'store']);
-                Route::put('entreprises/{entreprise}', [EntrepriseController::class, 'update']);
+                // Entreprises (ecriture + portail — admin uniquement)
                 Route::delete('entreprises/{entreprise}', [EntrepriseController::class, 'destroy']);
                 Route::post('entreprises/{entreprise}/activer-portail', [EntrepriseController::class, 'activerPortail']);
                 Route::post('entreprises/{entreprise}/toggle-portail', [EntrepriseController::class, 'togglePortail']);
@@ -76,17 +74,24 @@ Route::prefix('v1')->group(function () {
                 // KPI objectifs (ecriture)
                 Route::post('/kpi/objectifs', [KpiController::class, 'upsert']);
                 Route::delete('/kpi/objectifs/{objectif}', [KpiController::class, 'destroy']);
+
+                // Dashboard stats financieres (admin uniquement)
+                Route::get('/stats', [DashboardController::class, 'stats']);
+            });
+
+            // ── Secretaire uniquement ────────────────────────────────────────
+            Route::middleware('role:secretaire')->group(function () {
+                Route::get('/stats/secretaire', [DashboardController::class, 'secretaireStats']);
             });
 
             // ── Admin + Secretaire ───────────────────────────────────────────
             Route::middleware('role:admin|secretaire')->group(function () {
-                // Dashboard stats financieres
-                Route::get('/stats', [DashboardController::class, 'stats']);
-
                 // KPI objectifs (lecture)
                 Route::get('/kpi/objectifs', [KpiController::class, 'index']);
 
-                // Entreprises (lecture + export)
+                // Entreprises (lecture + ecriture sans delete/portail)
+                Route::post('entreprises', [EntrepriseController::class, 'store']);
+                Route::put('entreprises/{entreprise}', [EntrepriseController::class, 'update']);
                 Route::get('entreprises/wilayas', [EntrepriseController::class, 'wilayas']);
                 Route::get('entreprises/export-csv', [EntrepriseController::class, 'exportCsv']);
                 Route::get('entreprises', [EntrepriseController::class, 'index']);

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { statsApi, type DashboardStats, type CollaborateurStats } from '@/api/modules/stats'
+import { useDashboardStats } from '@/composables/useDashboardStats'
 import { useAuthStore } from '@/stores/auth'
 import { useCountUp } from '@/composables/useCountUp'
+import SecretaireDashboardSection from '@/pages/dashboard/SecretaireDashboardSection.vue'
 import { computed, onMounted, ref } from 'vue'
 import Select from 'primevue/select'
 import Message from 'primevue/message'
@@ -11,32 +12,27 @@ import Column from 'primevue/column'
 import ProgressSpinner from 'primevue/progressspinner'
 
 const auth = useAuthStore()
-const loading = ref(true)
-const stats = ref<DashboardStats | null>(null)
-const collabStats = ref<CollaborateurStats | null>(null)
+const {
+  loading,
+  adminStats: stats,
+  collaborateurStats: collabStats,
+  secretaireStats,
+  fetchAdminStats,
+  fetchCollaborateurStats,
+  fetchSecretaireStats,
+} = useDashboardStats()
 const exerciceId = ref<number | null>(null)
 
 async function fetchStats() {
   if (auth.isCollaborateur) {
-    try {
-      const res = await statsApi.getCollaborateurDashboard()
-      collabStats.value = res.data
-    } catch {
-      // silencieux
-    } finally {
-      loading.value = false
-    }
+    await fetchCollaborateurStats()
     return
   }
-  loading.value = true
-  try {
-    const res = await statsApi.getDashboard(exerciceId.value)
-    stats.value = res.data
-  } catch {
-    // Silencieux — stats non disponibles
-  } finally {
-    loading.value = false
+  if (auth.isSecretaire) {
+    await fetchSecretaireStats()
+    return
   }
+  await fetchAdminStats(exerciceId.value)
 }
 
 onMounted(fetchStats)
@@ -152,7 +148,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
           <h2 id="dashboard-title" class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">Tableau de bord</h2>
           <p class="text-muted-color mt-1">Bienvenue, {{ auth.user?.name }}.</p>
         </div>
-        <div v-if="stats">
+        <div v-if="auth.isAdmin && stats">
           <label for="filtre-exercice" class="sr-only">Filtrer par exercice</label>
           <Select
             id="filtre-exercice"
@@ -597,9 +593,16 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
     </template>
 
     <!-- ══════════════════════════════════════════════════════════════════ -->
-    <!-- Dashboard admin / secrétaire                                      -->
+    <!-- Dashboard secrétaire                                               -->
     <!-- ══════════════════════════════════════════════════════════════════ -->
-    <template v-if="stats && !loading">
+    <div v-if="!loading && auth.isSecretaire && secretaireStats" class="col-span-12">
+      <SecretaireDashboardSection :stats="secretaireStats" />
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- Dashboard admin                                                    -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <template v-if="stats && !loading && auth.isAdmin">
       <!-- Alertes -->
       <div v-if="stats.alertes.length" class="col-span-12" role="alert" aria-live="polite">
         <Message
@@ -926,7 +929,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
   position: relative;
 }
 
-:global(.app-dark) .hero-banner {
+.app-dark .hero-banner {
   background: var(--p-surface-900);
   border-color: var(--p-surface-700);
 }
@@ -973,7 +976,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
   padding-top: 0.85rem;
 }
 
-:global(.app-dark) .hero-summary {
+.app-dark .hero-summary {
   border-top-color: var(--p-surface-700);
 }
 
@@ -1003,7 +1006,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
   font-size: 0.85rem;
 }
 
-:global(.app-dark) .hero-chip {
+.app-dark .hero-chip {
   border-right-color: var(--p-surface-700);
 }
 

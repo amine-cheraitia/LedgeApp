@@ -9,6 +9,44 @@
 
 ## [Unreleased]
 
+### Dashboard secrétaire + autorisations front — (feature/dashboard-secretaire)
+
+#### Backend — dashboard secrétaire
+- **`DashboardService::getSecretaireStats()`** (nouveau) : KPI orientés recouvrement — créances totales (avec déduction avoirs via `montantRestant()`), aging 15–29 / 30–59 / 60+ j, relances dues (logique alignée sur `EnvoyerRelancesJob`), top 5 débiteurs, factures émises mois N vs N-1, créances urgentes
+- **Volet facturation** (`compterFacturation()`) : devis en attente (count + montant), devis acceptés à convertir en mission, devis expirant sous 7 j, encaissements du mois
+- **Worklist « À faire »** (`construireWorklist()`) : liste d'actions priorisées par sévérité (factures en retard, relances à envoyer, devis expirant / en attente / à convertir) avec route de destination — dashboard orienté action
+- **`GET /api/v1/stats/secretaire`** : route réservée au rôle `secretaire` (middleware Spatie dédié)
+- **`GET /api/v1/stats`** : déplacé dans le groupe `role:admin` — séparation stricte admin / secrétaire
+
+#### Backend — droits entreprises secrétaire
+- **`EntreprisePolicy`** : `create()` et `update()` ouverts à admin + secrétaire ; `delete()` reste admin uniquement
+- Routes `POST/PUT entreprises` déplacées dans le groupe `admin|secretaire` ; suppression et portail restent admin
+
+#### Frontend — dashboard secrétaire
+- **`SecretaireDashboardSection.vue`** : refonte graphique « Ledger Edition » orientée action — bandeau éditorial, **panneau « À faire »** (worklist cliquable), 4 KPI animés (count-up) recouvrement + facturation, graphiques SVG/CSS (aging, donut relances, comparatif factures N vs N-1), classement débiteurs en barres, table créances urgentes
+- **Dark mode** géré sur tous les nouveaux éléments (tokens `--p-*` / `--ledge-*`, variantes `:global(.app-dark)`) ; **RGAA** (charts `role="img"` + libellés, worklist en liste de liens, `prefers-reduced-motion`, focus visibles)
+- **Zéro dépendance ajoutée** : graphiques en SVG/CSS pur (cohérent avec le dashboard collaborateur)
+- **`useDashboardStats.ts`** (nouveau composable) : pattern Page → Composable → API pour les 3 dashboards
+- **`DashboardPage.vue`** : branchement à 3 voies (collaborateur / secrétaire / admin)
+
+#### Frontend — autorisations router
+- **`meta.roles`** sur toutes les routes back-office + guard `beforeEach` avec redirection vers `/acces-refuse`
+- **`AccesRefusePage.vue`** (nouveau) : page 403 accessible avec message clair et bouton retour (RGAA)
+- **`authStore.hasAnyRole()`** : helper pour le guard
+- **`AppMenu.vue`** : config relances (admin only) retirée du menu secrétaire
+- **`EntrepriseListPage.vue`** : colonne portail, suppression et dialogs réservés à l'admin
+
+#### Documentation
+- **`docs/WORKFLOW-FEATURE.md`** (nouveau) : checklist réutilisable pour chaque feature
+
+#### Tests
+- **`DashboardSecretaireTest.php`** : 9 tests — structure (incl. `facturation` + `actions`), avoirs, aging, devis en attente, encaissements du mois, worklist factures en retard, séparation rôles
+- **`DashboardKpiTest`** : secrétaire bloqué sur `/stats`
+- **`EntrepriseApiTest`** : secrétaire create/update OK, delete 403
+- **169 tests / 433 assertions** — aucune régression
+
+---
+
 ### Refonte sidebar & qualité backend — (feature/refonte-sidebar)
 
 #### Backend — SOLID / SRP

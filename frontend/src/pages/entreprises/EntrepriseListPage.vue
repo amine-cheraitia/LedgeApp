@@ -14,6 +14,7 @@ import Textarea from 'primevue/textarea'
 import ToggleSwitch from 'primevue/toggleswitch'
 import { useEntreprises } from '@/composables/useEntreprises'
 import { useContacts } from '@/composables/useContacts'
+import { useAuthStore } from '@/stores/auth'
 import { entreprisesApi } from '@/api/modules/entreprises'
 import type { Contact, Entreprise } from '@/types'
 import type { ContactPayload } from '@/api/modules/contacts'
@@ -21,6 +22,7 @@ import type { ContactPayload } from '@/api/modules/contacts'
 const confirm = useConfirm()
 const toast = useToast()
 const router = useRouter()
+const auth = useAuthStore()
 const {
   entreprises, loading, totalRecords, filters,
   fetchEntreprises, createEntreprise, updateEntreprise, deleteEntreprise,
@@ -391,7 +393,7 @@ onMounted(() => {
           <Tag :value="data.statut" :severity="statutColor(data.statut)" />
         </template>
       </Column>
-      <Column header="Portail">
+      <Column v-if="auth.isAdmin" header="Portail">
         <template #body="{ data }">
           <template v-if="data.statut === 'client'">
             <template v-if="data.portail_user">
@@ -453,6 +455,7 @@ onMounted(() => {
             @click="openEdit(data)"
           />
           <Button
+            v-if="auth.isAdmin"
             icon="pi pi-trash"
             text
             rounded
@@ -560,8 +563,9 @@ onMounted(() => {
       </form>
     </Dialog>
 
-    <!-- Dialog activation portail -->
+    <!-- Dialog activation portail (admin uniquement) -->
     <Dialog
+      v-if="auth.isAdmin"
       v-model:visible="portailDialogVisible"
       header="Activer l'acces portail"
       :modal="true"
@@ -703,8 +707,9 @@ onMounted(() => {
       </form>
     </Dialog>
 
-    <!-- Dialog credentials -->
+    <!-- Dialog credentials (admin uniquement) -->
     <Dialog
+      v-if="auth.isAdmin"
       v-model:visible="credentialsDialogVisible"
       header="Identifiants portail"
       :modal="true"

@@ -17,6 +17,11 @@ export const useAuthStore = defineStore('auth', () => {
     return roles.some(r => ['admin', 'collaborateur', 'secretaire'].includes(r))
   })
 
+  function hasAnyRole(roles: string[]): boolean {
+    const userRoles = user.value?.roles ?? []
+    return userRoles.some(r => roles.includes(r))
+  }
+
   function normalizeUser(raw: Record<string, unknown>): User {
     const u = raw as unknown as User
     if (Array.isArray(u.roles) && u.roles.length > 0 && typeof u.roles[0] === 'object') {
@@ -51,5 +56,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, loading, isAuthenticated, isAdmin, isClient, isSecretaire, isCollaborateur, isBackoffice, login, logout, fetchUser }
+  return { user, loading, isAuthenticated, isAdmin, isClient, isSecretaire, isCollaborateur, isBackoffice, hasAnyRole, login, logout, fetchUser }
 })

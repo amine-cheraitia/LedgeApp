@@ -21,12 +21,12 @@ class EntreprisePolicy
 
     public function create(User $user): bool
     {
-        return $user->hasRole('admin');
+        return $user->hasAnyRole(['admin', 'secretaire']);
     }
 
     public function update(User $user, Entreprise $entreprise): bool
     {
-        return $user->hasRole('admin');
+        return $user->hasAnyRole(['admin', 'secretaire']);
     }
 
     public function delete(User $user, Entreprise $entreprise): bool
