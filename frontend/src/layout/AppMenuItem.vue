@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { useLayout } from '@/layout/composables/layout'
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 
 const { layoutState, isDesktop } = useLayout()
+const route = useRoute()
 
 const props = defineProps({
   item: {
@@ -32,6 +34,28 @@ const isActive = computed(() =>
     ? layoutState.activePath?.startsWith(fullPath.value!)
     : layoutState.activePath === props.item.to,
 )
+
+// ── Accordéon (groupe racine repliable) ────────────────────────────────────
+const isAccordion = computed(() => props.root && !!props.item.accordion)
+
+const hasActiveChild = computed(() =>
+  (props.item.items ?? []).some(
+    (child: { to?: string }) => child.to && route.path.startsWith(child.to),
+  ),
+)
+
+const open = ref(false)
+
+onMounted(() => {
+  // Déplié d'emblée si la page courante appartient au groupe
+  if (isAccordion.value) {
+    open.value = hasActiveChild.value
+  }
+})
+
+function toggleAccordion() {
+  open.value = !open.value
+}
 
 function itemClick(event: Event, item: any) {
   if (item.disabled) {
@@ -65,7 +89,40 @@ function onMouseEnter() {
 </script>
 
 <template>
-  <li :class="{ 'layout-root-menuitem': root, 'active-menuitem': isActive }">
+  <!-- Groupe racine repliable (accordéon) -->
+  <li
+    v-if="isAccordion && item.visible !== false"
+    class="layout-root-menuitem"
+    :class="{ 'active-menuitem': open }"
+  >
+    <a
+      role="button"
+      tabindex="0"
+      class="layout-accordion-header"
+      :aria-expanded="open"
+      @click="toggleAccordion"
+      @keydown.enter.prevent="toggleAccordion"
+      @keydown.space.prevent="toggleAccordion"
+    >
+      <i :class="item.icon" class="layout-menuitem-icon" />
+      <span class="layout-menuitem-text">{{ item.label }}</span>
+      <i class="pi pi-fw pi-angle-down layout-submenu-toggler" />
+    </a>
+    <Transition name="layout-submenu">
+      <ul v-show="open" class="layout-submenu">
+        <app-menu-item
+          v-for="child in item.items"
+          :key="child.label + '_' + (child.to || child.path)"
+          :item="child"
+          :root="false"
+          :parentPath="fullPath ?? undefined"
+        />
+      </ul>
+    </Transition>
+  </li>
+
+  <!-- Rendu standard (sections + liens) -->
+  <li v-else :class="{ 'layout-root-menuitem': root, 'active-menuitem': isActive }">
     <div v-if="root && item.visible !== false" class="layout-menuitem-root-text">{{ item.label }}</div>
     <a
       v-if="(!item.to || item.items) && item.visible !== false"

@@ -15,7 +15,6 @@ const model = computed(() => [
     label: 'Accueil',
     items: [
       { label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' },
-      { label: 'KPI Objectifs', icon: 'pi pi-fw pi-chart-bar', to: '/kpi/objectifs', visible: isAdmin.value },
     ],
   },
   {
@@ -40,11 +39,14 @@ const model = computed(() => [
   {
     label: 'Administration',
     visible: isAdmin.value,
+    accordion: true,
+    icon: 'pi pi-fw pi-cog',
     items: [
-      { label: 'Utilisateurs', icon: 'pi pi-fw pi-users', to: '/users' },
-      { label: 'Exercices', icon: 'pi pi-fw pi-calendar', to: '/exercices' },
       { label: 'Prestations', icon: 'pi pi-fw pi-list', to: '/prestations' },
-      { label: 'Parametres', icon: 'pi pi-fw pi-cog', to: '/settings' },
+      { label: 'Parametres', icon: 'pi pi-fw pi-sliders-h', to: '/settings' },
+      { label: 'Exercices', icon: 'pi pi-fw pi-calendar', to: '/exercices' },
+      { label: 'Utilisateurs', icon: 'pi pi-fw pi-users', to: '/users' },
+      { label: 'KPI Objectifs', icon: 'pi pi-fw pi-chart-bar', to: '/kpi/objectifs' },
       { label: "Journal d'audit", icon: 'pi pi-fw pi-history', to: '/audit-logs' },
     ],
   },

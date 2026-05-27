@@ -487,6 +487,19 @@
   transition: max-height 0.45s cubic-bezier(0, 1, 0, 1);
 }
 
+/* En-tête de groupe repliable (accordéon) */
+.layout-accordion-header {
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layout-submenu-enter-active,
+  .layout-submenu-leave-active,
+  .layout-submenu-toggler {
+    transition: none;
+  }
+}
+
 /* ================================================================
    Main container
    ================================================================ */
