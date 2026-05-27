@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Audit\AuditController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\Dashboard\DashboardController;
@@ -77,6 +78,9 @@ Route::prefix('v1')->group(function () {
 
                 // Dashboard stats financieres (admin uniquement)
                 Route::get('/stats', [DashboardController::class, 'stats']);
+
+                // Journal d'audit — piste d'audit des actions utilisateurs
+                Route::get('/audit-logs', [AuditController::class, 'index']);
             });
 
             // ── Secretaire uniquement ────────────────────────────────────────

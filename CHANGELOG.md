@@ -24,7 +24,7 @@
 
 #### Frontend — dashboard secrétaire
 - **`SecretaireDashboardSection.vue`** : refonte graphique « Ledger Edition » orientée action — bandeau éditorial, **panneau « À faire »** (worklist cliquable), 4 KPI animés (count-up) recouvrement + facturation, graphiques SVG/CSS (aging, donut relances, comparatif factures N vs N-1), classement débiteurs en barres, table créances urgentes
-- **Dark mode** géré sur tous les nouveaux éléments (tokens `--p-*` / `--ledge-*`, variantes `:global(.app-dark)`) ; **RGAA** (charts `role="img"` + libellés, worklist en liste de liens, `prefers-reduced-motion`, focus visibles)
+- **Dark mode** géré sur tous les nouveaux éléments (tokens `--p-*` / `--ledge-*`, sélecteurs `.app-dark` directs) ; correction d'un bug où `:global(.app-dark)` était mal compilé par lightningcss (perte du descendant) — appliqué aussi au dashboard collaborateur ; **RGAA** (charts `role="img"` + libellés, worklist en liste de liens, `prefers-reduced-motion`, focus visibles)
 - **Zéro dépendance ajoutée** : graphiques en SVG/CSS pur (cohérent avec le dashboard collaborateur)
 - **`useDashboardStats.ts`** (nouveau composable) : pattern Page → Composable → API pour les 3 dashboards
 - **`DashboardPage.vue`** : branchement à 3 voies (collaborateur / secrétaire / admin)
@@ -86,6 +86,34 @@
 - **`EntrepriseDetailPage.vue`** : correction du débordement de texte dans le panneau Coordonnées — `dd` en `flex: 1; min-width: 0; overflow-wrap: anywhere` pour casser proprement les chaînes non sécables (emails, identifiants) + `align-items: flex-start` sur `.info-row` pour aligner le label en haut quand la valeur wrappe sur plusieurs lignes
 
 ---
+
+### Journal d'audit — piste d'audit des actions utilisateurs (feature/journal-audit)
+
+#### Backend
+- **`spatie/laravel-activitylog` (^4)** : nouvelle table `activity_log` (causer, sujet polymorphe, événement, diff des propriétés) — migrations publiées
+- **Trait `LogsActivity`** sur 7 modèles sensibles : `Facture`, `Avoir`, `Paiement`, `Devis`, `Entreprise`, `User`, `Setting` (`logFillable` + `logOnlyDirty` + `dontSubmitEmptyLogs`)
+- **Sécurité** : `User` journalise tout sauf `password` et `remember_token` (`logExcept`) — aucun hash de mot de passe en clair dans l'audit
+- **`AuditService`** : liste paginée du journal, filtrable par entité / action / période ; mapping label court ↔ classe Eloquent
+- **`AuditController` + `ActivityResource`** : `GET /api/v1/audit-logs` (controller mince → service → resource), exposant causer, diff `old`/`attributes`, entité et date
+- **Route admin uniquement** : `/audit-logs` placée dans le groupe `role:admin` (secrétaire/collaborateur → 403)
+- **Tests** : `AuditLogTest` (6 tests) — journalisation avec causer, diff des champs modifiés, exclusion du `password`, accès admin/403, filtre par événement
+
+#### Frontend
+- **`pages/audit/AuditLogPage.vue`** (nouveau) : DataTable paginée + filtres (entité, action, dates) + dialog détail du diff avant/après · RGAA (`<main>`, `aria-labelledby`, `aria-label`, `role="search"`)
+- **`api/modules/audit.ts`** (nouveau) + type `Activity` : appel `GET /audit-logs` via le module dédié
+- **Router** : route `audit-logs` ; **`AppMenu`** : entrée « Journal d'audit » sous Administration (admin)
+
+#### Sécurité — dépendances (OWASP A06)
+- **`docs/SECURITY.md`** (nouveau) : 8 advisories sur 5 paquets Symfony 7.x (`http-kernel`, `mailer`, `mime`, `routing`, `yaml`) tirés transitivement par Laravel 12 — **documentées et évaluées** (impact réel faible à nul : `MAIL_MAILER=log`/Resend, autorisation Laravel native, routing Laravel, `yaml` en dépendance dev), **non silencées** dans `composer audit`
+- Aucune version corrigée n'étant disponible dans la plage `symfony/* ^7.2`, l'install (local + CI) reste fonctionnelle car `composer install` lit depuis le lock sans re-résolution ; plan de remédiation suivi (`composer update symfony/*` dès patch publié)
+
+### Sécurité — mot de passe admin hors du code (chore/admin-seeder-env-password)
+
+#### Backend
+- **`AdminUserSeeder`** : le mot de passe de l'administrateur initial est lu depuis `ADMIN_PASSWORD` (et l'email depuis `ADMIN_EMAIL`) au lieu d'être codé en dur — plus aucun credential dans le code source (OWASP A07)
+- **Garde-fou production** : si `ADMIN_PASSWORD` est absent en environnement `production`, le seeder lève une `RuntimeException` au lieu de créer un admin avec un mot de passe par défaut
+- **Local / test** : comportement inchangé — fallback sur `password` si `ADMIN_PASSWORD` est vide
+- **`.env.example`** : documentation des variables `ADMIN_EMAIL` / `ADMIN_PASSWORD`
 
 ### Sécurité — gestion des erreurs API (fix/api-error-handling)
 

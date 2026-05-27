@@ -45,6 +45,7 @@ const model = computed(() => [
       { label: 'Exercices', icon: 'pi pi-fw pi-calendar', to: '/exercices' },
       { label: 'Prestations', icon: 'pi pi-fw pi-list', to: '/prestations' },
       { label: 'Parametres', icon: 'pi pi-fw pi-cog', to: '/settings' },
+      { label: "Journal d'audit", icon: 'pi pi-fw pi-history', to: '/audit-logs' },
     ],
   },
 ])

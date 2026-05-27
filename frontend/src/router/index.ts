@@ -122,6 +122,11 @@ const router = createRouter({
           component: () => import('@/pages/relances/RelancesConfigPage.vue'),
           meta: { roles: ROLES.adminOnly },
         },
+        {
+          path: 'audit-logs',
+          name: 'audit-logs',
+          component: () => import('@/pages/audit/AuditLogPage.vue'),
+        },
       ],
     },
     {
