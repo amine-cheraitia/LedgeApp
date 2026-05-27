@@ -545,6 +545,43 @@
 
 ---
 
+### US-50 · Dashboard secrétaire · M · 3 pts · Sprint 3 ✅
+
+**En tant que secrétaire**, je veux un dashboard dédié et **orienté action** (facturation + recouvrement) **afin de** voir d'un coup d'œil ce que je dois faire et le traiter en un clic.
+
+- **Worklist « À faire »** : actions priorisées (factures en retard, relances à envoyer, devis expirant / en attente / à convertir) avec lien direct vers la page concernée
+- KPI recouvrement : impayé total (avoirs déduits), clients débiteurs, factures en retard, relances dues
+- KPI facturation : devis en attente (count + montant), encaissements du mois, factures émises ce mois (delta N-1)
+- Graphiques (SVG/CSS, sans dépendance) : aging créances 15–29 / 30–59 / 60+ j · donut relances N1/N2/N3 · comparatif factures N vs N-1
+- Top 5 débiteurs (barres) · créances urgentes · liens rapides `/creances`, `/factures`, `/devis`
+- Refonte graphique « Ledger Edition », **dark mode** complet, **RGAA** (worklist en liste de liens, charts `role="img"`, `prefers-reduced-motion`)
+- Endpoint `GET /api/v1/stats/secretaire` (rôle secrétaire uniquement), distinct du dashboard admin (`GET /api/v1/stats`)
+- Depend de : **US-13, US-27**
+
+---
+
+### US-48 · Entreprises — création/modification secrétaire · S · 2 pts · Sprint 3 ✅
+
+**En tant que secrétaire**, je veux créer et modifier des entreprises **afin de** gérer les fiches clients sans passer par l'administrateur.
+
+- Policy `create`/`update` : admin + secrétaire
+- Suppression et activation portail : admin uniquement
+- UI : bouton « Nouvelle entreprise » et édition visibles ; portail/suppression masqués pour la secrétaire
+- Depend de : **US-06**
+
+---
+
+### US-49 · Garde router par rôle · S · 2 pts · Sprint 3 ✅
+
+**En tant qu'utilisateur back-office**, je veux être redirigé proprement si j'accède à une page hors périmètre **afin de** ne pas voir un écran vide ou une erreur API silencieuse.
+
+- `meta.roles` sur les routes Vue Router (admin / admin+secrétaire / tous staff)
+- Page `/acces-refuse` avec message clair et retour dashboard
+- Menu aligné sur les routes (config relances admin only)
+- Depend de : **US-45**
+
+---
+
 ### US-46 · Rapport de fin de mission PDF · S · 3 pts · Sprint 3 ✅
 
 **En tant qu'administrateur ou client**, je veux générer un rapport PDF de fin de mission **afin d'** avoir un récapitulatif complet des travaux effectués avec les commentaires associés.
@@ -579,7 +616,7 @@
 |---|---|---|---|
 | Sprint 1 | US-01 ✅, 02 ✅, 03 ✅, 04 ✅, 05 ✅, 06 ✅, 07 ✅, 08 ✅, 09 ✅, 11 ✅, 12 ✅, 17 ✅, 18 ✅, 40 ✅, 43 ✅ | 49 pts | Auth · Referentiel · Clients · Devis · Mission · Exercice |
 | Sprint 2 | US-10 ✅, 13 ✅, 14 ✅, 15 ✅, 16 ✅, 19 ✅, 20 ✅, 21 ✅, 22 ✅, 23 ✅, 24 ✅, 25 ✅, 26 ✅, 27 ✅, 28 ✅, 29 ✅, 30 ✅, 31 ✅, 32 ✅, 33 ✅, 34 ✅ | 96 pts | Factures · Taches · Portail · Relances · KPI |
-| Sprint 3 | US-35 ✅, 36 ✅, 37 ✅, 38 ✅, 39 ✅, 41 ✅, 42, 45 ✅, 46 ✅ | 33 pts | Qualite · OWASP · RGAA · Tests · MCO · Droits · PDF mission |
+| Sprint 3 | US-35 ✅, 36 ✅, 37 ✅, 38 ✅, 39 ✅, 41 ✅, 42 ✅, 45 ✅, 46 ✅, 47 ✅, 48 ✅, 49 ✅ | 40 pts | Qualite · OWASP · RGAA · Tests · MCO · Droits · PDF mission · Dashboard secrétaire |
 | **Total** | **45 US** | **176 pts** | |
 
 ### Par priorite MoSCoW
@@ -604,7 +641,7 @@
 | **US-18 Mission** ⭐ ✅ | Debloque 11 US en aval (taches, factures, calendrier, portail, KPI, relances) |
 | **US-13 Facture** ⭐ ✅ | Debloque 9 US en aval (PDF DGI, paiements, avoirs, relances, portail, KPI) |
 
-> Sprint 3 terminé : US-35 ✅, US-36 ✅, US-37 ✅, US-38 ✅, US-39 ✅, US-41 ✅, US-42 ✅, US-45 ✅, US-46 ✅.
+> Sprint 3 terminé : US-35 ✅, US-36 ✅, US-37 ✅, US-38 ✅, US-39 ✅, US-41 ✅, US-42 ✅, US-45 ✅, US-46 ✅, US-47 ✅, US-48 ✅, US-49 ✅, US-50 ✅.
 
 ---
 

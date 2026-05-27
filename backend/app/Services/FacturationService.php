@@ -325,6 +325,18 @@ class FacturationService
         });
     }
 
+    public function supprimerFacture(Facture $facture): void
+    {
+        if ($facture->paiements()->exists()) {
+            throw new DomainException('Impossible de supprimer une facture avec des paiements.');
+        }
+
+        DB::transaction(function () use ($facture) {
+            $facture->lignes()->delete();
+            $facture->delete();
+        });
+    }
+
     /**
      * Recalcule le statut de paiement d'une facture apres un paiement.
      */

@@ -38,9 +38,75 @@ export interface DashboardStats {
     ca_potentiel: number
   }
   recentes: {
-    factures: any[]
-    missions: any[]
+    factures: {
+      id: number
+      numero: string
+      montant_ttc: number
+      statut_paiement: string
+      date_facture: string
+      entreprise?: { raison_sociale: string }
+    }[]
+    missions: {
+      id: number
+      reference: string
+      statut: string
+      prix_ht: number
+      entreprise?: { raison_sociale: string }
+    }[]
   }
+}
+
+export interface SecretaireAction {
+  key: string
+  label: string
+  count: number
+  severity: 'danger' | 'warn' | 'info'
+  icon: string
+  route: string
+}
+
+export interface SecretaireStats {
+  alertes: { type: 'danger' | 'warn' | 'info'; message: string }[]
+  actions: SecretaireAction[]
+  creances: {
+    total_impaye: number
+    clients_debiteurs: number
+    en_retard: number
+  }
+  aging: {
+    retard_15_30: number
+    retard_30_60: number
+    retard_60_plus: number
+  }
+  relances_dues: {
+    niveau_1: number
+    niveau_2: number
+    niveau_3: number
+  }
+  top_debiteurs: {
+    entreprise_id: number
+    raison_sociale: string
+    montant_impaye: number
+  }[]
+  factures_emises: {
+    mois_courant: { count: number; montant_ttc: number }
+    mois_precedent: { count: number; montant_ttc: number }
+  }
+  facturation: {
+    devis_en_attente: { count: number; montant: number }
+    devis_a_convertir: number
+    devis_expirant: number
+    encaissements_mois: { count: number; montant: number }
+  }
+  recentes_creances: {
+    id: number
+    numero: string
+    entreprise: string | null
+    montant_restant: number
+    date_echeance: string | null
+    statut_paiement: string
+    en_retard: boolean
+  }[]
 }
 
 export interface CollaborateurStats {
@@ -111,6 +177,10 @@ export const statsApi = {
 
   getCollaborateurDashboard(): Promise<{ data: CollaborateurStats }> {
     return api.get('/collaborateur/stats').then((r) => r.data)
+  },
+
+  getSecretaireDashboard(): Promise<{ data: SecretaireStats }> {
+    return api.get('/stats/secretaire').then((r) => r.data)
   },
 
   getKpiObjectifs(exerciceId?: number | null): Promise<{ data: KpiCollaborateur[] }> {

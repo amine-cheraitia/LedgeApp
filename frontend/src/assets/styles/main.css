@@ -13,11 +13,14 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--ledge-ff-body);
+  font-feature-settings: 'cv11' 1, 'ss03' 1;
   line-height: 1.5;
   color: var(--p-text-color);
   background-color: var(--p-surface-ground);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Focus visible pour accessibilité RGAA */

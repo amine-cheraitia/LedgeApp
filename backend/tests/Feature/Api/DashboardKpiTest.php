@@ -204,4 +204,15 @@ class DashboardKpiTest extends TestCase
     {
         $this->getJson('/api/v1/stats')->assertUnauthorized();
     }
+
+    public function test_secretaire_ne_peut_pas_acceder_stats_admin(): void
+    {
+        Role::firstOrCreate(['name' => 'secretaire']);
+        $secretaire = User::factory()->create();
+        $secretaire->assignRole('secretaire');
+
+        $this->actingAs($secretaire)
+            ->getJson('/api/v1/stats')
+            ->assertForbidden();
+    }
 }

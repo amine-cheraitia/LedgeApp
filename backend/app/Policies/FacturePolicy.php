@@ -9,6 +9,16 @@ use App\Models\User;
 
 class FacturePolicy
 {
+    public function viewAny(User $user): bool
+    {
+        return $user->hasAnyRole(['admin', 'secretaire', 'collaborateur']);
+    }
+
+    public function view(User $user, Facture $facture): bool
+    {
+        return $user->hasAnyRole(['admin', 'secretaire', 'collaborateur']);
+    }
+
     public function create(User $user): bool
     {
         return $user->hasAnyRole(['admin', 'secretaire']);

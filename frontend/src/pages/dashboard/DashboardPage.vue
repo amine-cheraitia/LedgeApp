@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { statsApi, type DashboardStats, type CollaborateurStats } from '@/api/modules/stats'
+import { useDashboardStats } from '@/composables/useDashboardStats'
 import { useAuthStore } from '@/stores/auth'
 import { useCountUp } from '@/composables/useCountUp'
+import SecretaireDashboardSection from '@/pages/dashboard/SecretaireDashboardSection.vue'
 import { computed, onMounted, ref } from 'vue'
 import Select from 'primevue/select'
 import Message from 'primevue/message'
@@ -11,32 +12,27 @@ import Column from 'primevue/column'
 import ProgressSpinner from 'primevue/progressspinner'
 
 const auth = useAuthStore()
-const loading = ref(true)
-const stats = ref<DashboardStats | null>(null)
-const collabStats = ref<CollaborateurStats | null>(null)
+const {
+  loading,
+  adminStats: stats,
+  collaborateurStats: collabStats,
+  secretaireStats,
+  fetchAdminStats,
+  fetchCollaborateurStats,
+  fetchSecretaireStats,
+} = useDashboardStats()
 const exerciceId = ref<number | null>(null)
 
 async function fetchStats() {
   if (auth.isCollaborateur) {
-    try {
-      const res = await statsApi.getCollaborateurDashboard()
-      collabStats.value = res.data
-    } catch {
-      // silencieux
-    } finally {
-      loading.value = false
-    }
+    await fetchCollaborateurStats()
     return
   }
-  loading.value = true
-  try {
-    const res = await statsApi.getDashboard(exerciceId.value)
-    stats.value = res.data
-  } catch {
-    // Silencieux — stats non disponibles
-  } finally {
-    loading.value = false
+  if (auth.isSecretaire) {
+    await fetchSecretaireStats()
+    return
   }
+  await fetchAdminStats(exerciceId.value)
 }
 
 onMounted(fetchStats)
@@ -152,7 +148,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
           <h2 id="dashboard-title" class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">Tableau de bord</h2>
           <p class="text-muted-color mt-1">Bienvenue, {{ auth.user?.name }}.</p>
         </div>
-        <div v-if="stats">
+        <div v-if="auth.isAdmin && stats">
           <label for="filtre-exercice" class="sr-only">Filtrer par exercice</label>
           <Select
             id="filtre-exercice"
@@ -597,9 +593,16 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
     </template>
 
     <!-- ══════════════════════════════════════════════════════════════════ -->
-    <!-- Dashboard admin / secrétaire                                      -->
+    <!-- Dashboard secrétaire                                               -->
     <!-- ══════════════════════════════════════════════════════════════════ -->
-    <template v-if="stats && !loading">
+    <div v-if="!loading && auth.isSecretaire && secretaireStats" class="col-span-12">
+      <SecretaireDashboardSection :stats="secretaireStats" />
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- Dashboard admin                                                    -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <template v-if="stats && !loading && auth.isAdmin">
       <!-- Alertes -->
       <div v-if="stats.alertes.length" class="col-span-12" role="alert" aria-live="polite">
         <Message
@@ -910,16 +913,25 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
 }
 
 /* ── Hero Banner ──────────────────────────────────────────────────────── */
+/* === Ledger header (sober, flat, data-dense) ============================ */
 .hero-banner {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 1.5rem;
-  padding: 1.75rem 2rem;
-  border-radius: var(--p-border-radius, 12px);
-  background: linear-gradient(135deg, var(--p-primary-color) 0%, color-mix(in srgb, var(--p-primary-color) 60%, #1e293b) 100%);
-  color: #fff;
+  padding: 1.5rem 1.75rem;
+  border-radius: var(--ledge-radius-md, 6px);
+  background: var(--p-surface-0);
+  border: 1px solid var(--p-surface-200);
+  border-top: 3px solid var(--ledge-accent);
+  color: var(--p-text-color);
+  position: relative;
+}
+
+.app-dark .hero-banner {
+  background: var(--p-surface-900);
+  border-color: var(--p-surface-700);
 }
 
 .hero-banner__left {
@@ -928,70 +940,121 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
 }
 
 .hero-today {
-  font-size: 0.8125rem;
-  opacity: 0.8;
-  margin: 0 0 0.25rem;
-  text-transform: capitalize;
+  font-family: var(--ledge-ff-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--p-text-muted-color);
+  margin: 0 0 0.4rem;
+}
+
+.hero-today::before {
+  content: '§ ';
+  color: var(--ledge-accent);
+  font-family: var(--ledge-ff-display);
+  font-style: italic;
+  font-weight: 500;
 }
 
 .hero-greeting {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-family: var(--ledge-ff-display);
+  font-weight: 400;
+  font-size: 1.85rem;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
   margin: 0 0 1rem;
+  color: var(--p-text-color);
+  font-variation-settings: 'opsz' 144, 'SOFT' 30;
 }
 
 .hero-summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0;
+  border-top: 1px solid var(--p-surface-200);
+  padding-top: 0.85rem;
+}
+
+.app-dark .hero-summary {
+  border-top-color: var(--p-surface-700);
 }
 
 .hero-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.3rem 0.75rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.2);
-  font-size: 0.8125rem;
+  gap: 0.45rem;
+  padding: 0.15rem 1.25rem 0.15rem 0;
+  margin-right: 1.25rem;
+  border-right: 1px dotted var(--p-surface-300);
+  font-family: var(--ledge-ff-mono);
+  font-size: 0.78rem;
   font-weight: 500;
-  backdrop-filter: blur(4px);
+  color: var(--p-text-color);
+  background: transparent;
+  border-radius: 0;
 }
 
-.hero-chip--success { background: rgba(34, 197, 94, 0.3); }
-.hero-chip--warn    { background: rgba(249, 115, 22, 0.3); }
+.hero-chip:last-child {
+  border-right: none;
+  margin-right: 0;
+  padding-right: 0;
+}
+
+.hero-chip i {
+  color: var(--p-text-muted-color);
+  font-size: 0.85rem;
+}
+
+.app-dark .hero-chip {
+  border-right-color: var(--p-surface-700);
+}
+
+.hero-chip--success { color: var(--ledge-success); }
+.hero-chip--success i { color: var(--ledge-success); }
+.hero-chip--warn    { color: var(--ledge-warning); }
+.hero-chip--warn i  { color: var(--ledge-warning); }
 
 .hero-alert {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 1rem 1.25rem;
-  border-radius: 10px;
-  background: rgba(239, 68, 68, 0.25);
-  border: 1px solid rgba(239, 68, 68, 0.4);
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--ledge-radius-sm, 2px);
+  background: color-mix(in srgb, var(--ledge-danger), transparent 92%);
+  border: 1px solid color-mix(in srgb, var(--ledge-danger), transparent 75%);
+  border-left: 3px solid var(--ledge-danger);
+  color: var(--ledge-danger);
   flex-shrink: 0;
+  align-self: center;
 }
 
 .hero-alert--ok {
-  background: rgba(34, 197, 94, 0.2);
-  border-color: rgba(34, 197, 94, 0.35);
-}
-
-.hero-alert__icon {
-  font-size: 1.5rem;
-  flex-shrink: 0;
+  background: color-mix(in srgb, var(--ledge-success), transparent 92%);
+  border-color: color-mix(in srgb, var(--ledge-success), transparent 75%);
+  border-left-color: var(--ledge-success);
+  color: var(--ledge-success);
 }
 
 .hero-alert__title {
-  font-weight: 700;
-  font-size: 0.9375rem;
+  font-family: var(--ledge-ff-mono);
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   margin: 0;
 }
 
 .hero-alert__msg {
-  font-size: 0.8125rem;
-  opacity: 0.85;
-  margin: 0.125rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin: 0.2rem 0 0;
+  color: var(--p-text-color);
+}
+
+.hero-alert__icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
 }
 
 /* ── KPI Cards ────────────────────────────────────────────────────────── */

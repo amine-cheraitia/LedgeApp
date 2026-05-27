@@ -126,4 +126,47 @@ class EntrepriseApiTest extends TestCase
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.raison_sociale', 'Alpha Corp');
     }
+
+    public function test_secretaire_peut_creer_entreprise(): void
+    {
+        $secretaire = User::factory()->create();
+        $secretaire->assignRole('secretaire');
+
+        $response = $this->actingAs($secretaire)
+            ->postJson('/api/v1/entreprises', [
+                'raison_sociale' => 'Sec SARL',
+                'regime_fiscal' => 'forfait',
+                'categorie' => 'TPE',
+                'statut' => 'prospect',
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.raison_sociale', 'Sec SARL');
+    }
+
+    public function test_secretaire_peut_modifier_entreprise(): void
+    {
+        $secretaire = User::factory()->create();
+        $secretaire->assignRole('secretaire');
+        $entreprise = Entreprise::factory()->create(['raison_sociale' => 'Avant']);
+
+        $response = $this->actingAs($secretaire)
+            ->putJson("/api/v1/entreprises/{$entreprise->id}", [
+                'raison_sociale' => 'Apres Sec',
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.raison_sociale', 'Apres Sec');
+    }
+
+    public function test_secretaire_ne_peut_pas_supprimer_entreprise(): void
+    {
+        $secretaire = User::factory()->create();
+        $secretaire->assignRole('secretaire');
+        $entreprise = Entreprise::factory()->create();
+
+        $this->actingAs($secretaire)
+            ->deleteJson("/api/v1/entreprises/{$entreprise->id}")
+            ->assertForbidden();
+    }
 }

@@ -19,14 +19,16 @@ use Illuminate\Http\Response as HttpResponse;
 class FactureController extends Controller
 {
     public function __construct(
-        private FacturationService $facturationService,
-        private PdfService $pdfService,
+        private readonly FacturationService $facturationService,
+        private readonly PdfService $pdfService,
     ) {}
 
     public function index(Request $request): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Facture::class);
+
         $factures = $this->facturationService->listerFactures($request->only([
-            'exercice_id', 'statut_paiement', 'type', 'search', 'sort_field', 'sort_direction', 'per_page',
+            'entreprise_id', 'exercice_id', 'statut_paiement', 'type', 'search', 'sort_field', 'sort_direction', 'per_page',
         ]));
 
         return FactureResource::collection($factures);
@@ -52,6 +54,8 @@ class FactureController extends Controller
 
     public function show(Facture $facture): FactureResource
     {
+        $this->authorize('view', $facture);
+
         return new FactureResource(
             $facture->load('lignes', 'entreprise', 'mission', 'paiements')
         );
@@ -59,6 +63,8 @@ class FactureController extends Controller
 
     public function pdf(Facture $facture): HttpResponse
     {
+        $this->authorize('view', $facture);
+
         return $this->pdfService->genererFacture($facture)
             ->download('facture-'.$facture->numero.'.pdf');
     }
@@ -67,14 +73,11 @@ class FactureController extends Controller
     {
         $this->authorize('delete', $facture);
 
-        if ($facture->paiements()->exists()) {
-            return response()->json([
-                'message' => 'Impossible de supprimer une facture avec des paiements.',
-            ], 409);
+        try {
+            $this->facturationService->supprimerFacture($facture);
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
         }
-
-        $facture->lignes()->delete();
-        $facture->delete();
 
         return response()->json(null, 204);
     }

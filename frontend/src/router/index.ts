@@ -1,6 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
+const ROLES = {
+  allStaff: ['admin', 'secretaire', 'collaborateur'],
+  adminSecretaire: ['admin', 'secretaire'],
+  adminOnly: ['admin'],
+} as const
+
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -16,84 +22,105 @@ const router = createRouter({
       meta: { requiresAuth: true, backoffice: true },
       children: [
         {
+          path: 'acces-refuse',
+          name: 'acces-refuse',
+          component: () => import('@/pages/errors/AccesRefusePage.vue'),
+        },
+        {
           path: '',
           name: 'dashboard',
           component: () => import('@/pages/dashboard/DashboardPage.vue'),
+          meta: { roles: ROLES.allStaff },
         },
         {
           path: 'kpi/objectifs',
           name: 'kpi-objectifs',
           component: () => import('@/pages/dashboard/KpiObjectifsPage.vue'),
+          meta: { roles: ROLES.adminOnly },
         },
         {
           path: 'users',
           name: 'users',
           component: () => import('@/pages/users/UserListPage.vue'),
+          meta: { roles: ROLES.adminOnly },
         },
         {
           path: 'entreprises',
           name: 'entreprises',
           component: () => import('@/pages/entreprises/EntrepriseListPage.vue'),
+          meta: { roles: ROLES.adminSecretaire },
         },
         {
           path: 'entreprises/:id',
           name: 'entreprise-detail',
           component: () => import('@/pages/entreprises/EntrepriseDetailPage.vue'),
+          meta: { roles: ROLES.adminSecretaire },
         },
         {
           path: 'exercices',
           name: 'exercices',
           component: () => import('@/pages/exercices/ExerciceListPage.vue'),
+          meta: { roles: ROLES.adminOnly },
         },
         {
           path: 'prestations',
           name: 'prestations',
           component: () => import('@/pages/prestations/PrestationListPage.vue'),
+          meta: { roles: ROLES.adminOnly },
         },
         {
           path: 'missions',
           name: 'missions',
           component: () => import('@/pages/missions/MissionListPage.vue'),
+          meta: { roles: ROLES.allStaff },
         },
         {
           path: 'missions/:id',
           name: 'mission-detail',
           component: () => import('@/pages/missions/MissionDetailPage.vue'),
+          meta: { roles: ROLES.allStaff },
         },
         {
           path: 'missions/:id/taches/:tacheId',
           name: 'tache-detail',
           component: () => import('@/pages/missions/TacheDetailPage.vue'),
+          meta: { roles: ROLES.allStaff },
         },
         {
           path: 'planning',
           name: 'planning',
           component: () => import('@/pages/planning/PlanningCalendarPage.vue'),
+          meta: { roles: ROLES.allStaff },
         },
         {
           path: 'devis',
           name: 'devis',
           component: () => import('@/pages/devis/DevisListPage.vue'),
+          meta: { roles: ROLES.adminSecretaire },
         },
         {
           path: 'factures',
           name: 'factures',
           component: () => import('@/pages/factures/FactureListPage.vue'),
+          meta: { roles: ROLES.adminSecretaire },
         },
         {
           path: 'settings',
           name: 'settings',
           component: () => import('@/pages/settings/SettingsPage.vue'),
+          meta: { roles: ROLES.adminOnly },
         },
         {
           path: 'creances',
           name: 'creances',
           component: () => import('@/pages/relances/CreancesPage.vue'),
+          meta: { roles: ROLES.adminSecretaire },
         },
         {
           path: 'relances/config',
           name: 'relances-config',
           component: () => import('@/pages/relances/RelancesConfigPage.vue'),
+          meta: { roles: ROLES.adminOnly },
         },
         {
           path: 'audit-logs',
@@ -135,33 +162,34 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
 
-  // Charger l'utilisateur si pas encore fait
   if (!auth.isAuthenticated && !to.meta.guest) {
     await auth.fetchUser()
   }
 
-  // Page guest (login) — rediriger si déjà connecté
   if (to.meta.guest && auth.isAuthenticated) {
     return auth.isClient ? '/portail' : '/'
   }
 
-  // Pages protégées — rediriger si non connecté
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     return '/login'
   }
 
-  // Vérifier accès back-office
   if (to.meta.backoffice && auth.isClient) {
     return '/portail'
   }
 
-  // Vérifier accès portail
   if (to.meta.portail && auth.isBackoffice) {
     return '/'
   }
+
+  if (to.meta.roles && auth.user?.roles) {
+    const allowed = to.meta.roles as string[]
+    if (!auth.hasAnyRole(allowed)) {
+      return { name: 'acces-refuse', query: { redirect: to.fullPath } }
+    }
+  }
 })
 
-// Accessibilité RGAA : annoncer la navigation
 router.afterEach((to) => {
   const title = (to.name as string)?.replace(/-/g, ' ') ?? 'Page'
   document.title = `${title.charAt(0).toUpperCase() + title.slice(1)} — Ledge`

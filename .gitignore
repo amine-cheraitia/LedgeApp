@@ -41,3 +41,7 @@ frontend/.env.*.local
 
 # Notes locales
 docs/notes/
+
+# Tooling / scratch local
+.claude/
+audit-curseur.md

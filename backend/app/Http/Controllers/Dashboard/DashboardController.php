@@ -28,4 +28,11 @@ class DashboardController extends Controller
             'data' => $this->dashboardService->getCollaborateurStats($request->user()),
         ]);
     }
+
+    public function secretaireStats(): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->dashboardService->getSecretaireStats(),
+        ]);
+    }
 }

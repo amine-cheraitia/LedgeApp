@@ -9,11 +9,13 @@ use App\Models\Entreprise;
 use App\Models\Exercice;
 use App\Models\Facture;
 use App\Models\Mission;
+use App\Models\Paiement;
 use App\Models\Setting;
 use App\Models\Tache;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 class DashboardService
 {
@@ -294,6 +296,276 @@ class DashboardService
             'mes_taches_urgentes' => $mesTachesUrgentes,
             'echeances' => $echeances,
             'activite_recente' => $activiteRecente,
+        ];
+    }
+
+    public function getSecretaireStats(): array
+    {
+        $now = Carbon::now();
+
+        $creances = Facture::with(['entreprise', 'avoirs', 'relances'])
+            ->where('type', 'FF')
+            ->whereIn('statut_paiement', ['en_attente', 'partiel'])
+            ->get();
+
+        $totalImpaye = 0.0;
+        $clientsDebiteurs = $creances->pluck('entreprise_id')->unique()->count();
+        $aging = ['retard_15_30' => 0.0, 'retard_30_60' => 0.0, 'retard_60_plus' => 0.0];
+        $debiteursMap = [];
+
+        foreach ($creances as $facture) {
+            $restant = $facture->montantRestant();
+            $totalImpaye += $restant;
+
+            if ($restant <= 0) {
+                continue;
+            }
+
+            $entrepriseId = $facture->entreprise_id;
+            if (! isset($debiteursMap[$entrepriseId])) {
+                $debiteursMap[$entrepriseId] = [
+                    'entreprise_id' => $entrepriseId,
+                    'raison_sociale' => $facture->entreprise?->raison_sociale ?? 'Inconnu',
+                    'montant_impaye' => 0.0,
+                ];
+            }
+            $debiteursMap[$entrepriseId]['montant_impaye'] += $restant;
+
+            if ($facture->date_echeance && $facture->date_echeance->lt($now)) {
+                $jours = (int) $facture->date_echeance->diffInDays($now);
+                if ($jours >= 60) {
+                    $aging['retard_60_plus'] += $restant;
+                } elseif ($jours >= 30) {
+                    $aging['retard_30_60'] += $restant;
+                } elseif ($jours >= 15) {
+                    $aging['retard_15_30'] += $restant;
+                }
+            }
+        }
+
+        $topDebiteurs = collect($debiteursMap)
+            ->sortByDesc('montant_impaye')
+            ->take(5)
+            ->values()
+            ->map(fn (array $row) => [
+                'entreprise_id' => $row['entreprise_id'],
+                'raison_sociale' => $row['raison_sociale'],
+                'montant_impaye' => round($row['montant_impaye'], 2),
+            ])
+            ->all();
+
+        $relancesDues = $this->compterRelancesDues($creances, $now);
+
+        $facturesEmisesMoisCourant = $this->compterFacturesEmises($now->copy()->startOfMonth(), $now->copy()->endOfMonth());
+        $facturesEmisesMoisPrecedent = $this->compterFacturesEmises(
+            $now->copy()->subMonth()->startOfMonth(),
+            $now->copy()->subMonth()->endOfMonth()
+        );
+
+        $enRetard = $creances->filter(
+            fn (Facture $f) => $f->date_echeance && $f->date_echeance->lt($now) && $f->montantRestant() > 0
+        )->count();
+
+        $recentesCreances = $creances
+            ->filter(fn (Facture $f) => $f->montantRestant() > 0)
+            ->sortBy('date_echeance')
+            ->take(5)
+            ->map(fn (Facture $f) => [
+                'id' => $f->id,
+                'numero' => $f->numero,
+                'entreprise' => $f->entreprise?->raison_sociale,
+                'montant_restant' => round($f->montantRestant(), 2),
+                'date_echeance' => $f->date_echeance?->toDateString(),
+                'statut_paiement' => $f->statut_paiement,
+                'en_retard' => $f->date_echeance && $f->date_echeance->lt($now),
+            ])
+            ->values()
+            ->all();
+
+        $facturation = $this->compterFacturation($now);
+        $totalRelancesDues = array_sum($relancesDues);
+
+        $alertes = [];
+        if ($enRetard > 0) {
+            $alertes[] = [
+                'type' => 'danger',
+                'message' => "{$enRetard} facture(s) en retard de paiement.",
+            ];
+        }
+        if ($totalRelancesDues > 0) {
+            $alertes[] = [
+                'type' => 'warn',
+                'message' => "{$totalRelancesDues} relance(s) automatique(s) due(s) aujourd'hui.",
+            ];
+        }
+
+        $actions = $this->construireWorklist($enRetard, $totalRelancesDues, $facturation);
+
+        return [
+            'alertes' => $alertes,
+            'actions' => $actions,
+            'creances' => [
+                'total_impaye' => round($totalImpaye, 2),
+                'clients_debiteurs' => $clientsDebiteurs,
+                'en_retard' => $enRetard,
+            ],
+            'aging' => [
+                'retard_15_30' => round($aging['retard_15_30'], 2),
+                'retard_30_60' => round($aging['retard_30_60'], 2),
+                'retard_60_plus' => round($aging['retard_60_plus'], 2),
+            ],
+            'relances_dues' => $relancesDues,
+            'top_debiteurs' => $topDebiteurs,
+            'factures_emises' => [
+                'mois_courant' => $facturesEmisesMoisCourant,
+                'mois_precedent' => $facturesEmisesMoisPrecedent,
+            ],
+            'facturation' => $facturation,
+            'recentes_creances' => $recentesCreances,
+        ];
+    }
+
+    /**
+     * Volet facturation/production du dashboard secretaire.
+     *
+     * @return array{devis_en_attente: array{count: int, montant: float}, devis_a_convertir: int, devis_expirant: int, encaissements_mois: array{count: int, montant: float}}
+     */
+    private function compterFacturation(Carbon $now): array
+    {
+        $devisEnAttente = Devis::where('statut', 'envoye');
+        $encaissements = Paiement::whereBetween('date_paiement', [
+            $now->copy()->startOfMonth()->toDateString(),
+            $now->copy()->endOfMonth()->toDateString(),
+        ]);
+
+        return [
+            'devis_en_attente' => [
+                'count' => (clone $devisEnAttente)->count(),
+                'montant' => round((float) (clone $devisEnAttente)->sum('montant_ttc'), 2),
+            ],
+            'devis_a_convertir' => Devis::where('statut', 'accepte')
+                ->whereDoesntHave('mission')
+                ->count(),
+            'devis_expirant' => Devis::where('statut', 'envoye')
+                ->whereNotNull('date_validite')
+                ->whereBetween('date_validite', [
+                    $now->toDateString(),
+                    $now->copy()->addDays(7)->toDateString(),
+                ])
+                ->count(),
+            'encaissements_mois' => [
+                'count' => (clone $encaissements)->count(),
+                'montant' => round((float) (clone $encaissements)->sum('montant'), 2),
+            ],
+        ];
+    }
+
+    /**
+     * Construit la liste « A faire » (worklist) orientee action.
+     *
+     * @param  array{devis_en_attente: array{count: int, montant: float}, devis_a_convertir: int, devis_expirant: int, encaissements_mois: array{count: int, montant: float}}  $facturation
+     * @return list<array{key: string, label: string, count: int, severity: string, icon: string, route: string}>
+     */
+    private function construireWorklist(int $enRetard, int $totalRelancesDues, array $facturation): array
+    {
+        $actions = [];
+
+        if ($enRetard > 0) {
+            $actions[] = ['key' => 'factures_retard', 'label' => 'Factures en retard a recouvrer', 'count' => $enRetard, 'severity' => 'danger', 'icon' => 'pi-exclamation-triangle', 'route' => '/creances'];
+        }
+        if ($totalRelancesDues > 0) {
+            $actions[] = ['key' => 'relances', 'label' => 'Relances a envoyer', 'count' => $totalRelancesDues, 'severity' => 'warn', 'icon' => 'pi-bell', 'route' => '/creances'];
+        }
+        if ($facturation['devis_expirant'] > 0) {
+            $actions[] = ['key' => 'devis_expirant', 'label' => 'Devis expirant sous 7 jours', 'count' => $facturation['devis_expirant'], 'severity' => 'warn', 'icon' => 'pi-hourglass', 'route' => '/devis'];
+        }
+        if ($facturation['devis_en_attente']['count'] > 0) {
+            $actions[] = ['key' => 'devis_attente', 'label' => 'Devis en attente de reponse', 'count' => $facturation['devis_en_attente']['count'], 'severity' => 'info', 'icon' => 'pi-file', 'route' => '/devis'];
+        }
+        if ($facturation['devis_a_convertir'] > 0) {
+            $actions[] = ['key' => 'devis_convertir', 'label' => 'Devis acceptes a convertir en mission', 'count' => $facturation['devis_a_convertir'], 'severity' => 'info', 'icon' => 'pi-sync', 'route' => '/devis'];
+        }
+
+        $ordre = ['danger' => 0, 'warn' => 1, 'info' => 2];
+        usort($actions, fn (array $a, array $b) => $ordre[$a['severity']] <=> $ordre[$b['severity']]);
+
+        return $actions;
+    }
+
+    /**
+     * @param  Collection<int, Facture>  $creances
+     * @return array{niveau_1: int, niveau_2: int, niveau_3: int}
+     */
+    private function compterRelancesDues(Collection $creances, Carbon $now): array
+    {
+        $delais = [
+            1 => (int) Setting::get('relance_niveau1_jours', '15'),
+            2 => (int) Setting::get('relance_niveau2_jours', '30'),
+            3 => (int) Setting::get('relance_niveau3_jours', '45'),
+        ];
+
+        $compteurs = ['niveau_1' => 0, 'niveau_2' => 0, 'niveau_3' => 0];
+
+        foreach ($creances as $facture) {
+            if (! $facture->date_echeance) {
+                continue;
+            }
+
+            $joursDepuisEcheance = (int) Carbon::parse($facture->date_echeance)->diffInDays($now);
+
+            if ($joursDepuisEcheance <= 0) {
+                continue;
+            }
+
+            $niveauAttendu = null;
+            foreach (array_reverse($delais, true) as $niveau => $delai) {
+                if ($joursDepuisEcheance >= $delai) {
+                    $niveauAttendu = $niveau;
+                    break;
+                }
+            }
+
+            if ($niveauAttendu === null) {
+                continue;
+            }
+
+            $dejaEnvoyee = $facture->relances
+                ->where('niveau', $niveauAttendu)
+                ->whereIn('statut', ['en_attente', 'envoyee'])
+                ->isNotEmpty();
+
+            if ($dejaEnvoyee) {
+                continue;
+            }
+
+            if ($niveauAttendu > 1) {
+                $niveauPrecedentEnvoye = $facture->relances
+                    ->where('niveau', $niveauAttendu - 1)
+                    ->where('statut', 'envoyee')
+                    ->isNotEmpty();
+
+                if (! $niveauPrecedentEnvoye) {
+                    continue;
+                }
+            }
+
+            $compteurs["niveau_{$niveauAttendu}"]++;
+        }
+
+        return $compteurs;
+    }
+
+    /**
+     * @return array{count: int, montant_ttc: float}
+     */
+    private function compterFacturesEmises(Carbon $debut, Carbon $fin): array
+    {
+        $baseQuery = Facture::where('type', 'FF')
+            ->whereBetween('date_facture', [$debut->toDateString(), $fin->toDateString()]);
+
+        return [
+            'count' => (clone $baseQuery)->count(),
+            'montant_ttc' => round((float) (clone $baseQuery)->sum('montant_ttc'), 2),
         ];
     }
 }
