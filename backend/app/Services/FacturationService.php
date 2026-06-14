@@ -236,7 +236,18 @@ class FacturationService
             ];
 
             $tranche = $tranches[$nbFactures];
-            $montantHt = round((float) $mission->prix_ht * $tranche['taux'], 2);
+
+            // La 3e tranche est le solde exact (prix_ht - T1 - T2) et non un round() independant :
+            // garantit T1 + T2 + T3 == prix_ht meme lorsque le prix porte des centimes (pas de perte d'arrondi).
+            $prixHt = (float) $mission->prix_ht;
+            $montantT1 = round($prixHt * 0.30, 2);
+            $montantT2 = round($prixHt * 0.30, 2);
+            $montantsTranches = [
+                0 => $montantT1,
+                1 => $montantT2,
+                2 => round($prixHt - $montantT1 - $montantT2, 2),
+            ];
+            $montantHt = $montantsTranches[$nbFactures];
 
             $dateFacture = $data['date_facture'];
             $dateEcheance = Carbon::parse($dateFacture)->addDays(45)->toDateString();

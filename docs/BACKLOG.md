@@ -211,6 +211,7 @@
 
 - Numerotation `FF{ANNEE}-{NNN}` · reset au 1er janvier · `lockForUpdate` anti-doublon
 - **3 tranches : T1 = 30% · T2 = 30% · T3 = 40% (solde)**
+  - 🐛 Correctif arrondi (#52) : T3 calculee comme **solde exact** (`prix_ht − T1 − T2`) — invariant `T1 + T2 + T3 == prix_ht` garanti et teste, y compris prix a centimes
 - Snapshots immuables copies UNE SEULE FOIS a la creation :
   `taux_tva` · `montant_tva` · `montant_timbre` · `montant_ttc`
 - `FacturationService::creerFacture()` deja implementee

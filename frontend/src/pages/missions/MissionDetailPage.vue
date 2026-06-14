@@ -283,10 +283,15 @@ function formatMontant(v: number) {
 const tranches = computed(() => {
   if (!mission.value) return []
   const total = mission.value.prix_ht
+  const round2 = (n: number) => Math.round(n * 100) / 100
+  // 3e tranche = solde exact pour que T1 + T2 + T3 == total (aligne sur le calcul backend)
+  const t1 = round2(total * 0.3)
+  const t2 = round2(total * 0.3)
+  const t3 = round2(total - t1 - t2)
   return [
-    { label: 'Tranche 1 (30%)', montant: Math.round(total * 0.3) },
-    { label: 'Tranche 2 (30%)', montant: Math.round(total * 0.3) },
-    { label: 'Tranche 3 — solde (40%)', montant: Math.round(total * 0.4) },
+    { label: 'Tranche 1 (30%)', montant: t1 },
+    { label: 'Tranche 2 (30%)', montant: t2 },
+    { label: 'Tranche 3 — solde (40%)', montant: t3 },
   ]
 })
 
