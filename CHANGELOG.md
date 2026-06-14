@@ -9,6 +9,17 @@
 
 ## [Unreleased]
 
+### Fix arrondi des tranches de facturation — (fix/arrondi-tranches-facturation)
+
+#### Backend
+- **`FacturationService::creerFacture()`** : la 3ᵉ tranche est désormais calculée comme **solde exact** (`prix_ht − T1 − T2`) au lieu d'un `round(prix_ht × 0.40)` indépendant — garantit l'invariant `T1 + T2 + T3 == prix_ht` même lorsque le prix porte des centimes (corrige une perte possible de 1 centime sur la répartition 30/30/40)
+
+#### Frontend
+- **`MissionDetailPage.vue`** : l'aperçu des tranches arrondit aux **centimes** (2 décimales) et applique le même solde exact sur la 3ᵉ tranche — aligné sur les montants réellement facturés par le backend (avant : `Math.round` aux dinars pleins, divergence possible avec la facture)
+
+#### Tests
+- **`FacturationServiceTest`** : nouveau test d'invariant `T1 + T2 + T3 == prix_ht` sur un prix à centimes (`100.01`) — cas limite d'arrondi
+
 ### Dashboard secrétaire + autorisations front — (feature/dashboard-secretaire)
 
 #### Backend — dashboard secrétaire
