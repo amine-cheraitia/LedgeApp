@@ -124,6 +124,21 @@ class SecretairePermissionsTest extends TestCase
         ]);
     }
 
+    private function creerMission(): Mission
+    {
+        $prestation = Prestation::firstOrCreate(
+            ['code' => 'ACMPT'],
+            ['designation' => 'Comptabilite', 'tarif_initial' => 120000]
+        );
+
+        return Mission::factory()->create([
+            'entreprise_id' => $this->creerEntreprise()->id,
+            'exercice_id' => $this->exercice->id,
+            'prestation_id' => $prestation->id,
+            'prix_ht' => 100000,
+        ]);
+    }
+
     // ─────────────────────────────────────────────────────────────────────
     // Autorise : entreprises (CRU) + contacts
     // ─────────────────────────────────────────────────────────────────────
@@ -259,5 +274,25 @@ class SecretairePermissionsTest extends TestCase
         $this->actingAs($this->secretaire)
             ->deleteJson("/api/v1/factures/{$facture->id}/paiements/{$paiement->id}")
             ->assertForbidden();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Interdit : missions / planning (hors perimetre secretaire)
+    // ─────────────────────────────────────────────────────────────────────
+
+    public function test_secretaire_ne_peut_pas_acceder_aux_missions(): void
+    {
+        $mission = $this->creerMission();
+
+        $this->actingAs($this->secretaire)->getJson('/api/v1/missions')->assertForbidden();
+        $this->actingAs($this->secretaire)->postJson('/api/v1/missions', [])->assertForbidden();
+        $this->actingAs($this->secretaire)->getJson("/api/v1/missions/{$mission->id}")->assertForbidden();
+        $this->actingAs($this->secretaire)->getJson("/api/v1/missions/{$mission->id}/taches")->assertForbidden();
+    }
+
+    public function test_secretaire_ne_peut_pas_acceder_au_planning(): void
+    {
+        $this->actingAs($this->secretaire)->getJson('/api/v1/calendar')->assertForbidden();
+        $this->actingAs($this->secretaire)->getJson('/api/v1/collaborateur/stats')->assertForbidden();
     }
 }
