@@ -9,6 +9,23 @@
 
 ## [Unreleased]
 
+### Recadrage du périmètre du rôle secrétaire — (feature/perimetre-secretaire)
+
+#### Backend
+- **Routes API** (`routes/api.php`) : les écritures de facturation passent en **`role:admin`** — création/suppression de devis et factures, création/suppression d'avoirs, suppression de paiements, cycle de vie devis (`accepter`/`refuser`/`convertir-en-mission`) et calcul de prix. La secrétaire conserve : lecture devis/factures/avoirs + PDF, **envoi d'un devis** au client, **enregistrement de paiements**, **envoi de relances**, consultation des créances, et le **CRUD des entreprises** (création/modification, sans suppression) + contacts
+- **Policies** : `DevisPolicy` / `FacturePolicy` — `create`/`update`/`delete` réservés à l'admin ; nouvelle ability **`DevisPolicy::envoyer`** (admin + secrétaire) pour dissocier l'envoi de la modification ; `AvoirPolicy::create` réservé à l'admin ; `EntreprisePolicy` inchangée (création/modification admin + secrétaire, suppression admin)
+- **`DevisController::envoyer()`** autorise désormais l'ability `envoyer` (et non plus `update`)
+- **`DashboardService::getSecretaireStats()`** : retrait du volet facturation/production (devis en attente / à convertir / expirant, émission de factures N vs N-1) ; dashboard recentré sur le **recouvrement** (créances, aging, relances dues, top débiteurs, encaissements du mois)
+
+#### Frontend
+- **Devis / Factures** : les actions de production (nouveau devis/facture, modifier, supprimer, accepter/refuser/convertir, émettre/supprimer un avoir) sont masquées pour la secrétaire (`v-if="auth.isAdmin"`) ; elle conserve **Envoyer un devis**, **téléchargement PDF** et **enregistrement de paiement**
+- **Dashboard secrétaire** (`SecretaireDashboardSection.vue`) : suppression de la carte « Devis en attente », du graphe « Émission de factures » et du bouton « Gérer les factures » ; grille rééquilibrée
+- **`stats.ts`** : type `SecretaireStats` aligné (suppression `facturation` / `factures_emises`, ajout `encaissements_mois` à la racine)
+
+#### Tests
+- **`SecretairePermissionsTest`** (nouveau) : couverture du périmètre autorisé (entreprises CRU, lecture facturation, envoi devis, paiement, relance) et interdit (création/suppression devis/factures/avoirs, cycle de vie devis, suppression entreprise/paiement)
+- **`DashboardSecretaireTest`** : structure mise à jour (plus de volet facturation, `encaissements_mois` à la racine)
+
 ### Fix arrondi des tranches de facturation — (fix/arrondi-tranches-facturation)
 
 #### Backend

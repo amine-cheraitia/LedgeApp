@@ -304,7 +304,7 @@ onMounted(async () => {
   <div>
     <div class="page-header">
       <h1>Factures &amp; Avoirs</h1>
-      <Button label="Nouvelle facture" icon="pi pi-plus" aria-label="Creer une facture" @click="openCreate" />
+      <Button v-if="auth.isAdmin" label="Nouvelle facture" icon="pi pi-plus" aria-label="Creer une facture" @click="openCreate" />
     </div>
 
     <div class="page-toolbar">
@@ -412,6 +412,7 @@ onMounted(async () => {
                   @click="openPaiement(data)"
                 />
                 <Button
+                  v-if="auth.isAdmin"
                   icon="pi pi-file-edit"
                   text
                   rounded
@@ -421,7 +422,7 @@ onMounted(async () => {
                   @click="openAvoir(data)"
                 />
                 <Button
-                  v-if="!data.paiements || data.paiements.length === 0"
+                  v-if="auth.isAdmin && (!data.paiements || data.paiements.length === 0)"
                   icon="pi pi-trash"
                   text
                   rounded
@@ -491,6 +492,7 @@ onMounted(async () => {
                   @click="avoirsApi.telechargerPdf(data.facture_origine_id, data.id, data.numero)"
                 />
                 <Button
+                  v-if="auth.isAdmin"
                   icon="pi pi-trash"
                   text
                   rounded

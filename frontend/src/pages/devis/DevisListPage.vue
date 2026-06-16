@@ -226,7 +226,7 @@ onMounted(async () => {
   <div>
     <div class="page-header">
       <h2>Devis</h2>
-      <Button label="Nouveau devis" icon="pi pi-plus" @click="openCreate" />
+      <Button v-if="auth.isAdmin" label="Nouveau devis" icon="pi pi-plus" @click="openCreate" />
     </div>
 
     <div class="page-toolbar">
@@ -307,7 +307,7 @@ onMounted(async () => {
           />
           <!-- Brouillon : modifier + envoyer + supprimer -->
           <Button
-            v-if="data.statut === 'brouillon'"
+            v-if="data.statut === 'brouillon' && auth.isAdmin"
             icon="pi pi-pencil"
             text
             severity="secondary"
@@ -325,7 +325,7 @@ onMounted(async () => {
             @click="envoyerDevis(data.id)"
           />
           <Button
-            v-if="data.statut === 'brouillon'"
+            v-if="data.statut === 'brouillon' && auth.isAdmin"
             icon="pi pi-trash"
             text
             severity="danger"
@@ -335,7 +335,7 @@ onMounted(async () => {
           />
           <!-- Envoye : accepter + refuser -->
           <Button
-            v-if="data.statut === 'envoye'"
+            v-if="data.statut === 'envoye' && auth.isAdmin"
             icon="pi pi-check-circle"
             text
             severity="success"
@@ -344,7 +344,7 @@ onMounted(async () => {
             @click="accepterDevis(data.id)"
           />
           <Button
-            v-if="data.statut === 'envoye'"
+            v-if="data.statut === 'envoye' && auth.isAdmin"
             icon="pi pi-times-circle"
             text
             severity="danger"
@@ -354,7 +354,7 @@ onMounted(async () => {
           />
           <!-- Accepte : convertir en mission -->
           <Button
-            v-if="data.statut === 'accepte'"
+            v-if="data.statut === 'accepte' && auth.isAdmin"
             icon="pi pi-arrow-right"
             text
             severity="warn"
