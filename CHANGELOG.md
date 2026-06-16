@@ -9,6 +9,20 @@
 
 ## [Unreleased]
 
+### Secrétaire hors Missions & Planning — (feature/secretaire-hors-missions-planning)
+
+#### Backend
+- **Routes API** (`routes/api.php`) : missions, tâches, commentaires, calendrier et dashboard collaborateur déplacés dans un groupe **`role:admin|collaborateur`** — la secrétaire n'y a plus accès (les utilitaires `users`/`settings` en lecture restent partagés)
+- **Policies** : `MissionPolicy` et `TachePolicy` ne référencent plus le rôle `secretaire` (`viewAny`/`view`/`create`/`update`/`delete` → admin, ou collaborateur sur ses propres missions/tâches)
+
+#### Frontend
+- **Menu** (`AppMenu.vue`) : les entrées **Missions** et **Planning** ne sont visibles que pour admin et collaborateur
+- **Routeur** : nouveau set `ROLES.adminCollaborateur` appliqué aux routes `missions`, `mission-detail`, `tache-detail`, `planning` — accès secrétaire bloqué (redirection accès refusé)
+- **Fiche entreprise** (`EntrepriseDetailPage.vue`) : pour la secrétaire, l'onglet **Missions** et le KPI **« Missions actives »** sont masqués, l'appel API missions n'est pas déclenché, et l'onglet par défaut bascule sur **Devis**
+
+#### Tests
+- **`SecretairePermissionsTest`** : nouveaux cas — la secrétaire reçoit `403` sur missions (liste/détail/création/tâches), calendrier et dashboard collaborateur
+
 ### Recadrage du périmètre du rôle secrétaire — (feature/perimetre-secretaire)
 
 #### Backend

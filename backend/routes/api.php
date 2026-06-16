@@ -166,10 +166,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('factures/{facture}/avoirs/{avoir}/pdf', [AvoirController::class, 'pdf']);
             });
 
-            // ── Tous roles backoffice (admin + secretaire + collaborateur) ────
-            // Dashboard collaborateur
-            Route::get('collaborateur/stats', [DashboardController::class, 'collaborateurStats']);
-
+            // ── Tous roles backoffice : utilitaires partages (admin + secretaire + collaborateur) ────
             // Lecture utilisateurs (pour les selects d'assignation des taches)
             Route::get('users', [UserController::class, 'index']);
             Route::get('users/{user}', [UserController::class, 'show']);
@@ -177,20 +174,26 @@ Route::prefix('v1')->group(function () {
             // Parametres cabinet (lecture)
             Route::get('settings', [SettingController::class, 'index']);
 
-            // Planning — Calendrier (filtre auto par user dans le service)
-            Route::get('calendar', [CalendarController::class, 'index']);
+            // ── Admin + Collaborateur : missions, taches, planning (hors perimetre secretaire) ────
+            Route::middleware('role:admin|collaborateur')->group(function () {
+                // Dashboard collaborateur
+                Route::get('collaborateur/stats', [DashboardController::class, 'collaborateurStats']);
 
-            // Planning — Missions (filtre collaborateur dans MissionService + MissionPolicy)
-            Route::get('missions/{mission}/rapport/pdf', [MissionController::class, 'rapportPdf']);
-            Route::get('missions/{mission}/convention/pdf', [MissionController::class, 'conventionPdf']);
-            Route::get('missions/{mission}/mandat/pdf', [MissionController::class, 'mandatPdf']);
-            Route::apiResource('missions', MissionController::class);
+                // Planning — Calendrier (filtre auto par user dans le service)
+                Route::get('calendar', [CalendarController::class, 'index']);
 
-            // Planning — Taches (gate mission dans TacheController::index)
-            Route::apiResource('missions.taches', TacheController::class)->parameters(['taches' => 'tache']);
+                // Planning — Missions (filtre collaborateur dans MissionService + MissionPolicy)
+                Route::get('missions/{mission}/rapport/pdf', [MissionController::class, 'rapportPdf']);
+                Route::get('missions/{mission}/convention/pdf', [MissionController::class, 'conventionPdf']);
+                Route::get('missions/{mission}/mandat/pdf', [MissionController::class, 'mandatPdf']);
+                Route::apiResource('missions', MissionController::class);
 
-            // Planning — Commentaires (gate mission dans TacheCommentaireController)
-            Route::apiResource('taches.commentaires', TacheCommentaireController::class)->except(['show'])->parameters(['taches' => 'tache', 'commentaires' => 'commentaire']);
+                // Planning — Taches (gate mission dans TacheController::index)
+                Route::apiResource('missions.taches', TacheController::class)->parameters(['taches' => 'tache']);
+
+                // Planning — Commentaires (gate mission dans TacheCommentaireController)
+                Route::apiResource('taches.commentaires', TacheCommentaireController::class)->except(['show'])->parameters(['taches' => 'tache', 'commentaires' => 'commentaire']);
+            });
         });
 
         // ─── Portail client ───────────────────────────────────────────────────

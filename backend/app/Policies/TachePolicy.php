@@ -11,7 +11,7 @@ class TachePolicy
 {
     public function update(User $user, Tache $tache): bool
     {
-        if ($user->hasAnyRole(['admin', 'secretaire'])) {
+        if ($user->hasRole('admin')) {
             return true;
         }
 
@@ -20,6 +20,6 @@ class TachePolicy
 
     public function delete(User $user, Tache $tache): bool
     {
-        return $user->hasAnyRole(['admin', 'secretaire']);
+        return $user->hasRole('admin');
     }
 }

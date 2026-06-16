@@ -11,12 +11,12 @@ class MissionPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(['admin', 'secretaire', 'collaborateur']);
+        return $user->hasAnyRole(['admin', 'collaborateur']);
     }
 
     public function view(User $user, Mission $mission): bool
     {
-        if ($user->hasAnyRole(['admin', 'secretaire'])) {
+        if ($user->hasRole('admin')) {
             return true;
         }
 
@@ -25,12 +25,12 @@ class MissionPolicy
 
     public function create(User $user): bool
     {
-        return $user->hasAnyRole(['admin', 'secretaire']);
+        return $user->hasRole('admin');
     }
 
     public function update(User $user, Mission $mission): bool
     {
-        return $user->hasAnyRole(['admin', 'secretaire']);
+        return $user->hasRole('admin');
     }
 
     public function delete(User $user, Mission $mission): bool
