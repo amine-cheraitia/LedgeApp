@@ -137,7 +137,7 @@ fix/*     <- hotfix (depuis main, merge double main+develop)
 |---|---|---|
 | admin | `/admin` | Tout |
 | collaborateur | `/admin` | Ses taches et missions uniquement |
-| secretaire | `/admin` | Facturation + relances manuelles |
+| secretaire | `/admin` | Entreprises (CRUD sans suppression) + creances/recouvrement (paiements, relances) + envoi devis / transmission factures. Ne cree ni ne supprime devis/factures/avoirs |
 | client | `/portail` | Lecture seule — ses donnees uniquement |
 
 **`users.entreprise_id`** : nullable — NULL pour le staff, renseigne uniquement pour le role `client`.

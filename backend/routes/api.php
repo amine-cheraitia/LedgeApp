@@ -81,6 +81,28 @@ Route::prefix('v1')->group(function () {
 
                 // Journal d'audit — piste d'audit des actions utilisateurs
                 Route::get('/audit-logs', [AuditController::class, 'index']);
+
+                // Prestations — calcul de prix (preview pour la creation de devis)
+                Route::post('prestations/{prestation}/calculer-prix', [PrestationController::class, 'calculerPrix']);
+
+                // Facturation — Devis (creation / cycle de vie / suppression — admin uniquement)
+                Route::post('devis', [DevisController::class, 'store']);
+                Route::put('devis/{devis}', [DevisController::class, 'update']);
+                Route::delete('devis/{devis}', [DevisController::class, 'destroy']);
+                Route::post('devis/{devis}/accepter', [DevisController::class, 'accepter']);
+                Route::post('devis/{devis}/refuser', [DevisController::class, 'refuser']);
+                Route::post('devis/{devis}/convertir-en-mission', [DevisController::class, 'convertirEnMission']);
+
+                // Facturation — Factures (creation / suppression — admin uniquement)
+                Route::post('factures', [FactureController::class, 'store']);
+                Route::delete('factures/{facture}', [FactureController::class, 'destroy']);
+
+                // Facturation — Paiements (suppression — admin uniquement)
+                Route::delete('factures/{facture}/paiements/{paiement}', [PaiementController::class, 'destroy']);
+
+                // Facturation — Avoirs (creation / suppression — admin uniquement)
+                Route::post('factures/{facture}/avoirs', [AvoirController::class, 'store']);
+                Route::delete('avoirs/{avoir}', [AvoirController::class, 'destroy']);
             });
 
             // ── Secretaire uniquement ────────────────────────────────────────
@@ -93,7 +115,7 @@ Route::prefix('v1')->group(function () {
                 // KPI objectifs (lecture)
                 Route::get('/kpi/objectifs', [KpiController::class, 'index']);
 
-                // Entreprises (lecture + ecriture sans delete/portail)
+                // Entreprises (lecture + creation/modification — suppression reservee admin)
                 Route::post('entreprises', [EntrepriseController::class, 'store']);
                 Route::put('entreprises/{entreprise}', [EntrepriseController::class, 'update']);
                 Route::get('entreprises/wilayas', [EntrepriseController::class, 'wilayas']);
@@ -101,7 +123,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('entreprises', [EntrepriseController::class, 'index']);
                 Route::get('entreprises/{entreprise}', [EntrepriseController::class, 'show']);
 
-                // Contacts entreprise
+                // Contacts entreprise (CRUD — rattache a la gestion des entreprises)
                 Route::get('entreprises/{entreprise}/contacts', [ContactController::class, 'index']);
                 Route::post('entreprises/{entreprise}/contacts', [ContactController::class, 'store']);
                 Route::put('entreprises/{entreprise}/contacts/{contact}', [ContactController::class, 'update']);
@@ -112,40 +134,35 @@ Route::prefix('v1')->group(function () {
                 Route::get('exercices', [ExerciceController::class, 'index']);
                 Route::get('exercices/{exercice}', [ExerciceController::class, 'show']);
 
-                // Prestations (lecture + calcul)
+                // Prestations (lecture)
                 Route::get('prestations', [PrestationController::class, 'index']);
                 Route::get('prestations/{prestation}', [PrestationController::class, 'show']);
-                Route::post('prestations/{prestation}/calculer-prix', [PrestationController::class, 'calculerPrix']);
 
-                // Facturation — Devis
+                // Facturation — Devis (lecture + PDF + envoi au client)
+                Route::get('devis', [DevisController::class, 'index']);
+                Route::get('devis/{devis}', [DevisController::class, 'show']);
                 Route::get('devis/{devis}/pdf', [DevisController::class, 'pdf']);
                 Route::post('devis/{devis}/envoyer', [DevisController::class, 'envoyer']);
-                Route::post('devis/{devis}/accepter', [DevisController::class, 'accepter']);
-                Route::post('devis/{devis}/refuser', [DevisController::class, 'refuser']);
-                Route::post('devis/{devis}/convertir-en-mission', [DevisController::class, 'convertirEnMission']);
-                Route::apiResource('devis', DevisController::class)->parameters(['devis' => 'devis']);
 
-                // Facturation — Factures
+                // Facturation — Factures (lecture + PDF pour transmission au client)
+                Route::get('factures', [FactureController::class, 'index']);
+                Route::get('factures/{facture}', [FactureController::class, 'show']);
                 Route::get('factures/{facture}/pdf', [FactureController::class, 'pdf']);
-                Route::apiResource('factures', FactureController::class)->except(['update']);
 
-                // Facturation — Paiements (nested sous factures)
+                // Recouvrement — Paiements (lecture + enregistrement)
                 Route::get('factures/{facture}/paiements', [PaiementController::class, 'index']);
                 Route::post('factures/{facture}/paiements', [PaiementController::class, 'store']);
-                Route::delete('factures/{facture}/paiements/{paiement}', [PaiementController::class, 'destroy']);
 
-                // Facturation — Creances impayees
+                // Recouvrement — Creances impayees
                 Route::get('creances', [CreanceController::class, 'index']);
 
-                // Facturation — Relances
+                // Recouvrement — Relances (lecture + envoi)
                 Route::get('factures/{facture}/relances', [RelanceController::class, 'index']);
                 Route::post('factures/{facture}/relances', [RelanceController::class, 'store']);
 
-                // Facturation — Avoirs
+                // Facturation — Avoirs (lecture + PDF)
                 Route::get('avoirs', [AvoirController::class, 'indexAll']);
-                Route::delete('avoirs/{avoir}', [AvoirController::class, 'destroy']);
                 Route::get('factures/{facture}/avoirs', [AvoirController::class, 'index']);
-                Route::post('factures/{facture}/avoirs', [AvoirController::class, 'store']);
                 Route::get('factures/{facture}/avoirs/{avoir}/pdf', [AvoirController::class, 'pdf']);
             });
 

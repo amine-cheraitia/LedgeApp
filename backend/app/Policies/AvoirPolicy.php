@@ -11,7 +11,7 @@ class AvoirPolicy
 {
     public function create(User $user): bool
     {
-        return $user->hasAnyRole(['admin', 'secretaire']);
+        return $user->hasRole('admin');
     }
 
     public function delete(User $user, Avoir $avoir): bool

@@ -21,12 +21,12 @@ class FacturePolicy
 
     public function create(User $user): bool
     {
-        return $user->hasAnyRole(['admin', 'secretaire']);
+        return $user->hasRole('admin');
     }
 
     public function update(User $user, Facture $facture): bool
     {
-        return $user->hasAnyRole(['admin', 'secretaire']);
+        return $user->hasRole('admin');
     }
 
     public function delete(User $user, Facture $facture): bool

@@ -65,21 +65,7 @@ const totalRelancesDues = computed(() =>
 const animCreances = counted(computed(() => Math.round(props.stats.creances.total_impaye)))
 const animRetard = counted(computed(() => props.stats.creances.en_retard))
 const animRelances = counted(totalRelancesDues)
-const animDevisAttente = counted(computed(() => props.stats.facturation.devis_en_attente.count))
-const animEncaissements = counted(computed(() => Math.round(props.stats.facturation.encaissements_mois.montant)))
-const animFacturesMois = counted(computed(() => props.stats.factures_emises.mois_courant.count))
-
-const variationFactures = computed(() => {
-  const courant = props.stats.factures_emises.mois_courant.count
-  const precedent = props.stats.factures_emises.mois_precedent.count
-  if (precedent === 0) return courant > 0 ? '+100%' : '—'
-  const pct = Math.round(((courant - precedent) / precedent) * 100)
-  return `${pct >= 0 ? '+' : ''}${pct}%`
-})
-
-const facturesEnHausse = computed(() =>
-  props.stats.factures_emises.mois_courant.count >= props.stats.factures_emises.mois_precedent.count,
-)
+const animEncaissements = counted(computed(() => Math.round(props.stats.encaissements_mois.montant)))
 
 // ── Chart : aging (barres horizontales) ────────────────────────────────────
 const agingTotal = computed(() =>
@@ -131,17 +117,6 @@ const relancesSegments = computed(() => {
   })
 })
 
-// ── Chart : factures N vs N-1 (barres verticales) ──────────────────────────
-const facturesMax = computed(() =>
-  Math.max(props.stats.factures_emises.mois_courant.count, props.stats.factures_emises.mois_precedent.count, 1),
-)
-const hauteurCourant = computed(() =>
-  Math.round((props.stats.factures_emises.mois_courant.count / facturesMax.value) * 100),
-)
-const hauteurPrecedent = computed(() =>
-  Math.round((props.stats.factures_emises.mois_precedent.count / facturesMax.value) * 100),
-)
-
 // ── Ranking : top débiteurs (barres) ───────────────────────────────────────
 const maxDebiteur = computed(() => Math.max(...props.stats.top_debiteurs.map((d) => d.montant_impaye), 1))
 
@@ -181,7 +156,7 @@ const relancesAriaLabel = computed(() =>
             </span>
             <span class="reco-chip reco-chip--success">
               <i class="pi pi-wallet" aria-hidden="true"></i>
-              {{ formatDA(stats.facturation.encaissements_mois.montant) }} encaissé ce mois
+              {{ formatDA(stats.encaissements_mois.montant) }} encaissé ce mois
             </span>
             <span class="reco-chip" :class="totalRelancesDues > 0 ? 'reco-chip--warn' : 'reco-chip--success'">
               <i class="pi pi-bell" aria-hidden="true"></i>
@@ -236,7 +211,7 @@ const relancesAriaLabel = computed(() =>
     </div>
 
     <!-- ── Row 3 : KPI ── -->
-    <div class="col-span-12 sm:col-span-6 xl:col-span-3">
+    <div class="col-span-12 sm:col-span-6 xl:col-span-4">
       <article class="card reco-kpi reco-kpi--danger" aria-labelledby="kpi-impaye">
         <div class="reco-kpi__top">
           <p id="kpi-impaye" class="reco-kpi__label">Créances totales</p>
@@ -251,7 +226,7 @@ const relancesAriaLabel = computed(() =>
       </article>
     </div>
 
-    <div class="col-span-12 sm:col-span-6 xl:col-span-3">
+    <div class="col-span-12 sm:col-span-6 xl:col-span-4">
       <article class="card reco-kpi reco-kpi--warn" aria-labelledby="kpi-relances">
         <div class="reco-kpi__top">
           <p id="kpi-relances" class="reco-kpi__label">Relances dues</p>
@@ -264,35 +239,23 @@ const relancesAriaLabel = computed(() =>
       </article>
     </div>
 
-    <div class="col-span-12 sm:col-span-6 xl:col-span-3">
-      <article class="card reco-kpi reco-kpi--info" aria-labelledby="kpi-devis">
-        <div class="reco-kpi__top">
-          <p id="kpi-devis" class="reco-kpi__label">Devis en attente</p>
-          <span class="reco-kpi__icon" aria-hidden="true"><i class="pi pi-file"></i></span>
-        </div>
-        <p class="reco-kpi__value">{{ animDevisAttente }}</p>
-        <p class="reco-kpi__sub">{{ formatDA(stats.facturation.devis_en_attente.montant) }} en jeu</p>
-      </article>
-    </div>
-
-    <div class="col-span-12 sm:col-span-6 xl:col-span-3">
+    <div class="col-span-12 sm:col-span-6 xl:col-span-4">
       <article class="card reco-kpi reco-kpi--success" aria-labelledby="kpi-encaisse">
         <div class="reco-kpi__top">
           <p id="kpi-encaisse" class="reco-kpi__label">Encaissé ce mois</p>
           <span class="reco-kpi__icon" aria-hidden="true"><i class="pi pi-wallet"></i></span>
         </div>
-        <p class="reco-kpi__value" :aria-label="`Encaissé ce mois : ${formatDA(stats.facturation.encaissements_mois.montant)}`">
+        <p class="reco-kpi__value" :aria-label="`Encaissé ce mois : ${formatDA(stats.encaissements_mois.montant)}`">
           {{ formatDA(animEncaissements) }}
         </p>
         <p class="reco-kpi__sub">
-          {{ stats.facturation.encaissements_mois.count }} paiement{{ stats.facturation.encaissements_mois.count !== 1 ? 's' : '' }}
-          · {{ animFacturesMois }} facture{{ animFacturesMois !== 1 ? 's' : '' }} émise{{ animFacturesMois !== 1 ? 's' : '' }}
+          {{ stats.encaissements_mois.count }} paiement{{ stats.encaissements_mois.count !== 1 ? 's' : '' }}
         </p>
       </article>
     </div>
 
     <!-- ── Row 4 : Graphiques ── -->
-    <div class="col-span-12 lg:col-span-4">
+    <div class="col-span-12 lg:col-span-6">
       <section class="card h-full" aria-labelledby="aging-title">
         <div class="panel-header">
           <h3 id="aging-title" class="panel-title">Aging des créances</h3>
@@ -317,7 +280,7 @@ const relancesAriaLabel = computed(() =>
       </section>
     </div>
 
-    <div class="col-span-12 lg:col-span-4">
+    <div class="col-span-12 lg:col-span-6">
       <section class="card h-full" aria-labelledby="relances-title">
         <div class="panel-header">
           <h3 id="relances-title" class="panel-title">Relances dues</h3>
@@ -352,36 +315,6 @@ const relancesAriaLabel = computed(() =>
               <span class="reco-legend__val">{{ n.value }}</span>
             </li>
           </ul>
-        </div>
-      </section>
-    </div>
-
-    <div class="col-span-12 lg:col-span-4">
-      <section class="card h-full" aria-labelledby="emission-title">
-        <div class="panel-header">
-          <h3 id="emission-title" class="panel-title">Émission de factures</h3>
-          <span class="reco-delta reco-delta--inline" :class="facturesEnHausse ? 'reco-delta--up' : 'reco-delta--down'">
-            <i :class="facturesEnHausse ? 'pi pi-arrow-up' : 'pi pi-arrow-down'" aria-hidden="true"></i>
-            {{ variationFactures }}
-          </span>
-        </div>
-        <div class="reco-compare" role="img" :aria-label="`Factures émises : ce mois ${stats.factures_emises.mois_courant.count}, mois précédent ${stats.factures_emises.mois_precedent.count}`">
-          <div class="reco-vbar">
-            <span class="reco-vbar__count">{{ stats.factures_emises.mois_precedent.count }}</span>
-            <div class="reco-vbar__track">
-              <div class="reco-vbar__fill reco-vbar__fill--muted" :style="{ height: hauteurPrecedent + '%' }"></div>
-            </div>
-            <span class="reco-vbar__label">Mois préc.</span>
-            <span class="reco-vbar__amount">{{ formatDAcompact(stats.factures_emises.mois_precedent.montant_ttc) }}</span>
-          </div>
-          <div class="reco-vbar">
-            <span class="reco-vbar__count">{{ stats.factures_emises.mois_courant.count }}</span>
-            <div class="reco-vbar__track">
-              <div class="reco-vbar__fill reco-vbar__fill--accent" :style="{ height: hauteurCourant + '%' }"></div>
-            </div>
-            <span class="reco-vbar__label">Ce mois</span>
-            <span class="reco-vbar__amount">{{ formatDAcompact(stats.factures_emises.mois_courant.montant_ttc) }}</span>
-          </div>
         </div>
       </section>
     </div>
@@ -421,9 +354,6 @@ const relancesAriaLabel = computed(() =>
           <div class="reco-actions">
             <RouterLink to="/creances">
               <Button label="Voir les créances" icon="pi pi-exclamation-circle" severity="secondary" outlined size="small" />
-            </RouterLink>
-            <RouterLink to="/factures">
-              <Button label="Gérer les factures" icon="pi pi-receipt" severity="secondary" outlined size="small" />
             </RouterLink>
           </div>
         </div>

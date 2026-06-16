@@ -75,7 +75,7 @@ class DevisController extends Controller
 
     public function envoyer(Devis $devis): DevisResource|JsonResponse
     {
-        $this->authorize('update', $devis);
+        $this->authorize('envoyer', $devis);
 
         try {
             $devis = $this->facturationService->envoyerDevis($devis);
