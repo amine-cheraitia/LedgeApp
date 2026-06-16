@@ -19,7 +19,13 @@ export interface DashboardStats {
     total: number
     en_cours: number
     terminees: number
+    suspendues: number
+    annulees: number
     ca_ht: number
+  }
+  ca_mensuel: {
+    annee: number
+    data: number[]
   }
   factures: {
     total: number
