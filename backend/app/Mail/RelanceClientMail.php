@@ -42,7 +42,7 @@ class RelanceClientMail extends Mailable
             with: [
                 'facture' => $this->facture,
                 'relance' => $this->relance,
-                'message' => $this->relance->message,
+                'corps' => $this->relance->message,
             ],
         );
     }

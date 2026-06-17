@@ -9,6 +9,14 @@
 
 ## [Unreleased]
 
+### Refonte page Créances + relances (feature/relances)
+
+#### Frontend
+- **`CreancesPage.vue`** : refonte **mobile-first** — KPI **« total restant »** dû mis en avant, dialog d'envoi de relance plus ergonomique, présentation des créances revue ; accessibilité (`aria-*`) renforcée
+
+#### Backend
+- **`RelanceClientMail.php` / `relance.blade.php`** : renommage de la variable `$message` en `$corps` dans la vue mail (évite le conflit avec la variable réservée `$message` de Blade)
+
 ### Refonte sidebar v2 — accordéons + restyle (sidebar-refonte-v2)
 
 #### Frontend
