@@ -32,6 +32,7 @@ class DashboardService
         $enRetard = $this->compterFacturesEnRetard($exerciceId, $now);
         $totalImpaye = $this->calculerTotalImpaye($exerciceId);
         $seuilRecouvrement = $this->seuilRecouvrement();
+        $caMensuel = $this->calculerCaMensuel($exerciceId);
 
         return [
             'exercices' => Exercice::orderByDesc('annee')->get(['id', 'annee', 'statut']),
@@ -42,6 +43,7 @@ class DashboardService
                 'taux_recouvrement' => $tauxRecouvrement,
                 'seuil_recouvrement' => $seuilRecouvrement,
             ],
+            'ca_mensuel' => $caMensuel,
             'alertes' => $this->genererAlertes($enRetard, $caTtc, $tauxRecouvrement, $seuilRecouvrement),
             'entreprises' => [
                 'total' => Entreprise::count(),
@@ -52,6 +54,8 @@ class DashboardService
                 'total' => $this->missionQuery($exerciceId)->count(),
                 'en_cours' => $this->missionQuery($exerciceId)->where('statut', 'en_cours')->count(),
                 'terminees' => $this->missionQuery($exerciceId)->where('statut', 'terminee')->count(),
+                'suspendues' => $this->missionQuery($exerciceId)->where('statut', 'suspendue')->count(),
+                'annulees' => $this->missionQuery($exerciceId)->where('statut', 'annulee')->count(),
                 'ca_ht' => (float) $this->missionQuery($exerciceId)->sum('prix_ht'),
             ],
             'factures' => [
@@ -112,6 +116,35 @@ class DashboardService
             ->whereYear('date_facture', $now->year)
             ->whereMonth('date_facture', $now->month)
             ->sum('montant_ttc');
+    }
+
+    /**
+     * Serie du CA TTC facture par mois (12 mois) pour l'annee de l'exercice
+     * selectionne, ou l'annee en cours si aucun exercice n'est filtre.
+     *
+     * @return array{annee: int, data: list<float>}
+     */
+    private function calculerCaMensuel(?int $exerciceId): array
+    {
+        $annee = $exerciceId
+            ? (int) (Exercice::find($exerciceId)?->annee ?? Carbon::now()->year)
+            : Carbon::now()->year;
+
+        // Regroupement en PHP (portable SQLite/MySQL, pas de fonction SQL specifique)
+        $data = array_fill(0, 12, 0.0);
+
+        $this->factureQuery($exerciceId)
+            ->whereYear('date_facture', $annee)
+            ->get(['date_facture', 'montant_ttc'])
+            ->each(function (Facture $facture) use (&$data): void {
+                $mois = (int) $facture->date_facture->format('n');
+                $data[$mois - 1] += (float) $facture->montant_ttc;
+            });
+
+        return [
+            'annee' => $annee,
+            'data' => array_map(fn (float $total) => round($total, 2), $data),
+        ];
     }
 
     private function compterFacturesEnRetard(?int $exerciceId, Carbon $now): int

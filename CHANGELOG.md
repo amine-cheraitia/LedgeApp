@@ -9,6 +9,19 @@
 
 ## [Unreleased]
 
+### Graphiques dashboard admin — (feature/dashboard-graphiques)
+
+#### Backend
+- **`DashboardService::getStats()`** : nouvelle clé `ca_mensuel` (`{ annee, data[12] }`) — série du CA TTC facturé mois par mois pour l'année de l'exercice filtré (ou année courante), agrégée en PHP (portable SQLite/MySQL, pas de SQL brut)
+- **`missions`** enrichi de `suspendues` et `annulees` (en plus de `en_cours` / `terminees`) pour la répartition par statut
+
+#### Frontend
+- **`DashboardPage.vue`** (section admin) : 2 graphiques **Chart.js** via le composant `<Chart>` de PrimeVue — **CA mensuel en barres** (12 mois, tooltip en DA) et **répartition des missions par statut en camembert**
+- **Dark mode** : couleurs des axes / texte / barres lues sur les tokens PrimeVue (`--p-*`) et rafraîchies au toggle via `useLayout().isDarkTheme`
+- **RGAA** : chaque graphe `role="img"` + `aria-label` résumant les valeurs, table alternative `.sr-only` (canvas non lisible par lecteur d'écran), `animation: false` si `prefers-reduced-motion`
+- **`stats.ts`** : type `DashboardStats` étendu (`ca_mensuel`, `missions.suspendues/annulees`)
+- Dépendance ajoutée : `chart.js`
+
 ### Secrétaire hors Missions & Planning — (feature/secretaire-hors-missions-planning)
 
 #### Backend
