@@ -225,6 +225,7 @@
 
 - Numerotation `FF{ANNEE}-{NNN}` · reset au 1er janvier · `lockForUpdate` anti-doublon
 - **3 tranches : T1 = 30% · T2 = 30% · T3 = 40% (solde)**
+  - 🐛 Correctif arrondi (#52) : T3 calculee comme **solde exact** (`prix_ht − T1 − T2`) — invariant `T1 + T2 + T3 == prix_ht` garanti et teste, y compris prix a centimes
 - Snapshots immuables copies UNE SEULE FOIS a la creation :
   `taux_tva` · `montant_tva` · `montant_timbre` · `montant_ttc`
 - `FacturationService::creerFacture()` deja implementee
@@ -571,6 +572,8 @@
 - Top 5 débiteurs (barres) · créances urgentes · liens rapides `/creances`, `/factures`, `/devis`
 - Refonte graphique « Ledger Edition », **dark mode** complet, **RGAA** (worklist en liste de liens, charts `role="img"`, `prefers-reduced-motion`)
 - Endpoint `GET /api/v1/stats/secretaire` (rôle secrétaire uniquement), distinct du dashboard admin (`GET /api/v1/stats`)
+- 🔄 **Recadrage périmètre (feature/perimetre-secretaire)** : la secrétaire ne fait plus de **production de facturation**. Périmètre = **CRUD entreprises (sans suppression)** + **créances/recouvrement** (consulter, relancer, enregistrer les paiements) + **envoi des devis** et **transmission des factures (PDF)**. Création/suppression de devis/factures/avoirs et cycle de vie devis (accepter/refuser/convertir) réservés à l'admin. Dashboard secrétaire recentré sur le recouvrement (volet facturation/production retiré : devis en attente / émission de factures)
+- 🔄 **Hors Missions & Planning (feature/secretaire-hors-missions-planning)** : la secrétaire n'a **plus accès** aux Missions ni au Planning (menu, routeur, API `role:admin|collaborateur`, `MissionPolicy`/`TachePolicy`). L'onglet Missions de la fiche entreprise est masqué pour elle.
 - Depend de : **US-13, US-27**
 
 ---

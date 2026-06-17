@@ -23,8 +23,8 @@ const model = computed(() => [
     visible: isStaff.value,
     items: [
       { label: 'Entreprises', icon: 'pi pi-fw pi-building', to: '/entreprises', visible: isAdmin.value || isSecretaire.value },
-      { label: 'Missions', icon: 'pi pi-fw pi-briefcase', to: '/missions' },
-      { label: 'Planning', icon: 'pi pi-fw pi-calendar-clock', to: '/planning' },
+      { label: 'Missions', icon: 'pi pi-fw pi-briefcase', to: '/missions', visible: isAdmin.value || isCollaborateur.value },
+      { label: 'Planning', icon: 'pi pi-fw pi-calendar-clock', to: '/planning', visible: isAdmin.value || isCollaborateur.value },
     ],
   },
   {

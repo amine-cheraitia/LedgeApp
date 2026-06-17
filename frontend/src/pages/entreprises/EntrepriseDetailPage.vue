@@ -16,13 +16,18 @@ import { missionsApi } from '@/api/modules/missions'
 import { devisApi } from '@/api/modules/devis'
 import { facturesApi } from '@/api/modules/factures'
 import { useExercices } from '@/composables/useExercices'
+import { useAuthStore } from '@/stores/auth'
 import type { Entreprise, Mission, Devis, Facture } from '@/types'
 
 type TagSeverity = 'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast'
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 const entrepriseId = Number(route.params.id)
+
+// La secretaire n'a pas acces aux missions : onglet/KPI masques et API non appelee.
+const peutVoirMissions = computed(() => !auth.isSecretaire)
 
 // --- Data ---
 const entreprise = ref<Entreprise | null>(null)
@@ -104,6 +109,7 @@ async function fetchEntreprise() {
 }
 
 async function fetchMissions() {
+  if (!peutVoirMissions.value) return
   loadingMissions.value = true
   try {
     const res = await missionsApi.getAll({
@@ -273,6 +279,7 @@ onMounted(async () => {
         </div>
 
         <div
+          v-if="peutVoirMissions"
           class="kpi-card"
           role="status"
           :aria-label="`Missions actives : ${missionsActives}`"
@@ -361,9 +368,9 @@ onMounted(async () => {
 
       <!-- Onglets -->
       <main class="tabs-area">
-        <Tabs value="missions">
+        <Tabs :value="peutVoirMissions ? 'missions' : 'devis'">
           <TabList>
-            <Tab value="missions">
+            <Tab v-if="peutVoirMissions" value="missions">
               Missions
               <span class="tab-badge">{{ missions.length }}</span>
             </Tab>
@@ -379,7 +386,7 @@ onMounted(async () => {
 
           <TabPanels>
             <!-- Missions -->
-            <TabPanel value="missions">
+            <TabPanel v-if="peutVoirMissions" value="missions">
               <DataTable
                 :value="missions"
                 :loading="loadingMissions"

@@ -94,16 +94,7 @@ export interface SecretaireStats {
     raison_sociale: string
     montant_impaye: number
   }[]
-  factures_emises: {
-    mois_courant: { count: number; montant_ttc: number }
-    mois_precedent: { count: number; montant_ttc: number }
-  }
-  facturation: {
-    devis_en_attente: { count: number; montant: number }
-    devis_a_convertir: number
-    devis_expirant: number
-    encaissements_mois: { count: number; montant: number }
-  }
+  encaissements_mois: { count: number; montant: number }
   recentes_creances: {
     id: number
     numero: string

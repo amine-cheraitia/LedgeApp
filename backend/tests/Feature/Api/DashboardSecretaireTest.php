@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Feature\Api;
 
 use App\Models\Avoir;
-use App\Models\Devis;
 use App\Models\Entreprise;
 use App\Models\Exercice;
 use App\Models\Facture;
@@ -119,51 +118,13 @@ class DashboardSecretaireTest extends TestCase
                     'aging' => ['retard_15_30', 'retard_30_60', 'retard_60_plus'],
                     'relances_dues' => ['niveau_1', 'niveau_2', 'niveau_3'],
                     'top_debiteurs',
-                    'factures_emises' => [
-                        'mois_courant' => ['count', 'montant_ttc'],
-                        'mois_precedent' => ['count', 'montant_ttc'],
-                    ],
-                    'facturation' => [
-                        'devis_en_attente' => ['count', 'montant'],
-                        'devis_a_convertir',
-                        'devis_expirant',
-                        'encaissements_mois' => ['count', 'montant'],
-                    ],
+                    'encaissements_mois' => ['count', 'montant'],
                     'recentes_creances',
                 ],
-            ]);
-    }
-
-    public function test_devis_envoye_apparait_en_attente(): void
-    {
-        $prestation = Prestation::firstOrCreate(
-            ['code' => 'ACMPT'],
-            ['designation' => 'Comptabilité', 'tarif_initial' => 120000]
-        );
-        $entreprise = Entreprise::factory()->create(['statut' => 'prospect']);
-
-        Devis::create([
-            'entreprise_id' => $entreprise->id,
-            'prestation_id' => $prestation->id,
-            'exercice_id' => $this->exercice->id,
-            'created_by' => $this->admin->id,
-            'numero' => 'DV2026-001',
-            'date_devis' => now()->toDateString(),
-            'date_validite' => now()->addDays(30)->toDateString(),
-            'prix_ht' => 250000,
-            'montant_ht' => 250000,
-            'montant_tva' => 47500,
-            'montant_timbre' => 2500,
-            'montant_ttc' => 250000,
-            'statut' => 'envoye',
-        ]);
-
-        $res = $this->actingAs($this->secretaire)
-            ->getJson('/api/v1/stats/secretaire')
-            ->assertOk();
-
-        $this->assertSame(1, $res->json('data.facturation.devis_en_attente.count'));
-        $this->assertEquals(250000.0, $res->json('data.facturation.devis_en_attente.montant'));
+            ])
+            // Le volet facturation/production a ete retire du dashboard secretaire
+            ->assertJsonMissingPath('data.facturation')
+            ->assertJsonMissingPath('data.factures_emises');
     }
 
     public function test_paiement_du_mois_compte_dans_encaissements(): void
@@ -182,8 +143,8 @@ class DashboardSecretaireTest extends TestCase
             ->getJson('/api/v1/stats/secretaire')
             ->assertOk();
 
-        $this->assertSame(1, $res->json('data.facturation.encaissements_mois.count'));
-        $this->assertEquals(50000.0, $res->json('data.facturation.encaissements_mois.montant'));
+        $this->assertSame(1, $res->json('data.encaissements_mois.count'));
+        $this->assertEquals(50000.0, $res->json('data.encaissements_mois.montant'));
     }
 
     public function test_action_factures_en_retard_listee(): void
