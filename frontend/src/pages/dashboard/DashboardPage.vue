@@ -2,16 +2,19 @@
 import { useDashboardStats } from '@/composables/useDashboardStats'
 import { useAuthStore } from '@/stores/auth'
 import { useCountUp } from '@/composables/useCountUp'
+import { useLayout } from '@/layout/composables/layout'
 import SecretaireDashboardSection from '@/pages/dashboard/SecretaireDashboardSection.vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import Select from 'primevue/select'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
+import Chart from 'primevue/chart'
 import ProgressSpinner from 'primevue/progressspinner'
 
 const auth = useAuthStore()
+const { isDarkTheme } = useLayout()
 const {
   loading,
   adminStats: stats,
@@ -132,6 +135,114 @@ const donutSegments = computed(() => {
     cumulative += rawArc // position suivante basée sur l'arc brut
     return seg
   })
+})
+
+// ── Charts admin (Chart.js) ─────────────────────────────────────────────────
+const moisCourts = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc']
+const moisLongs = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+
+const prefersReduced = typeof window !== 'undefined'
+  && typeof window.matchMedia === 'function'
+  && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+function formatDACompact(montant: number): string {
+  return new Intl.NumberFormat('fr-DZ', { notation: 'compact', maximumFractionDigits: 1 }).format(montant) + ' DA'
+}
+
+// Couleurs lues sur les tokens PrimeVue (réactives au dark mode)
+const themeColors = ref({ text: '', muted: '', border: '', primary: '' })
+
+function refreshThemeColors(): void {
+  const s = getComputedStyle(document.documentElement)
+  themeColors.value = {
+    text: s.getPropertyValue('--p-text-color').trim(),
+    muted: s.getPropertyValue('--p-text-muted-color').trim(),
+    border: s.getPropertyValue('--p-surface-border').trim(),
+    primary: s.getPropertyValue('--p-primary-color').trim(),
+  }
+}
+
+onMounted(refreshThemeColors)
+watch(isDarkTheme, async () => {
+  await nextTick()
+  refreshThemeColors()
+})
+
+// CA mensuel (barres)
+const caMensuelVide = computed(() => !(stats.value?.ca_mensuel?.data ?? []).some((v) => v > 0))
+
+const caMensuelData = computed(() => ({
+  labels: moisCourts,
+  datasets: [{
+    label: 'CA TTC',
+    data: stats.value?.ca_mensuel?.data ?? [],
+    backgroundColor: themeColors.value.primary || '#10b981',
+    borderRadius: 6,
+    maxBarThickness: 38,
+  }],
+}))
+
+const caMensuelOptions = computed(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: prefersReduced ? false : undefined,
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      callbacks: { label: (ctx: { parsed: { y: number } }) => formatDA(ctx.parsed.y) },
+    },
+  },
+  scales: {
+    x: { ticks: { color: themeColors.value.muted }, grid: { display: false } },
+    y: {
+      beginAtZero: true,
+      ticks: { color: themeColors.value.muted, callback: (v: string | number) => formatDACompact(Number(v)) },
+      grid: { color: themeColors.value.border },
+    },
+  },
+}))
+
+const caMensuelAria = computed(() => {
+  const d = stats.value?.ca_mensuel
+  if (!d) return ''
+  return `Chiffre d'affaires mensuel ${d.annee} : ` + d.data.map((v, i) => `${moisLongs[i]} ${formatDA(v)}`).join(', ')
+})
+
+// Missions par statut (camembert)
+const missionsVides = computed(() => !stats.value?.missions || stats.value.missions.total === 0)
+
+const missionsData = computed(() => {
+  const m = stats.value?.missions
+  return {
+    labels: ['En cours', 'Terminées', 'Suspendues', 'Annulées'],
+    datasets: [{
+      data: [m?.en_cours ?? 0, m?.terminees ?? 0, m?.suspendues ?? 0, m?.annulees ?? 0],
+      backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444'],
+      borderWidth: 0,
+    }],
+  }
+})
+
+const missionsOptions = computed(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: prefersReduced ? false : undefined,
+  cutout: '60%',
+  plugins: {
+    legend: {
+      position: 'bottom' as const,
+      labels: { color: themeColors.value.text, usePointStyle: true, padding: 16 },
+    },
+    tooltip: {
+      callbacks: { label: (ctx: { label: string; parsed: number }) => `${ctx.label} : ${ctx.parsed}` },
+    },
+  },
+}))
+
+const missionsAria = computed(() => {
+  const m = stats.value?.missions
+  if (!m) return ''
+  return `Répartition des missions par statut : En cours ${m.en_cours}, Terminées ${m.terminees}, Suspendues ${m.suspendues}, Annulées ${m.annulees}`
 })
 
 // ── Today's date display ───────────────────────────────────────────────────
@@ -758,6 +869,65 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
         </div>
       </div>
 
+      <!-- ── Graphiques ── -->
+      <!-- CA mensuel (barres) -->
+      <div class="col-span-12 xl:col-span-8">
+        <div class="card h-full">
+          <div class="panel-header">
+            <h3 class="panel-title">Chiffre d'affaires mensuel</h3>
+            <span class="kpi-pill kpi-pill--muted">{{ stats.ca_mensuel.annee }}</span>
+          </div>
+          <div v-if="caMensuelVide" class="empty-state" role="status">
+            <i class="pi pi-chart-bar text-4xl mb-3" style="color: var(--p-text-muted-color)" aria-hidden="true"></i>
+            <p>Aucune facture sur cet exercice.</p>
+          </div>
+          <template v-else>
+            <div class="chart-box">
+              <Chart type="bar" :data="caMensuelData" :options="caMensuelOptions" role="img" :aria-label="caMensuelAria" />
+            </div>
+            <table class="sr-only">
+              <caption>Chiffre d'affaires TTC par mois — {{ stats.ca_mensuel.annee }}</caption>
+              <thead><tr><th>Mois</th><th>CA TTC</th></tr></thead>
+              <tbody>
+                <tr v-for="(val, i) in stats.ca_mensuel.data" :key="i">
+                  <td>{{ moisLongs[i] }}</td>
+                  <td>{{ formatDA(val) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </template>
+        </div>
+      </div>
+
+      <!-- Missions par statut (camembert) -->
+      <div class="col-span-12 xl:col-span-4">
+        <div class="card h-full">
+          <div class="panel-header">
+            <h3 class="panel-title">Missions par statut</h3>
+            <span class="kpi-pill kpi-pill--muted">{{ stats.missions.total }} total</span>
+          </div>
+          <div v-if="missionsVides" class="empty-state" role="status">
+            <i class="pi pi-briefcase text-4xl mb-3" style="color: var(--p-text-muted-color)" aria-hidden="true"></i>
+            <p>Aucune mission sur cet exercice.</p>
+          </div>
+          <template v-else>
+            <div class="chart-box">
+              <Chart type="doughnut" :data="missionsData" :options="missionsOptions" role="img" :aria-label="missionsAria" />
+            </div>
+            <table class="sr-only">
+              <caption>Répartition des missions par statut</caption>
+              <thead><tr><th>Statut</th><th>Nombre</th></tr></thead>
+              <tbody>
+                <tr><td>En cours</td><td>{{ stats.missions.en_cours }}</td></tr>
+                <tr><td>Terminées</td><td>{{ stats.missions.terminees }}</td></tr>
+                <tr><td>Suspendues</td><td>{{ stats.missions.suspendues }}</td></tr>
+                <tr><td>Annulées</td><td>{{ stats.missions.annulees }}</td></tr>
+              </tbody>
+            </table>
+          </template>
+        </div>
+      </div>
+
       <!-- Devis résumé -->
       <div class="col-span-12 xl:col-span-4">
         <div class="card h-full">
@@ -890,6 +1060,12 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
 </template>
 
 <style scoped>
+/* ── Charts (Chart.js) ────────────────────────────────────────────────── */
+.chart-box {
+  position: relative;
+  height: 18rem;
+}
+
 /* ── Recouvrement bar (admin) ─────────────────────────────────────────── */
 .recouvrement-bar {
   height: 6px;

@@ -17,6 +17,61 @@
 - **`layout.scss` + `tokens.css`** : restyle du menu — item actif en **pastille arrondie** (liseré gauche retiré, nouveau rayon `--ledge-radius-pill: 8px`), en-tête d'accordéon **encadré** (fond `surface-100` + bordure) ; accent **orange encre conservé**, **dark mode** préservé
 - **RGAA** : en-tête `role="button"` + `aria-expanded`, navigation clavier (Entrée/Espace), focus visible, chevron + libellé (pas de couleur seule), `prefers-reduced-motion` neutralise la transition
 
+### Graphiques dashboard admin — (feature/dashboard-graphiques)
+
+#### Backend
+- **`DashboardService::getStats()`** : nouvelle clé `ca_mensuel` (`{ annee, data[12] }`) — série du CA TTC facturé mois par mois pour l'année de l'exercice filtré (ou année courante), agrégée en PHP (portable SQLite/MySQL, pas de SQL brut)
+- **`missions`** enrichi de `suspendues` et `annulees` (en plus de `en_cours` / `terminees`) pour la répartition par statut
+
+#### Frontend
+- **`DashboardPage.vue`** (section admin) : 2 graphiques **Chart.js** via le composant `<Chart>` de PrimeVue — **CA mensuel en barres** (12 mois, tooltip en DA) et **répartition des missions par statut en camembert**
+- **Dark mode** : couleurs des axes / texte / barres lues sur les tokens PrimeVue (`--p-*`) et rafraîchies au toggle via `useLayout().isDarkTheme`
+- **RGAA** : chaque graphe `role="img"` + `aria-label` résumant les valeurs, table alternative `.sr-only` (canvas non lisible par lecteur d'écran), `animation: false` si `prefers-reduced-motion`
+- **`stats.ts`** : type `DashboardStats` étendu (`ca_mensuel`, `missions.suspendues/annulees`)
+- Dépendance ajoutée : `chart.js`
+
+### Secrétaire hors Missions & Planning — (feature/secretaire-hors-missions-planning)
+
+#### Backend
+- **Routes API** (`routes/api.php`) : missions, tâches, commentaires, calendrier et dashboard collaborateur déplacés dans un groupe **`role:admin|collaborateur`** — la secrétaire n'y a plus accès (les utilitaires `users`/`settings` en lecture restent partagés)
+- **Policies** : `MissionPolicy` et `TachePolicy` ne référencent plus le rôle `secretaire` (`viewAny`/`view`/`create`/`update`/`delete` → admin, ou collaborateur sur ses propres missions/tâches)
+
+#### Frontend
+- **Menu** (`AppMenu.vue`) : les entrées **Missions** et **Planning** ne sont visibles que pour admin et collaborateur
+- **Routeur** : nouveau set `ROLES.adminCollaborateur` appliqué aux routes `missions`, `mission-detail`, `tache-detail`, `planning` — accès secrétaire bloqué (redirection accès refusé)
+- **Fiche entreprise** (`EntrepriseDetailPage.vue`) : pour la secrétaire, l'onglet **Missions** et le KPI **« Missions actives »** sont masqués, l'appel API missions n'est pas déclenché, et l'onglet par défaut bascule sur **Devis**
+
+#### Tests
+- **`SecretairePermissionsTest`** : nouveaux cas — la secrétaire reçoit `403` sur missions (liste/détail/création/tâches), calendrier et dashboard collaborateur
+
+### Recadrage du périmètre du rôle secrétaire — (feature/perimetre-secretaire)
+
+#### Backend
+- **Routes API** (`routes/api.php`) : les écritures de facturation passent en **`role:admin`** — création/suppression de devis et factures, création/suppression d'avoirs, suppression de paiements, cycle de vie devis (`accepter`/`refuser`/`convertir-en-mission`) et calcul de prix. La secrétaire conserve : lecture devis/factures/avoirs + PDF, **envoi d'un devis** au client, **enregistrement de paiements**, **envoi de relances**, consultation des créances, et le **CRUD des entreprises** (création/modification, sans suppression) + contacts
+- **Policies** : `DevisPolicy` / `FacturePolicy` — `create`/`update`/`delete` réservés à l'admin ; nouvelle ability **`DevisPolicy::envoyer`** (admin + secrétaire) pour dissocier l'envoi de la modification ; `AvoirPolicy::create` réservé à l'admin ; `EntreprisePolicy` inchangée (création/modification admin + secrétaire, suppression admin)
+- **`DevisController::envoyer()`** autorise désormais l'ability `envoyer` (et non plus `update`)
+- **`DashboardService::getSecretaireStats()`** : retrait du volet facturation/production (devis en attente / à convertir / expirant, émission de factures N vs N-1) ; dashboard recentré sur le **recouvrement** (créances, aging, relances dues, top débiteurs, encaissements du mois)
+
+#### Frontend
+- **Devis / Factures** : les actions de production (nouveau devis/facture, modifier, supprimer, accepter/refuser/convertir, émettre/supprimer un avoir) sont masquées pour la secrétaire (`v-if="auth.isAdmin"`) ; elle conserve **Envoyer un devis**, **téléchargement PDF** et **enregistrement de paiement**
+- **Dashboard secrétaire** (`SecretaireDashboardSection.vue`) : suppression de la carte « Devis en attente », du graphe « Émission de factures » et du bouton « Gérer les factures » ; grille rééquilibrée
+- **`stats.ts`** : type `SecretaireStats` aligné (suppression `facturation` / `factures_emises`, ajout `encaissements_mois` à la racine)
+
+#### Tests
+- **`SecretairePermissionsTest`** (nouveau) : couverture du périmètre autorisé (entreprises CRU, lecture facturation, envoi devis, paiement, relance) et interdit (création/suppression devis/factures/avoirs, cycle de vie devis, suppression entreprise/paiement)
+- **`DashboardSecretaireTest`** : structure mise à jour (plus de volet facturation, `encaissements_mois` à la racine)
+
+### Fix arrondi des tranches de facturation — (fix/arrondi-tranches-facturation)
+
+#### Backend
+- **`FacturationService::creerFacture()`** : la 3ᵉ tranche est désormais calculée comme **solde exact** (`prix_ht − T1 − T2`) au lieu d'un `round(prix_ht × 0.40)` indépendant — garantit l'invariant `T1 + T2 + T3 == prix_ht` même lorsque le prix porte des centimes (corrige une perte possible de 1 centime sur la répartition 30/30/40)
+
+#### Frontend
+- **`MissionDetailPage.vue`** : l'aperçu des tranches arrondit aux **centimes** (2 décimales) et applique le même solde exact sur la 3ᵉ tranche — aligné sur les montants réellement facturés par le backend (avant : `Math.round` aux dinars pleins, divergence possible avec la facture)
+
+#### Tests
+- **`FacturationServiceTest`** : nouveau test d'invariant `T1 + T2 + T3 == prix_ht` sur un prix à centimes (`100.01`) — cas limite d'arrondi
+
 ### Dashboard secrétaire + autorisations front — (feature/dashboard-secretaire)
 
 #### Backend — dashboard secrétaire

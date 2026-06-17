@@ -32,6 +32,7 @@ class DashboardService
         $enRetard = $this->compterFacturesEnRetard($exerciceId, $now);
         $totalImpaye = $this->calculerTotalImpaye($exerciceId);
         $seuilRecouvrement = $this->seuilRecouvrement();
+        $caMensuel = $this->calculerCaMensuel($exerciceId);
 
         return [
             'exercices' => Exercice::orderByDesc('annee')->get(['id', 'annee', 'statut']),
@@ -42,6 +43,7 @@ class DashboardService
                 'taux_recouvrement' => $tauxRecouvrement,
                 'seuil_recouvrement' => $seuilRecouvrement,
             ],
+            'ca_mensuel' => $caMensuel,
             'alertes' => $this->genererAlertes($enRetard, $caTtc, $tauxRecouvrement, $seuilRecouvrement),
             'entreprises' => [
                 'total' => Entreprise::count(),
@@ -52,6 +54,8 @@ class DashboardService
                 'total' => $this->missionQuery($exerciceId)->count(),
                 'en_cours' => $this->missionQuery($exerciceId)->where('statut', 'en_cours')->count(),
                 'terminees' => $this->missionQuery($exerciceId)->where('statut', 'terminee')->count(),
+                'suspendues' => $this->missionQuery($exerciceId)->where('statut', 'suspendue')->count(),
+                'annulees' => $this->missionQuery($exerciceId)->where('statut', 'annulee')->count(),
                 'ca_ht' => (float) $this->missionQuery($exerciceId)->sum('prix_ht'),
             ],
             'factures' => [
@@ -112,6 +116,35 @@ class DashboardService
             ->whereYear('date_facture', $now->year)
             ->whereMonth('date_facture', $now->month)
             ->sum('montant_ttc');
+    }
+
+    /**
+     * Serie du CA TTC facture par mois (12 mois) pour l'annee de l'exercice
+     * selectionne, ou l'annee en cours si aucun exercice n'est filtre.
+     *
+     * @return array{annee: int, data: list<float>}
+     */
+    private function calculerCaMensuel(?int $exerciceId): array
+    {
+        $annee = $exerciceId
+            ? (int) (Exercice::find($exerciceId)?->annee ?? Carbon::now()->year)
+            : Carbon::now()->year;
+
+        // Regroupement en PHP (portable SQLite/MySQL, pas de fonction SQL specifique)
+        $data = array_fill(0, 12, 0.0);
+
+        $this->factureQuery($exerciceId)
+            ->whereYear('date_facture', $annee)
+            ->get(['date_facture', 'montant_ttc'])
+            ->each(function (Facture $facture) use (&$data): void {
+                $mois = (int) $facture->date_facture->format('n');
+                $data[$mois - 1] += (float) $facture->montant_ttc;
+            });
+
+        return [
+            'annee' => $annee,
+            'data' => array_map(fn (float $total) => round($total, 2), $data),
+        ];
     }
 
     private function compterFacturesEnRetard(?int $exerciceId, Carbon $now): int
@@ -356,12 +389,6 @@ class DashboardService
 
         $relancesDues = $this->compterRelancesDues($creances, $now);
 
-        $facturesEmisesMoisCourant = $this->compterFacturesEmises($now->copy()->startOfMonth(), $now->copy()->endOfMonth());
-        $facturesEmisesMoisPrecedent = $this->compterFacturesEmises(
-            $now->copy()->subMonth()->startOfMonth(),
-            $now->copy()->subMonth()->endOfMonth()
-        );
-
         $enRetard = $creances->filter(
             fn (Facture $f) => $f->date_echeance && $f->date_echeance->lt($now) && $f->montantRestant() > 0
         )->count();
@@ -382,7 +409,7 @@ class DashboardService
             ->values()
             ->all();
 
-        $facturation = $this->compterFacturation($now);
+        $encaissementsMois = $this->compterEncaissements($now);
         $totalRelancesDues = array_sum($relancesDues);
 
         $alertes = [];
@@ -399,7 +426,7 @@ class DashboardService
             ];
         }
 
-        $actions = $this->construireWorklist($enRetard, $totalRelancesDues, $facturation);
+        $actions = $this->construireWorklist($enRetard, $totalRelancesDues);
 
         return [
             'alertes' => $alertes,
@@ -416,57 +443,35 @@ class DashboardService
             ],
             'relances_dues' => $relancesDues,
             'top_debiteurs' => $topDebiteurs,
-            'factures_emises' => [
-                'mois_courant' => $facturesEmisesMoisCourant,
-                'mois_precedent' => $facturesEmisesMoisPrecedent,
-            ],
-            'facturation' => $facturation,
+            'encaissements_mois' => $encaissementsMois,
             'recentes_creances' => $recentesCreances,
         ];
     }
 
     /**
-     * Volet facturation/production du dashboard secretaire.
+     * Encaissements du mois courant — indicateur de recouvrement du dashboard secretaire.
      *
-     * @return array{devis_en_attente: array{count: int, montant: float}, devis_a_convertir: int, devis_expirant: int, encaissements_mois: array{count: int, montant: float}}
+     * @return array{count: int, montant: float}
      */
-    private function compterFacturation(Carbon $now): array
+    private function compterEncaissements(Carbon $now): array
     {
-        $devisEnAttente = Devis::where('statut', 'envoye');
         $encaissements = Paiement::whereBetween('date_paiement', [
             $now->copy()->startOfMonth()->toDateString(),
             $now->copy()->endOfMonth()->toDateString(),
         ]);
 
         return [
-            'devis_en_attente' => [
-                'count' => (clone $devisEnAttente)->count(),
-                'montant' => round((float) (clone $devisEnAttente)->sum('montant_ttc'), 2),
-            ],
-            'devis_a_convertir' => Devis::where('statut', 'accepte')
-                ->whereDoesntHave('mission')
-                ->count(),
-            'devis_expirant' => Devis::where('statut', 'envoye')
-                ->whereNotNull('date_validite')
-                ->whereBetween('date_validite', [
-                    $now->toDateString(),
-                    $now->copy()->addDays(7)->toDateString(),
-                ])
-                ->count(),
-            'encaissements_mois' => [
-                'count' => (clone $encaissements)->count(),
-                'montant' => round((float) (clone $encaissements)->sum('montant'), 2),
-            ],
+            'count' => (clone $encaissements)->count(),
+            'montant' => round((float) (clone $encaissements)->sum('montant'), 2),
         ];
     }
 
     /**
-     * Construit la liste « A faire » (worklist) orientee action.
+     * Construit la liste « A faire » (worklist) orientee recouvrement.
      *
-     * @param  array{devis_en_attente: array{count: int, montant: float}, devis_a_convertir: int, devis_expirant: int, encaissements_mois: array{count: int, montant: float}}  $facturation
      * @return list<array{key: string, label: string, count: int, severity: string, icon: string, route: string}>
      */
-    private function construireWorklist(int $enRetard, int $totalRelancesDues, array $facturation): array
+    private function construireWorklist(int $enRetard, int $totalRelancesDues): array
     {
         $actions = [];
 
@@ -475,15 +480,6 @@ class DashboardService
         }
         if ($totalRelancesDues > 0) {
             $actions[] = ['key' => 'relances', 'label' => 'Relances a envoyer', 'count' => $totalRelancesDues, 'severity' => 'warn', 'icon' => 'pi-bell', 'route' => '/creances'];
-        }
-        if ($facturation['devis_expirant'] > 0) {
-            $actions[] = ['key' => 'devis_expirant', 'label' => 'Devis expirant sous 7 jours', 'count' => $facturation['devis_expirant'], 'severity' => 'warn', 'icon' => 'pi-hourglass', 'route' => '/devis'];
-        }
-        if ($facturation['devis_en_attente']['count'] > 0) {
-            $actions[] = ['key' => 'devis_attente', 'label' => 'Devis en attente de reponse', 'count' => $facturation['devis_en_attente']['count'], 'severity' => 'info', 'icon' => 'pi-file', 'route' => '/devis'];
-        }
-        if ($facturation['devis_a_convertir'] > 0) {
-            $actions[] = ['key' => 'devis_convertir', 'label' => 'Devis acceptes a convertir en mission', 'count' => $facturation['devis_a_convertir'], 'severity' => 'info', 'icon' => 'pi-sync', 'route' => '/devis'];
         }
 
         $ordre = ['danger' => 0, 'warn' => 1, 'info' => 2];
@@ -553,19 +549,5 @@ class DashboardService
         }
 
         return $compteurs;
-    }
-
-    /**
-     * @return array{count: int, montant_ttc: float}
-     */
-    private function compterFacturesEmises(Carbon $debut, Carbon $fin): array
-    {
-        $baseQuery = Facture::where('type', 'FF')
-            ->whereBetween('date_facture', [$debut->toDateString(), $fin->toDateString()]);
-
-        return [
-            'count' => (clone $baseQuery)->count(),
-            'montant_ttc' => round((float) (clone $baseQuery)->sum('montant_ttc'), 2),
-        ];
     }
 }

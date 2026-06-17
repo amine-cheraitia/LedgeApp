@@ -174,6 +174,24 @@ class FacturationServiceTest extends TestCase
         $this->service->creerFacture(['mission_id' => $this->mission->id, 'date_facture' => '2026-04-15'], $admin->id);
     }
 
+    public function test_somme_des_trois_tranches_egale_le_prix_ht_avec_centimes(): void
+    {
+        // Prix avec centimes : la 3e tranche (solde exact) doit absorber l'arrondi
+        // pour que T1 + T2 + T3 == prix_ht (anti perte d'arrondi).
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        $this->mission->update(['prix_ht' => 100.01]);
+
+        $f1 = $this->service->creerFacture(['mission_id' => $this->mission->id, 'date_facture' => '2026-01-15'], $admin->id);
+        $f2 = $this->service->creerFacture(['mission_id' => $this->mission->id, 'date_facture' => '2026-02-15'], $admin->id);
+        $f3 = $this->service->creerFacture(['mission_id' => $this->mission->id, 'date_facture' => '2026-03-15'], $admin->id);
+
+        $somme = (float) $f1->montant_ht + (float) $f2->montant_ht + (float) $f3->montant_ht;
+
+        $this->assertEquals(100.01, round($somme, 2));
+        $this->assertEquals(40.01, (float) $f3->montant_ht); // 100.01 - 30.00 - 30.00
+    }
+
     // -------------------------------------------------------------------------
     // TVA historisée — snapshot immuable à la date de facturation
     // -------------------------------------------------------------------------

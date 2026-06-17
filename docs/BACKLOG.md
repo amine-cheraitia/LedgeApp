@@ -52,6 +52,20 @@
 
 ---
 
+### US-51 · Gestion des taux TVA & Timbre · M · 3 pts · Sprint 3
+
+**En tant qu'administrateur**, je veux gerer les taux TVA et timbre fiscal depuis l'interface **afin de** ne pas acceder directement a la base de donnees.
+
+- Page Settings dediee : `/admin/settings/tva-taux`
+- Datatable : taux actuels avec date_debut / date_fin · type (standard / reduit / exonere) · actions (editer, supprimer)
+- Bouton « Ajouter un taux » : formulaire avec taux (%), designation, date_debut, date_fin, type
+- Suppression bloquee si factures associees au taux (HTTP 409)
+- Routes API : `GET /api/v1/referentiels/tva-taux` · `POST` · `PUT` · `DELETE`
+- Frontend : form validation, toast succes/erreur
+- Depend de : **US-04**
+
+---
+
 ### US-05 · Grille tarifaire · M · 3 pts · Sprint 1 ✅
 
 **En tant qu'administrateur**, je veux definir la grille tarifaire **afin de** calculer automatiquement les prix des missions.
@@ -211,6 +225,7 @@
 
 - Numerotation `FF{ANNEE}-{NNN}` · reset au 1er janvier · `lockForUpdate` anti-doublon
 - **3 tranches : T1 = 30% · T2 = 30% · T3 = 40% (solde)**
+  - 🐛 Correctif arrondi (#52) : T3 calculee comme **solde exact** (`prix_ht − T1 − T2`) — invariant `T1 + T2 + T3 == prix_ht` garanti et teste, y compris prix a centimes
 - Snapshots immuables copies UNE SEULE FOIS a la creation :
   `taux_tva` · `montant_tva` · `montant_timbre` · `montant_ttc`
 - `FacturationService::creerFacture()` deja implementee
@@ -383,6 +398,7 @@
 
 - CA du mois · TVA collectee · taux recouvrement · missions actives
 - Widgets dynamiques · filtrable par exercice · alertes si seuil depasse
+- **Graphiques (Chart.js / PrimeVue)** : CA mensuel en barres (12 mois de l'exercice) + repartition des missions par statut en camembert — dark mode + RGAA (table alternative `.sr-only`)
 - Depend de : **US-13, US-15, US-18**
 
 ---
@@ -556,6 +572,8 @@
 - Top 5 débiteurs (barres) · créances urgentes · liens rapides `/creances`, `/factures`, `/devis`
 - Refonte graphique « Ledger Edition », **dark mode** complet, **RGAA** (worklist en liste de liens, charts `role="img"`, `prefers-reduced-motion`)
 - Endpoint `GET /api/v1/stats/secretaire` (rôle secrétaire uniquement), distinct du dashboard admin (`GET /api/v1/stats`)
+- 🔄 **Recadrage périmètre (feature/perimetre-secretaire)** : la secrétaire ne fait plus de **production de facturation**. Périmètre = **CRUD entreprises (sans suppression)** + **créances/recouvrement** (consulter, relancer, enregistrer les paiements) + **envoi des devis** et **transmission des factures (PDF)**. Création/suppression de devis/factures/avoirs et cycle de vie devis (accepter/refuser/convertir) réservés à l'admin. Dashboard secrétaire recentré sur le recouvrement (volet facturation/production retiré : devis en attente / émission de factures)
+- 🔄 **Hors Missions & Planning (feature/secretaire-hors-missions-planning)** : la secrétaire n'a **plus accès** aux Missions ni au Planning (menu, routeur, API `role:admin|collaborateur`, `MissionPolicy`/`TachePolicy`). L'onglet Missions de la fiche entreprise est masqué pour elle.
 - Depend de : **US-13, US-27**
 
 ---
@@ -616,22 +634,23 @@
 |---|---|---|---|
 | Sprint 1 | US-01 ✅, 02 ✅, 03 ✅, 04 ✅, 05 ✅, 06 ✅, 07 ✅, 08 ✅, 09 ✅, 11 ✅, 12 ✅, 17 ✅, 18 ✅, 40 ✅, 43 ✅ | 49 pts | Auth · Referentiel · Clients · Devis · Mission · Exercice |
 | Sprint 2 | US-10 ✅, 13 ✅, 14 ✅, 15 ✅, 16 ✅, 19 ✅, 20 ✅, 21 ✅, 22 ✅, 23 ✅, 24 ✅, 25 ✅, 26 ✅, 27 ✅, 28 ✅, 29 ✅, 30 ✅, 31 ✅, 32 ✅, 33 ✅, 34 ✅ | 96 pts | Factures · Taches · Portail · Relances · KPI |
-| Sprint 3 | US-35 ✅, 36 ✅, 37 ✅, 38 ✅, 39 ✅, 41 ✅, 42 ✅, 45 ✅, 46 ✅, 47 ✅, 48 ✅, 49 ✅ | 40 pts | Qualite · OWASP · RGAA · Tests · MCO · Droits · PDF mission · Dashboard secrétaire |
-| **Total** | **45 US** | **176 pts** | |
+| Sprint 3 | US-35 ✅, 36 ✅, 37 ✅, 38 ✅, 39 ✅, 41 ✅, 42 ✅, 45 ✅, 46 ✅, 47 ✅, 48 ✅, 49 ✅, 50 ✅ · **US-51 🔧** | 43 pts | Qualite · OWASP · RGAA · Tests · MCO · Droits · PDF mission · Dashboard secrétaire · Settings TVA |
+| **Total** | **46 US** | **179 pts** | |
 
 ### Par priorite MoSCoW
 
 | Priorite | US | Pts |
 |---|---|---|
-| Must Have | 29 US | 125 pts |
+| Must Have | 30 US | 128 pts |
 | Should Have | 14 US | 45 pts |
+| Could Have | 2 US | 6 pts |
 
 ### Avancement
 
 | Statut | US | Pts |
 |---|---|---|
 | ✅ Termine | 42 US | 153 pts |
-| 🔧 En cours | 0 US | 0 pts |
+| 🔧 En cours | 1 US | 3 pts |
 | A faire | 3 US | 23 pts |
 
 ### Noeuds critiques

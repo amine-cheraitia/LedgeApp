@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 const ROLES = {
   allStaff: ['admin', 'secretaire', 'collaborateur'],
   adminSecretaire: ['admin', 'secretaire'],
+  adminCollaborateur: ['admin', 'collaborateur'],
   adminOnly: ['admin'],
 } as const
 
@@ -72,25 +73,25 @@ const router = createRouter({
           path: 'missions',
           name: 'missions',
           component: () => import('@/pages/missions/MissionListPage.vue'),
-          meta: { roles: ROLES.allStaff },
+          meta: { roles: ROLES.adminCollaborateur },
         },
         {
           path: 'missions/:id',
           name: 'mission-detail',
           component: () => import('@/pages/missions/MissionDetailPage.vue'),
-          meta: { roles: ROLES.allStaff },
+          meta: { roles: ROLES.adminCollaborateur },
         },
         {
           path: 'missions/:id/taches/:tacheId',
           name: 'tache-detail',
           component: () => import('@/pages/missions/TacheDetailPage.vue'),
-          meta: { roles: ROLES.allStaff },
+          meta: { roles: ROLES.adminCollaborateur },
         },
         {
           path: 'planning',
           name: 'planning',
           component: () => import('@/pages/planning/PlanningCalendarPage.vue'),
-          meta: { roles: ROLES.allStaff },
+          meta: { roles: ROLES.adminCollaborateur },
         },
         {
           path: 'devis',
