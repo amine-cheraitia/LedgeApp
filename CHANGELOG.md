@@ -9,13 +9,13 @@
 
 ## [Unreleased]
 
-### Refonte sidebar v2 — accordéon Administration (sidebar-refonte-v2)
+### Refonte sidebar v2 — accordéons + restyle (sidebar-refonte-v2)
 
 #### Frontend
-- **`AppMenu.vue`** : regroupement de tout le paramétrage sous un **accordéon « Administration »** (admin) — Prestations, Paramètres, Exercices, Utilisateurs, KPI Objectifs, Journal d'audit ; `KPI Objectifs` retiré de la section Accueil ; icône Paramètres en `pi-sliders-h` (dédoublonnage du `pi-cog` du groupe)
-- **`AppMenuItem.vue`** : prise en charge d'un flag `accordion` sur un groupe racine — en-tête repliable à état local, **replié par défaut**, **auto-ouvert** si la page courante appartient au groupe ; comportement des autres groupes (Accueil/Gestion/Facturation) et du menu portail strictement inchangé
+- **`AppMenu.vue`** : tous les groupes racine (Accueil, Gestion, Facturation, Administration) sont désormais des **accordéons à en-tête unique encadré** — suppression du libellé de section affiché en double. Le paramétrage reste regroupé sous « Administration » (Prestations, Paramètres, Exercices, Utilisateurs, KPI Objectifs, Journal d'audit) ; `KPI Objectifs` retiré de la section Accueil ; icônes de groupe ajoutées ; icône Paramètres en `pi-sliders-h`. Nouveau flag `defaultOpen` : **Accueil / Gestion / Facturation ouverts par défaut**, **Administration replié** (auto-ouvert sur une de ses pages filles)
+- **`AppMenuItem.vue`** : flag `accordion` sur un groupe racine (en-tête repliable à état local) ; ouverture initiale = `defaultOpen` si présent, sinon dépliée seulement si la page courante appartient au groupe ; menu portail inchangé
+- **`layout.scss` + `tokens.css`** : restyle du menu — item actif en **pastille arrondie** (liseré gauche retiré, nouveau rayon `--ledge-radius-pill: 8px`), en-tête d'accordéon **encadré** (fond `surface-100` + bordure) ; accent **orange encre conservé**, **dark mode** préservé
 - **RGAA** : en-tête `role="button"` + `aria-expanded`, navigation clavier (Entrée/Espace), focus visible, chevron + libellé (pas de couleur seule), `prefers-reduced-motion` neutralise la transition
-- **`layout.scss`** : style en-tête de groupe + règle `prefers-reduced-motion`
 
 ### Dashboard secrétaire + autorisations front — (feature/dashboard-secretaire)
 

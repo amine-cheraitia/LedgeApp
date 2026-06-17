@@ -24,6 +24,7 @@
   --ledge-radius-sm: 2px;
   --ledge-radius-md: 6px;
   --ledge-radius-lg: 12px;
+  --ledge-radius-pill: 8px;  /* items de la sidebar (look pastille arrondie) */
 
   /* ---------- Sidebar ---------- */
   --ledge-sidebar-width: 18rem;

@@ -13,6 +13,9 @@ const isStaff = computed(() => isAdmin.value || isCollaborateur.value || isSecre
 const model = computed(() => [
   {
     label: 'Accueil',
+    accordion: true,
+    defaultOpen: true,
+    icon: 'pi pi-fw pi-th-large',
     items: [
       { label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' },
     ],
@@ -20,6 +23,9 @@ const model = computed(() => [
   {
     label: 'Gestion',
     visible: isStaff.value,
+    accordion: true,
+    defaultOpen: true,
+    icon: 'pi pi-fw pi-folder',
     items: [
       { label: 'Entreprises', icon: 'pi pi-fw pi-building', to: '/entreprises', visible: isAdmin.value || isSecretaire.value },
       { label: 'Missions', icon: 'pi pi-fw pi-briefcase', to: '/missions' },
@@ -29,6 +35,9 @@ const model = computed(() => [
   {
     label: 'Facturation',
     visible: isAdmin.value || isSecretaire.value,
+    accordion: true,
+    defaultOpen: true,
+    icon: 'pi pi-fw pi-credit-card',
     items: [
       { label: 'Devis', icon: 'pi pi-fw pi-file', to: '/devis' },
       { label: 'Factures', icon: 'pi pi-fw pi-receipt', to: '/factures' },

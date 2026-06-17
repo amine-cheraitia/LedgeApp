@@ -47,9 +47,10 @@ const hasActiveChild = computed(() =>
 const open = ref(false)
 
 onMounted(() => {
-  // Déplié d'emblée si la page courante appartient au groupe
   if (isAccordion.value) {
-    open.value = hasActiveChild.value
+    // defaultOpen → toujours ouvert au chargement ;
+    // sinon (ex. Administration) déplié seulement si la page courante appartient au groupe
+    open.value = props.item.defaultOpen === true ? true : hasActiveChild.value
   }
 })
 
