@@ -403,15 +403,14 @@
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  padding: 0.55rem 0.75rem 0.55rem 0.85rem;
-  border-radius: var(--ledge-radius-sm);
+  padding: 0.55rem 0.85rem;
+  border-radius: var(--ledge-radius-pill);
   color: var(--p-text-color);
   text-decoration: none;
   cursor: pointer;
   transition: background-color 0.15s, color 0.15s;
   font-size: 0.88rem;
   font-weight: 500;
-  border-left: var(--ledge-sidebar-active-bar) solid transparent;
 
   &:hover {
     background-color: var(--p-surface-100);
@@ -424,12 +423,11 @@
   &.active-route {
     font-weight: 600;
     color: var(--ledge-accent);
-    background-color: color-mix(in srgb, var(--ledge-accent), transparent 92%);
-    border-left-color: var(--ledge-accent);
+    background-color: color-mix(in srgb, var(--ledge-accent), transparent 88%);
 
     .app-dark & {
       color: var(--ledge-accent);
-      background-color: color-mix(in srgb, var(--ledge-accent), transparent 86%);
+      background-color: color-mix(in srgb, var(--ledge-accent), transparent 82%);
     }
 
     .layout-menuitem-icon {
@@ -485,6 +483,48 @@
 .layout-submenu-leave-active {
   overflow: hidden;
   transition: max-height 0.45s cubic-bezier(0, 1, 0, 1);
+}
+
+/* En-tête de groupe repliable (accordéon) — encadré */
+.layout-menu a.layout-accordion-header {
+  background: var(--p-surface-100);
+  border: 1px solid var(--p-surface-200);
+  font-family: var(--ledge-ff-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--p-text-muted-color);
+
+  .layout-menuitem-icon {
+    color: var(--p-text-muted-color);
+  }
+
+  &:hover {
+    background: var(--p-surface-200);
+    color: var(--ledge-accent);
+
+    .layout-menuitem-icon {
+      color: var(--ledge-accent);
+    }
+  }
+
+  .app-dark & {
+    background: var(--p-surface-800);
+    border-color: var(--p-surface-700);
+
+    &:hover {
+      background: var(--p-surface-700);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layout-submenu-enter-active,
+  .layout-submenu-leave-active,
+  .layout-submenu-toggler {
+    transition: none;
+  }
 }
 
 /* ================================================================

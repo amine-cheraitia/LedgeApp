@@ -9,6 +9,14 @@
 
 ## [Unreleased]
 
+### Refonte sidebar v2 — accordéons + restyle (sidebar-refonte-v2)
+
+#### Frontend
+- **`AppMenu.vue`** : tous les groupes racine (Accueil, Gestion, Facturation, Administration) sont désormais des **accordéons à en-tête unique encadré** — suppression du libellé de section affiché en double. Le paramétrage reste regroupé sous « Administration » (Prestations, Paramètres, Exercices, Utilisateurs, KPI Objectifs, Journal d'audit) ; `KPI Objectifs` retiré de la section Accueil ; icônes de groupe ajoutées ; icône Paramètres en `pi-sliders-h`. Nouveau flag `defaultOpen` : **Accueil / Gestion / Facturation ouverts par défaut**, **Administration replié** (auto-ouvert sur une de ses pages filles)
+- **`AppMenuItem.vue`** : flag `accordion` sur un groupe racine (en-tête repliable à état local) ; ouverture initiale = `defaultOpen` si présent, sinon dépliée seulement si la page courante appartient au groupe ; menu portail inchangé
+- **`layout.scss` + `tokens.css`** : restyle du menu — item actif en **pastille arrondie** (liseré gauche retiré, nouveau rayon `--ledge-radius-pill: 8px`), en-tête d'accordéon **encadré** (fond `surface-100` + bordure) ; accent **orange encre conservé**, **dark mode** préservé
+- **RGAA** : en-tête `role="button"` + `aria-expanded`, navigation clavier (Entrée/Espace), focus visible, chevron + libellé (pas de couleur seule), `prefers-reduced-motion` neutralise la transition
+
 ### Graphiques dashboard admin — (feature/dashboard-graphiques)
 
 #### Backend
