@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Entreprise;
+use App\Models\Facture;
+use App\Models\Mission;
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -62,6 +66,42 @@ class PortailService
         $user->update(['portail_actif' => ! $user->portail_actif]);
 
         return $user;
+    }
+
+    public function listerFactures(int $entrepriseId, array $filters): LengthAwarePaginator
+    {
+        return Facture::with('mission', 'lignes')
+            ->where('entreprise_id', $entrepriseId)
+            ->where('type', 'FF')
+            ->when($filters['exercice_id'] ?? null, fn ($q, $v) => $q->where('exercice_id', $v))
+            ->when($filters['statut_paiement'] ?? null, fn ($q, $v) => $q->where('statut_paiement', $v))
+            ->latest('date_facture')
+            ->paginate($filters['per_page'] ?? 15);
+    }
+
+    public function listerMissions(int $entrepriseId, array $filters): LengthAwarePaginator
+    {
+        return Mission::with('prestation', 'exercice')
+            ->where('entreprise_id', $entrepriseId)
+            ->when($filters['statut'] ?? null, fn ($q, $v) => $q->where('statut', $v))
+            ->latest()
+            ->paginate($filters['per_page'] ?? 15);
+    }
+
+    /**
+     * Retourne les missions avec documents partages (convention ou mandat genere, visible_portail = true).
+     */
+    public function listerDocuments(int $entrepriseId): Collection
+    {
+        return Mission::with('prestation', 'exercice')
+            ->where('entreprise_id', $entrepriseId)
+            ->where('visible_portail', true)
+            ->where(function ($q) {
+                $q->whereNotNull('convention_numero')
+                    ->orWhereNotNull('mandat_numero');
+            })
+            ->latest()
+            ->get();
     }
 
     /**

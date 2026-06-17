@@ -10,6 +10,8 @@ export function useDevis() {
   const totalRecords = ref(0)
   const filters = ref<DevisFilters>({ page: 1, per_page: 15 })
 
+  let _debounceTimer: ReturnType<typeof setTimeout> | null = null
+
   async function fetchDevis() {
     loading.value = true
     try {
@@ -75,6 +77,12 @@ export function useDevis() {
     }
   }
 
+  async function updateDevis(id: number, data: { entreprise_id?: number; prestation_id?: number; date_devis?: string; date_validite?: string; notes?: string }) {
+    await devisApi.update(id, data)
+    toast.add({ severity: 'success', summary: 'Succes', detail: 'Devis mis a jour.', life: 3000 })
+    await fetchDevis()
+  }
+
   async function deleteDevis(id: number) {
     await devisApi.delete(id)
     toast.add({ severity: 'success', summary: 'Succes', detail: 'Devis supprime.', life: 3000 })
@@ -87,7 +95,23 @@ export function useDevis() {
   }
 
   function onSearch(search: string) {
-    filters.value.search = search
+    if (_debounceTimer) clearTimeout(_debounceTimer)
+    _debounceTimer = setTimeout(() => {
+      filters.value.search = search
+      filters.value.page = 1
+      fetchDevis()
+    }, 300)
+  }
+
+  function onSort(event: { sortField?: string | ((item: any) => string) | null; sortOrder?: number | null }) {
+    filters.value.sort_field = typeof event.sortField === 'string' ? event.sortField : undefined
+    filters.value.sort_direction = event.sortOrder === 1 ? 'asc' : 'desc'
+    filters.value.page = 1
+    fetchDevis()
+  }
+
+  function setExercice(exerciceId: number | undefined) {
+    filters.value.exercice_id = exerciceId
     filters.value.page = 1
     fetchDevis()
   }
@@ -99,6 +123,7 @@ export function useDevis() {
     filters,
     fetchDevis,
     createDevis,
+    updateDevis,
     envoyerDevis,
     accepterDevis,
     refuserDevis,
@@ -107,5 +132,7 @@ export function useDevis() {
     deleteDevis,
     onPage,
     onSearch,
+    onSort,
+    setExercice,
   }
 }

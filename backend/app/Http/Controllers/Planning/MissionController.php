@@ -10,29 +10,36 @@ use App\Http\Requests\Planning\UpdateMissionRequest;
 use App\Http\Resources\Planning\MissionResource;
 use App\Models\Mission;
 use App\Services\MissionService;
+use App\Services\PdfService;
+use DomainException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Symfony\Component\HttpFoundation\Response;
 
 class MissionController extends Controller
 {
     public function __construct(
-        private MissionService $missionService,
+        private readonly MissionService $missionService,
+        private readonly PdfService $pdfService,
     ) {}
 
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        $missions = Mission::with('entreprise', 'prestation', 'exercice')
-            ->when(request('entreprise_id'), fn ($q, $v) => $q->where('entreprise_id', $v))
-            ->when(request('statut'), fn ($q, $v) => $q->where('statut', $v))
-            ->when(request('search'), fn ($q, $v) => $q->where('reference', 'like', "%{$v}%"))
-            ->latest()
-            ->paginate(request('per_page', 15));
+        $this->authorize('viewAny', Mission::class);
+
+        $missions = $this->missionService->listerMissions(
+            $request->only(['entreprise_id', 'exercice_id', 'statut', 'search', 'sort_field', 'sort_direction', 'per_page']),
+            $request->user(),
+        );
 
         return MissionResource::collection($missions);
     }
 
     public function store(StoreMissionRequest $request): JsonResponse
     {
+        $this->authorize('create', Mission::class);
+
         $mission = $this->missionService->creerMission($request->validated());
 
         return (new MissionResource($mission))
@@ -42,6 +49,8 @@ class MissionController extends Controller
 
     public function show(Mission $mission): MissionResource
     {
+        $this->authorize('view', $mission);
+
         return new MissionResource(
             $mission->load('entreprise', 'prestation', 'exercice', 'collaborateurs', 'taches.assignee', 'factures')
         );
@@ -49,25 +58,53 @@ class MissionController extends Controller
 
     public function update(UpdateMissionRequest $request, Mission $mission): MissionResource
     {
-        $mission->update($request->safe()->except(['collaborateur_ids']));
+        $this->authorize('update', $mission);
 
-        if ($request->has('collaborateur_ids')) {
-            $mission->collaborateurs()->sync($request->validated('collaborateur_ids') ?? []);
-        }
+        $mission = $this->missionService->mettreAJourMission($mission, $request->validated());
 
-        return new MissionResource($mission->load('entreprise', 'prestation', 'collaborateurs'));
+        return new MissionResource($mission);
+    }
+
+    public function rapportPdf(Mission $mission): Response
+    {
+        $this->authorize('view', $mission);
+
+        return $this->pdfService
+            ->genererRapportMission($mission, false)
+            ->stream('rapport-mission-'.$mission->reference.'.pdf');
+    }
+
+    public function conventionPdf(Mission $mission): Response
+    {
+        $this->authorize('view', $mission);
+
+        $this->missionService->obtenirNumeroConvention($mission);
+        $mission->refresh();
+
+        return $this->pdfService->genererConvention($mission)
+            ->stream('convention-'.$mission->convention_numero.'.pdf');
+    }
+
+    public function mandatPdf(Mission $mission): Response
+    {
+        $this->authorize('view', $mission);
+
+        $this->missionService->obtenirNumeroMandat($mission);
+        $mission->refresh();
+
+        return $this->pdfService->genererMandat($mission)
+            ->stream('mandat-'.$mission->mandat_numero.'.pdf');
     }
 
     public function destroy(Mission $mission): JsonResponse
     {
-        if ($mission->factures()->exists()) {
-            return response()->json([
-                'message' => 'Impossible de supprimer une mission avec des factures associees.',
-            ], 409);
-        }
+        $this->authorize('delete', $mission);
 
-        $mission->taches()->delete();
-        $mission->delete();
+        try {
+            $this->missionService->supprimerMission($mission);
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
+        }
 
         return response()->json(null, 204);
     }

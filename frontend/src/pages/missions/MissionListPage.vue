@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConfirm } from 'primevue/useconfirm'
 import DataTable from 'primevue/datatable'
@@ -12,35 +12,56 @@ import Select from 'primevue/select'
 import MultiSelect from 'primevue/multiselect'
 import DatePicker from 'primevue/datepicker'
 import Textarea from 'primevue/textarea'
-import ConfirmDialog from 'primevue/confirmdialog'
 import { useMissions } from '@/composables/useMissions'
 import { useEntreprises } from '@/composables/useEntreprises'
 import { usePrestations } from '@/composables/usePrestations'
 import { useUsers } from '@/composables/useUsers'
+import { useExercices } from '@/composables/useExercices'
+import { useAuthStore } from '@/stores/auth'
 import type { Mission } from '@/types'
 import type { MissionPayload } from '@/api/modules/missions'
 
 const router = useRouter()
 const confirm = useConfirm()
+const auth = useAuthStore()
 const {
-  missions, loading, totalRecords,
-  fetchMissions, createMission, deleteMission,
-  onPage, onSearch,
+  missions, loading, totalRecords, filters,
+  fetchMissions, createMission, updateMission, deleteMission,
+  onPage, onSearch, onSort, setExercice,
 } = useMissions()
 
 const { entreprises, fetchEntreprises } = useEntreprises()
 const { prestations, fetchPrestations } = usePrestations()
 const { users, fetchUsers } = useUsers()
+const { exercices, exerciceCourant, fetchExercices, fetchExerciceCourant } = useExercices()
 
 const search = ref('')
+const exerciceSelectionne = ref<number | undefined>(undefined)
+
+watch(search, (val) => onSearch(val))
+watch(exerciceSelectionne, (val) => setExercice(val))
 const dialogVisible = ref(false)
 const saving = ref(false)
 const dateDebut = ref<Date | null>(null)
 const dateFin = ref<Date | null>(null)
 
+// Edit dialog
+const editDialogVisible = ref(false)
+const editSaving = ref(false)
+const editMission = ref<Mission | null>(null)
+const editDateDebut = ref<Date | null>(null)
+const editDateFin = ref<Date | null>(null)
+const editForm = ref<{ collaborateur_ids: number[]; notes: string }>({
+  collaborateur_ids: [],
+  notes: '',
+})
+
+const exercicesOuverts = computed(() => exercices.value.filter((e: { statut: string }) => e.statut === 'ouvert'))
+
 const form = ref<MissionPayload>({
   entreprise_id: 0,
   prestation_id: 0,
+  exercice_id: undefined,
   date_debut: '',
   date_fin: '',
   collaborateur_ids: [],
@@ -52,8 +73,43 @@ function toIsoDate(d: Date | null): string {
   return d.toISOString().split('T')[0]
 }
 
+function openEdit(mission: Mission) {
+  editMission.value = mission
+  editDateDebut.value = new Date(mission.date_debut)
+  editDateFin.value = mission.date_fin ? new Date(mission.date_fin) : null
+  editForm.value.collaborateur_ids = mission.collaborateurs?.map((c: any) => c.id) ?? []
+  editForm.value.notes = mission.notes ?? ''
+  editDialogVisible.value = true
+}
+
+async function onSubmitEdit() {
+  if (!editMission.value || !editDateDebut.value) return
+  editSaving.value = true
+  try {
+    await updateMission(editMission.value.id, {
+      date_debut: toIsoDate(editDateDebut.value),
+      date_fin: toIsoDate(editDateFin.value),
+      collaborateur_ids: editForm.value.collaborateur_ids,
+      notes: editForm.value.notes,
+    })
+    editDialogVisible.value = false
+  } catch {
+    // erreur geree par le composable
+  } finally {
+    editSaving.value = false
+  }
+}
+
 function openCreate() {
-  form.value = { entreprise_id: 0, prestation_id: 0, date_debut: '', date_fin: '', collaborateur_ids: [], notes: '' }
+  form.value = {
+    entreprise_id: 0,
+    prestation_id: 0,
+    exercice_id: exerciceCourant.value?.id,
+    date_debut: '',
+    date_fin: '',
+    collaborateur_ids: [],
+    notes: '',
+  }
   dateDebut.value = null
   dateFin.value = null
   dialogVisible.value = true
@@ -104,15 +160,17 @@ function formatMontant(v: number) {
   return new Intl.NumberFormat('fr-DZ').format(v) + ' DA'
 }
 
-function doSearch() {
-  onSearch(search.value)
-}
-
-onMounted(() => {
+onMounted(async () => {
+  // Collaborateur : pas d'accès aux référentiels — on charge uniquement ses missions
+  if (!auth.isCollaborateur) {
+    await fetchExerciceCourant()
+    await fetchExercices()
+    exerciceSelectionne.value = exerciceCourant.value?.id
+    fetchEntreprises()
+    fetchPrestations()
+    fetchUsers()
+  }
   fetchMissions()
-  fetchEntreprises()
-  fetchPrestations()
-  fetchUsers()
 })
 </script>
 
@@ -120,52 +178,75 @@ onMounted(() => {
   <div>
     <div class="page-header">
       <h1>Missions</h1>
-      <Button label="Nouvelle mission" icon="pi pi-plus" @click="openCreate" />
+      <Button v-if="!auth.isCollaborateur" label="Nouvelle mission" icon="pi pi-plus" aria-label="Créer une nouvelle mission" @click="openCreate" />
     </div>
 
-    <div class="search-bar">
-      <InputText v-model="search" placeholder="Rechercher par reference..." @keyup.enter="doSearch" fluid />
-      <Button icon="pi pi-search" @click="doSearch" aria-label="Rechercher" />
+    <div class="page-toolbar">
+      <div class="toolbar-left">
+        <label for="m-search" class="sr-only">Rechercher une mission</label>
+        <InputText
+          id="m-search"
+          v-model="search"
+          placeholder="Rechercher par reference ou client..."
+          style="width: 22rem"
+        />
+      </div>
+      <div v-if="!auth.isCollaborateur" class="toolbar-right">
+        <label for="m-exercice" class="sr-only">Filtrer par exercice</label>
+        <Select
+          id="m-exercice"
+          v-model="exerciceSelectionne"
+          :options="exercices"
+          optionLabel="annee"
+          optionValue="id"
+          placeholder="Tous les exercices"
+          showClear
+          style="width: 14rem"
+        />
+      </div>
     </div>
 
     <DataTable
       :value="missions"
       :loading="loading"
       :paginator="true"
-      :rows="15"
+      :rows="filters.per_page"
       :totalRecords="totalRecords"
       :lazy="true"
+      :sortField="filters.sort_field"
+      :sortOrder="filters.sort_direction === 'asc' ? 1 : -1"
       @page="onPage"
+      @sort="onSort"
       dataKey="id"
       stripedRows
+      removableSort
     >
-      <Column field="reference" header="Reference" />
-      <Column header="Entreprise">
+      <Column field="reference" header="Reference" sortable />
+      <Column header="Entreprise" sortField="entreprise_id">
         <template #body="{ data }">{{ data.entreprise?.raison_sociale ?? '-' }}</template>
       </Column>
       <Column header="Prestation">
         <template #body="{ data }">{{ data.prestation?.designation ?? '-' }}</template>
       </Column>
-      <Column header="Prix HT">
+      <Column field="prix_ht" header="Prix HT" sortable>
         <template #body="{ data }">{{ formatMontant(data.prix_ht) }}</template>
       </Column>
-      <Column header="Debut">
+      <Column field="date_debut" header="Debut" sortable>
         <template #body="{ data }">{{ formatDate(data.date_debut) }}</template>
       </Column>
-      <Column header="Statut">
+      <Column field="statut" header="Statut" sortable>
         <template #body="{ data }">
           <Tag :value="data.statut" :severity="statutSeverity(data.statut)" />
         </template>
       </Column>
-      <Column header="Actions">
+      <Column header="Actions" style="width: 8rem">
         <template #body="{ data }">
-          <Button icon="pi pi-eye" text rounded @click="goToDetail(data)" aria-label="Voir detail" />
-          <Button icon="pi pi-trash" text rounded severity="danger" @click="confirmDelete(data)" aria-label="Supprimer" />
+          <Button icon="pi pi-eye" text rounded @click="goToDetail(data)" aria-label="Voir le détail de la mission" v-tooltip.top="'Voir detail'" />
+          <Button v-if="!auth.isCollaborateur" icon="pi pi-pencil" text rounded severity="secondary" @click="openEdit(data)" aria-label="Modifier la mission" v-tooltip.top="'Modifier'" />
+          <Button v-if="!auth.isCollaborateur" icon="pi pi-trash" text rounded severity="danger" @click="confirmDelete(data)" aria-label="Supprimer la mission" v-tooltip.top="'Supprimer'" />
         </template>
       </Column>
     </DataTable>
-
-    <ConfirmDialog />
 
     <Dialog
       v-model:visible="dialogVisible"
@@ -174,6 +255,21 @@ onMounted(() => {
       :style="{ width: '32rem' }"
     >
       <form @submit.prevent="onSubmit" class="dialog-form">
+        <div v-if="auth.isAdmin" class="form-field">
+          <label for="m-exercice-create">Exercice *</label>
+          <Select
+            id="m-exercice-create"
+            v-model="form.exercice_id"
+            :options="exercicesOuverts"
+            optionLabel="annee"
+            optionValue="id"
+            placeholder="Exercice ouvert..."
+            required
+            fluid
+            aria-label="Sélectionner l'exercice fiscal"
+          />
+        </div>
+
         <div class="form-field">
           <label for="m-entreprise">Entreprise *</label>
           <Select
@@ -237,6 +333,48 @@ onMounted(() => {
         </div>
       </form>
     </Dialog>
+    <!-- Dialog modifier mission -->
+    <Dialog
+      v-model:visible="editDialogVisible"
+      header="Modifier la mission"
+      :modal="true"
+      :style="{ width: '32rem' }"
+    >
+      <form @submit.prevent="onSubmitEdit" class="dialog-form">
+        <div class="form-field">
+          <label for="e-debut">Date debut *</label>
+          <DatePicker id="e-debut" v-model="editDateDebut" dateFormat="dd/mm/yy" required fluid />
+        </div>
+
+        <div class="form-field">
+          <label for="e-fin">Date fin</label>
+          <DatePicker id="e-fin" v-model="editDateFin" dateFormat="dd/mm/yy" fluid />
+        </div>
+
+        <div class="form-field">
+          <label for="e-collabs">Collaborateurs</label>
+          <MultiSelect
+            id="e-collabs"
+            v-model="editForm.collaborateur_ids"
+            :options="users"
+            optionLabel="name"
+            optionValue="id"
+            placeholder="Selectionner des collaborateurs..."
+            fluid
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="e-notes">Notes</label>
+          <Textarea id="e-notes" v-model="editForm.notes" rows="3" fluid />
+        </div>
+
+        <div class="form-actions">
+          <Button label="Annuler" severity="secondary" @click="editDialogVisible = false" type="button" />
+          <Button label="Enregistrer" type="submit" :loading="editSaving" :disabled="!editDateDebut" />
+        </div>
+      </form>
+    </Dialog>
   </div>
 </template>
 
@@ -247,12 +385,16 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 1.5rem;
 }
-.search-bar {
+.page-toolbar {
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   margin-bottom: 1rem;
-  max-width: 400px;
+  flex-wrap: wrap;
 }
+.toolbar-left { display: flex; gap: 0.5rem; align-items: center; }
+.toolbar-right { display: flex; gap: 0.5rem; align-items: center; }
 .dialog-form {
   display: flex;
   flex-direction: column;

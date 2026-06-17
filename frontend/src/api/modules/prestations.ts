@@ -9,6 +9,15 @@ export interface CalculPrixResult {
   prix_ht: number
 }
 
+export interface PrestationPayload {
+  code: string
+  designation: string
+  tarif_initial: number
+  duree_mois: number
+  description?: string | null
+  actif?: boolean
+}
+
 export const prestationsApi = {
   getAll(): Promise<{ data: Prestation[] }> {
     return api.get('/prestations').then(r => r.data)
@@ -16,6 +25,18 @@ export const prestationsApi = {
 
   getOne(id: number): Promise<{ data: Prestation }> {
     return api.get(`/prestations/${id}`).then(r => r.data)
+  },
+
+  create(data: PrestationPayload): Promise<{ data: Prestation }> {
+    return api.post('/prestations', data).then(r => r.data)
+  },
+
+  update(id: number, data: Partial<PrestationPayload>): Promise<{ data: Prestation }> {
+    return api.put(`/prestations/${id}`, data).then(r => r.data)
+  },
+
+  delete(id: number): Promise<void> {
+    return api.delete(`/prestations/${id}`).then(() => undefined)
   },
 
   calculerPrix(id: number, regime_fiscal: string, categorie: string): Promise<CalculPrixResult> {

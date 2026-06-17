@@ -5,13 +5,16 @@ export interface FactureFilters {
   page?: number
   per_page?: number
   search?: string
+  exercice_id?: number
   entreprise_id?: number
-  mission_id?: number
   statut_paiement?: string
+  sort_field?: string
+  sort_direction?: 'asc' | 'desc'
 }
 
 export interface FacturePayload {
   mission_id: number
+  exercice_id?: number
   date_facture: string
   notes?: string | null
 }

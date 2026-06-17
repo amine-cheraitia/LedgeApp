@@ -37,6 +37,20 @@ export interface Entreprise {
     email: string
     portail_actif: boolean
   } | null
+  contacts?: Contact[]
+  created_at: string
+  updated_at: string
+}
+
+export interface Contact {
+  id: number
+  entreprise_id: number
+  nom: string
+  prenom: string | null
+  email: string | null
+  telephone: string | null
+  poste: string | null
+  est_principal: boolean
   created_at: string
   updated_at: string
 }
@@ -77,6 +91,9 @@ export interface Mission {
   exercice_id: number
   prestation_id: number
   reference: string
+  convention_numero: string | null
+  mandat_numero: string | null
+  visible_portail: boolean
   prix_ht: number
   date_debut: string
   date_fin: string | null
@@ -102,6 +119,17 @@ export interface Tache {
   date_echeance: string | null
   priorite: number
   assignee?: User
+  created_at: string
+  updated_at: string
+}
+
+export interface TacheCommentaire {
+  id: number
+  tache_id: number
+  user_id: number
+  contenu: string
+  visible_portail: boolean
+  user?: Pick<User, 'id' | 'name'>
   created_at: string
   updated_at: string
 }
@@ -171,8 +199,29 @@ export interface Facture {
   lignes?: FactureLigne[]
   paiements?: Paiement[]
   relances?: Relance[]
+  avoirs?: Avoir[]
   created_at: string
   updated_at: string
+}
+
+export interface Avoir {
+  id: number
+  facture_origine_id: number
+  exercice_id: number
+  created_by: number
+  numero: string
+  date_avoir: string
+  montant_ht: number
+  taux_tva_snapshot: number
+  montant_tva: number
+  montant_ttc: number
+  motif: string
+  facture_origine?: {
+    id: number
+    numero: string
+    entreprise?: { raison_sociale: string } | null
+  }
+  created_at: string
 }
 
 export interface Relance {
@@ -201,6 +250,23 @@ export interface Paiement {
   facture?: Facture
   created_at: string
   updated_at: string
+}
+
+export type AuditEvent = 'created' | 'updated' | 'deleted'
+
+export interface Activity {
+  id: number
+  event: AuditEvent | null
+  description: string
+  log_name: string | null
+  subject_type: string
+  subject_id: number | null
+  causer: { id: number; name: string } | null
+  changes: {
+    attributes: Record<string, unknown>
+    old: Record<string, unknown>
+  }
+  created_at: string
 }
 
 export interface PaginatedResponse<T> {

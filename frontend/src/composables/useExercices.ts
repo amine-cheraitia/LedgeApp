@@ -6,6 +6,7 @@ import type { Exercice } from '@/types'
 export function useExercices() {
   const toast = useToast()
   const exercices = ref<Exercice[]>([])
+  const exerciceCourant = ref<Exercice | null>(null)
   const loading = ref(false)
 
   async function fetchExercices() {
@@ -17,6 +18,15 @@ export function useExercices() {
       toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de charger les exercices.', life: 3000 })
     } finally {
       loading.value = false
+    }
+  }
+
+  async function fetchExerciceCourant() {
+    try {
+      const response = await exercicesApi.getCurrent()
+      exerciceCourant.value = response.data
+    } catch {
+      // silencieux — pas bloquant
     }
   }
 
@@ -36,8 +46,10 @@ export function useExercices() {
 
   return {
     exercices,
+    exerciceCourant,
     loading,
     fetchExercices,
+    fetchExerciceCourant,
     createExercice,
     updateExercice,
   }

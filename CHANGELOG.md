@@ -9,6 +9,625 @@
 
 ## [Unreleased]
 
+### Refonte sidebar v2 — accordéons + restyle (sidebar-refonte-v2)
+
+#### Frontend
+- **`AppMenu.vue`** : tous les groupes racine (Accueil, Gestion, Facturation, Administration) sont désormais des **accordéons à en-tête unique encadré** — suppression du libellé de section affiché en double. Le paramétrage reste regroupé sous « Administration » (Prestations, Paramètres, Exercices, Utilisateurs, KPI Objectifs, Journal d'audit) ; `KPI Objectifs` retiré de la section Accueil ; icônes de groupe ajoutées ; icône Paramètres en `pi-sliders-h`. Nouveau flag `defaultOpen` : **Accueil / Gestion / Facturation ouverts par défaut**, **Administration replié** (auto-ouvert sur une de ses pages filles)
+- **`AppMenuItem.vue`** : flag `accordion` sur un groupe racine (en-tête repliable à état local) ; ouverture initiale = `defaultOpen` si présent, sinon dépliée seulement si la page courante appartient au groupe ; menu portail inchangé
+- **`layout.scss` + `tokens.css`** : restyle du menu — item actif en **pastille arrondie** (liseré gauche retiré, nouveau rayon `--ledge-radius-pill: 8px`), en-tête d'accordéon **encadré** (fond `surface-100` + bordure) ; accent **orange encre conservé**, **dark mode** préservé
+- **RGAA** : en-tête `role="button"` + `aria-expanded`, navigation clavier (Entrée/Espace), focus visible, chevron + libellé (pas de couleur seule), `prefers-reduced-motion` neutralise la transition
+
+### Graphiques dashboard admin — (feature/dashboard-graphiques)
+
+#### Backend
+- **`DashboardService::getStats()`** : nouvelle clé `ca_mensuel` (`{ annee, data[12] }`) — série du CA TTC facturé mois par mois pour l'année de l'exercice filtré (ou année courante), agrégée en PHP (portable SQLite/MySQL, pas de SQL brut)
+- **`missions`** enrichi de `suspendues` et `annulees` (en plus de `en_cours` / `terminees`) pour la répartition par statut
+
+#### Frontend
+- **`DashboardPage.vue`** (section admin) : 2 graphiques **Chart.js** via le composant `<Chart>` de PrimeVue — **CA mensuel en barres** (12 mois, tooltip en DA) et **répartition des missions par statut en camembert**
+- **Dark mode** : couleurs des axes / texte / barres lues sur les tokens PrimeVue (`--p-*`) et rafraîchies au toggle via `useLayout().isDarkTheme`
+- **RGAA** : chaque graphe `role="img"` + `aria-label` résumant les valeurs, table alternative `.sr-only` (canvas non lisible par lecteur d'écran), `animation: false` si `prefers-reduced-motion`
+- **`stats.ts`** : type `DashboardStats` étendu (`ca_mensuel`, `missions.suspendues/annulees`)
+- Dépendance ajoutée : `chart.js`
+
+### Secrétaire hors Missions & Planning — (feature/secretaire-hors-missions-planning)
+
+#### Backend
+- **Routes API** (`routes/api.php`) : missions, tâches, commentaires, calendrier et dashboard collaborateur déplacés dans un groupe **`role:admin|collaborateur`** — la secrétaire n'y a plus accès (les utilitaires `users`/`settings` en lecture restent partagés)
+- **Policies** : `MissionPolicy` et `TachePolicy` ne référencent plus le rôle `secretaire` (`viewAny`/`view`/`create`/`update`/`delete` → admin, ou collaborateur sur ses propres missions/tâches)
+
+#### Frontend
+- **Menu** (`AppMenu.vue`) : les entrées **Missions** et **Planning** ne sont visibles que pour admin et collaborateur
+- **Routeur** : nouveau set `ROLES.adminCollaborateur` appliqué aux routes `missions`, `mission-detail`, `tache-detail`, `planning` — accès secrétaire bloqué (redirection accès refusé)
+- **Fiche entreprise** (`EntrepriseDetailPage.vue`) : pour la secrétaire, l'onglet **Missions** et le KPI **« Missions actives »** sont masqués, l'appel API missions n'est pas déclenché, et l'onglet par défaut bascule sur **Devis**
+
+#### Tests
+- **`SecretairePermissionsTest`** : nouveaux cas — la secrétaire reçoit `403` sur missions (liste/détail/création/tâches), calendrier et dashboard collaborateur
+
+### Recadrage du périmètre du rôle secrétaire — (feature/perimetre-secretaire)
+
+#### Backend
+- **Routes API** (`routes/api.php`) : les écritures de facturation passent en **`role:admin`** — création/suppression de devis et factures, création/suppression d'avoirs, suppression de paiements, cycle de vie devis (`accepter`/`refuser`/`convertir-en-mission`) et calcul de prix. La secrétaire conserve : lecture devis/factures/avoirs + PDF, **envoi d'un devis** au client, **enregistrement de paiements**, **envoi de relances**, consultation des créances, et le **CRUD des entreprises** (création/modification, sans suppression) + contacts
+- **Policies** : `DevisPolicy` / `FacturePolicy` — `create`/`update`/`delete` réservés à l'admin ; nouvelle ability **`DevisPolicy::envoyer`** (admin + secrétaire) pour dissocier l'envoi de la modification ; `AvoirPolicy::create` réservé à l'admin ; `EntreprisePolicy` inchangée (création/modification admin + secrétaire, suppression admin)
+- **`DevisController::envoyer()`** autorise désormais l'ability `envoyer` (et non plus `update`)
+- **`DashboardService::getSecretaireStats()`** : retrait du volet facturation/production (devis en attente / à convertir / expirant, émission de factures N vs N-1) ; dashboard recentré sur le **recouvrement** (créances, aging, relances dues, top débiteurs, encaissements du mois)
+
+#### Frontend
+- **Devis / Factures** : les actions de production (nouveau devis/facture, modifier, supprimer, accepter/refuser/convertir, émettre/supprimer un avoir) sont masquées pour la secrétaire (`v-if="auth.isAdmin"`) ; elle conserve **Envoyer un devis**, **téléchargement PDF** et **enregistrement de paiement**
+- **Dashboard secrétaire** (`SecretaireDashboardSection.vue`) : suppression de la carte « Devis en attente », du graphe « Émission de factures » et du bouton « Gérer les factures » ; grille rééquilibrée
+- **`stats.ts`** : type `SecretaireStats` aligné (suppression `facturation` / `factures_emises`, ajout `encaissements_mois` à la racine)
+
+#### Tests
+- **`SecretairePermissionsTest`** (nouveau) : couverture du périmètre autorisé (entreprises CRU, lecture facturation, envoi devis, paiement, relance) et interdit (création/suppression devis/factures/avoirs, cycle de vie devis, suppression entreprise/paiement)
+- **`DashboardSecretaireTest`** : structure mise à jour (plus de volet facturation, `encaissements_mois` à la racine)
+
+### Fix arrondi des tranches de facturation — (fix/arrondi-tranches-facturation)
+
+#### Backend
+- **`FacturationService::creerFacture()`** : la 3ᵉ tranche est désormais calculée comme **solde exact** (`prix_ht − T1 − T2`) au lieu d'un `round(prix_ht × 0.40)` indépendant — garantit l'invariant `T1 + T2 + T3 == prix_ht` même lorsque le prix porte des centimes (corrige une perte possible de 1 centime sur la répartition 30/30/40)
+
+#### Frontend
+- **`MissionDetailPage.vue`** : l'aperçu des tranches arrondit aux **centimes** (2 décimales) et applique le même solde exact sur la 3ᵉ tranche — aligné sur les montants réellement facturés par le backend (avant : `Math.round` aux dinars pleins, divergence possible avec la facture)
+
+#### Tests
+- **`FacturationServiceTest`** : nouveau test d'invariant `T1 + T2 + T3 == prix_ht` sur un prix à centimes (`100.01`) — cas limite d'arrondi
+
+### Dashboard secrétaire + autorisations front — (feature/dashboard-secretaire)
+
+#### Backend — dashboard secrétaire
+- **`DashboardService::getSecretaireStats()`** (nouveau) : KPI orientés recouvrement — créances totales (avec déduction avoirs via `montantRestant()`), aging 15–29 / 30–59 / 60+ j, relances dues (logique alignée sur `EnvoyerRelancesJob`), top 5 débiteurs, factures émises mois N vs N-1, créances urgentes
+- **Volet facturation** (`compterFacturation()`) : devis en attente (count + montant), devis acceptés à convertir en mission, devis expirant sous 7 j, encaissements du mois
+- **Worklist « À faire »** (`construireWorklist()`) : liste d'actions priorisées par sévérité (factures en retard, relances à envoyer, devis expirant / en attente / à convertir) avec route de destination — dashboard orienté action
+- **`GET /api/v1/stats/secretaire`** : route réservée au rôle `secretaire` (middleware Spatie dédié)
+- **`GET /api/v1/stats`** : déplacé dans le groupe `role:admin` — séparation stricte admin / secrétaire
+
+#### Backend — droits entreprises secrétaire
+- **`EntreprisePolicy`** : `create()` et `update()` ouverts à admin + secrétaire ; `delete()` reste admin uniquement
+- Routes `POST/PUT entreprises` déplacées dans le groupe `admin|secretaire` ; suppression et portail restent admin
+
+#### Frontend — dashboard secrétaire
+- **`SecretaireDashboardSection.vue`** : refonte graphique « Ledger Edition » orientée action — bandeau éditorial, **panneau « À faire »** (worklist cliquable), 4 KPI animés (count-up) recouvrement + facturation, graphiques SVG/CSS (aging, donut relances, comparatif factures N vs N-1), classement débiteurs en barres, table créances urgentes
+- **Dark mode** géré sur tous les nouveaux éléments (tokens `--p-*` / `--ledge-*`, sélecteurs `.app-dark` directs) ; correction d'un bug où `:global(.app-dark)` était mal compilé par lightningcss (perte du descendant) — appliqué aussi au dashboard collaborateur ; **RGAA** (charts `role="img"` + libellés, worklist en liste de liens, `prefers-reduced-motion`, focus visibles)
+- **Zéro dépendance ajoutée** : graphiques en SVG/CSS pur (cohérent avec le dashboard collaborateur)
+- **`useDashboardStats.ts`** (nouveau composable) : pattern Page → Composable → API pour les 3 dashboards
+- **`DashboardPage.vue`** : branchement à 3 voies (collaborateur / secrétaire / admin)
+
+#### Frontend — autorisations router
+- **`meta.roles`** sur toutes les routes back-office + guard `beforeEach` avec redirection vers `/acces-refuse`
+- **`AccesRefusePage.vue`** (nouveau) : page 403 accessible avec message clair et bouton retour (RGAA)
+- **`authStore.hasAnyRole()`** : helper pour le guard
+- **`AppMenu.vue`** : config relances (admin only) retirée du menu secrétaire
+- **`EntrepriseListPage.vue`** : colonne portail, suppression et dialogs réservés à l'admin
+
+#### Documentation
+- **`docs/WORKFLOW-FEATURE.md`** (nouveau) : checklist réutilisable pour chaque feature
+
+#### Tests
+- **`DashboardSecretaireTest.php`** : 9 tests — structure (incl. `facturation` + `actions`), avoirs, aging, devis en attente, encaissements du mois, worklist factures en retard, séparation rôles
+- **`DashboardKpiTest`** : secrétaire bloqué sur `/stats`
+- **`EntrepriseApiTest`** : secrétaire create/update OK, delete 403
+- **169 tests / 433 assertions** — aucune régression
+
+---
+
+### Refonte sidebar & qualité backend — (feature/refonte-sidebar)
+
+#### Backend — SOLID / SRP
+- **`FacturationService::supprimerFacture()`** (nouveau) : invariant "pas de paiements" levé via `DomainException`, cascade `lignes()->delete()` + `delete()` en transaction atomique
+- **`MissionService::supprimerMission()`** (nouveau) : invariant "pas de factures associées" levé via `DomainException`, cascade `taches()->delete()` + `collaborateurs()->detach()` + `delete()` en transaction (les pivots n'étaient pas nettoyés avant)
+- **`FactureController::destroy` et `MissionController::destroy`** : logique métier sortie des controllers, délégation pure aux services — alignement sur `DevisController::destroy` déjà conforme
+
+#### Backend — autorisations harmonisées
+- **`DevisPolicy` et `FacturePolicy`** : ajout de `viewAny()` et `view()` (admin/secrétaire/collaborateur en lecture) — auparavant aucune Policy ne couvrait `index/show/pdf`
+- **`DevisController`** : `authorize()` ajouté sur `index`, `show`, `pdf`, et toutes les transitions de statut (`envoyer`, `accepter`, `refuser`, `convertirEnMission`) — mappées sur `update`
+- **`FactureController`** : `authorize()` ajouté sur `index`, `show`, `pdf`
+- **`MissionController`** : `authorize('view', ...)` ajouté sur `conventionPdf` et `mandatPdf`
+
+#### Backend — conventions
+- Les dépendances injectées des 3 controllers (`DevisController`, `FactureController`, `MissionController`) sont désormais `private readonly`
+- Ajout du filtre `entreprise_id` sur les listes devis / factures / missions (gestion déjà présente côté services)
+
+#### Frontend — fix calculs KPIs fiche entreprise
+- **`EntrepriseDetailPage.vue`** : CA recalculé sur `montant_ht` au lieu de `montant_ttc` (le chiffre d'affaires est par définition hors taxes)
+- Nouveau `fetchFacturesKpi()` qui charge les factures **tous exercices confondus** indépendamment du filtre exercice de la page — les KPIs CA total et impayés reflètent désormais la réalité globale du client
+- Filtrage `entreprise_id` côté API plutôt que côté front (réduction de la charge réseau)
+- `formatMontant()` sécurisé contre les valeurs `null` / `NaN`
+
+#### Frontend — refonte UI page de connexion
+- **`LoginPage.vue`** : nouveau layout en deux zones — panneau de branding (logo SVG inline, tagline, pills modules, mention version/RNCP) + zone formulaire principale mobile-first
+- Deux dialogs informatifs ajoutés (aide à la connexion + mot de passe oublié) — pas de dépendance sur des pages externes
+- A11y renforcée : skip link vers le formulaire, `aria-label` sur la zone branding, `role="alert"` + `aria-live` sur les messages d'erreur
+- Suppression du composant `LedgeLogo` au profit d'un visuel SVG embarqué (simplification, moins de dépendances sur une page critique)
+
+#### Tests
+- **156 tests / 374 assertions** — aucune régression sur le refacto backend
+
+#### Audit de conformité — fixes qualité
+- **`LoginPage.vue`** : retrait du composant `<LedgeLogo>` orphelin ligne 107 (référencé sans import depuis la refonte UI — produisait un warning `Failed to resolve component` et un logo manquant dans la zone formulaire). Wrapper `<div class="login-form-logo-row">` et CSS associés également nettoyés
+- **`EntrepriseDetailPage.vue`** : introduction d'un type local `TagSeverity` (`'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast'`) — les 4 fonctions `statut*Color()` retournent désormais ce type au lieu de `as any` (correction d'une dette TypeScript)
+- **`EntrepriseDetailPage.vue`** : KPIs `Impayé / CA total / Missions actives` désormais visibles sur mobile en version compacte (cartes en `flex nowrap`, paddings et tailles de police réduits) — auparavant `display: none` masquait totalement ces indicateurs sous 900 px, contrairement à la règle mobile-first
+- **`EntrepriseDetailPage.vue`** : correction du débordement de texte dans le panneau Coordonnées — `dd` en `flex: 1; min-width: 0; overflow-wrap: anywhere` pour casser proprement les chaînes non sécables (emails, identifiants) + `align-items: flex-start` sur `.info-row` pour aligner le label en haut quand la valeur wrappe sur plusieurs lignes
+
+---
+
+### Journal d'audit — piste d'audit des actions utilisateurs (feature/journal-audit)
+
+#### Backend
+- **`spatie/laravel-activitylog` (^4)** : nouvelle table `activity_log` (causer, sujet polymorphe, événement, diff des propriétés) — migrations publiées
+- **Trait `LogsActivity`** sur 7 modèles sensibles : `Facture`, `Avoir`, `Paiement`, `Devis`, `Entreprise`, `User`, `Setting` (`logFillable` + `logOnlyDirty` + `dontSubmitEmptyLogs`)
+- **Sécurité** : `User` journalise tout sauf `password` et `remember_token` (`logExcept`) — aucun hash de mot de passe en clair dans l'audit
+- **`AuditService`** : liste paginée du journal, filtrable par entité / action / période ; mapping label court ↔ classe Eloquent
+- **`AuditController` + `ActivityResource`** : `GET /api/v1/audit-logs` (controller mince → service → resource), exposant causer, diff `old`/`attributes`, entité et date
+- **Route admin uniquement** : `/audit-logs` placée dans le groupe `role:admin` (secrétaire/collaborateur → 403)
+- **Tests** : `AuditLogTest` (6 tests) — journalisation avec causer, diff des champs modifiés, exclusion du `password`, accès admin/403, filtre par événement
+
+#### Frontend
+- **`pages/audit/AuditLogPage.vue`** (nouveau) : DataTable paginée + filtres (entité, action, dates) + dialog détail du diff avant/après · RGAA (`<main>`, `aria-labelledby`, `aria-label`, `role="search"`)
+- **`api/modules/audit.ts`** (nouveau) + type `Activity` : appel `GET /audit-logs` via le module dédié
+- **Router** : route `audit-logs` ; **`AppMenu`** : entrée « Journal d'audit » sous Administration (admin)
+
+#### Sécurité — dépendances (OWASP A06)
+- **`docs/SECURITY.md`** (nouveau) : 8 advisories sur 5 paquets Symfony 7.x (`http-kernel`, `mailer`, `mime`, `routing`, `yaml`) tirés transitivement par Laravel 12 — **documentées et évaluées** (impact réel faible à nul : `MAIL_MAILER=log`/Resend, autorisation Laravel native, routing Laravel, `yaml` en dépendance dev), **non silencées** dans `composer audit`
+- Aucune version corrigée n'étant disponible dans la plage `symfony/* ^7.2`, l'install (local + CI) reste fonctionnelle car `composer install` lit depuis le lock sans re-résolution ; plan de remédiation suivi (`composer update symfony/*` dès patch publié)
+
+### Sécurité — mot de passe admin hors du code (chore/admin-seeder-env-password)
+
+#### Backend
+- **`AdminUserSeeder`** : le mot de passe de l'administrateur initial est lu depuis `ADMIN_PASSWORD` (et l'email depuis `ADMIN_EMAIL`) au lieu d'être codé en dur — plus aucun credential dans le code source (OWASP A07)
+- **Garde-fou production** : si `ADMIN_PASSWORD` est absent en environnement `production`, le seeder lève une `RuntimeException` au lieu de créer un admin avec un mot de passe par défaut
+- **Local / test** : comportement inchangé — fallback sur `password` si `ADMIN_PASSWORD` est vide
+- **`.env.example`** : documentation des variables `ADMIN_EMAIL` / `ADMIN_PASSWORD`
+
+### Sécurité — gestion des erreurs API (fix/api-error-handling)
+
+#### Backend
+- **`app/Exceptions/ApiExceptionRenderer.php`** (nouveau) : renderer JSON unifié pour toutes les routes `api/*` — mappe chaque type d'exception (`ValidationException`, `AuthenticationException`, `AuthorizationException`, `ModelNotFoundException`, `NotFoundHttpException`, `MethodNotAllowedHttpException`, `TokenMismatchException`, `TooManyRequestsHttpException`, `QueryException`, `PDOException`, `HttpExceptionInterface`, catch-all `Throwable`) vers un statut HTTP correct + un message client générique en français
+- **`bootstrap/app.php`** : `shouldRenderJsonWhen` + `render` branchés sur le renderer — toute exception sur une route API renvoie désormais du JSON propre, **même quand `APP_DEBUG=true`** (plus aucune fuite de SQL, host, port, nom de DB, stack trace, chemin fichier)
+- Logging serveur complet (`Log::error` avec contexte URL/méthode/IP/user_id) — exploité par Sentry, jamais exposé au client
+- **6 tests** dans `ApiExceptionRendererTest` qui prouvent l'absence de fuite (SQL, SQLSTATE, host, port, stack, chemins)
+
+#### Frontend
+- **`types/api-error.ts`** (nouveau) : type `ApiError` discriminé (`network` / `timeout` / `validation` / `auth` / `forbidden` / `notfound` / `csrf` / `throttle` / `server` / `unavailable` / `unknown`)
+- **`api/client.ts`** : intercepteur réponse refait — détecte les erreurs réseau (WAMP éteint, DNS, CORS), les timeouts (15 s), les réponses non-JSON (page d'erreur HTML), produit un `ApiError` typé avec message FR adapté, et sanitize le `error.response.data.message` exposé au code existant
+- **`composables/useApiError.ts`** (nouveau) : helpers `getApiError()` / `getApiErrorMessage()` pour extraire un message safe sans accéder aux détails techniques
+- **`pages/auth/LoginPage.vue`** : utilise `getApiError()`, distingue 422 (identifiants) des autres erreurs, ajoute `aria-live="assertive"` + `aria-invalid` sur les champs en erreur
+- **CSS LoginPage** : surcharge `:-webkit-autofill` (plus de fond olive Chrome illisible en thème sombre), `word-break: break-word` sur le `Message` d'erreur (plus de cassure de layout sur message long), `:focus-visible` outline RGAA, `max-w-xl` sur le conteneur
+
+#### Sécurité (OWASP)
+- **A05 Security Misconfiguration** corrigé : `APP_DEBUG=true` ne fuite plus rien sur les routes API
+- **A09 Logging & Monitoring** : toutes les exceptions API sont loguées avec contexte structuré
+
+---
+
+### Dashboard collaborateur — (feature/dashboard-collaborateur)
+
+#### Backend
+- **`DashboardService::getCollaborateurStats()`** : stats personnalisées par collaborateur — missions assignées (total / en cours / terminées), tâches (total / à faire / en cours / terminées / bloquées / taux de complétion), 5 missions les plus récentes avec progression, 5 tâches urgentes avec indicateur retard
+- **`DashboardController::collaborateurStats()`** : endpoint `GET /collaborateur/stats` — accessible à tous les rôles backoffice
+- **`routes/api.php`** : route `collaborateur/stats` déplacée dans le groupe tous-backoffice (admin + secrétaire + collaborateur)
+
+#### Frontend
+- **`api/modules/stats.ts`** : interface `CollaborateurStats` + méthode `getCollaborateurDashboard()`
+- **`DashboardPage.vue`** : dashboard collaborateur dédié — 4 cartes KPI (missions assignées, mes tâches, taux de complétion, tâches bloquées), tableau `mes_missions` avec ProgressBar, liste `mes_taches_urgentes` avec Tag statut et indicateur retard rouge
+
+#### Correctifs
+- **`DashboardService`** : colonne `date_fin` corrigée en `date_echeance` (nom réel dans `taches`) — le tri et le calcul retard fonctionnent désormais correctement
+- **`DashboardPage.vue`** : import `ProgressSpinner` manquant ajouté — le spinner de chargement s'affiche correctement
+- **`api/modules/stats.ts`** : champ `priorite` retiré du type `CollaborateurStats` (non utilisé en vue)
+
+---
+
+### Rapport PDF fin de mission — (feature/rapport-fin-mission)
+
+#### Backend
+- **`PdfService::genererRapportMission()`** : génération du rapport PDF enrichi — eager loading `factures.paiements`, filtre `visible_portail=true` en mode portail
+- **`rapport-mission.blade.php`** (nouveau) : template DomPDF complet avec 6 sections : résumé exécutif (durée / avancement / financier), informations mission, chronologie jalons, statistiques tâches par statut, tâches + commentaires filtrés, facturation avec paiements par facture et solde global
+- **`MissionController::rapportPdf()`** : endpoint `GET /missions/{mission}/rapport/pdf` — admin/secrétaire uniquement, mode back-office (commentaires internes inclus)
+- **`PortailMissionController::rapportPdf()`** : endpoint `GET /portail/missions/{mission}/rapport/pdf` — client uniquement, mode portail (commentaires `visible_portail=true` uniquement, montants HT et bloc total masqués)
+- **`routes/api.php`** : 2 routes rapport PDF ajoutées (backoffice + portail)
+- **150 tests / 351 assertions** — aucune régression
+
+#### Frontend
+- **`api/modules/missions.ts`** : ajout de `rapportPdfUrl(id)` pour l'URL de génération back-office
+- **`api/modules/portail.ts`** : ajout de `rapportMissionPdfUrl(missionId)` pour l'URL portail
+- **`MissionDetailPage.vue`** : bouton "Télécharger le rapport PDF" dans la section Documents (masqué pour les collaborateurs)
+- **`PortailMissionsPage.vue`** : bouton "Télécharger le rapport PDF" dans le dialog détail mission
+
+---
+
+### Page dédiée tâche + corrections commentaires — (develop)
+
+#### Backend
+- **`TacheController::show()`** (nouveau) : endpoint `GET /missions/{mission}/taches/{tache}` — chargement d'une tâche individuelle avec son assigné
+- **`routes/api.php`** : route `missions.taches` désormais complète (plus d'exclusion de `show`)
+- **`TacheCommentaireResource`** : ajout de `user_id` en top-level — nécessaire pour la comparaison auteur côté frontend
+- **Fix route commentaires** : paramètre `{tach}` (Laravel tronquait `taches`) corrigé en `{tache}` via `->parameters(['taches' => 'tache'])` — le model binding fonctionnait pas
+
+#### Frontend
+- **`TacheDetailPage.vue`** (nouveau) : page dédiée `/missions/:id/taches/:tacheId` — carte infos tâche (assigné, échéance, priorité, statut), section commentaires complète avec CRUD, dialog modification tâche
+- **`MissionDetailPage.vue`** : tableau tâches simplifié — 3 boutons par ligne (voir ▶ page dédiée, modifier, supprimer), plus de chevrons expandables
+- **`api/modules/taches.ts`** : ajout de `getOne(missionId, tacheId)` pour charger une tâche individuelle
+- **`router/index.ts`** : route `tache-detail` ajoutée (`missions/:id/taches/:tacheId`)
+- **Commentaires** : boutons modifier/supprimer toujours visibles (plus de opacity:0 au hover) — auteur en gras + heure sur la même ligne en header du commentaire, boutons à droite
+- **Fix droits commentaires** : `peutModifierCommentaire()` utilisait `c.user_id` absent de la resource → corrigé avec fallback `c.user?.id` ; un collaborateur peut désormais modifier/supprimer ses propres commentaires
+- **CI gitflow guard** : job bloquant les PR `feature/* → main` ajouté dans `ci.yml`
+
+---
+
+### Droits collaborateur — (feature/droits-collaborateur)
+
+#### Backend
+- **`bootstrap/app.php`** : enregistrement des middleware Spatie (`role`, `permission`, `role_or_permission`) — prérequis pour les groupes de routes par rôle
+- **`routes/api.php`** : restructuration complète en 3 groupes de middleware :
+  - `role:admin` → écriture utilisateurs, paramètres, entreprises, exercices, prestations, KPI
+  - `role:admin|secretaire` → stats dashboard, lecture référentiels, toute la facturation (devis, factures, paiements, avoirs, relances, créances)
+  - tous rôles backoffice → lecture users/settings, calendar, missions, tâches, commentaires
+- **`EntreprisePolicy`** (nouveau) : `viewAny/view` réservés à admin/secrétaire ; `create/update/delete` admin uniquement
+- **`EntrepriseController`** : `$this->authorize()` ajouté sur toutes les méthodes
+- **`MissionPolicy`** : ajout de `viewAny` et `view` — collaborateurs restreints à leurs missions assignées (`mission_user` pivot) ; `update` désormais admin/secrétaire uniquement
+- **`MissionService::listerMissions()`** : ajout du paramètre `User $user` — filtre automatique `whereHas('collaborateurs')` pour les collaborateurs
+- **`MissionController`** : `index()` et `show()` branchés sur les gates `viewAny` et `view`
+- **`TachePolicy`** (nouveau) : `update` — collaborateur uniquement si `assigned_to === user->id` ; `delete` — admin/secrétaire uniquement
+- **`TacheController`** : `index()` protégé par `authorize('view', $mission)` ; `store`, `update`, `destroy` protégés par les policies ; payload `update` restreint à `statut` pour les collaborateurs
+- **`TacheCommentaireController`** : `index()` protégé par `authorize('view', $tache->mission)` ; `store()` vérifie l'accès à la mission via `MissionPolicy::view`
+- **`CalendarController`** : injection du filtre `collaborateur_id` automatiquement pour les collaborateurs — chaque collaborateur ne voit que les événements de ses missions assignées
+- **`TacheApiTest`** : correction du test `collaborateur_ne_voit_que_ses_taches` — attach du collaborateur à `mission_user` avant la requête
+- **Migration `add_visible_portail_to_tache_commentaires`** : colonne `visible_portail` (boolean, default false) sur `tache_commentaires` — prépare le rapport de clôture (US-35) et le partage client
+- **`TacheCommentaire`** : `visible_portail` ajouté au `$fillable`
+- **150 tests / 351 assertions** — aucune régression
+
+#### Frontend
+- **`stores/auth.ts`** : ajout des computed `isCollaborateur` et `isSecretaire` exportés
+- **`types/index.ts`** : ajout de l'interface `TacheCommentaire` (`id`, `tache_id`, `user_id`, `contenu`, `visible_portail`, `user`, `created_at`, `updated_at`)
+- **`api/modules/commentaires.ts`** (nouveau) : module API CRUD commentaires — `getAll`, `create`, `update`, `delete` sur `/taches/{tacheId}/commentaires`
+- **`composables/useCommentaires.ts`** (nouveau) : composable réactif — `fetchCommentaires`, `createCommentaire`, `updateCommentaire`, `deleteCommentaire` avec gestion toast succès/erreur
+- **`MissionDetailPage.vue`** : section commentaires par tâche (ligne expandable DataTable) — liste commentaires avec auteur/date, saisie inline, guards auteur/admin sur edit/delete, badge `visible_portail` admin uniquement ; guards rôle sur boutons créer/supprimer tâche, statut mission, statut tâche (désactivé si non-assigné), sections documents/tranches/factures ; RGAA : `aria-labelledby`, `role="status"`, `aria-expanded`, `aria-live`, `sr-only`
+- **`layout/AppMenu.vue`** : menu Entreprises désormais masqué pour les collaborateurs (`visible: isAdmin || isSecretaire`)
+- **`pages/dashboard/DashboardPage.vue`** : panel de bienvenue collaborateur avec liens vers Missions et Planning ; les stats financières (`GET /stats`) ne sont pas appelées pour les collaborateurs (évite le 403)
+- **`pages/missions/MissionListPage.vue`** : guards `!auth.isCollaborateur` sur les appels référentiels au montage, sur le bouton "Nouvelle mission", le filtre exercice, et les boutons modifier/supprimer du tableau
+
+---
+
+### Supervision — (feature/supervision-mco)
+
+#### Backend
+- **Laravel Health** : endpoint `GET /health` — 4 checks configurés : base de données, cache, espace disque (warn >70%, fail >90%), mode debug
+- **`config/health.php`** : publication de la config Spatie Health — résultats stockés en base via `EloquentHealthResultStore`, historique conservé 5 jours
+- **Migration `create_health_tables`** : table `health_check_result_history_items` pour l'historique des checks
+- **Sentry** : SDK `sentry/sentry-laravel ^4.25` installé — auto-découverte via Laravel, config dans `config/sentry.php` — activé via `SENTRY_LARAVEL_DSN` en `.env`
+- **Logs rotatifs** : `LOG_CHANNEL=daily` par défaut — fichiers `storage/logs/laravel-YYYY-MM-DD.log`, rotation sur 14 jours
+- **`.env.example`** : ajout des variables `SENTRY_LARAVEL_DSN`, `SENTRY_TRACES_SAMPLE_RATE`, `HEALTH_SECRET_TOKEN`
+- **150 tests / 351 assertions** — aucune régression
+
+---
+
+### Accessibilité — (feature/accessibilite-rgaa)
+
+#### Frontend
+- **`AppTopbar.vue`** : remplacement du `<div class="layout-topbar">` par `<header role="banner">` — sémantique HTML correcte pour la barre de navigation principale
+- **`AppLayout.vue`** : ajout de `aria-hidden="true"` sur le masque overlay mobile — élément décoratif retiré de l'arbre d'accessibilité
+- **`DashboardPage.vue`** : ajout d'un `<section aria-labelledby="dashboard-title">` autour du contenu principal et `id="dashboard-title"` sur le `<h2>` — navigation par titres opérationnelle pour les lecteurs d'écran
+
+---
+
+### Sécurité — (feature/owasp-securite)
+
+#### Backend
+- **`SetSecurityHeaders` middleware** : ajout des headers HTTP sécurisés sur toutes les réponses — `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: geolocation=(), microphone=(), camera=()`, `Content-Security-Policy: default-src 'self'`
+- **Throttle brute-force login** : `throttle:5,1` sur `POST /api/v1/login` (5 tentatives max par minute par IP)
+- **Authorization Policies** : 7 Policies créées — `UserPolicy`, `PrestationPolicy`, `SettingPolicy`, `FacturePolicy`, `DevisPolicy`, `MissionPolicy`, `AvoirPolicy` — avec `$this->authorize()` dans chaque controller concerné
+- **`Controller` base** : ajout du trait `AuthorizesRequests` (manquant en Laravel 12)
+- **CORS** : `allowed_headers` restreint à `['Content-Type', 'X-Requested-With', 'X-XSRF-TOKEN']` (suppression du wildcard `'*'`)
+- **Déjà conformes** : FormRequests sur tous les `store()`/`update()` (23 FormRequests), Eloquent uniquement (0 `DB::raw()` avec input user), 0 `v-html` avec données utilisateur (XSS), CSRF Sanctum cookie-based, session `http_only=true` + `same_site=lax`
+- **150 tests / 351 assertions** — tous verts après ajout des policies
+
+---
+
+### Ajouts — US-38 : Tests unitaires (feature/tests-unitaires)
+
+- **`tests/Unit/Services/FacturationServiceTest`** (14 tests) : numérotation séquentielle + reset par exercice, tranches 30%/30%/40%, 4ème tranche impossible, TVA historisée snapshot à la date de facturation, statut paiement auto (en_attente → partiel → solde), snapshots immuables
+- **`tests/Unit/Models/ExerciceTest`** (6 tests) : `current()` retourne l'exercice ouvert de l'année, null si absent ou clôturé, `isOuvert()`, relations HasMany
+- **`tests/Feature/Api/TacheApiTest`** : +5 tests — suppression sans commentaires, protection suppression avec commentaires (409), scope collaborateur, statut initial, validation titre
+- **`phpunit.xml`** : ajout section `<coverage>` + exclusions Middleware/Providers/Console
+- **150 tests / 351 assertions** — modules critiques couverts : FacturationService 84%, KpiService 100%, MissionService 93%, PdfService 88%, PortailService 98%, Exercice 100%
+
+---
+
+### Ajouts — US-34 : KPI objectifs collaborateurs (feature/kpi-objectifs-collaborateurs)
+
+#### Backend
+- **Migration** `create_kpi_objectifs_table` : table `kpi_objectifs` — `user_id`, `exercice_id`, `type` (enum ca_ht / missions_cloturees / taches_terminees), `valeur`, contrainte unique `(user_id, exercice_id, type)`
+- **Migration** `alter_kpi_objectifs_type_enum` : remplacement de `delai_moyen_facturation` par `taches_terminees` dans l'enum (MySQL uniquement, SQLite skippé)
+- **`KpiObjectif`** : modèle Eloquent avec relations `user` et `exercice`
+- **`User::kpiObjectifs()`** : relation `HasMany` vers `KpiObjectif`
+- **`KpiService::getCollaborateurs(?exerciceId)`** : retourne collaborateurs et admins avec objectifs et réalisé — 5 indicateurs : CA HT, missions clôturées, tâches terminées (avec objectif), tâches en retard, délai moyen traitement tâche (réalisé seulement)
+- **`KpiService::upsertObjectif()`** : création ou mise à jour d'un objectif (`updateOrCreate`)
+- **`KpiController`** : `GET /kpi/objectifs`, `POST /kpi/objectifs`, `DELETE /kpi/objectifs/{id}` — backoffice uniquement
+- **Fix** : `JULIANDAY()` remplacé par `Carbon::diffInDays()` (compatibilité MySQL + SQLite)
+- **Tests** : 11 tests `KpiObjectifsTest` — 125 tests / 315 assertions
+
+#### Frontend
+- **`api/modules/stats.ts`** : type `KpiObjectifType` exporté, `KpiCollaborateur` mis à jour (5 champs réalisé)
+- **`KpiObjectifsPage.vue`** : section "Objectifs annuels" (3 KPIs avec cible + barre de progression) + section "Indicateurs de suivi" (tâches terminées/en retard, délai moyen tâche) — 1 bouton "Sauvegarder les objectifs" par collaborateur, refresh silencieux post-save
+- **`router/index.ts`** : route `/kpi/objectifs`
+- **`AppMenu.vue`** : lien "KPI Objectifs" dans la section Accueil (admin uniquement)
+
+---
+
+### Ajouts — US-32 : Portail mes documents (feature/portail-documents)
+
+#### Backend
+- **Migration** : colonne `visible_portail` (boolean, default false) ajoutée à la table `missions`
+- **`Mission::$fillable` / `$casts`** : exposition de `visible_portail` en booléen
+- **`MissionResource`** : champ `visible_portail` exposé
+- **`UpdateMissionRequest`** : règle `sometimes|boolean` pour `visible_portail`
+- **`PortailService::listerDocuments()`** : retourne les missions de l'entreprise avec `visible_portail = true` ET au moins un numéro (convention ou mandat) généré
+- **`PortailDocumentController`** : 3 actions — `index()`, `conventionPdf()`, `mandatPdf()` — scope `entreprise_id` + contrôle `visible_portail` + 403 si non autorisé
+- **Routes** : `GET /portail/documents`, `GET /portail/documents/{id}/convention/pdf`, `GET /portail/documents/{id}/mandat/pdf`
+- **Tests** : 9 tests `PortailDocumentTest` (scope isolation, visibilité, PDF, 403) — 114 tests / 286 assertions
+
+#### Frontend
+- **`api/modules/portail.ts`** : `getDocuments()`, `telechargerConventionPdf()`, `telechargerMandatPdf()`
+- **`api/modules/missions.ts`** : champ `visible_portail` ajouté à `MissionUpdatePayload`
+- **`types/index.ts`** : `Mission.visible_portail: boolean`
+- **`PortailDocumentsPage.vue`** : liste des documents partagés par le cabinet, téléchargement PDF direct, catégorisé par mission (convention + mandat)
+- **`PortailLayout.vue`** : lien "Mes documents" ajouté dans la nav portail
+- **`router/index.ts`** : route `/portail/documents` (portail-documents)
+- **`MissionDetailPage.vue`** : bouton "Visible portail / Masqué portail" dans la section Documents — toggle `visible_portail` via `PUT /missions/{id}`, désactivé si aucun document généré
+
+---
+
+### Correctifs — Settings : sauvegarde et clés manquantes (fix/settings-save-agrement)
+
+#### Backend
+- **`Setting::set()`** : remplacé `update()` par `updateOrCreate()` — les clés inexistantes sont désormais créées automatiquement (fix silencieux)
+- **`SettingController::update()`** : validation `value` passée de `required` à `nullable` — permet de sauvegarder des champs vides (NIF, NIS, RIB…)
+- **`SettingsSeeder`** : ajout des clés manquantes `cabinet_agrement` (N° d'agrément), `cabinet_soustitre`, `cabinet_ville`, `convention_prefixe` (CV), `mandat_prefixe` (MD)
+
+---
+
+### Ajouts — US-24 : PDF convention et mandat de mission
+
+#### Backend
+- **Migration** : colonnes `convention_numero` (unique, nullable) et `mandat_numero` (unique, nullable) ajoutées à la table `missions`
+- **`Mission::$fillable`** : exposition de `convention_numero` et `mandat_numero`
+- **`MissionService::obtenirNumeroConvention()`** : génère et stocke le numéro CV{annee}-{seq} à la première demande (lazy, immuable ensuite) — réutilise `FacturationService::genererNumero()`
+- **`MissionService::obtenirNumeroMandat()`** : idem pour MD{annee}-{seq}
+- **`PdfService::genererConvention(Mission)`** : render Blade `pdf.convention` — 9 articles, honoraires 30/30/40, signatures double
+- **`PdfService::genererMandat(Mission)`** : render Blade `pdf.mandat` — acceptation de mandat 1 page, signature cabinet seul
+- **`PdfService::getCabinetInfo()`** : ajout clés `agrement` et `soustitre` (depuis settings)
+- **`MissionController::conventionPdf()`** / **`mandatPdf()`** : endpoints `GET /api/v1/missions/{id}/convention/pdf` et `/mandat/pdf`
+- **Routes** : 2 nouvelles routes GET dans le groupe backoffice
+- **`MissionResource`** : exposition de `convention_numero` et `mandat_numero`
+- **Tests** : 2 nouveaux tests `MissionApiTest` — génération + stockage numéro + header Content-Type PDF (105 tests / 269 assertions)
+
+#### Frontend
+- **`api/modules/missions.ts`** : ajout `conventionPdfUrl(id)` et `mandatPdfUrl(id)`
+- **`types/index.ts`** : `Mission.convention_numero` et `Mission.mandat_numero` ajoutés
+- **`MissionDetailPage.vue`** : section "Documents" entre les infos et les tranches — 2 cartes (Convention / Mandat) avec bouton "Générer" (1er appel) ou "Imprimer" (numéro déjà attribué), rechargement automatique après génération
+
+---
+
+### Correctifs — Reset CSRF token après logout (fix/csrf-token-reconnexion)
+
+#### Frontend
+- **`api/client.ts`** : export `resetCsrf()` — remet `csrfInitialized = false`
+- **`stores/auth.ts`** : `logout()` appelle `resetCsrf()` après déconnexion — évite le 419 intermittent à la reconnexion (Laravel régénère le token CSRF à chaque `session()->regenerateToken()`)
+
+---
+
+### Refactoring — SOLID/SRP : thin controllers (refactor/solid-controllers)
+
+#### Backend
+- **`EntrepriseService`** (nouveau) : `lister()`, `wilayas()`, `creer()`, `exportCsv()` extraits de `EntrepriseController`
+- **`EntrepriseController`** : réécrit thin — valide, délègue à `EntrepriseService`, retourne Resource
+- **`ContactService::supprimer()`** : ajouté — `ContactController::destroy()` délègue
+- **`FacturationService::listerCreances()`** : ajouté — `CreanceController` réécrit thin
+- **`PortailService::listerFactures()` / `listerMissions()`** : ajoutés — `PortailFactureController` et `PortailMissionController` réécrits thin
+
+---
+
+### Ajouts — Vue 360° client (US-10)
+
+#### Backend
+- **`MissionService::listerMissions()`** : filtre `entreprise_id` ajouté
+- **`FacturationService::listerDevis()` / `listerFactures()`** : filtre `entreprise_id` ajouté
+- **`EntrepriseController::show()`** : eager load `contacts` + `users` inclus dans la réponse
+- **`EntrepriseResource`** : exposition de `contacts` via `ContactResource::collection(whenLoaded)`
+
+#### Frontend
+- **`MissionFilters` / `DevisFilters` / `FactureFilters`** : champ `entreprise_id` ajouté
+- **`EntrepriseDetailPage.vue`** (`/entreprises/:id`) : page dossier complet avec
+  - KPIs en-tête : impayé TTC (badge orange si > 0), CA total facturé, missions actives
+  - Filtre exercice partagé (missions + devis + factures rechargés simultanément)
+  - Colonne gauche : coordonnées, contacts avec badge Principal, notes
+  - Onglets Missions | Devis | Factures avec compteur par onglet
+  - Lien cliquable vers le détail mission
+- **Router** : route `entreprises/:id` → `EntrepriseDetailPage`
+- **`EntrepriseListPage`** : bouton "Dossier 360°" (icône pi-eye) ajouté dans la colonne Actions
+
+---
+
+### Ajouts — Recherche et filtres entreprises (US-09)
+
+#### Backend
+- **`EntrepriseController::index()`** : recherche full-text élargie à raison_sociale, NIF, NIS, email, téléphone, ville + filtre combinable `wilaya`
+- **`EntrepriseController::wilayas()`** : `GET /entreprises/wilayas` — liste distincte des wilayas enregistrées (ordered alphabetically)
+- **`EntrepriseController::exportCsv()`** : `GET /entreprises/export-csv` — export CSV streamé avec BOM UTF-8 (compatible Excel), respecte les filtres actifs, chunk 500 lignes
+
+#### Frontend
+- **`EntrepriseFilters`** : champ `wilaya` ajouté
+- **`entreprisesApi`** : méthodes `wilayas()` et `exportCsv()` ajoutées
+- **`useEntreprises`** : `setStatut()`, `setWilaya()`, `resetFilters()` ajoutés
+- **`EntrepriseListPage.vue`** : toolbar enrichie — champ recherche réactif (`watch`), Select statut, Select wilaya (options chargées dynamiquement), bouton "Réinitialiser" conditionnel, bouton "Export CSV"
+
+---
+
+### Ajouts — Contacts entreprise (US-08)
+
+#### Backend
+- **Migration `create_contacts_table`** : table `contacts` (entreprise_id FK cascade, nom, prenom, email, telephone, poste, est_principal)
+- **`Contact`** : modèle Eloquent avec `belongsTo(Entreprise)`, cast boolean `est_principal`
+- **`Entreprise::contacts()`** : relation `hasMany(Contact)` ajoutée
+- **`ContactService::creer()`** : création avec dévalidation automatique du contact principal précédent si `est_principal = true`
+- **`ContactService::mettreAJour()`** : mise à jour avec même logique de dévalidation principale
+- **`ContactController`** : CRUD imbriqué — `index`, `store`, `update`, `destroy` (thin controller, délègue au service)
+- **`StoreContactRequest` / `UpdateContactRequest`** : validation FormRequest avec `sometimes` pour la mise à jour partielle
+- **`ContactResource`** : sérialisation JSON complète du contact
+- **Routes** : `GET/POST /entreprises/{entreprise}/contacts`, `PUT/DELETE /entreprises/{entreprise}/contacts/{contact}`
+
+#### Frontend
+- **`types/index.ts`** : interface `Contact` ajoutée
+- **`api/modules/contacts.ts`** : module API avec `getAll()`, `create()`, `update()`, `delete()` + interface `ContactPayload`
+- **`composables/useContacts.ts`** : composable réactif avec `fetchContacts`, `createContact`, `updateContact`, `deleteContact`
+- **`EntrepriseListPage.vue`** : bouton "Contacts" (icône pi-users) par ligne → dialog liste des contacts avec ajout/modification/suppression ; badge contact principal ; formulaire avec nom, prénom, poste, email, téléphone, toggle principal
+
+---
+
+### Ajouts — CRUD prestations (US-43)
+
+#### Backend
+- **`PrestationController::store()`** : création avec `StorePrestationRequest` (code unique, tarif, durée, actif)
+- **`PrestationController::update()`** : modification partielle avec `UpdatePrestationRequest` (unique ignore id courant)
+- **`PrestationController::destroy()`** : suppression protégée — HTTP 409 si missions associées
+- **`Prestation::missions()`** : relation `hasMany` ajoutée pour la protection suppression
+- **Routes** : `POST /prestations`, `PUT /prestations/{prestation}`, `DELETE /prestations/{prestation}`
+
+#### Frontend
+- **`api/modules/prestations.ts`** : ajout `create()`, `update()`, `delete()` + interface `PrestationPayload`
+- **`composables/usePrestations.ts`** : ajout `createPrestation()`, `updatePrestation()`, `deletePrestation()`
+- **`pages/prestations/PrestationListPage.vue`** : refonte — bouton Nouvelle prestation, dialog création, dialog modification pré-rempli, confirmation suppression avec message d'erreur 409
+
+---
+
+### Ajouts — Tri, recherche réactive, filtre exercice et onglet Avoirs
+
+#### Backend — SRP / Services
+- **`MissionService::listerMissions()`** : filtre `exercice_id`, recherche `reference` + `raison_sociale` (orWhereHas), tri avec whitelist sécurisée
+- **`MissionService::mettreAJourMission()`** : extraction depuis `MissionController::update()` — SRP
+- **`FacturationService::listerDevis()`** : même pattern — filtre exercice, recherche numero + raison_sociale, tri
+- **`FacturationService::listerFactures()`** : idem
+- **`MissionController::index()` / `update()`** délèguent entièrement au service (thin controllers)
+- **`DevisController::index()` / `FactureController::index()`** idem
+- **`AvoirController::indexAll()`** : `GET /api/v1/avoirs` — liste paginée avec filtre `exercice_id` + recherche numero / raison_sociale
+- **`AvoirController::destroy()`** : `DELETE /api/v1/avoirs/{avoir}` — suppression d'un avoir
+- **`AvoirResource`** : `facture_origine` expose un sous-ensemble `{ id, numero, entreprise.raison_sociale }` (eager load `factureOrigine.entreprise`)
+- **Routes** : `GET avoirs`, `DELETE avoirs/{avoir}` dans le groupe `backoffice`
+
+#### Frontend
+- **`api/modules/avoirs.ts`** : ajout `getAll(params?)` + `delete(avoirId)` — retourne `PaginatedResponse<Avoir>`
+- **`types/index.ts`** : `Avoir.facture_origine` typé en sous-ensemble `{ id, numero, entreprise? }` (aligné avec AvoirResource)
+- **`composables/useMissions.ts`** : `onSort()`, `setExercice()`, debounce 300ms sur `onSearch()`
+- **`composables/useDevis.ts`** : idem — `updateDevis()` étendu (`entreprise_id`, `prestation_id`, `date_devis`)
+- **`composables/useFactures.ts`** : `onSort()`, `setExercice()` ajoutés
+- **`pages/missions/MissionListPage.vue`** : recherche réactive (`watch`), filtre exercice pré-sélectionné, DataTable tri serveur (reference, prix_ht, date_debut, statut)
+- **`pages/devis/DevisListPage.vue`** : idem + colonne date_validite + dialog Modifier étendu (tous les champs brouillon) + auto-fill date_validite = date_devis + 2 mois avec `minDate`
+- **`pages/factures/FactureListPage.vue`** : refonte avec onglets **Factures | Avoirs**, filtre exercice partagé, recherche réactive par onglet, DataTable tri serveur (numero, date_facture, date_echeance, montant_ttc, statut_paiement), onglet Avoirs avec PDF + suppression
+
+---
+
+### Correctifs — Devis brouillon édition étendue + avoir pré-rempli
+
+- **Devis brouillon** : dialog "Modifier" ouvre désormais tous les champs éditables (entreprise, prestation, date_devis, date_validite, notes) — auparavant limité à date_validite + notes uniquement
+- **date_validite auto** : pré-remplie à `date_devis + 2 mois` à l'ouverture, contrainte `minDate = date_devis`, modifiable par l'utilisateur
+- **Avoir pré-rempli** : `openAvoir()` utilise `facture.montant_ht` directement — l'ancien calcul proportionnel renvoyait 0 sur les factures soldées
+
+---
+
+### Correctifs — Bugs UI missions / devis / avoir (issues #20, #21, #22)
+
+#### Frontend
+- **[#20] Double modale de confirmation** : suppression du `<ConfirmDialog />` en double dans `MissionListPage.vue`, `DevisListPage.vue` et `FactureListPage.vue` — le composant global dans `AppLayout.vue` est suffisant (PrimeVue ConfirmationService est global)
+- **[#21] Bouton Modifier manquant** :
+  - **Missions** : ajout bouton `pi pi-pencil` + dialog pré-rempli (date_debut, date_fin, collaborateurs, notes) — réutilise `updateMission()` de `useMissions.ts`
+  - **Devis** : ajout bouton `pi pi-pencil` visible uniquement sur statut `brouillon` + dialog (date_validite, notes) — ajout `updateDevis()` dans `useDevis.ts` (appelle `devisApi.update()` existant)
+- **[#22] Avoir non pré-rempli** : `openAvoir()` dans `FactureListPage.vue` calcule désormais `montant_ht = montant_restant × (montant_ht / montant_ttc)` pour restituer le HT restant proportionnel
+
+---
+
+### Ajouts — Calendrier interactif FullCalendar (US-23)
+
+#### Backend
+- **`CalendarController::index()`** : endpoint `GET /api/v1/calendar?from=&to=&collaborateur_id=` — protégé par middleware `backoffice`
+- **`CalendarService::getEvents()`** : logique métier centralisée — overlap missions (date_debut/date_fin/englobant), tâches par date_echeance, filtre collaborateur optionnel
+- **`CalendarRequest`** : validation `from` (required, date), `to` (required, date, after_or_equal), `collaborateur_id` (nullable, exists:users)
+- **Tests** : 8 tests `CalendarApiTest` — mission dans range, hors range, englobante, tâche dans range, hors range, filtre collaborateur, 401 non auth, 403 client
+
+#### Frontend
+- **6 packages FullCalendar** installés : `@fullcalendar/vue3`, `core`, `daygrid`, `timegrid`, `interaction`, `list`
+- **`api/modules/planning.ts`** : `planningApi.getCalendar()` + interfaces `CalendarMission`, `CalendarTache`, `CalendarData`
+- **`composables/usePlanning.ts`** : `fetchEvents()` (source FullCalendar), `onEventDrop()` (drag & drop missions + tâches), `onEventResize()` (missions), `fetchCollaborateurs()` — couleurs par statut
+- **`pages/planning/PlanningCalendarPage.vue`** : vues mois/semaine/jour/liste, locale française, drag & drop, filtre collaborateur, dialog détail au clic, légende des couleurs, RGAA (aria-label, role="region", focus-visible, sr-only)
+- **`router/index.ts`** : route `/planning` ajoutée dans le layout backoffice
+- **`layout/AppMenu.vue`** : item "Planning" ajouté dans le groupe "Gestion" (visible isStaff)
+
+### Ajouts — Dashboard KPI (US-33)
+
+#### Backend
+- **`DashboardController::stats()`** : enrichi avec filtre `exercice_id`, CA du mois, TVA collectée, taux de recouvrement, alertes dynamiques (factures en retard, taux faible)
+- **`routes/api.php`** : route `/stats` déplacée dans le groupe `backoffice` (clients bloqués — 403)
+- **`SettingsSeeder`** : ajout clé `seuil_alerte_recouvrement` (défaut 70%)
+- **Tests** : 9 tests `DashboardKpiTest` — structure KPI, CA mois, TVA, taux recouvrement, filtre exercice, alertes retard/faible, no-alert si soldé, accès client interdit, 401 non authentifié
+
+#### Frontend
+- **`api/modules/stats.ts`** : `getDashboard(exerciceId?)` + type `DashboardStats` enrichi (`kpi`, `alertes`, `exercices`)
+- **`pages/dashboard/DashboardPage.vue`** : filtre exercice, 3 widgets KPI (CA mois, TVA collectée, taux recouvrement avec barre de progression colorée), bannière d'alertes (`Message` PrimeVue)
+
+---
+
+### Ajouts — Portail : mes factures + mes missions (US-30, US-31)
+
+#### Backend
+- **`PortailFactureController`** : `GET /api/v1/portail/factures` (liste scoped `entreprise_id`, filtres exercice + statut), `GET /api/v1/portail/factures/{id}/pdf` (PDF sécurisé — 403 si hors scope)
+- **`PortailMissionController`** : `GET /api/v1/portail/missions` (liste scoped, filtre statut), `GET /api/v1/portail/missions/{id}` (détail avec tâches, sans commentaires internes)
+- **Routes** : 4 routes dans le groupe `middleware('portail')`
+- **Tests** : 6 tests `PortailFactureTest` + 7 tests `PortailMissionTest` — scope isolation, filtres, PDF 403 hors scope, tâches sans commentaires, accès staff interdit
+
+#### Frontend
+- **`api/modules/portail.ts`** : `portailApi.getFactures()`, `telechargerFacturePdf()`, `getMissions()`, `getMission()`
+- **`pages/portail/PortailFacturesPage.vue`** : tableau factures (numéro, date, échéance, TTC, restant dû en rouge, statut) + filtre statut + téléchargement PDF
+- **`pages/portail/PortailMissionsPage.vue`** : tableau missions (référence, prestation, statut, barre d'avancement %) + dialog détail avec tâches (sans commentaires internes) — lecture seule stricte
+- **`router/index.ts`** : routes `/portail/factures` et `/portail/missions`
+
+---
+
+### Ajouts — Portail client accès (US-29)
+
+#### Backend
+- **`PortailController::me()`** : endpoint `GET /api/v1/portail/me` — retourne le profil du client avec son entreprise (scope isolation garantie par le middleware)
+- **Route** `GET /api/v1/portail/me` dans le groupe `middleware('portail')` — protégé par `EnsurePortailAccess`
+- **Tests** : 11 tests `PortailAccessTest` — activation portail (création user client + mot de passe temporaire), 422 si prospect, 409 si portail déjà activé, toggle activate/désactivation, middleware bloque staff (403), middleware bloque client inactif (403), middleware autorise client actif, retour entreprise dans `/portail/me`, accès non authentifié (401)
+
+#### Frontend
+- **`layout/PortailLayout.vue`** : layout dédié portail — topbar avec logo, raison sociale entreprise, nav (Accueil / Mes factures / Mes missions), nom utilisateur, bouton déconnexion ; pas de sidebar backoffice ; footer cabinet ; responsive mobile-first ; RGAA (skip-link, aria-label, focus-visible)
+- **`router/index.ts`** : route `/portail` branchée sur `PortailLayout` au lieu de `AppLayout`
+- **`pages/portail/PortailDashboard.vue`** : page d'accueil portail — message de bienvenue avec nom client + raison sociale, cards accès rapide (Mes factures / Mes missions), bloc informations entreprise (régime fiscal, catégorie, NIF, ville)
+
+---
+
+### Ajouts — Avoir sur facture (US-16)
+
+#### Backend
+- **Migration** `create_avoirs_table` : table `avoirs` — `facture_origine_id`, `exercice_id`, `created_by`, `numero` (FA{ANNEE}-{NNN}), `date_avoir`, `montant_ht`, `taux_tva_snapshot`, `montant_tva`, `montant_ttc`, `motif`
+- **`Avoir`** : modèle Eloquent avec relations `factureOrigine`, `exercice`, `createdBy`
+- **`Facture::montantRestant()`** : mise à jour — soustrait désormais le total des avoirs TTC (`max(0, ttc - paye - avoirs)`)
+- **`FacturationService::creerAvoir()`** : création d'avoir avec reprise du taux TVA snapshot de la facture d'origine, validation montant ≤ restant dû, numérotation séquentielle FA{ANNEE}-{NNN}
+- **`PdfService::genererAvoir()`** : génération PDF DomPDF — design violet distinct de la facture, header "Avoir / Note de crédit", référence facture origine, récapitulatif financier, montant en lettres, motif
+- **`AvoirController`** : `GET /factures/{id}/avoirs` (liste), `POST /factures/{id}/avoirs` (création), `GET /factures/{id}/avoirs/{avoir}/pdf` (PDF)
+- **`StoreAvoirRequest`** : validation `montant_ht`, `date_avoir`, `motif`
+- **`AvoirResource`** : resource JSON avec tous les champs
+- **`FactureResource`** : ajout de la relation `avoirs` (chargée conditionnellement)
+- **`routes/api.php`** : 3 routes avoirs nestées sous `/factures/{id}/avoirs`
+- **`resources/views/pdf/avoir.blade.php`** : vue PDF avoir — couleur violette, récap financier, motif, signatures
+- **Tests** : 9 tests `AvoirApiTest` — liste, création, TVA snapshot, numérotation séquentielle, montant > restant (409), réduction montant restant, validation montant/motif, accès non authentifié (62 tests en tout, 157 assertions)
+
+#### Frontend
+- **`types/index.ts`** : interface `Avoir` ajoutée, `Facture` enrichi avec `avoirs?`
+- **`api/modules/avoirs.ts`** : `avoirsApi.index()`, `avoirsApi.store()`, `avoirsApi.telechargerPdf()`
+- **`pages/factures/FactureListPage.vue`** : bouton "Émettre un avoir" dans les actions, dialog avec récap restant dû, saisie montant HT + date + motif, toast succès/erreur
+
+---
+
 ### Ajouts — Relances et créances impayées (US-25, US-26, US-27, US-28)
 
 #### Backend

@@ -17,6 +17,8 @@ class TacheController extends Controller
 {
     public function index(Mission $mission): AnonymousResourceCollection
     {
+        $this->authorize('view', $mission);
+
         return TacheResource::collection(
             $mission->taches()->with('assignee')->latest()->get()
         );
@@ -24,6 +26,8 @@ class TacheController extends Controller
 
     public function store(StoreTacheRequest $request, Mission $mission): JsonResponse
     {
+        $this->authorize('create', Mission::class);
+
         $tache = $mission->taches()->create($request->validated());
 
         return (new TacheResource($tache->load('assignee')))
@@ -31,15 +35,30 @@ class TacheController extends Controller
             ->setStatusCode(201);
     }
 
+    public function show(Mission $mission, Tache $tache): TacheResource
+    {
+        $this->authorize('view', $mission);
+
+        return new TacheResource($tache->load('assignee'));
+    }
+
     public function update(UpdateTacheRequest $request, Mission $mission, Tache $tache): TacheResource
     {
-        $tache->update($request->validated());
+        $this->authorize('update', $tache);
+
+        $data = $request->user()->hasAnyRole(['admin', 'secretaire'])
+            ? $request->validated()
+            : $request->only('statut');
+
+        $tache->update($data);
 
         return new TacheResource($tache->load('assignee'));
     }
 
     public function destroy(Mission $mission, Tache $tache): JsonResponse
     {
+        $this->authorize('delete', $tache);
+
         if ($tache->commentaires()->exists()) {
             return response()->json([
                 'message' => 'Impossible de supprimer une tache avec des commentaires.',

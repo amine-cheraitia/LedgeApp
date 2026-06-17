@@ -5,13 +5,17 @@ export interface MissionFilters {
   page?: number
   per_page?: number
   search?: string
+  exercice_id?: number
   entreprise_id?: number
   statut?: string
+  sort_field?: string
+  sort_direction?: 'asc' | 'desc'
 }
 
 export interface MissionPayload {
   entreprise_id: number
   prestation_id: number
+  exercice_id?: number
   date_debut: string
   date_fin: string
   collaborateur_ids?: number[]
@@ -24,6 +28,7 @@ export interface MissionUpdatePayload {
   statut?: string
   collaborateur_ids?: number[]
   notes?: string
+  visible_portail?: boolean
 }
 
 export const missionsApi = {
@@ -45,5 +50,17 @@ export const missionsApi = {
 
   delete(id: number): Promise<void> {
     return api.delete(`/missions/${id}`)
+  },
+
+  rapportPdfUrl(id: number): string {
+    return `/api/v1/missions/${id}/rapport/pdf`
+  },
+
+  conventionPdfUrl(id: number): string {
+    return `/api/v1/missions/${id}/convention/pdf`
+  },
+
+  mandatPdfUrl(id: number): string {
+    return `/api/v1/missions/${id}/mandat/pdf`
   },
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Avoir;
 use App\Models\Devis;
 use App\Models\Entreprise;
 use App\Models\Exercice;
@@ -15,6 +16,8 @@ use App\Models\Setting;
 use App\Models\TvaTaux;
 use Carbon\Carbon;
 use DomainException;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 class FacturationService
@@ -49,6 +52,57 @@ class FacturationService
         });
     }
 
+    private const DEVIS_SORT_FIELDS = ['numero', 'date_devis', 'date_validite', 'statut', 'prix_ht'];
+
+    private const FACTURE_SORT_FIELDS = ['numero', 'date_facture', 'date_echeance', 'montant_ttc', 'statut_paiement'];
+
+    public function listerDevis(array $filters): LengthAwarePaginator
+    {
+        $sortField = in_array($filters['sort_field'] ?? '', self::DEVIS_SORT_FIELDS)
+            ? $filters['sort_field']
+            : 'created_at';
+        $sortDir = ($filters['sort_direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        return Devis::with('entreprise', 'prestation')
+            ->when($filters['exercice_id'] ?? null, fn ($q, $v) => $q->where('exercice_id', $v))
+            ->when($filters['entreprise_id'] ?? null, fn ($q, $v) => $q->where('entreprise_id', $v))
+            ->when($filters['statut'] ?? null, fn ($q, $v) => $q->where('statut', $v))
+            ->when($filters['search'] ?? null, fn ($q, $s) => $q
+                ->where('numero', 'like', "%{$s}%")
+                ->orWhereHas('entreprise', fn ($eq) => $eq->where('raison_sociale', 'like', "%{$s}%"))
+            )
+            ->orderBy($sortField, $sortDir)
+            ->paginate($filters['per_page'] ?? 15);
+    }
+
+    public function listerCreances(): Collection
+    {
+        return Facture::with(['entreprise', 'mission.prestation'])
+            ->whereIn('statut_paiement', ['en_attente', 'partiel'])
+            ->orderBy('date_echeance', 'asc')
+            ->get();
+    }
+
+    public function listerFactures(array $filters): LengthAwarePaginator
+    {
+        $sortField = in_array($filters['sort_field'] ?? '', self::FACTURE_SORT_FIELDS)
+            ? $filters['sort_field']
+            : 'created_at';
+        $sortDir = ($filters['sort_direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        return Facture::with('entreprise', 'mission', 'lignes')
+            ->when($filters['exercice_id'] ?? null, fn ($q, $v) => $q->where('exercice_id', $v))
+            ->when($filters['entreprise_id'] ?? null, fn ($q, $v) => $q->where('entreprise_id', $v))
+            ->when($filters['statut_paiement'] ?? null, fn ($q, $v) => $q->where('statut_paiement', $v))
+            ->when($filters['type'] ?? null, fn ($q, $v) => $q->where('type', $v))
+            ->when($filters['search'] ?? null, fn ($q, $s) => $q
+                ->where('numero', 'like', "%{$s}%")
+                ->orWhereHas('entreprise', fn ($eq) => $eq->where('raison_sociale', 'like', "%{$s}%"))
+            )
+            ->orderBy($sortField, $sortDir)
+            ->paginate($filters['per_page'] ?? 15);
+    }
+
     /**
      * Cree un devis pour une seule prestation.
      * Le prix HT est calcule automatiquement via la grille tarifaire (immuable).
@@ -56,7 +110,9 @@ class FacturationService
     public function creerDevis(array $data, int $userId): Devis
     {
         return DB::transaction(function () use ($data, $userId) {
-            $exercice = Exercice::current();
+            $exercice = isset($data['exercice_id'])
+                ? Exercice::findOrFail($data['exercice_id'])
+                : Exercice::current();
             $prefixe = Setting::get('devis_prefixe', 'DV');
 
             $entreprise = Entreprise::findOrFail($data['entreprise_id']);
@@ -96,6 +152,13 @@ class FacturationService
     {
         if ($devis->statut !== 'brouillon') {
             throw new DomainException('Seuls les devis en brouillon peuvent etre modifies.');
+        }
+
+        // Recalculer le prix HT si entreprise ou prestation change
+        if (isset($data['entreprise_id']) || isset($data['prestation_id'])) {
+            $entreprise = Entreprise::findOrFail($data['entreprise_id'] ?? $devis->entreprise_id);
+            $prestation = Prestation::findOrFail($data['prestation_id'] ?? $devis->prestation_id);
+            $data['prix_ht'] = $prestation->calculerPrixHt($entreprise->regime_fiscal, $entreprise->categorie);
         }
 
         $devis->update($data);
@@ -173,7 +236,18 @@ class FacturationService
             ];
 
             $tranche = $tranches[$nbFactures];
-            $montantHt = round((float) $mission->prix_ht * $tranche['taux'], 2);
+
+            // La 3e tranche est le solde exact (prix_ht - T1 - T2) et non un round() independant :
+            // garantit T1 + T2 + T3 == prix_ht meme lorsque le prix porte des centimes (pas de perte d'arrondi).
+            $prixHt = (float) $mission->prix_ht;
+            $montantT1 = round($prixHt * 0.30, 2);
+            $montantT2 = round($prixHt * 0.30, 2);
+            $montantsTranches = [
+                0 => $montantT1,
+                1 => $montantT2,
+                2 => round($prixHt - $montantT1 - $montantT2, 2),
+            ];
+            $montantHt = $montantsTranches[$nbFactures];
 
             $dateFacture = $data['date_facture'];
             $dateEcheance = Carbon::parse($dateFacture)->addDays(45)->toDateString();
@@ -183,7 +257,9 @@ class FacturationService
             $montantTva = round($montantHt * $tauxTva / 100, 2);
             $montantTtc = round($montantHt + $montantTva, 2);
 
-            $exercice = Exercice::current();
+            $exercice = isset($data['exercice_id'])
+                ? Exercice::findOrFail($data['exercice_id'])
+                : Exercice::current();
             $prefixe = Setting::get('facture_prefixe', 'FF');
             $designation = $mission->prestation->designation.' — '.($tranche['taux'] * 100).'%';
 
@@ -221,6 +297,54 @@ class FacturationService
             ]);
 
             return $facture->load('lignes', 'entreprise', 'mission');
+        });
+    }
+
+    /**
+     * Emet un avoir sur une facture existante.
+     * Le taux TVA est repris depuis la facture d'origine (snapshot immuable).
+     * Le montant HT saisi ne peut pas depasser le montant restant du de la facture.
+     */
+    public function creerAvoir(Facture $facture, array $data, int $userId): Avoir
+    {
+        return DB::transaction(function () use ($facture, $data, $userId) {
+            $montantHt = (float) $data['montant_ht'];
+            $tauxTva = (float) $facture->taux_tva;
+            $montantTva = round($montantHt * $tauxTva / 100, 2);
+            $montantTtc = round($montantHt + $montantTva, 2);
+
+            if ($montantTtc > $facture->montantRestant() + 0.001) {
+                throw new DomainException('Le montant de l\'avoir ne peut pas dépasser le montant restant dû ('
+                    .number_format($facture->montantRestant(), 2, ',', ' ').' DA).');
+            }
+
+            $exercice = Exercice::current();
+            $prefixe = Setting::get('avoir_prefixe', 'FA');
+
+            return Avoir::create([
+                'facture_origine_id' => $facture->id,
+                'exercice_id' => $exercice->id,
+                'created_by' => $userId,
+                'numero' => $this->genererNumero($prefixe, 'avoirs', $exercice),
+                'date_avoir' => $data['date_avoir'],
+                'montant_ht' => $montantHt,
+                'taux_tva_snapshot' => $tauxTva,
+                'montant_tva' => $montantTva,
+                'montant_ttc' => $montantTtc,
+                'motif' => $data['motif'],
+            ]);
+        });
+    }
+
+    public function supprimerFacture(Facture $facture): void
+    {
+        if ($facture->paiements()->exists()) {
+            throw new DomainException('Impossible de supprimer une facture avec des paiements.');
+        }
+
+        DB::transaction(function () use ($facture) {
+            $facture->lignes()->delete();
+            $facture->delete();
         });
     }
 

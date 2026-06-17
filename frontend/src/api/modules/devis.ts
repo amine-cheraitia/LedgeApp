@@ -5,13 +5,17 @@ export interface DevisFilters {
   page?: number
   per_page?: number
   search?: string
+  exercice_id?: number
   entreprise_id?: number
   statut?: string
+  sort_field?: string
+  sort_direction?: 'asc' | 'desc'
 }
 
 export interface DevisPayload {
   entreprise_id: number
   prestation_id: number
+  exercice_id?: number
   date_devis: string
   date_validite: string
   notes?: string | null
@@ -36,7 +40,7 @@ export const devisApi = {
     return api.post('/devis', data).then(r => r.data)
   },
 
-  update(id: number, data: Partial<{ notes: string; date_validite: string }>): Promise<{ data: Devis }> {
+  update(id: number, data: Partial<{ entreprise_id: number; prestation_id: number; date_devis: string; date_validite: string; notes: string }>): Promise<{ data: Devis }> {
     return api.put(`/devis/${id}`, data).then(r => r.data)
   },
 

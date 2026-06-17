@@ -6,6 +6,7 @@ export interface EntrepriseFilters {
   per_page?: number
   search?: string
   statut?: string
+  wilaya?: string
 }
 
 export const entreprisesApi = {
@@ -35,5 +36,13 @@ export const entreprisesApi = {
 
   togglePortail(id: number) {
     return api.post(`/entreprises/${id}/toggle-portail`).then(r => r.data)
+  },
+
+  wilayas(): Promise<{ data: string[] }> {
+    return api.get('/entreprises/wilayas').then(r => r.data)
+  },
+
+  exportCsv(params?: Omit<EntrepriseFilters, 'page' | 'per_page'>): Promise<Blob> {
+    return api.get('/entreprises/export-csv', { params, responseType: 'blob' }).then(r => r.data)
   },
 }

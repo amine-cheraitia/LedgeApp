@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Entreprises;
 
 use App\Http\Controllers\Controller;
@@ -8,29 +10,49 @@ use App\Http\Requests\Entreprises\UpdateEntrepriseRequest;
 use App\Http\Resources\Auth\UserResource;
 use App\Http\Resources\Entreprises\EntrepriseResource;
 use App\Models\Entreprise;
+use App\Services\EntrepriseService;
 use App\Services\PortailService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class EntrepriseController extends Controller
 {
+    public function __construct(private readonly EntrepriseService $entrepriseService) {}
+
     public function index(Request $request): AnonymousResourceCollection
     {
-        $entreprises = Entreprise::query()
-            ->when($request->search, fn ($q, $s) => $q->where('raison_sociale', 'like', "%{$s}%")->orWhere('nif', 'like', "%{$s}%"))
-            ->when($request->statut, fn ($q, $s) => $q->where('statut', $s))
-            ->with('users')
-            ->withCount('missions', 'factures')
-            ->latest()
-            ->paginate($request->per_page ?? 15);
+        $this->authorize('viewAny', Entreprise::class);
+
+        $entreprises = $this->entrepriseService->lister($request->only([
+            'search', 'statut', 'wilaya', 'per_page',
+        ]));
 
         return EntrepriseResource::collection($entreprises);
     }
 
+    public function wilayas(): JsonResponse
+    {
+        $this->authorize('viewAny', Entreprise::class);
+
+        return response()->json(['data' => $this->entrepriseService->wilayas()]);
+    }
+
+    public function exportCsv(Request $request): StreamedResponse
+    {
+        $this->authorize('viewAny', Entreprise::class);
+
+        return $this->entrepriseService->exportCsv($request->only([
+            'search', 'statut', 'wilaya',
+        ]));
+    }
+
     public function store(StoreEntrepriseRequest $request): JsonResponse
     {
-        $entreprise = Entreprise::create($request->validated());
+        $this->authorize('create', Entreprise::class);
+
+        $entreprise = $this->entrepriseService->creer($request->validated());
 
         return (new EntrepriseResource($entreprise))
             ->response()
@@ -39,6 +61,9 @@ class EntrepriseController extends Controller
 
     public function show(Entreprise $entreprise): EntrepriseResource
     {
+        $this->authorize('view', $entreprise);
+
+        $entreprise->load('users', 'contacts');
         $entreprise->loadCount('missions', 'factures');
 
         return new EntrepriseResource($entreprise);
@@ -46,6 +71,8 @@ class EntrepriseController extends Controller
 
     public function update(UpdateEntrepriseRequest $request, Entreprise $entreprise): EntrepriseResource
     {
+        $this->authorize('update', $entreprise);
+
         $entreprise->update($request->validated());
 
         return new EntrepriseResource($entreprise);
@@ -53,6 +80,7 @@ class EntrepriseController extends Controller
 
     public function destroy(Entreprise $entreprise): JsonResponse
     {
+        $this->authorize('delete', $entreprise);
         if ($entreprise->missions()->exists() || $entreprise->devis()->exists()) {
             return response()->json([
                 'message' => 'Impossible de supprimer cette entreprise : des missions ou devis y sont associes.',

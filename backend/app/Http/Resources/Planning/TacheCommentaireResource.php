@@ -17,6 +17,7 @@ class TacheCommentaireResource extends JsonResource
         return [
             'id' => $this->id,
             'tache_id' => $this->tache_id,
+            'user_id' => $this->user_id,
             'user' => [
                 'id' => $this->user->id,
                 'name' => $this->user->name,

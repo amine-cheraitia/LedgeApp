@@ -13,6 +13,7 @@ const containerClass = computed(() => ({
   'layout-overlay-active': layoutState.overlayMenuActive,
   'layout-mobile-active': layoutState.mobileMenuActive,
   'layout-static-inactive': layoutState.staticMenuInactive,
+  'layout-static-collapsed': layoutState.staticMenuCollapsed,
 }))
 </script>
 
@@ -27,7 +28,7 @@ const containerClass = computed(() => ({
       </div>
       <AppFooter />
     </div>
-    <div class="layout-mask animate-fadein" @click="hideMobileMenu" />
+    <div class="layout-mask animate-fadein" @click="hideMobileMenu" aria-hidden="true" />
   </div>
   <Toast />
   <ConfirmDialog />

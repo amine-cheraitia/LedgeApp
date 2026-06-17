@@ -15,6 +15,7 @@ class Mission extends Model
 
     protected $fillable = [
         'entreprise_id', 'exercice_id', 'prestation_id', 'devis_id', 'reference',
+        'convention_numero', 'mandat_numero', 'visible_portail',
         'prix_ht', 'date_debut', 'date_fin', 'statut', 'notes',
     ];
 
@@ -22,6 +23,7 @@ class Mission extends Model
         'date_debut' => 'date',
         'date_fin' => 'date',
         'prix_ht' => 'decimal:2',
+        'visible_portail' => 'boolean',
     ];
 
     public function entreprise(): BelongsTo

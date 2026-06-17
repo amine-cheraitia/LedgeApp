@@ -1,7 +1,11 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+const annee = new Date().getFullYear()
+</script>
 
 <template>
-  <div class="layout-footer">
-    <strong>Ledge</strong> &mdash; Cabinet de conseil &amp; comptabilite
-  </div>
+  <footer class="layout-footer" role="contentinfo">
+    <span>Ledge · {{ annee }}</span>
+    <span aria-hidden="true">·</span>
+    <span>Cabinet de conseil &amp; comptabilité</span>
+  </footer>
 </template>

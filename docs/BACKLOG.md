@@ -52,6 +52,20 @@
 
 ---
 
+### US-51 · Gestion des taux TVA & Timbre · M · 3 pts · Sprint 3
+
+**En tant qu'administrateur**, je veux gerer les taux TVA et timbre fiscal depuis l'interface **afin de** ne pas acceder directement a la base de donnees.
+
+- Page Settings dediee : `/admin/settings/tva-taux`
+- Datatable : taux actuels avec date_debut / date_fin · type (standard / reduit / exonere) · actions (editer, supprimer)
+- Bouton « Ajouter un taux » : formulaire avec taux (%), designation, date_debut, date_fin, type
+- Suppression bloquee si factures associees au taux (HTTP 409)
+- Routes API : `GET /api/v1/referentiels/tva-taux` · `POST` · `PUT` · `DELETE`
+- Frontend : form validation, toast succes/erreur
+- Depend de : **US-04**
+
+---
+
 ### US-05 · Grille tarifaire · M · 3 pts · Sprint 1 ✅
 
 **En tant qu'administrateur**, je veux definir la grille tarifaire **afin de** calculer automatiquement les prix des missions.
@@ -110,7 +124,7 @@
 
 ---
 
-### US-43 · CRUD prestations · S · 3 pts · Sprint 1
+### US-43 · CRUD prestations · S · 3 pts · Sprint 1 ✅
 
 **En tant qu'administrateur**, je veux ajouter, modifier et supprimer des prestations depuis l'interface **afin de** faire evoluer le catalogue tarifaire sans intervention technique.
 
@@ -123,7 +137,7 @@
 
 ## Couche 2
 
-### US-08 · Contacts entreprise · M · 2 pts · Sprint 1
+### US-08 · Contacts entreprise · M · 2 pts · Sprint 1 ✅
 
 **En tant qu'administrateur**, je veux gerer les contacts d'une entreprise **afin de** savoir a qui adresser les communications.
 
@@ -134,7 +148,7 @@
 
 ---
 
-### US-09 · Recherche et filtres entreprises · S · 3 pts · Sprint 1
+### US-09 · Recherche et filtres entreprises · S · 3 pts · Sprint 1 ✅
 
 **En tant qu'administrateur**, je veux rechercher et filtrer les entreprises **afin de** retrouver rapidement un dossier.
 
@@ -181,7 +195,7 @@
 
 ---
 
-### US-29 · Portail client — acces · M · 5 pts · Sprint 2
+### US-29 · Portail client — acces · M · 5 pts · Sprint 2 ✅
 
 **En tant que client**, je veux acceder a un portail securise distinct **afin de** consulter mes donnees en autonomie.
 
@@ -211,6 +225,7 @@
 
 - Numerotation `FF{ANNEE}-{NNN}` · reset au 1er janvier · `lockForUpdate` anti-doublon
 - **3 tranches : T1 = 30% · T2 = 30% · T3 = 40% (solde)**
+  - 🐛 Correctif arrondi (#52) : T3 calculee comme **solde exact** (`prix_ht − T1 − T2`) — invariant `T1 + T2 + T3 == prix_ht` garanti et teste, y compris prix a centimes
 - Snapshots immuables copies UNE SEULE FOIS a la creation :
   `taux_tva` · `montant_tva` · `montant_timbre` · `montant_ttc`
 - `FacturationService::creerFacture()` deja implementee
@@ -230,7 +245,7 @@
 
 ---
 
-### US-23 · Calendrier interactif FullCalendar · M · 8 pts · Sprint 2
+### US-23 · Calendrier interactif FullCalendar · M · 8 pts · Sprint 2 ✅
 
 **En tant qu'administrateur**, je veux visualiser toutes les missions et taches dans un calendrier interactif **afin d'** avoir une vue globale de la charge equipe.
 
@@ -305,7 +320,7 @@
 
 ---
 
-### US-30 · Portail — mes factures · M · 3 pts · Sprint 2
+### US-30 · Portail — mes factures · M · 3 pts · Sprint 2 ✅
 
 **En tant que client**, je veux consulter mes factures et telecharger les PDFs **afin de** gerer ma comptabilite sans appeler le cabinet.
 
@@ -317,7 +332,7 @@
 
 ## Couche 6
 
-### US-16 · Avoir sur facture · M · 5 pts · Sprint 2
+### US-16 · Avoir sur facture · M · 5 pts · Sprint 2 ✅
 
 **En tant qu'administrateur**, je veux emettre un avoir sur une facture **afin de** corriger une erreur de facturation.
 
@@ -348,7 +363,7 @@
 
 ---
 
-### US-31 · Portail — mes missions · S · 3 pts · Sprint 2
+### US-31 · Portail — mes missions · S · 3 pts · Sprint 2 ✅
 
 **En tant que client**, je veux suivre l'avancement de mes missions depuis le portail **afin d'** etre informe sans appeler le cabinet.
 
@@ -358,7 +373,7 @@
 
 ---
 
-### US-32 · Portail — mes documents · S · 5 pts · Sprint 2
+### US-32 · Portail — mes documents · S · 5 pts · Sprint 2 ✅
 
 **En tant que client**, je veux acceder a mes documents partages (conventions, mandats) depuis le portail **afin de** retrouver mon dossier complet en ligne.
 
@@ -368,7 +383,7 @@
 
 ---
 
-### US-10 · Vue 360° client · S · 5 pts · Sprint 2
+### US-10 · Vue 360° client · S · 5 pts · Sprint 2 ✅
 
 **En tant qu'administrateur**, je veux voir l'historique complet d'un client (missions, factures, paiements, relances) **afin d'** avoir une vue 360° de la relation.
 
@@ -377,12 +392,13 @@
 
 ---
 
-### US-33 · Dashboard KPI · M · 5 pts · Sprint 2
+### US-33 · Dashboard KPI · M · 5 pts · Sprint 2 ✅
 
 **En tant qu'administrateur**, je veux un tableau de bord avec les indicateurs cles **afin d'** avoir une vision instantanee du cabinet.
 
 - CA du mois · TVA collectee · taux recouvrement · missions actives
 - Widgets dynamiques · filtrable par exercice · alertes si seuil depasse
+- **Graphiques (Chart.js / PrimeVue)** : CA mensuel en barres (12 mois de l'exercice) + repartition des missions par statut en camembert — dark mode + RGAA (table alternative `.sr-only`)
 - Depend de : **US-13, US-15, US-18**
 
 ---
@@ -410,7 +426,7 @@
 
 ---
 
-### US-34 · KPI objectifs collaborateurs · S · 5 pts · Sprint 2
+### US-34 · KPI objectifs collaborateurs · S · 5 pts · Sprint 2 ✅
 
 **En tant qu'administrateur**, je veux definir des objectifs KPI par collaborateur et suivre le realise vs la cible **afin de** piloter la performance individuelle.
 
@@ -431,18 +447,26 @@
 
 ## Couche 8 — Qualite transversale · Sprint 3
 
-### US-36 · OWASP Top 10 · M · 5 pts · Sprint 3 `C2.2.3 ★`
+### US-36 · OWASP Top 10 · M · 5 pts · Sprint 3 `C2.2.3 ★` ✅
 
 **En tant que developpeur**, je veux implementer les controles OWASP Top 10 **afin que** l'application soit securisee pour un usage en production.
 
-- CSRF sur tous les formulaires · Eloquent uniquement (jamais `DB::raw()` avec input)
-- Form Request sur tout `store()` et `update()` · brute-force login · headers HTTP securises
-- Pas de `v-html` avec donnees utilisateur (XSS)
+- ✅ CSRF sur tous les formulaires (Sanctum cookie-based)
+- ✅ Eloquent uniquement (jamais `DB::raw()` avec input utilisateur)
+- ✅ Form Request sur tout `store()` et `update()` (23 FormRequests)
+- ✅ Brute-force login : `throttle:5,1` sur POST /login
+- ✅ Headers HTTP securises : CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
+- ✅ Policies Laravel sur chaque ressource : User, Prestation, Setting, Facture, Devis, Mission, Avoir
+- ✅ Pas de `v-html` avec donnees utilisateur (XSS)
+- ✅ CORS : allowed_headers restrictifs (suppression wildcard)
+- ✅ A05 Security Misconfiguration : `ApiExceptionRenderer` — aucune fuite de SQL, host, port, stack, chemin fichier sur les routes API meme en `APP_DEBUG=true` (6 tests)
+- ✅ A09 Logging & Monitoring : toutes les exceptions API loguees avec contexte structure (URL, methode, IP, user_id) — relayees a Sentry ; journal d'audit metier des actions sensibles (US-47)
+- ✅ A06 Composants vulnerables : `composer audit` actif (advisories non silencees) — advisories Symfony 7.x heritees de Laravel 12 documentees et evaluees dans `docs/SECURITY.md` (impact reel faible a nul), remediation suivie
 - Depend de : tout le code
 
 ---
 
-### US-37 · RGAA accessibilite · M · 5 pts · Sprint 3 `C2.2.3 ★`
+### US-37 · RGAA accessibilite · M · 5 pts · Sprint 3 `C2.2.3 ★` ✅
 
 **En tant que developpeur**, je veux integrer les criteres RGAA **afin de** valider la competence C2.2.3.
 
@@ -469,7 +493,7 @@
 
 ---
 
-### US-39 · Supervision MCO · M · 3 pts · Sprint 3 `C4.1.2 ★`
+### US-39 · Supervision MCO · M · 3 pts · Sprint 3 `C4.1.2 ★` ✅
 
 **En tant qu'administrateur**, je veux que l'application soit supervisee **afin d'** etre alerte immediatement en cas d'anomalie.
 
@@ -481,26 +505,113 @@
 
 ---
 
-### US-41 · Protections de suppression · S · 3 pts · Sprint 3
+### US-47 · Journal d'audit — piste d'audit des actions utilisateurs · S · 3 pts · Sprint 3 ✅
+
+**En tant qu'administrateur**, je veux consulter une piste d'audit de toutes les actions effectuees sur les entites sensibles **afin de** garantir la tracabilite (qui a cree, modifie ou supprime quoi, et quand) et repondre aux exigences legales du cabinet.
+
+- Package `spatie/laravel-activitylog` · table `activity_log` (causer, sujet, evenement, diff des champs)
+- Modeles traces : `Facture`, `Avoir`, `Paiement`, `Devis`, `Entreprise`, `User`, `Setting` (trait `LogsActivity`, `logOnlyDirty`)
+- Securite : le `password` et le `remember_token` ne sont jamais journalises (`logExcept`)
+- Capture automatique de l'utilisateur connecte (causer) et du diff avant/apres
+- Lecture seule, **admin uniquement** : `GET /api/v1/audit-logs` paginee + filtres (entite, action, periode)
+- Frontend : page `Journal d'audit` (DataTable, filtres, dialog detail du diff) sous Administration · RGAA
+- Complement de l'audit OWASP A09 (US-36) qui ne loggait que les erreurs
+- Depend de : **US-36**
+
+---
+
+### US-45 · Droits collaborateur — isolation missions/taches · M · 3 pts · Sprint 3 ✅
+
+**En tant que collaborateur**, je veux n'avoir acces qu'aux missions auxquelles je suis affecte et ne pouvoir modifier que mes propres taches **afin de** respecter le principe de moindre privilege.
+
+- Routes restructurees en 3 groupes Spatie (`role:admin`, `role:admin|secretaire`, tous backoffice) — collaborateur bloque sur facturation, entreprises, referentiels en ecriture
+- Missions : visibles uniquement si dans `mission_user` — `MissionPolicy::view` + `MissionService::listerMissions(User)` filtre par `whereHas('collaborateurs')`
+- Missions : modification/creation/suppression reservees a admin/secretaire
+- Taches : lecture de toutes les taches de la mission autorisee — modification reservee a `assigned_to === user->id` (statut uniquement) via `TachePolicy`
+- Taches : creation/suppression reservees a admin/secretaire
+- Calendrier : filtre automatique par `collaborateur_id` cote serveur — chaque collaborateur ne voit que ses evenements
+- Commentaires : creation autorisee si acces a la mission — modification/suppression reservees a l'auteur ou admin
+- `visible_portail` sur `tache_commentaires` : prepare le rapport de cloture (US-35) et le partage client depuis le portail
+- Frontend : interface commentaires integree dans `MissionDetailPage` (expandable par tache), guards role complets, panel bienvenue collaborateur sur dashboard, menus/boutons conditionnes par role
+- RGAA : `aria-labelledby`, `role="status"`, `aria-expanded`, `aria-live` sur tous les nouveaux elements
+- Depend de : **US-18, US-19, US-22**
+
+---
+
+### US-41 · Protections de suppression · S · 3 pts · Sprint 3 ✅
 
 **En tant que developpeur**, je veux mettre en place des protections de suppression sur les entites liees **afin d'** eviter la destruction accidentelle de donnees critiques.
 
-- Entreprise bloquee si devis ou missions associes (deja en place — HTTP 409)
-- Mission bloquee si factures associees (deja en place — HTTP 409)
-- Facture bloquee si paiements ou avoirs associes (deja en place — HTTP 409)
-- Tache bloquee si commentaires associes
-- Reponse API `422` avec message explicite
+- ✅ Entreprise bloquee si devis ou missions associes (HTTP 409)
+- ✅ Mission bloquee si factures associees (HTTP 409)
+- ✅ Facture bloquee si paiements ou avoirs associes (HTTP 409)
+- ✅ Tache bloquee si commentaires associes (HTTP 409) — `TacheController::destroy`
+- ✅ Frontend affiche le message d'erreur via toast (MissionDetailPage)
 - Depend de : **US-11, US-13, US-15, US-18, US-22**
 
 ---
 
-### US-42 · Dashboard collaborateur · S · 3 pts · Sprint 3
+### US-42 · Dashboard collaborateur · S · 3 pts · Sprint 3 ✅
 
 **En tant que collaborateur**, je veux un dashboard dedie affichant mes missions et mes KPI personnels **afin d'** avoir une vue de mon propre perimetre.
 
 - Missions assignees · taux de completion des taches
 - Distinct du dashboard Admin global
 - Depend de : **US-33, US-20**
+
+---
+
+### US-50 · Dashboard secrétaire · M · 3 pts · Sprint 3 ✅
+
+**En tant que secrétaire**, je veux un dashboard dédié et **orienté action** (facturation + recouvrement) **afin de** voir d'un coup d'œil ce que je dois faire et le traiter en un clic.
+
+- **Worklist « À faire »** : actions priorisées (factures en retard, relances à envoyer, devis expirant / en attente / à convertir) avec lien direct vers la page concernée
+- KPI recouvrement : impayé total (avoirs déduits), clients débiteurs, factures en retard, relances dues
+- KPI facturation : devis en attente (count + montant), encaissements du mois, factures émises ce mois (delta N-1)
+- Graphiques (SVG/CSS, sans dépendance) : aging créances 15–29 / 30–59 / 60+ j · donut relances N1/N2/N3 · comparatif factures N vs N-1
+- Top 5 débiteurs (barres) · créances urgentes · liens rapides `/creances`, `/factures`, `/devis`
+- Refonte graphique « Ledger Edition », **dark mode** complet, **RGAA** (worklist en liste de liens, charts `role="img"`, `prefers-reduced-motion`)
+- Endpoint `GET /api/v1/stats/secretaire` (rôle secrétaire uniquement), distinct du dashboard admin (`GET /api/v1/stats`)
+- 🔄 **Recadrage périmètre (feature/perimetre-secretaire)** : la secrétaire ne fait plus de **production de facturation**. Périmètre = **CRUD entreprises (sans suppression)** + **créances/recouvrement** (consulter, relancer, enregistrer les paiements) + **envoi des devis** et **transmission des factures (PDF)**. Création/suppression de devis/factures/avoirs et cycle de vie devis (accepter/refuser/convertir) réservés à l'admin. Dashboard secrétaire recentré sur le recouvrement (volet facturation/production retiré : devis en attente / émission de factures)
+- 🔄 **Hors Missions & Planning (feature/secretaire-hors-missions-planning)** : la secrétaire n'a **plus accès** aux Missions ni au Planning (menu, routeur, API `role:admin|collaborateur`, `MissionPolicy`/`TachePolicy`). L'onglet Missions de la fiche entreprise est masqué pour elle.
+- Depend de : **US-13, US-27**
+
+---
+
+### US-48 · Entreprises — création/modification secrétaire · S · 2 pts · Sprint 3 ✅
+
+**En tant que secrétaire**, je veux créer et modifier des entreprises **afin de** gérer les fiches clients sans passer par l'administrateur.
+
+- Policy `create`/`update` : admin + secrétaire
+- Suppression et activation portail : admin uniquement
+- UI : bouton « Nouvelle entreprise » et édition visibles ; portail/suppression masqués pour la secrétaire
+- Depend de : **US-06**
+
+---
+
+### US-49 · Garde router par rôle · S · 2 pts · Sprint 3 ✅
+
+**En tant qu'utilisateur back-office**, je veux être redirigé proprement si j'accède à une page hors périmètre **afin de** ne pas voir un écran vide ou une erreur API silencieuse.
+
+- `meta.roles` sur les routes Vue Router (admin / admin+secrétaire / tous staff)
+- Page `/acces-refuse` avec message clair et retour dashboard
+- Menu aligné sur les routes (config relances admin only)
+- Depend de : **US-45**
+
+---
+
+### US-46 · Rapport de fin de mission PDF · S · 3 pts · Sprint 3 ✅
+
+**En tant qu'administrateur ou client**, je veux générer un rapport PDF de fin de mission **afin d'** avoir un récapitulatif complet des travaux effectués avec les commentaires associés.
+
+- DomPDF · en-tête cabinet · informations mission (client, prestation, dates, prix HT)
+- Tâches listées avec statut, assigné, priorité, échéance
+- Commentaires par tâche : auteur + date + contenu
+- Mode portail : uniquement les commentaires avec `visible_portail = true` · section facturation masquée
+- Accessible via `GET /api/v1/missions/{id}/rapport/pdf` (admin + secrétaire)
+- Accessible via `GET /api/v1/portail/missions/{id}/rapport/pdf` (client portail)
+- Bouton dans la section Documents de MissionDetailPage · bouton dans le dialog détail portail
+- Depend de : **US-18, US-22, US-29**
 
 ---
 
@@ -521,25 +632,26 @@
 
 | Sprint | US | Pts | Contenu principal |
 |---|---|---|---|
-| Sprint 1 | US-01 ✅, 02 ✅, 03 ✅, 04 ✅, 05 ✅, 06 ✅, 07 ✅, 08, 09, 11 ✅, 12, 17 ✅, 18 ✅, 40 ✅, 43 | 49 pts | Auth · Referentiel · Clients · Devis · Mission · Exercice |
-| Sprint 2 | US-10, 13 ✅, 14 ✅, 15 ✅, 16, 19 ✅, 20 ✅, 21 ✅, 22 ✅, 23, 24, 25 ✅, 26 ✅, 27 ✅, 28 ✅, 29, 30, 31, 32, 33, 34 | 96 pts | Factures · Taches · Portail · Relances · KPI |
-| Sprint 3 | US-35, 36, 37, 38, 39, 41, 42 | 27 pts | Qualite · OWASP · RGAA · Tests · MCO |
-| **Total** | **43 US** | **170 pts** | |
+| Sprint 1 | US-01 ✅, 02 ✅, 03 ✅, 04 ✅, 05 ✅, 06 ✅, 07 ✅, 08 ✅, 09 ✅, 11 ✅, 12 ✅, 17 ✅, 18 ✅, 40 ✅, 43 ✅ | 49 pts | Auth · Referentiel · Clients · Devis · Mission · Exercice |
+| Sprint 2 | US-10 ✅, 13 ✅, 14 ✅, 15 ✅, 16 ✅, 19 ✅, 20 ✅, 21 ✅, 22 ✅, 23 ✅, 24 ✅, 25 ✅, 26 ✅, 27 ✅, 28 ✅, 29 ✅, 30 ✅, 31 ✅, 32 ✅, 33 ✅, 34 ✅ | 96 pts | Factures · Taches · Portail · Relances · KPI |
+| Sprint 3 | US-35 ✅, 36 ✅, 37 ✅, 38 ✅, 39 ✅, 41 ✅, 42 ✅, 45 ✅, 46 ✅, 47 ✅, 48 ✅, 49 ✅, 50 ✅ · **US-51 🔧** | 43 pts | Qualite · OWASP · RGAA · Tests · MCO · Droits · PDF mission · Dashboard secrétaire · Settings TVA |
+| **Total** | **46 US** | **179 pts** | |
 
 ### Par priorite MoSCoW
 
 | Priorite | US | Pts |
 |---|---|---|
-| Must Have | 29 US | 125 pts |
+| Must Have | 30 US | 128 pts |
 | Should Have | 14 US | 45 pts |
+| Could Have | 2 US | 6 pts |
 
 ### Avancement
 
 | Statut | US | Pts |
 |---|---|---|
-| ✅ Termine | 23 US | 81 pts |
-| 🔧 En cours | — | — |
-| A faire | 20 US | 89 pts |
+| ✅ Termine | 42 US | 153 pts |
+| 🔧 En cours | 1 US | 3 pts |
+| A faire | 3 US | 23 pts |
 
 ### Noeuds critiques
 
@@ -548,8 +660,7 @@
 | **US-18 Mission** ⭐ ✅ | Debloque 11 US en aval (taches, factures, calendrier, portail, KPI, relances) |
 | **US-13 Facture** ⭐ ✅ | Debloque 9 US en aval (PDF DGI, paiements, avoirs, relances, portail, KPI) |
 
-> US-18, US-13, US-14, US-15, US-19, US-20, US-21, US-22, US-25, US-26, US-27, US-28 livrees.
-> Sprint 2 peut continuer : US-16 (avoirs), US-29 (portail client), US-33 (dashboard KPI), US-23 (calendrier), US-24 (PDF convention/mandat).
+> Sprint 3 terminé : US-35 ✅, US-36 ✅, US-37 ✅, US-38 ✅, US-39 ✅, US-41 ✅, US-42 ✅, US-45 ✅, US-46 ✅, US-47 ✅, US-48 ✅, US-49 ✅, US-50 ✅.
 
 ---
 

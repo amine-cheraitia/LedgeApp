@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import api from '@/api/client'
+import api, { resetCsrf } from '@/api/client'
 import type { User } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -10,10 +10,17 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!user.value)
   const isAdmin = computed(() => user.value?.roles?.includes('admin') ?? false)
   const isClient = computed(() => user.value?.roles?.includes('client') ?? false)
+  const isSecretaire = computed(() => user.value?.roles?.includes('secretaire') ?? false)
+  const isCollaborateur = computed(() => user.value?.roles?.includes('collaborateur') ?? false)
   const isBackoffice = computed(() => {
     const roles = user.value?.roles ?? []
     return roles.some(r => ['admin', 'collaborateur', 'secretaire'].includes(r))
   })
+
+  function hasAnyRole(roles: string[]): boolean {
+    const userRoles = user.value?.roles ?? []
+    return userRoles.some(r => roles.includes(r))
+  }
 
   function normalizeUser(raw: Record<string, unknown>): User {
     const u = raw as unknown as User
@@ -37,6 +44,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout() {
     await api.post('/logout')
     user.value = null
+    resetCsrf()
   }
 
   async function fetchUser() {
@@ -48,5 +56,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, loading, isAuthenticated, isAdmin, isClient, isBackoffice, login, logout, fetchUser }
+  return { user, loading, isAuthenticated, isAdmin, isClient, isSecretaire, isCollaborateur, isBackoffice, hasAnyRole, login, logout, fetchUser }
 })

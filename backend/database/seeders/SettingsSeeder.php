@@ -16,8 +16,13 @@ class SettingsSeeder extends Seeder
             ['key' => 'cabinet_nis', 'value' => '', 'group' => 'cabinet', 'label' => 'NIS'],
             ['key' => 'cabinet_rib', 'value' => '', 'group' => 'cabinet', 'label' => 'RIB'],
             ['key' => 'cabinet_telephone', 'value' => '', 'group' => 'cabinet', 'label' => 'Téléphone'],
+            ['key' => 'cabinet_agrement', 'value' => '', 'group' => 'cabinet', 'label' => "N° d'agrément"],
+            ['key' => 'cabinet_soustitre', 'value' => 'Cabinet de comptabilité et commissariat aux comptes', 'group' => 'cabinet', 'label' => 'Sous-titre'],
+            ['key' => 'cabinet_ville', 'value' => 'Alger', 'group' => 'cabinet', 'label' => 'Ville'],
             ['key' => 'facture_prefixe', 'value' => 'FF', 'group' => 'facturation', 'label' => 'Préfixe facture'],
             ['key' => 'devis_prefixe', 'value' => 'DV', 'group' => 'facturation', 'label' => 'Préfixe devis'],
+            ['key' => 'convention_prefixe', 'value' => 'CV', 'group' => 'facturation', 'label' => 'Préfixe convention'],
+            ['key' => 'mandat_prefixe', 'value' => 'MD', 'group' => 'facturation', 'label' => 'Préfixe mandat'],
             ['key' => 'devise', 'value' => 'DA', 'group' => 'facturation', 'label' => 'Devise'],
             ['key' => 'relance_niveau1_jours', 'value' => '15', 'group' => 'relances', 'label' => 'Délai relance niveau 1 (jours)'],
             ['key' => 'relance_niveau2_jours', 'value' => '30', 'group' => 'relances', 'label' => 'Délai relance niveau 2 (jours)'],
@@ -25,6 +30,7 @@ class SettingsSeeder extends Seeder
             ['key' => 'relance_template_n1', 'value' => "Bonjour {{client}},\n\nNous vous rappelons que votre facture {{numero_facture}} d'un montant de {{montant}} est echue depuis le {{echeance}}.\n\nMerci de bien vouloir regulariser votre situation dans les meilleurs delais.\n\nCordialement,\nLe Cabinet", 'group' => 'relances', 'label' => 'Template relance niveau 1'],
             ['key' => 'relance_template_n2', 'value' => "Bonjour {{client}},\n\nMalgre notre premiere relance, nous constatons que la facture {{numero_facture}} d'un montant de {{montant}} reste impayee depuis le {{echeance}}.\n\nNous vous demandons de regulariser cette situation sous 48 heures.\n\nCordialement,\nLe Cabinet", 'group' => 'relances', 'label' => 'Template relance niveau 2'],
             ['key' => 'relance_template_n3', 'value' => "Bonjour {{client}},\n\nNous vous mettons en demeure de regler la facture {{numero_facture}} d'un montant de {{montant}} echue depuis le {{echeance}}.\n\nA defaut de paiement sous 72 heures, nous nous reservons le droit de prendre toutes mesures legales necessaires.\n\nCordialement,\nLe Cabinet", 'group' => 'relances', 'label' => 'Template relance niveau 3'],
+            ['key' => 'seuil_alerte_recouvrement', 'value' => '70', 'group' => 'dashboard', 'label' => 'Seuil alerte taux de recouvrement (%)'],
         ];
 
         foreach ($settings as $setting) {

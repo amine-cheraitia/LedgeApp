@@ -25,6 +25,7 @@ class UpdateMissionRequest extends FormRequest
             'collaborateur_ids' => ['nullable', 'array'],
             'collaborateur_ids.*' => ['integer', 'exists:users,id'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'visible_portail' => ['sometimes', 'boolean'],
         ];
     }
 }

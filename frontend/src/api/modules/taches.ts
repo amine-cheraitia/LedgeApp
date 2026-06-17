@@ -15,6 +15,10 @@ export const tachesApi = {
     return api.get(`/missions/${missionId}/taches`).then(r => r.data)
   },
 
+  getOne(missionId: number, tacheId: number): Promise<{ data: Tache }> {
+    return api.get(`/missions/${missionId}/taches/${tacheId}`).then(r => r.data)
+  },
+
   create(missionId: number, data: TachePayload): Promise<{ data: Tache }> {
     return api.post(`/missions/${missionId}/taches`, data).then(r => r.data)
   },

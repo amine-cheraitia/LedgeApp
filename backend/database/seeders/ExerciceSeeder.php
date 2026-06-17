@@ -13,7 +13,7 @@ class ExerciceSeeder extends Seeder
             ['annee' => 2026],
             [
                 'date_ouverture' => '2026-01-01',
-                'date_cloture' => null,
+                'date_cloture' => '2026-12-31',
                 'statut' => 'ouvert',
             ]
         );

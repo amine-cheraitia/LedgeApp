@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -11,30 +11,53 @@ import Select from 'primevue/select'
 import MultiSelect from 'primevue/multiselect'
 import DatePicker from 'primevue/datepicker'
 import Textarea from 'primevue/textarea'
-import ConfirmDialog from 'primevue/confirmdialog'
 import { useDevis } from '@/composables/useDevis'
 import { useEntreprises } from '@/composables/useEntreprises'
 import { usePrestations } from '@/composables/usePrestations'
 import { useUsers } from '@/composables/useUsers'
+import { useExercices } from '@/composables/useExercices'
+import { useAuthStore } from '@/stores/auth'
 import type { Devis } from '@/types'
 
 const confirm = useConfirm()
+const auth = useAuthStore()
 const {
   devisList, loading, totalRecords, filters,
-  fetchDevis, createDevis, envoyerDevis, accepterDevis, refuserDevis,
-  convertirDevisEnMission, telechargerPdf, deleteDevis, onPage, onSearch,
+  fetchDevis, createDevis, updateDevis, envoyerDevis, accepterDevis, refuserDevis,
+  convertirDevisEnMission, telechargerPdf, deleteDevis, onPage, onSearch, onSort, setExercice,
 } = useDevis()
 
 const { entreprises, fetchEntreprises } = useEntreprises()
 const { prestations, fetchPrestations } = usePrestations()
 const { users, fetchUsers } = useUsers()
+const { exercices, exerciceCourant, fetchExercices, fetchExerciceCourant } = useExercices()
 
 const search = ref('')
+const exerciceSelectionne = ref<number | undefined>(undefined)
+
+watch(search, (val) => onSearch(val))
+watch(exerciceSelectionne, (val) => setExercice(val))
 
 // Dialog creation devis
+const exercicesOuverts = computed(() => exercices.value.filter((e: { statut: string }) => e.statut === 'ouvert'))
+
 const dialogVisible = ref(false)
 const saving = ref(false)
 const form = reactive({
+  entreprise_id: null as number | null,
+  prestation_id: null as number | null,
+  exercice_id: null as number | null,
+  date_devis: null as Date | null,
+  date_validite: null as Date | null,
+  notes: '',
+})
+
+// Dialog modification devis
+const editDevisVisible = ref(false)
+const editDevisSaving = ref(false)
+const editDevisId = ref<number | null>(null)
+const editDevisNumero = ref('')
+const editDevisForm = reactive({
   entreprise_id: null as number | null,
   prestation_id: null as number | null,
   date_devis: null as Date | null,
@@ -51,6 +74,24 @@ const conversionForm = reactive({
   date_debut: null as Date | null,
   date_fin: null as Date | null,
   collaborateur_ids: [] as number[],
+})
+
+// Auto-fill date_validite = date_devis + 2 mois (création)
+watch(() => form.date_devis, (newDate) => {
+  if (newDate) {
+    const d = new Date(newDate)
+    d.setMonth(d.getMonth() + 2)
+    form.date_validite = d
+  }
+})
+
+// Auto-fill date_validite = date_devis + 2 mois (modification)
+watch(() => editDevisForm.date_devis, (newDate) => {
+  if (newDate) {
+    const d = new Date(newDate)
+    d.setMonth(d.getMonth() + 2)
+    editDevisForm.date_validite = d
+  }
 })
 
 function toIsoDate(d: Date | null): string {
@@ -76,6 +117,7 @@ function statutColor(statut: string) {
 function openCreate() {
   form.entreprise_id = null
   form.prestation_id = null
+  form.exercice_id = exerciceCourant.value?.id ?? null
   form.date_devis = null
   form.date_validite = null
   form.notes = ''
@@ -89,6 +131,7 @@ async function onSubmit() {
     await createDevis({
       entreprise_id: form.entreprise_id,
       prestation_id: form.prestation_id,
+      exercice_id: form.exercice_id ?? undefined,
       date_devis: toIsoDate(form.date_devis),
       date_validite: toIsoDate(form.date_validite),
       notes: form.notes || null,
@@ -98,6 +141,36 @@ async function onSubmit() {
     // erreur geree par le composable
   } finally {
     saving.value = false
+  }
+}
+
+function openEditDevis(devis: Devis) {
+  editDevisId.value = devis.id
+  editDevisNumero.value = devis.numero
+  editDevisForm.entreprise_id = devis.entreprise?.id ?? devis.entreprise_id ?? null
+  editDevisForm.prestation_id = devis.prestation?.id ?? devis.prestation_id ?? null
+  editDevisForm.date_devis = devis.date_devis ? new Date(devis.date_devis) : null
+  editDevisForm.date_validite = devis.date_validite ? new Date(devis.date_validite) : null
+  editDevisForm.notes = devis.notes ?? ''
+  editDevisVisible.value = true
+}
+
+async function onSubmitEditDevis() {
+  if (!editDevisId.value) return
+  editDevisSaving.value = true
+  try {
+    await updateDevis(editDevisId.value, {
+      entreprise_id: editDevisForm.entreprise_id ?? undefined,
+      prestation_id: editDevisForm.prestation_id ?? undefined,
+      date_devis: editDevisForm.date_devis ? toIsoDate(editDevisForm.date_devis) : undefined,
+      date_validite: editDevisForm.date_validite ? toIsoDate(editDevisForm.date_validite) : undefined,
+      notes: editDevisForm.notes || undefined,
+    })
+    editDevisVisible.value = false
+  } catch {
+    // erreur geree par le composable
+  } finally {
+    editDevisSaving.value = false
   }
 }
 
@@ -138,11 +211,10 @@ function confirmDelete(devis: Devis) {
   })
 }
 
-function handleSearch() {
-  onSearch(search.value)
-}
-
-onMounted(() => {
+onMounted(async () => {
+  await fetchExerciceCourant()
+  await fetchExercices()
+  exerciceSelectionne.value = exerciceCourant.value?.id
   fetchDevis()
   fetchEntreprises()
   fetchPrestations()
@@ -154,15 +226,27 @@ onMounted(() => {
   <div>
     <div class="page-header">
       <h2>Devis</h2>
-      <Button label="Nouveau devis" icon="pi pi-plus" @click="openCreate" />
+      <Button v-if="auth.isAdmin" label="Nouveau devis" icon="pi pi-plus" @click="openCreate" />
     </div>
 
     <div class="page-toolbar">
-      <form @submit.prevent="handleSearch" role="search" class="search-form">
+      <div class="toolbar-left">
         <label for="search-devis" class="sr-only">Rechercher un devis</label>
-        <InputText id="search-devis" v-model="search" placeholder="Rechercher par numero..." />
-        <Button icon="pi pi-search" aria-label="Lancer la recherche" @click="handleSearch" />
-      </form>
+        <InputText id="search-devis" v-model="search" placeholder="Rechercher par numero ou client..." style="width: 22rem" />
+      </div>
+      <div class="toolbar-right">
+        <label for="dv-exercice" class="sr-only">Filtrer par exercice</label>
+        <Select
+          id="dv-exercice"
+          v-model="exerciceSelectionne"
+          :options="exercices"
+          optionLabel="annee"
+          optionValue="id"
+          placeholder="Tous les exercices"
+          showClear
+          style="width: 14rem"
+        />
+      </div>
     </div>
 
     <DataTable
@@ -172,12 +256,16 @@ onMounted(() => {
       :rows="filters.per_page"
       :totalRecords="totalRecords"
       :lazy="true"
+      :sortField="filters.sort_field"
+      :sortOrder="filters.sort_direction === 'asc' ? 1 : -1"
       @page="onPage"
+      @sort="onSort"
       dataKey="id"
       responsiveLayout="scroll"
       stripedRows
+      removableSort
     >
-      <Column field="numero" header="Numero" />
+      <Column field="numero" header="Numero" sortable />
       <Column header="Entreprise">
         <template #body="{ data }">
           {{ data.entreprise?.raison_sociale ?? '-' }}
@@ -188,18 +276,19 @@ onMounted(() => {
           {{ data.prestation?.designation ?? '-' }}
         </template>
       </Column>
-      <Column field="date_devis" header="Date" />
-      <Column header="Prix HT (DA)">
+      <Column field="date_devis" header="Date" sortable />
+      <Column field="date_validite" header="Validite" sortable />
+      <Column field="prix_ht" header="Prix HT (DA)" sortable>
         <template #body="{ data }">
           {{ formatMontant(data.prix_ht) }}
         </template>
       </Column>
-      <Column header="Montant TTC (DA)">
+      <Column field="montant_ttc" header="Montant TTC (DA)" sortable>
         <template #body="{ data }">
           {{ formatMontant(data.montant_ttc) }}
         </template>
       </Column>
-      <Column header="Statut">
+      <Column field="statut" header="Statut" sortable>
         <template #body="{ data }">
           <Tag :value="data.statut" :severity="statutColor(data.statut)" />
         </template>
@@ -216,7 +305,16 @@ onMounted(() => {
             v-tooltip.top="'Telecharger PDF'"
             @click="telechargerPdf(data.id, data.numero)"
           />
-          <!-- Brouillon : envoyer + supprimer -->
+          <!-- Brouillon : modifier + envoyer + supprimer -->
+          <Button
+            v-if="data.statut === 'brouillon' && auth.isAdmin"
+            icon="pi pi-pencil"
+            text
+            severity="secondary"
+            aria-label="Modifier le devis"
+            v-tooltip.top="'Modifier'"
+            @click="openEditDevis(data)"
+          />
           <Button
             v-if="data.statut === 'brouillon'"
             icon="pi pi-send"
@@ -227,7 +325,7 @@ onMounted(() => {
             @click="envoyerDevis(data.id)"
           />
           <Button
-            v-if="data.statut === 'brouillon'"
+            v-if="data.statut === 'brouillon' && auth.isAdmin"
             icon="pi pi-trash"
             text
             severity="danger"
@@ -237,7 +335,7 @@ onMounted(() => {
           />
           <!-- Envoye : accepter + refuser -->
           <Button
-            v-if="data.statut === 'envoye'"
+            v-if="data.statut === 'envoye' && auth.isAdmin"
             icon="pi pi-check-circle"
             text
             severity="success"
@@ -246,7 +344,7 @@ onMounted(() => {
             @click="accepterDevis(data.id)"
           />
           <Button
-            v-if="data.statut === 'envoye'"
+            v-if="data.statut === 'envoye' && auth.isAdmin"
             icon="pi pi-times-circle"
             text
             severity="danger"
@@ -256,7 +354,7 @@ onMounted(() => {
           />
           <!-- Accepte : convertir en mission -->
           <Button
-            v-if="data.statut === 'accepte'"
+            v-if="data.statut === 'accepte' && auth.isAdmin"
             icon="pi pi-arrow-right"
             text
             severity="warn"
@@ -268,8 +366,6 @@ onMounted(() => {
       </Column>
     </DataTable>
 
-    <ConfirmDialog />
-
     <!-- Dialog creation devis -->
     <Dialog
       v-model:visible="dialogVisible"
@@ -278,6 +374,21 @@ onMounted(() => {
       :style="{ width: '36rem' }"
     >
       <form @submit.prevent="onSubmit" class="dialog-form">
+        <div v-if="auth.isAdmin" class="form-field">
+          <label for="dv-exercice-create">Exercice *</label>
+          <Select
+            id="dv-exercice-create"
+            v-model="form.exercice_id"
+            :options="exercicesOuverts"
+            optionLabel="annee"
+            optionValue="id"
+            placeholder="Exercice ouvert..."
+            required
+            fluid
+            aria-label="Sélectionner l'exercice fiscal"
+          />
+        </div>
+
         <div class="form-field">
           <label for="dv-entreprise">Entreprise *</label>
           <Select
@@ -312,7 +423,7 @@ onMounted(() => {
           </div>
           <div class="form-field">
             <label for="dv-validite">Date validite *</label>
-            <DatePicker id="dv-validite" v-model="form.date_validite" dateFormat="dd/mm/yy" fluid />
+            <DatePicker id="dv-validite" v-model="form.date_validite" dateFormat="dd/mm/yy" :minDate="form.date_devis ?? undefined" fluid />
           </div>
         </div>
 
@@ -324,6 +435,64 @@ onMounted(() => {
         <div class="dialog-actions">
           <Button label="Annuler" severity="secondary" text @click="dialogVisible = false" />
           <Button type="submit" label="Creer" icon="pi pi-check" :loading="saving" />
+        </div>
+      </form>
+    </Dialog>
+
+    <!-- Dialog modification devis -->
+    <Dialog
+      v-model:visible="editDevisVisible"
+      :header="`Modifier le devis ${editDevisNumero}`"
+      :modal="true"
+      :style="{ width: '36rem' }"
+    >
+      <form @submit.prevent="onSubmitEditDevis" class="dialog-form">
+        <div class="form-field">
+          <label for="ed-entreprise">Entreprise *</label>
+          <Select
+            id="ed-entreprise"
+            v-model="editDevisForm.entreprise_id"
+            :options="entreprises"
+            optionLabel="raison_sociale"
+            optionValue="id"
+            placeholder="Selectionner..."
+            filter
+            fluid
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="ed-prestation">Prestation *</label>
+          <Select
+            id="ed-prestation"
+            v-model="editDevisForm.prestation_id"
+            :options="prestations"
+            optionLabel="designation"
+            optionValue="id"
+            placeholder="Selectionner..."
+            fluid
+          />
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label for="ed-date">Date devis *</label>
+            <DatePicker id="ed-date" v-model="editDevisForm.date_devis" dateFormat="dd/mm/yy" fluid />
+          </div>
+          <div class="form-field">
+            <label for="ed-validite">Date validite *</label>
+            <DatePicker id="ed-validite" v-model="editDevisForm.date_validite" dateFormat="dd/mm/yy" :minDate="editDevisForm.date_devis ?? undefined" fluid />
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="ed-notes">Notes</label>
+          <Textarea id="ed-notes" v-model="editDevisForm.notes" rows="2" fluid />
+        </div>
+
+        <div class="dialog-actions">
+          <Button label="Annuler" severity="secondary" text @click="editDevisVisible = false" type="button" />
+          <Button type="submit" label="Enregistrer" icon="pi pi-check" :loading="editDevisSaving" />
         </div>
       </form>
     </Dialog>
@@ -382,8 +551,9 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 1rem;
 }
-.page-toolbar { margin-bottom: 1rem; }
-.search-form { display: flex; gap: 0.5rem; max-width: 20rem; }
+.page-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.toolbar-left { display: flex; gap: 0.5rem; align-items: center; }
+.toolbar-right { display: flex; gap: 0.5rem; align-items: center; }
 .dialog-form { display: flex; flex-direction: column; gap: 0.75rem; }
 .form-field { display: flex; flex-direction: column; gap: 0.25rem; flex: 1; }
 .form-field label { font-size: 0.875rem; font-weight: 500; }

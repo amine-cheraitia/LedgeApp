@@ -8,6 +8,7 @@ use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Gate;
 
 class SettingController extends Controller
 {
@@ -18,10 +19,12 @@ class SettingController extends Controller
 
     public function update(Request $request): JsonResponse
     {
+        Gate::authorize('update', Setting::class);
+
         $request->validate([
             'settings' => ['required', 'array'],
             'settings.*.key' => ['required', 'string'],
-            'settings.*.value' => ['required', 'string'],
+            'settings.*.value' => ['nullable', 'string'],
         ]);
 
         foreach ($request->settings as $setting) {

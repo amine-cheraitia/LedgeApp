@@ -7,10 +7,20 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Facture extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, LogsActivity, SoftDeletes;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
     protected $fillable = [
         'entreprise_id', 'exercice_id', 'mission_id', 'devis_id', 'created_by',
@@ -76,9 +86,16 @@ class Facture extends Model
         return $this->hasMany(Relance::class);
     }
 
+    public function avoirs(): HasMany
+    {
+        return $this->hasMany(Avoir::class, 'facture_origine_id');
+    }
+
     public function montantRestant(): float
     {
-        return (float) $this->montant_ttc - (float) $this->montant_paye;
+        $totalAvoirs = (float) $this->avoirs()->sum('montant_ttc');
+
+        return max(0.0, (float) $this->montant_ttc - (float) $this->montant_paye - $totalAvoirs);
     }
 
     public function estSolde(): bool

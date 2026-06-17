@@ -1,0 +1,60 @@
+/* ================================================================
+   Ledge — Design tokens
+   "Trust & Authority — Ledger Edition"
+   ================================================================ */
+
+:root {
+  /* ---------- Brand ---------- */
+  --ledge-primary:        #0F172A;  /* Navy autorite */
+  --ledge-primary-soft:   #1E293B;
+  --ledge-accent:         #C2410C;  /* Orange "encre" */
+  --ledge-accent-soft:    #FED7AA;
+  --ledge-success:        #065F46;
+  --ledge-warning:        #B45309;
+  --ledge-danger:         #B91C1C;
+
+  /* ---------- Typography ---------- */
+  --ledge-ff-display: 'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
+  --ledge-ff-body:    'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --ledge-ff-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', 'Roboto Mono', Consolas, monospace;
+
+  --ledge-letter-spacing-mono: 0.08em;
+
+  /* ---------- Radius ---------- */
+  --ledge-radius-sm: 2px;
+  --ledge-radius-md: 6px;
+  --ledge-radius-lg: 12px;
+  --ledge-radius-pill: 8px;  /* items de la sidebar (look pastille arrondie) */
+
+  /* ---------- Sidebar ---------- */
+  --ledge-sidebar-width: 18rem;
+  --ledge-sidebar-active-bar: 3px;
+}
+
+/* ---------- Dark mode adjustments ---------- */
+.app-dark {
+  --ledge-primary:        #F8FAFC;
+  --ledge-primary-soft:   #E2E8F0;
+  --ledge-accent:         #FB923C;
+  --ledge-accent-soft:    #7C2D12;
+}
+
+/* ---------- Utility classes ---------- */
+.ledge-mono {
+  font-family: var(--ledge-ff-mono);
+  letter-spacing: var(--ledge-letter-spacing-mono);
+}
+
+.ledge-display {
+  font-family: var(--ledge-ff-display);
+  font-feature-settings: 'liga' 1, 'kern' 1;
+}
+
+.ledge-eyebrow {
+  font-family: var(--ledge-ff-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--p-text-muted-color);
+}
