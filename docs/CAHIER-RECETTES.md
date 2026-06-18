@@ -42,6 +42,8 @@
 | REF-07 | Taux utilisé par des factures | Supprimer ce taux | 409 (suppression bloquée) | 🔁 |
 | REF-08 | Non-admin | Accéder à la gestion des taux de TVA | 403 (admin uniquement) | 🔁 |
 | REF-09 | Admin | Créer une facture/devis en **exonéré** (catégorie TVA) | `montant_tva = 0`, TTC = HT (taux résolu par la date) | 🔁 |
+| REF-10 | Un seul taux Standard actif en vigueur | Le désactiver (ou le supprimer) | 409 + message « Il doit rester au moins un taux standard actif et en vigueur. » | 🔁 |
+| REF-11 | Admin, ≥1 taux Standard actif en vigueur | Ouvrir la modal de création de facture | Catégorie « Standard (X %) » où X = taux Standard actif en vigueur à la date de la facture | 🔁 |
 
 ## 3. Entreprises
 

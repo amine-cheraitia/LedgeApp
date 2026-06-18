@@ -20,6 +20,7 @@ import Textarea from 'primevue/textarea'
 import { useFactures } from '@/composables/useFactures'
 import { useMissions } from '@/composables/useMissions'
 import { useExercices } from '@/composables/useExercices'
+import { useTvaTaux } from '@/composables/useTvaTaux'
 import { useAuthStore } from '@/stores/auth'
 import { avoirsApi } from '@/api/modules/avoirs'
 import type { Facture, Avoir } from '@/types'
@@ -111,6 +112,8 @@ function confirmDeleteAvoir(avoir: Avoir) {
 // ---------- Dialog création facture ----------
 const dialogVisible = ref(false)
 const saving = ref(false)
+const { fetchTaux: fetchTvaTaux, tauxEnVigueur } = useTvaTaux()
+
 const form = reactive({
   mission_id: null as number | null,
   exercice_id: null as number | null,
@@ -119,10 +122,14 @@ const form = reactive({
   notes: '',
 })
 
-const tvaOptions = [
-  { label: 'Standard', value: 'standard' },
-  { label: 'Exonere', value: 'exonere' },
-]
+const tvaOptions = computed(() => {
+  const std = tauxEnVigueur('standard', form.date_facture)
+  const exo = tauxEnVigueur('exonere', form.date_facture)
+  return [
+    { label: std !== null ? `Standard (${std} %)` : 'Standard', value: 'standard' },
+    { label: exo !== null ? `Exonere (${exo} %)` : 'Exonere (0 %)', value: 'exonere' },
+  ]
+})
 
 const dateEcheancePreview = computed(() => {
   if (!form.date_facture) return ''
@@ -305,6 +312,7 @@ onMounted(async () => {
   fetchFactures()
   fetchMissions()
   fetchAvoirs()
+  fetchTvaTaux()
 })
 </script>
 

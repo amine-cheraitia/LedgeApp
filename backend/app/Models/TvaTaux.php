@@ -27,11 +27,45 @@ class TvaTaux extends Model
         $date = is_string($date) ? Carbon::parse($date) : $date;
 
         return self::where('type', $type)
+            ->where('actif', true)
             ->where('date_debut', '<=', $date)
             ->where(function ($q) use ($date) {
                 $q->whereNull('date_fin')->orWhere('date_fin', '>=', $date);
             })
             ->orderByDesc('date_debut')
             ->first();
+    }
+
+    /**
+     * Ce taux est-il actif ET en vigueur a la date donnee (par defaut aujourd'hui) ?
+     */
+    public function estActifEnVigueur(Carbon|string|null $date = null): bool
+    {
+        if (! $this->actif) {
+            return false;
+        }
+
+        $date = $date === null ? Carbon::now() : (is_string($date) ? Carbon::parse($date) : $date);
+
+        return $this->date_debut <= $date
+            && ($this->date_fin === null || $this->date_fin >= $date);
+    }
+
+    /**
+     * Existe-t-il un AUTRE taux actif et en vigueur (a la date donnee) pour ce type ?
+     * Sert a garantir qu'un type garde toujours au moins un taux utilisable.
+     */
+    public static function existeAutreActifEnVigueur(string $type, int $exceptId, Carbon|string|null $date = null): bool
+    {
+        $date = $date === null ? Carbon::now() : (is_string($date) ? Carbon::parse($date) : $date);
+
+        return self::where('type', $type)
+            ->where('id', '!=', $exceptId)
+            ->where('actif', true)
+            ->where('date_debut', '<=', $date)
+            ->where(function ($q) use ($date) {
+                $q->whereNull('date_fin')->orWhere('date_fin', '>=', $date);
+            })
+            ->exists();
     }
 }

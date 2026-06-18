@@ -15,8 +15,14 @@ Donne à l'admin la main sur les taux de TVA (sans accès BDD) et permet de fact
 
 #### Backend
 - **CRUD des taux** (admin) : `GET|POST /api/v1/referentiels/tva-taux`, `PUT|DELETE /referentiels/tva-taux/{id}` —
-  `ReferentielTvaController` (mince) + `TvaTauxPolicy` (admin) + `Store/UpdateTvaTauxRequest` + `TvaTauxResource`.
+  `ReferentielTvaController` (mince) + `TvaTauxService` (logique métier, SRP) + `TvaTauxPolicy` (admin) +
+  `Store/UpdateTvaTauxRequest` (messages FR, borne `taux` 0–100) + `TvaTauxResource`.
   Suppression **bloquée (409)** si des factures référencent le taux.
+- **Règle « toujours un taux actif par type »** : il doit rester en permanence **≥ 1 taux Standard actif en vigueur**
+  **et** **≥ 1 taux Exonéré actif en vigueur**. Désactiver, changer le type ou supprimer le **dernier** taux utilisable
+  d'un type est **bloqué (409)** — sinon la facturation se retrouverait sans taux applicable.
+- **`actif` devient significatif** : `TvaTaux::enVigueurLe($date, $type)` ne résout plus que les taux **actifs**
+  (un taux désactivé n'est jamais appliqué). Helpers `estActifEnVigueur()` / `existeAutreActifEnVigueur()`.
 - **Choix de catégorie à la création** : `type_tva` (`standard` | `exonere`) dans `StoreFacture`/`StoreDevisRequest` ;
   `FacturationService::creerFacture()`/`creerDevis()` résolvent le taux via `TvaTaux::enVigueurLe($date, $type)`
   (exonéré → TVA 0, TTC = HT). La **valeur reste fixée par la date** (historisation, snapshots immuables).
@@ -25,11 +31,15 @@ Donne à l'admin la main sur les taux de TVA (sans accès BDD) et permet de fact
 #### Frontend
 - Page **`/tva-taux`** (admin) : DataTable + dialog (catégorie Standard/Exonéré, taux, désignation, dates, actif),
   garde 409 affichée en toast ; entrée menu sous **Administration**.
-- Sélecteur **« Catégorie TVA » (Standard 19% / Exonéré 0%)** ajouté aux formulaires de création facture et devis.
+- Sélecteur **« Catégorie TVA »** sur les formulaires facture/devis : affiche **« Standard (X %) »** où X est le
+  **taux actif en vigueur** à la date du document (miroir client `useTvaTaux.tauxEnVigueur`), recalculé quand la date change ;
+  **« Exonéré (0 %) »**. Cohérent car la règle ci-dessus garantit un taux courant unique et défini par type.
 - Module `referentiels.ts` + composable `useTvaTaux` + type `TvaTaux`.
 
 #### Tests
-- **`TvaTauxApiTest`** (CRUD, admin-only 403, garde 409, validations) + `DevisApiTest` (devis exonéré → TVA nulle) ;
+- **`TvaTauxApiTest`** (CRUD, admin-only 403, garde 409, validations, clôture auto) + cas de la nouvelle règle
+  (désactiver/supprimer le dernier actif → 409 ; désactivation autorisée s'il reste un autre actif ;
+  `enVigueurLe` ignore un taux inactif) + `DevisApiTest` (devis exonéré → TVA nulle) ;
   `api-modules.test.ts` étendu (`referentielsApi`).
 
 ### Suppression du timbre fiscal (refactor/suppression-timbre)

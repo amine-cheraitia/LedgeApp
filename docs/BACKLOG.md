@@ -59,8 +59,10 @@
 - Page dediee : `/tva-taux` (admin) — datatable + dialog (categorie, taux, designation, dates, actif)
 - Categories : **standard / exonere** (le taux reduit 9% ne s'applique pas a l'activite)
 - Suppression bloquee si factures associees au taux (HTTP 409)
+- **Toujours >= 1 taux Standard actif en vigueur ET >= 1 taux Exonere actif en vigueur** : desactiver, changer le type ou supprimer le dernier taux utilisable d'un type est bloque (HTTP 409) — sinon la facturation n'a plus de taux a appliquer
+- `actif` conditionne l'application : `TvaTaux::enVigueurLe()` ne resout que les taux actifs
 - Routes API : `GET /api/v1/referentiels/tva-taux` · `POST` · `PUT` · `DELETE`
-- Choix de la **categorie TVA (standard / exonere)** a la creation d'une facture/devis — valeur fixee par la date (historisation)
+- Choix de la **categorie TVA (standard / exonere)** a la creation d'une facture/devis — la modal affiche **Standard (taux actif en vigueur)** ; valeur fixee par la date (historisation)
 - Depend de : **US-04**
 
 ---

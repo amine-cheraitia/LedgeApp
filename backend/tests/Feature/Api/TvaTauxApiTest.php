@@ -82,7 +82,8 @@ class TvaTauxApiTest extends TestCase
 
     public function test_admin_peut_supprimer_un_taux_non_utilise(): void
     {
-        $taux = TvaTaux::create($this->payload());
+        TvaTaux::create($this->payload(['date_debut' => '2023-01-01'])); // autre taux standard actif
+        $taux = TvaTaux::create($this->payload(['date_debut' => '2024-01-01']));
 
         $this->actingAs($this->admin)
             ->deleteJson("/api/v1/referentiels/tva-taux/{$taux->id}")
@@ -155,5 +156,50 @@ class TvaTauxApiTest extends TestCase
         // Resolution historique : 21% au 18/06, 19% au 01/06
         $this->assertEquals(21.0, (float) TvaTaux::enVigueurLe('2026-06-18')->taux);
         $this->assertEquals(19.0, (float) TvaTaux::enVigueurLe('2026-06-01')->taux);
+    }
+
+    public function test_desactiver_le_dernier_taux_actif_du_type_refuse(): void
+    {
+        $taux = TvaTaux::create($this->payload(['date_debut' => '2024-01-01']));
+
+        $this->actingAs($this->admin)
+            ->putJson("/api/v1/referentiels/tva-taux/{$taux->id}", $this->payload(['actif' => false]))
+            ->assertStatus(409);
+
+        $this->assertTrue($taux->fresh()->actif);
+    }
+
+    public function test_supprimer_le_dernier_taux_actif_du_type_refuse(): void
+    {
+        $taux = TvaTaux::create($this->payload(['date_debut' => '2024-01-01']));
+
+        $this->actingAs($this->admin)
+            ->deleteJson("/api/v1/referentiels/tva-taux/{$taux->id}")
+            ->assertStatus(409);
+
+        $this->assertDatabaseHas('tva_taux', ['id' => $taux->id]);
+    }
+
+    public function test_desactivation_autorisee_si_un_autre_taux_actif_existe(): void
+    {
+        TvaTaux::create($this->payload(['date_debut' => '2023-01-01']));
+        $nouveau = TvaTaux::create($this->payload(['date_debut' => '2024-01-01']));
+
+        $this->actingAs($this->admin)
+            ->putJson("/api/v1/referentiels/tva-taux/{$nouveau->id}", $this->payload(['actif' => false]))
+            ->assertOk();
+
+        $this->assertFalse($nouveau->fresh()->actif);
+    }
+
+    public function test_envigueurle_ignore_un_taux_inactif(): void
+    {
+        TvaTaux::create($this->payload(['taux' => 19, 'date_debut' => '2023-01-01', 'actif' => true]));
+        TvaTaux::create($this->payload(['taux' => 25, 'date_debut' => '2026-01-01', 'actif' => false]));
+
+        $taux = TvaTaux::enVigueurLe('2026-06-18', 'standard');
+
+        $this->assertNotNull($taux);
+        $this->assertEquals(19.0, (float) $taux->taux);
     }
 }
