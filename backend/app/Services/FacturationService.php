@@ -104,6 +104,25 @@ class FacturationService
     }
 
     /**
+     * Resout le taux de TVA a appliquer pour un type a une date donnee.
+     * - exonere : aucun taux requis (0%) ;
+     * - standard : un taux actif doit exister a cette date, sinon erreur metier
+     *   (evite d'appliquer silencieusement 0% sur un document soumis a la TVA).
+     */
+    private function resoudreTvaTaux(string $type, string $date): ?TvaTaux
+    {
+        $tvaTaux = TvaTaux::enVigueurLe($date, $type);
+
+        if ($tvaTaux === null && $type !== 'exonere') {
+            throw new DomainException(
+                "Aucun taux TVA {$type} en vigueur au {$date}. Verifiez les taux de TVA."
+            );
+        }
+
+        return $tvaTaux;
+    }
+
+    /**
      * Cree un devis pour une seule prestation.
      * Le prix HT est calcule automatiquement via la grille tarifaire (immuable).
      */
@@ -122,9 +141,10 @@ class FacturationService
             $prixHt = $prestation->calculerPrixHt($entreprise->regime_fiscal, $entreprise->categorie);
 
             $typeTva = $data['type_tva'] ?? 'standard';
-            $tvaTaux = TvaTaux::enVigueurLe($data['date_devis'], $typeTva);
+            $tvaTaux = $this->resoudreTvaTaux($typeTva, $data['date_devis']);
+            $tauxTva = $tvaTaux ? (float) $tvaTaux->taux : 0.0;
 
-            $montantTva = $tvaTaux ? round($prixHt * (float) $tvaTaux->taux / 100, 2) : 0;
+            $montantTva = round($prixHt * $tauxTva / 100, 2);
             $montantTtc = round($prixHt + $montantTva, 2);
 
             $devis = Devis::create([
@@ -132,11 +152,13 @@ class FacturationService
                 'prestation_id' => $prestation->id,
                 'exercice_id' => $exercice->id,
                 'created_by' => $userId,
+                'tva_taux_id' => $tvaTaux?->id,
                 'numero' => $this->genererNumero($prefixe, 'devis', $exercice),
                 'date_devis' => $data['date_devis'],
                 'date_validite' => $data['date_validite'],
                 'prix_ht' => $prixHt,
                 'montant_ht' => $prixHt,
+                'taux_tva' => $tauxTva,
                 'montant_tva' => $montantTva,
                 'montant_ttc' => $montantTtc,
                 'statut' => 'brouillon',
@@ -153,11 +175,20 @@ class FacturationService
             throw new DomainException('Seuls les devis en brouillon peuvent etre modifies.');
         }
 
-        // Recalculer le prix HT si entreprise ou prestation change
+        // Recalculer le prix HT si entreprise ou prestation change, puis propager aux totaux
+        // (le taux TVA fige du devis est conserve — principe d'immuabilite du taux).
         if (isset($data['entreprise_id']) || isset($data['prestation_id'])) {
             $entreprise = Entreprise::findOrFail($data['entreprise_id'] ?? $devis->entreprise_id);
             $prestation = Prestation::findOrFail($data['prestation_id'] ?? $devis->prestation_id);
-            $data['prix_ht'] = $prestation->calculerPrixHt($entreprise->regime_fiscal, $entreprise->categorie);
+            $prixHt = $prestation->calculerPrixHt($entreprise->regime_fiscal, $entreprise->categorie);
+
+            $tauxTva = (float) $devis->taux_tva;
+            $montantTva = round($prixHt * $tauxTva / 100, 2);
+
+            $data['prix_ht'] = $prixHt;
+            $data['montant_ht'] = $prixHt;
+            $data['montant_tva'] = $montantTva;
+            $data['montant_ttc'] = round($prixHt + $montantTva, 2);
         }
 
         $devis->update($data);
@@ -252,8 +283,8 @@ class FacturationService
             $dateEcheance = Carbon::parse($dateFacture)->addDays(45)->toDateString();
 
             $typeTva = $data['type_tva'] ?? 'standard';
-            $tvaTaux = TvaTaux::enVigueurLe($dateFacture, $typeTva);
-            $tauxTva = $tvaTaux ? (float) $tvaTaux->taux : 0;
+            $tvaTaux = $this->resoudreTvaTaux($typeTva, $dateFacture);
+            $tauxTva = $tvaTaux ? (float) $tvaTaux->taux : 0.0;
             $montantTva = round($montantHt * $tauxTva / 100, 2);
             $montantTtc = round($montantHt + $montantTva, 2);
 

@@ -44,6 +44,8 @@
 | REF-09 | Admin | Créer une facture/devis en **exonéré** (catégorie TVA) | `montant_tva = 0`, TTC = HT (taux résolu par la date) | 🔁 |
 | REF-10 | Un seul taux Standard actif en vigueur | Le désactiver (ou le supprimer) | 409 + message « Il doit rester au moins un taux standard actif et en vigueur. » | 🔁 |
 | REF-11 | Admin, ≥1 taux Standard actif en vigueur | Ouvrir la modal de création de facture | Catégorie « Standard (X %) » où X = taux Standard actif en vigueur à la date de la facture | 🔁 |
+| REF-12 | Admin | Créer un devis en **exonéré**, générer son PDF | PDF affiche « TVA (0%) » et montant 0 (plus de « 19% » codé en dur) ; le taux est enregistré sur le devis | 🔁 |
+| REF-13 | Aucun taux Standard en vigueur à la date saisie | Créer un devis/facture **standard** à cette date | 409 + message « Aucun taux TVA standard en vigueur au {date}… » (pas de 0% silencieux) | 🔁 |
 
 ## 3. Entreprises
 

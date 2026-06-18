@@ -363,7 +363,7 @@
                 <tr>
                     <th style="width:55%">Désignation</th>
                     <th class="r" style="width:22%">Prix HT</th>
-                    <th class="r" style="width:23%">TVA (19%)</th>
+                    <th class="r" style="width:23%">TVA ({{ number_format((float)$devis->taux_tva, 0) }}%)</th>
                 </tr>
             </thead>
             <tbody>
@@ -394,7 +394,7 @@
                             <td>{{ number_format((float)$devis->montant_ht, 2, ',', ' ') }} DA</td>
                         </tr>
                         <tr>
-                            <td>TVA (19%)</td>
+                            <td>TVA ({{ number_format((float)$devis->taux_tva, 0) }}%)</td>
                             <td>{{ number_format((float)$devis->montant_tva, 2, ',', ' ') }} DA</td>
                         </tr>
                         <tr class="ttc">

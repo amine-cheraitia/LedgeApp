@@ -134,10 +134,14 @@ class DevisApiTest extends TestCase
 
         // HT = 315 000
         $this->assertEquals(315000, (float) $data['montant_ht']);
+        // Taux snapshot persiste sur le devis (parite avec la facture)
+        $this->assertEquals(19, (float) $data['taux_tva']);
         // TVA = 315 000 * 19% = 59 850
         $this->assertEquals(59850, (float) $data['montant_tva']);
         // TTC = 315 000 + 59 850 = 374 850
         $this->assertEquals(374850, (float) $data['montant_ttc']);
+
+        $this->assertDatabaseHas('devis', ['id' => $data['id'], 'taux_tva' => 19]);
     }
 
     public function test_creation_devis_sans_prestation_echoue(): void
@@ -188,10 +192,57 @@ class DevisApiTest extends TestCase
 
         $response->assertCreated();
         $data = $response->json('data');
-        // Exonere : TVA = 0, TTC = HT
+        // Exonere : taux et TVA = 0, TTC = HT
         $this->assertEquals(315000, (float) $data['montant_ht']);
+        $this->assertEquals(0, (float) $data['taux_tva']);
         $this->assertEquals(0, (float) $data['montant_tva']);
         $this->assertEquals(315000, (float) $data['montant_ttc']);
+    }
+
+    public function test_devis_standard_sans_taux_en_vigueur_refuse(): void
+    {
+        // Le seul taux standard demarre le 2023-01-01 : un devis date avant n'a aucun taux applicable.
+        // On doit refuser (409) au lieu d'appliquer silencieusement 0%.
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/devis', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_devis' => '2022-12-31',
+                'date_validite' => '2023-01-31',
+            ]);
+
+        $response->assertStatus(409);
+        $this->assertDatabaseCount('devis', 0);
+    }
+
+    public function test_modifier_devis_recalcule_les_totaux(): void
+    {
+        $devisId = $this->actingAs($this->admin)->postJson('/api/v1/devis', [
+            'entreprise_id' => $this->entreprise->id,
+            'prestation_id' => $this->prestation->id,
+            'date_devis' => '2026-03-31',
+            'date_validite' => '2026-04-30',
+        ])->json('data.id');
+
+        // Nouvelle prestation : 100 000 x 1.5 (reel) x 1.75 (PME) = 262 500 DA
+        $autrePrestation = Prestation::create([
+            'code' => 'AUDIT',
+            'designation' => 'Audit',
+            'tarif_initial' => 100000,
+            'duree_mois' => 12,
+            'actif' => true,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->putJson("/api/v1/devis/{$devisId}", ['prestation_id' => $autrePrestation->id]);
+
+        $response->assertOk();
+        $data = $response->json('data');
+        // Totaux recalcules de facon coherente, taux snapshot conserve (19%)
+        $this->assertEquals(262500, (float) $data['montant_ht']);
+        $this->assertEquals(19, (float) $data['taux_tva']);
+        $this->assertEquals(49875, (float) $data['montant_tva']); // 262 500 * 19%
+        $this->assertEquals(312375, (float) $data['montant_ttc']);
     }
 
     public function test_cannot_delete_non_brouillon_devis(): void

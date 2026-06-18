@@ -157,6 +157,7 @@ export interface Devis {
   date_validite: string
   prix_ht: number
   montant_ht: number
+  taux_tva: number
   montant_tva: number
   montant_ttc: number
   statut: 'brouillon' | 'envoye' | 'accepte' | 'refuse' | 'expire'

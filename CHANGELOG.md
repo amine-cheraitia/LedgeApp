@@ -36,10 +36,26 @@ Donne à l'admin la main sur les taux de TVA (sans accès BDD) et permet de fact
   **« Exonéré (0 %) »**. Cohérent car la règle ci-dessus garantit un taux courant unique et défini par type.
 - Module `referentiels.ts` + composable `useTvaTaux` + type `TvaTaux`.
 
+#### Fiabilisation TVA des devis + cas limites
+- **Snapshot du taux sur le devis** : nouvelles colonnes `devis.taux_tva` + `devis.tva_taux_id` (parité avec les factures),
+  renseignées à la création et exposées par `DevisResource`. Le **PDF devis** affiche désormais le **taux réel**
+  (`TVA (X%)`) au lieu de « 19% » codé en dur — un devis exonéré imprime « TVA (0%) ».
+- **Plus de 0% silencieux** : `FacturationService` centralise la résolution dans `resoudreTvaTaux()` ; si aucun taux
+  **standard** n'est en vigueur à la date, la création **échoue (409)** avec un message clair au lieu d'appliquer 0% en douce
+  (l'exonéré reste à 0 sans erreur). `DevisController::store` capture désormais `DomainException` (aligné sur facture).
+- **Édition de devis cohérente** : modifier la prestation recalcule `montant_ht`/`montant_tva`/`montant_ttc`
+  (le taux figé du devis est conservé).
+- **Modal & fuseau horaire** : la date du devis est pré-remplie à aujourd'hui (le taux courant s'affiche d'emblée, comme la facture) ;
+  `toIsoDate` envoie la **date locale** (et non `toISOString()`/UTC) — fini le décalage d'un jour en UTC+1 qui pouvait
+  désaccorder le taux affiché et le taux appliqué.
+- **Migration** additive `add_taux_tva_to_devis_table` + backfill des devis existants non exonérés à 19%.
+
 #### Tests
-- **`TvaTauxApiTest`** (CRUD, admin-only 403, garde 409, validations, clôture auto) + cas de la nouvelle règle
+- **`TvaTauxApiTest`** (CRUD, admin-only 403, garde 409, validations, clôture auto) + cas de la règle « ≥1 actif par type »
   (désactiver/supprimer le dernier actif → 409 ; désactivation autorisée s'il reste un autre actif ;
-  `enVigueurLe` ignore un taux inactif) + `DevisApiTest` (devis exonéré → TVA nulle) ;
+  `enVigueurLe` ignore un taux inactif).
+- **`DevisApiTest`** : taux snapshot persisté (standard 19% / exonéré 0%), **devis hors taux en vigueur → 409**,
+  édition prestation → totaux recalculés ; **`FactureApiTest`** : facture standard hors taux → 409 (plus de 0% muet) ;
   `api-modules.test.ts` étendu (`referentielsApi`).
 
 ### Suppression du timbre fiscal (refactor/suppression-timbre)

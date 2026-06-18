@@ -25,8 +25,8 @@ class Devis extends Model
 
     protected $fillable = [
         'entreprise_id', 'prestation_id', 'exercice_id', 'created_by', 'numero',
-        'date_devis', 'date_validite', 'prix_ht', 'montant_ht', 'montant_tva',
-        'montant_ttc', 'statut', 'notes',
+        'date_devis', 'date_validite', 'prix_ht', 'montant_ht', 'taux_tva',
+        'tva_taux_id', 'montant_tva', 'montant_ttc', 'statut', 'notes',
     ];
 
     protected $casts = [
@@ -34,6 +34,7 @@ class Devis extends Model
         'date_validite' => 'date',
         'prix_ht' => 'decimal:2',
         'montant_ht' => 'decimal:2',
+        'taux_tva' => 'decimal:2',
         'montant_tva' => 'decimal:2',
         'montant_ttc' => 'decimal:2',
     ];
@@ -46,6 +47,11 @@ class Devis extends Model
     public function prestation(): BelongsTo
     {
         return $this->belongsTo(Prestation::class);
+    }
+
+    public function tvaTaux(): BelongsTo
+    {
+        return $this->belongsTo(TvaTaux::class);
     }
 
     public function exercice(): BelongsTo

@@ -108,7 +108,12 @@ watch(() => editDevisForm.date_devis, (newDate) => {
 
 function toIsoDate(d: Date | null): string {
   if (!d) return ''
-  return d.toISOString().split('T')[0]
+  // Date LOCALE (pas toISOString/UTC) : evite le decalage d'un jour en UTC+1
+  // et garantit que la date envoyee == la date affichee == la date du taux calcule.
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 function formatMontant(v: number) {
@@ -130,7 +135,9 @@ function openCreate() {
   form.entreprise_id = null
   form.prestation_id = null
   form.exercice_id = exerciceCourant.value?.id ?? null
-  form.date_devis = null
+  // Date du jour par defaut (comme la facture) : le taux courant s'affiche d'emblee
+  // et l'echeance (date_validite) est auto-remplie par le watcher.
+  form.date_devis = new Date()
   form.date_validite = null
   form.type_tva = 'standard'
   form.notes = ''

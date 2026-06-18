@@ -43,10 +43,14 @@ class DevisController extends Controller
     {
         $this->authorize('create', Devis::class);
 
-        $devis = $this->facturationService->creerDevis(
-            $request->validated(),
-            $request->user()->id,
-        );
+        try {
+            $devis = $this->facturationService->creerDevis(
+                $request->validated(),
+                $request->user()->id,
+            );
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
+        }
 
         return (new DevisResource($devis->load('prestation', 'entreprise')))
             ->response()
