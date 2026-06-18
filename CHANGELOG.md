@@ -9,6 +9,29 @@
 
 ## [Unreleased]
 
+### Gestion des taux de TVA (US-51) — feature/gestion-taux-tva
+
+Donne à l'admin la main sur les taux de TVA (sans accès BDD) et permet de facturer en **exonéré**.
+
+#### Backend
+- **CRUD des taux** (admin) : `GET|POST /api/v1/referentiels/tva-taux`, `PUT|DELETE /referentiels/tva-taux/{id}` —
+  `ReferentielTvaController` (mince) + `TvaTauxPolicy` (admin) + `Store/UpdateTvaTauxRequest` + `TvaTauxResource`.
+  Suppression **bloquée (409)** si des factures référencent le taux.
+- **Choix de catégorie à la création** : `type_tva` (`standard` | `exonere`) dans `StoreFacture`/`StoreDevisRequest` ;
+  `FacturationService::creerFacture()`/`creerDevis()` résolvent le taux via `TvaTaux::enVigueurLe($date, $type)`
+  (exonéré → TVA 0, TTC = HT). La **valeur reste fixée par la date** (historisation, snapshots immuables).
+- **Seeder** : taux **Exonéré 0%** ajouté, **Réduit 9%** retiré (hors activité).
+
+#### Frontend
+- Page **`/tva-taux`** (admin) : DataTable + dialog (catégorie Standard/Exonéré, taux, désignation, dates, actif),
+  garde 409 affichée en toast ; entrée menu sous **Administration**.
+- Sélecteur **« Catégorie TVA » (Standard 19% / Exonéré 0%)** ajouté aux formulaires de création facture et devis.
+- Module `referentiels.ts` + composable `useTvaTaux` + type `TvaTaux`.
+
+#### Tests
+- **`TvaTauxApiTest`** (CRUD, admin-only 403, garde 409, validations) + `DevisApiTest` (devis exonéré → TVA nulle) ;
+  `api-modules.test.ts` étendu (`referentielsApi`).
+
 ### Suppression du timbre fiscal (refactor/suppression-timbre)
 
 Le timbre fiscal était présent en infrastructure mais **toujours nul en pratique** (`creerFacture()`/`creerDevis()`

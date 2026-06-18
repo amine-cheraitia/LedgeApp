@@ -23,6 +23,7 @@ use App\Http\Controllers\Portail\PortailDocumentController;
 use App\Http\Controllers\Portail\PortailFactureController;
 use App\Http\Controllers\Portail\PortailMissionController;
 use App\Http\Controllers\Prestations\PrestationController;
+use App\Http\Controllers\Referentiel\ReferentielTvaController;
 use App\Http\Controllers\Settings\SettingController;
 use Illuminate\Support\Facades\Route;
 
@@ -71,6 +72,12 @@ Route::prefix('v1')->group(function () {
                 Route::post('prestations', [PrestationController::class, 'store']);
                 Route::put('prestations/{prestation}', [PrestationController::class, 'update']);
                 Route::delete('prestations/{prestation}', [PrestationController::class, 'destroy']);
+
+                // Referentiel — Taux de TVA (admin uniquement)
+                Route::get('referentiels/tva-taux', [ReferentielTvaController::class, 'index']);
+                Route::post('referentiels/tva-taux', [ReferentielTvaController::class, 'store']);
+                Route::put('referentiels/tva-taux/{tvaTaux}', [ReferentielTvaController::class, 'update']);
+                Route::delete('referentiels/tva-taux/{tvaTaux}', [ReferentielTvaController::class, 'destroy']);
 
                 // KPI objectifs (ecriture)
                 Route::post('/kpi/objectifs', [KpiController::class, 'upsert']);

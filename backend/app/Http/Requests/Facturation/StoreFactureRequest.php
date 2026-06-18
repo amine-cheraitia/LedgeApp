@@ -23,6 +23,7 @@ class StoreFactureRequest extends FormRequest
             'mission_id' => ['required', 'exists:missions,id'],
             'exercice_id' => ['nullable', 'integer', Rule::exists('exercices', 'id')->where('statut', 'ouvert')],
             'date_facture' => ['required', 'date'],
+            'type_tva' => ['nullable', Rule::in(['standard', 'exonere'])],
             'notes' => ['nullable', 'string', 'max:2000'],
         ];
     }

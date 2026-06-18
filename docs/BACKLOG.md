@@ -52,16 +52,15 @@
 
 ---
 
-### US-51 · Gestion des taux TVA · M · 3 pts · Sprint 3
+### US-51 · Gestion des taux TVA · M · 3 pts · Sprint 3 ✅
 
 **En tant qu'administrateur**, je veux gerer les taux TVA depuis l'interface **afin de** ne pas acceder directement a la base de donnees.
 
-- Page Settings dediee : `/admin/settings/tva-taux`
-- Datatable : taux actuels avec date_debut / date_fin · type (standard / reduit / exonere) · actions (editer, supprimer)
-- Bouton « Ajouter un taux » : formulaire avec taux (%), designation, date_debut, date_fin, type
+- Page dediee : `/tva-taux` (admin) — datatable + dialog (categorie, taux, designation, dates, actif)
+- Categories : **standard / exonere** (le taux reduit 9% ne s'applique pas a l'activite)
 - Suppression bloquee si factures associees au taux (HTTP 409)
 - Routes API : `GET /api/v1/referentiels/tva-taux` · `POST` · `PUT` · `DELETE`
-- Frontend : form validation, toast succes/erreur
+- Choix de la **categorie TVA (standard / exonere)** a la creation d'une facture/devis — valeur fixee par la date (historisation)
 - Depend de : **US-04**
 
 ---

@@ -25,6 +25,7 @@ class StoreDevisRequest extends FormRequest
             'exercice_id' => ['nullable', 'integer', Rule::exists('exercices', 'id')->where('statut', 'ouvert')],
             'date_devis' => ['required', 'date'],
             'date_validite' => ['required', 'date', 'after_or_equal:date_devis'],
+            'type_tva' => ['nullable', Rule::in(['standard', 'exonere'])],
             'notes' => ['nullable', 'string'],
         ];
     }

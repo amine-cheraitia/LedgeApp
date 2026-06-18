@@ -53,6 +53,7 @@ const model = computed(() => [
     items: [
       { label: 'Prestations', icon: 'pi pi-fw pi-list', to: '/prestations' },
       { label: 'Parametres', icon: 'pi pi-fw pi-sliders-h', to: '/settings' },
+      { label: 'Taux de TVA', icon: 'pi pi-fw pi-percentage', to: '/tva-taux' },
       { label: 'Exercices', icon: 'pi pi-fw pi-calendar', to: '/exercices' },
       { label: 'Utilisateurs', icon: 'pi pi-fw pi-users', to: '/users' },
       { label: 'KPI Objectifs', icon: 'pi pi-fw pi-chart-bar', to: '/kpi/objectifs' },

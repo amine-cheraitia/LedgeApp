@@ -49,6 +49,7 @@ const form = reactive({
   exercice_id: null as number | null,
   date_devis: null as Date | null,
   date_validite: null as Date | null,
+  type_tva: 'standard' as 'standard' | 'exonere',
   notes: '',
 })
 
@@ -120,6 +121,7 @@ function openCreate() {
   form.exercice_id = exerciceCourant.value?.id ?? null
   form.date_devis = null
   form.date_validite = null
+  form.type_tva = 'standard'
   form.notes = ''
   dialogVisible.value = true
 }
@@ -134,6 +136,7 @@ async function onSubmit() {
       exercice_id: form.exercice_id ?? undefined,
       date_devis: toIsoDate(form.date_devis),
       date_validite: toIsoDate(form.date_validite),
+      type_tva: form.type_tva,
       notes: form.notes || null,
     })
     dialogVisible.value = false
@@ -425,6 +428,18 @@ onMounted(async () => {
             <label for="dv-validite">Date validite *</label>
             <DatePicker id="dv-validite" v-model="form.date_validite" dateFormat="dd/mm/yy" :minDate="form.date_devis ?? undefined" fluid />
           </div>
+        </div>
+
+        <div class="form-field">
+          <label for="dv-tva">Categorie TVA *</label>
+          <Select
+            id="dv-tva"
+            v-model="form.type_tva"
+            :options="[{ label: 'Standard (19%)', value: 'standard' }, { label: 'Exonere (0%)', value: 'exonere' }]"
+            optionLabel="label"
+            optionValue="value"
+            fluid
+          />
         </div>
 
         <div class="form-field">

@@ -167,6 +167,33 @@ class DevisApiTest extends TestCase
         $response->assertOk()->assertJsonCount(1, 'data');
     }
 
+    public function test_devis_exonere_a_une_tva_nulle(): void
+    {
+        TvaTaux::create([
+            'taux' => 0,
+            'designation' => 'TVA exoneree',
+            'date_debut' => '2023-01-01',
+            'type' => 'exonere',
+            'actif' => true,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/devis', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_devis' => '2026-03-31',
+                'date_validite' => '2026-04-30',
+                'type_tva' => 'exonere',
+            ]);
+
+        $response->assertCreated();
+        $data = $response->json('data');
+        // Exonere : TVA = 0, TTC = HT
+        $this->assertEquals(315000, (float) $data['montant_ht']);
+        $this->assertEquals(0, (float) $data['montant_tva']);
+        $this->assertEquals(315000, (float) $data['montant_ttc']);
+    }
+
     public function test_cannot_delete_non_brouillon_devis(): void
     {
         $createResponse = $this->actingAs($this->admin)->postJson('/api/v1/devis', [

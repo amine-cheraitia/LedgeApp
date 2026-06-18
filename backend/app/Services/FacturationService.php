@@ -121,7 +121,8 @@ class FacturationService
             // Prix HT calcule une seule fois via la grille tarifaire — immuable
             $prixHt = $prestation->calculerPrixHt($entreprise->regime_fiscal, $entreprise->categorie);
 
-            $tvaTaux = TvaTaux::enVigueurLe($data['date_devis']);
+            $typeTva = $data['type_tva'] ?? 'standard';
+            $tvaTaux = TvaTaux::enVigueurLe($data['date_devis'], $typeTva);
 
             $montantTva = $tvaTaux ? round($prixHt * (float) $tvaTaux->taux / 100, 2) : 0;
             $montantTtc = round($prixHt + $montantTva, 2);
@@ -250,7 +251,8 @@ class FacturationService
             $dateFacture = $data['date_facture'];
             $dateEcheance = Carbon::parse($dateFacture)->addDays(45)->toDateString();
 
-            $tvaTaux = TvaTaux::enVigueurLe($dateFacture);
+            $typeTva = $data['type_tva'] ?? 'standard';
+            $tvaTaux = TvaTaux::enVigueurLe($dateFacture, $typeTva);
             $tauxTva = $tvaTaux ? (float) $tvaTaux->taux : 0;
             $montantTva = round($montantHt * $tauxTva / 100, 2);
             $montantTtc = round($montantHt + $montantTva, 2);

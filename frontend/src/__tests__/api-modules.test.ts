@@ -32,6 +32,7 @@ import { usersApi } from '@/api/modules/users'
 import { contactsApi } from '@/api/modules/contacts'
 import { commentairesApi } from '@/api/modules/commentaires'
 import { avoirsApi } from '@/api/modules/avoirs'
+import { referentielsApi } from '@/api/modules/referentiels'
 import { relancesApi } from '@/api/modules/relances'
 import { creancesApi } from '@/api/modules/creances'
 import { auditApi } from '@/api/modules/audit'
@@ -606,5 +607,41 @@ describe('portailApi', () => {
   it('rapportMissionPdfUrl builds the URL without any HTTP call', () => {
     expect(portailApi.rapportMissionPdfUrl(8)).toBe('/api/v1/portail/missions/8/rapport/pdf')
     expect(mockGet).not.toHaveBeenCalled()
+  })
+})
+
+describe('referentielsApi', () => {
+  it('getAllTvaTaux calls GET /referentiels/tva-taux', async () => {
+    mockGet.mockResolvedValue({ data: { data: [] } })
+
+    const result = await referentielsApi.getAllTvaTaux()
+
+    expect(mockGet).toHaveBeenCalledWith('/referentiels/tva-taux')
+    expect(result.data).toEqual([])
+  })
+
+  it('createTvaTaux calls POST /referentiels/tva-taux', async () => {
+    const payload = { taux: 0, designation: 'Exonere', type: 'exonere' as const, date_debut: '2024-01-01', date_fin: null, actif: true }
+    mockPost.mockResolvedValue({ data: { data: { id: 1, ...payload } } })
+
+    await referentielsApi.createTvaTaux(payload)
+
+    expect(mockPost).toHaveBeenCalledWith('/referentiels/tva-taux', payload)
+  })
+
+  it('updateTvaTaux calls PUT /referentiels/tva-taux/:id', async () => {
+    mockPut.mockResolvedValue({ data: { data: { id: 1, designation: 'maj' } } })
+
+    await referentielsApi.updateTvaTaux(1, { designation: 'maj' })
+
+    expect(mockPut).toHaveBeenCalledWith('/referentiels/tva-taux/1', { designation: 'maj' })
+  })
+
+  it('deleteTvaTaux calls DELETE /referentiels/tva-taux/:id', async () => {
+    mockDelete.mockResolvedValue({})
+
+    await referentielsApi.deleteTvaTaux(3)
+
+    expect(mockDelete).toHaveBeenCalledWith('/referentiels/tva-taux/3')
   })
 })

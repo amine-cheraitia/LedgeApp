@@ -134,6 +134,18 @@ export interface TacheCommentaire {
   updated_at: string
 }
 
+export interface TvaTaux {
+  id: number
+  taux: number
+  designation: string
+  type: 'standard' | 'exonere'
+  date_debut: string
+  date_fin: string | null
+  actif: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface Devis {
   id: number
   entreprise_id: number

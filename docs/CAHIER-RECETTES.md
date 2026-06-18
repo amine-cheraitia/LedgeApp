@@ -38,6 +38,10 @@
 | REF-03 | Admin | `POST /prestations/{id}/calculer-prix` avec régime + catégorie | `prix_ht = tarif × indice_régime × indice_catégorie` (ex. ACMPT 120000 × Réel 1.5 × PME 1.75 = 315000) | 🔁 |
 | REF-04 | Admin | Ouvrir un exercice, en ouvrir un second | Un seul exercice « ouvert » à la fois (`Exercice::current()`) | 🔁 |
 | REF-05 | Admin | Modifier les paramètres cabinet (NIF, NIS, RIB, logo) | Valeurs persistées, reprises sur les PDF générés ensuite | ✅ |
+| REF-06 | Admin | Créer un taux de TVA (catégorie standard/exonéré, taux, dates) sur `/tva-taux` | 201, taux listé | 🔁 |
+| REF-07 | Taux utilisé par des factures | Supprimer ce taux | 409 (suppression bloquée) | 🔁 |
+| REF-08 | Non-admin | Accéder à la gestion des taux de TVA | 403 (admin uniquement) | 🔁 |
+| REF-09 | Admin | Créer une facture/devis en **exonéré** (catégorie TVA) | `montant_tva = 0`, TTC = HT (taux résolu par la date) | 🔁 |
 
 ## 3. Entreprises
 
