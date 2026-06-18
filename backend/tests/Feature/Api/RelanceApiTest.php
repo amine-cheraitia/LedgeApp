@@ -190,8 +190,8 @@ class RelanceApiTest extends TestCase
             ->postJson("/api/v1/factures/{$this->factureEnAttente->id}/relances", ['niveau' => 1]);
 
         $response->assertCreated();
-        // Le contact principal prime sur l'email general de l'entreprise (reponse non wrappee)
-        $this->assertEquals('contact.principal@example.com', $response->json('email_destinataire'));
+        // Le contact principal prime sur l'email general de l'entreprise
+        $this->assertEquals('contact.principal@example.com', $response->json('data.email_destinataire'));
 
         Mail::assertSent(RelanceClientMail::class, fn (RelanceClientMail $mail) => $mail->hasTo('contact.principal@example.com'));
     }
