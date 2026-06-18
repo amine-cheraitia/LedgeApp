@@ -215,7 +215,12 @@ class FacturationService
             throw new DomainException("Cette entreprise n'a pas d'adresse mail. Renseignez l'email de l'entreprise ou de son contact principal avant l'envoi.");
         }
 
-        Mail::to($email)->send(new DevisMail($devis));
+        try {
+            Mail::to($email)->send(new DevisMail($devis));
+        } catch (\Throwable $e) {
+            report($e);
+            throw new DomainException("L'email n'a pas pu etre envoye. Verifiez la configuration d'envoi (SMTP).");
+        }
 
         $devis->update(['statut' => 'envoye']);
 
@@ -233,7 +238,12 @@ class FacturationService
             throw new DomainException("Cette entreprise n'a pas d'adresse mail. Renseignez l'email de l'entreprise ou de son contact principal avant l'envoi.");
         }
 
-        Mail::to($email)->send(new FactureMail($facture));
+        try {
+            Mail::to($email)->send(new FactureMail($facture));
+        } catch (\Throwable $e) {
+            report($e);
+            throw new DomainException("L'email n'a pas pu etre envoye. Verifiez la configuration d'envoi (SMTP).");
+        }
 
         return $facture;
     }

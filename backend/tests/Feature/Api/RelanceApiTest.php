@@ -211,6 +211,19 @@ class RelanceApiTest extends TestCase
         $this->assertDatabaseCount('relances', 0);
     }
 
+    public function test_relance_echec_envoi_renvoie_422_et_ne_persiste_pas(): void
+    {
+        // Simule une panne d'envoi (SMTP/config) : la reponse doit etre propre (422), pas un 500,
+        // et la relance ne doit pas etre persistee (rollback de la transaction).
+        Mail::shouldReceive('to')->andThrow(new \RuntimeException('smtp down'));
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$this->factureEnAttente->id}/relances", ['niveau' => 1])
+            ->assertStatus(422);
+
+        $this->assertDatabaseCount('relances', 0);
+    }
+
     public function test_cannot_send_relance_on_facture_soldee(): void
     {
         $this->factureEnAttente->update(['statut_paiement' => 'solde']);

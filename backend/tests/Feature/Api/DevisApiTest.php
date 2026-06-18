@@ -400,6 +400,25 @@ class DevisApiTest extends TestCase
         Mail::assertSent(DevisMail::class, fn (DevisMail $mail) => $mail->hasTo('contact.principal@example.com'));
     }
 
+    public function test_envoyer_devis_echec_envoi_garde_brouillon(): void
+    {
+        $devisId = $this->actingAs($this->admin)->postJson('/api/v1/devis', [
+            'entreprise_id' => $this->entreprise->id,
+            'prestation_id' => $this->prestation->id,
+            'date_devis' => '2026-03-31',
+            'date_validite' => '2026-04-30',
+        ])->json('data.id');
+
+        // Panne d'envoi -> 409 propre (pas de 500) et le devis reste en brouillon
+        Mail::shouldReceive('to')->andThrow(new \RuntimeException('smtp down'));
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId}/envoyer")
+            ->assertStatus(409);
+
+        $this->assertEquals('brouillon', Devis::findOrFail($devisId)->statut);
+    }
+
     public function test_envoyer_devis_sans_email_entreprise_refuse(): void
     {
         $this->entreprise->update(['email' => null]);

@@ -307,6 +307,20 @@ class FactureApiTest extends TestCase
         Mail::assertNothingSent();
     }
 
+    public function test_transmettre_echec_envoi_renvoie_409_propre(): void
+    {
+        $factureId = $this->actingAs($this->admin)
+            ->postJson('/api/v1/factures', ['mission_id' => $this->mission->id, 'date_facture' => '2026-04-02'])
+            ->json('data.id');
+
+        // Panne d'envoi -> 409 propre (pas de 500)
+        Mail::shouldReceive('to')->andThrow(new \RuntimeException('smtp down'));
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$factureId}/transmettre")
+            ->assertStatus(409);
+    }
+
     public function test_secretaire_peut_transmettre_collaborateur_non(): void
     {
         Mail::fake();

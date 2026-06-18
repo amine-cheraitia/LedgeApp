@@ -9,6 +9,7 @@ use App\Models\Facture;
 use App\Models\Relance;
 use App\Models\Setting;
 use DomainException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
 class RelanceService
@@ -31,20 +32,28 @@ class RelanceService
 
         $message = $this->resolveTemplate($niveau, $facture);
 
-        $relance = Relance::create([
-            'facture_id' => $facture->id,
-            'sent_by' => $userId,
-            'niveau' => $niveau,
-            'type' => 'manuelle',
-            'email_destinataire' => $email,
-            'envoyee_le' => now(),
-            'statut' => 'envoyee',
-            'message' => $message,
-        ]);
+        // Insertion + envoi dans une transaction : si l'envoi echoue, la relance est annulee (pas de relance "fantome").
+        return DB::transaction(function () use ($facture, $niveau, $userId, $email, $message) {
+            $relance = Relance::create([
+                'facture_id' => $facture->id,
+                'sent_by' => $userId,
+                'niveau' => $niveau,
+                'type' => 'manuelle',
+                'email_destinataire' => $email,
+                'envoyee_le' => now(),
+                'statut' => 'envoyee',
+                'message' => $message,
+            ]);
 
-        Mail::to($email)->send(new RelanceClientMail($facture, $relance));
+            try {
+                Mail::to($email)->send(new RelanceClientMail($facture, $relance));
+            } catch (\Throwable $e) {
+                report($e);
+                throw new DomainException("L'email n'a pas pu etre envoye. Verifiez la configuration d'envoi (SMTP).");
+            }
 
-        return $relance->load('sentBy');
+            return $relance->load('sentBy');
+        });
     }
 
     /**
