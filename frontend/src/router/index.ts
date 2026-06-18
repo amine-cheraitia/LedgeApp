@@ -70,6 +70,12 @@ const router = createRouter({
           meta: { roles: ROLES.adminOnly },
         },
         {
+          path: 'tva-taux',
+          name: 'tva-taux',
+          component: () => import('@/pages/settings/TvaTauxPage.vue'),
+          meta: { roles: ROLES.adminOnly },
+        },
+        {
           path: 'missions',
           name: 'missions',
           component: () => import('@/pages/missions/MissionListPage.vue'),

@@ -38,6 +38,16 @@
 | REF-03 | Admin | `POST /prestations/{id}/calculer-prix` avec régime + catégorie | `prix_ht = tarif × indice_régime × indice_catégorie` (ex. ACMPT 120000 × Réel 1.5 × PME 1.75 = 315000) | 🔁 |
 | REF-04 | Admin | Ouvrir un exercice, en ouvrir un second | Un seul exercice « ouvert » à la fois (`Exercice::current()`) | 🔁 |
 | REF-05 | Admin | Modifier les paramètres cabinet (NIF, NIS, RIB, logo) | Valeurs persistées, reprises sur les PDF générés ensuite | ✅ |
+| REF-06 | Admin | Créer un taux de TVA (catégorie standard/exonéré, taux, dates) sur `/tva-taux` | 201, taux listé | 🔁 |
+| REF-07 | Taux utilisé par des factures | Supprimer ce taux | 409 (suppression bloquée) | 🔁 |
+| REF-08 | Non-admin | Accéder à la gestion des taux de TVA | 403 (admin uniquement) | 🔁 |
+| REF-09 | Admin | Créer une facture/devis en **exonéré** (catégorie TVA) | `montant_tva = 0`, TTC = HT (taux résolu par la date) | 🔁 |
+| REF-10 | Un seul taux Standard actif en vigueur | Le désactiver (ou le supprimer) | 409 + message « Il doit rester au moins un taux standard actif et en vigueur. » | 🔁 |
+| REF-11 | Admin, ≥1 taux Standard actif en vigueur | Ouvrir la modal de création de facture | Catégorie « Standard (X %) » où X = taux Standard actif en vigueur à la date de la facture | 🔁 |
+| REF-12 | Admin | Créer un devis en **exonéré**, générer son PDF | PDF affiche « TVA (0%) » et montant 0 (plus de « 19% » codé en dur) ; le taux est enregistré sur le devis | 🔁 |
+| REF-13 | Aucun taux Standard en vigueur à la date saisie | Créer un devis/facture **standard** à cette date | 409 + message « Aucun taux TVA standard en vigueur au {date}… » (pas de 0% silencieux) | 🔁 |
+| REF-14 | Un taux Standard actif commence le 18/06 | Créer (ou déplacer par édition) un 2e taux Standard actif au 18/06 | 409 + message « Un taux standard actif commence déjà le 18/06/2026… » | 🔁 |
+| REF-15 | Taux Standard en vigueur depuis 2023, ouvert | Créer/éditer un taux Standard au 18/06 | Le précédent est clôturé au 17/06 (versionnement) ; un document du 20/06 applique le nouveau, un du 01/06 l'ancien | 🔁 |
 
 ## 3. Entreprises
 

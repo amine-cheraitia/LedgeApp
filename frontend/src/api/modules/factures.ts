@@ -16,6 +16,7 @@ export interface FacturePayload {
   mission_id: number
   exercice_id?: number
   date_facture: string
+  type_tva?: 'standard' | 'exonere'
   notes?: string | null
 }
 

@@ -9,6 +9,62 @@
 
 ## [Unreleased]
 
+### Gestion des taux de TVA (US-51) — feature/gestion-taux-tva
+
+Donne à l'admin la main sur les taux de TVA (sans accès BDD) et permet de facturer en **exonéré**.
+
+#### Backend
+- **CRUD des taux** (admin) : `GET|POST /api/v1/referentiels/tva-taux`, `PUT|DELETE /referentiels/tva-taux/{id}` —
+  `ReferentielTvaController` (mince) + `TvaTauxService` (logique métier, SRP) + `TvaTauxPolicy` (admin) +
+  `Store/UpdateTvaTauxRequest` (messages FR, borne `taux` 0–100) + `TvaTauxResource`.
+  Suppression **bloquée (409)** si des factures référencent le taux.
+- **Règle « toujours un taux actif par type »** : il doit rester en permanence **≥ 1 taux Standard actif en vigueur**
+  **et** **≥ 1 taux Exonéré actif en vigueur**. Désactiver, changer le type ou supprimer le **dernier** taux utilisable
+  d'un type est **bloqué (409)** — sinon la facturation se retrouverait sans taux applicable.
+- **`actif` devient significatif** : `TvaTaux::enVigueurLe($date, $type)` ne résout plus que les taux **actifs**
+  (un taux désactivé n'est jamais appliqué). Helpers `estActifEnVigueur()` / `existeAutreActifEnVigueur()`.
+- **Résolution déterministe (priorité au plus récent)** : `enVigueurLe` applique le taux dont la `date_debut` est la plus
+  proche (≤) de la date du document, **départage stable par `id`** si deux taux partagent la même date (plus de choix
+  arbitraire de MySQL → fin du conflit affiché/appliqué sur devis et factures). Le composable client `useTvaTaux` suit la même règle.
+- **Interdiction de deux taux actifs du même type le même jour** : à la création **et** à l'édition, le service refuse
+  (`409`) si un autre taux actif du type commence déjà ce jour-là. La **clôture automatique** du taux précédent est désormais
+  appliquée aussi à l'**édition** d'une `date_debut`/type (re-versionnement — avant, éditer une date « ne changeait rien »).
+- **Choix de catégorie à la création** : `type_tva` (`standard` | `exonere`) dans `StoreFacture`/`StoreDevisRequest` ;
+  `FacturationService::creerFacture()`/`creerDevis()` résolvent le taux via `TvaTaux::enVigueurLe($date, $type)`
+  (exonéré → TVA 0, TTC = HT). La **valeur reste fixée par la date** (historisation, snapshots immuables).
+- **Seeder** : taux **Exonéré 0%** ajouté, **Réduit 9%** retiré (hors activité).
+
+#### Frontend
+- Page **`/tva-taux`** (admin) : DataTable + dialog (catégorie Standard/Exonéré, taux, désignation, dates, actif),
+  garde 409 affichée en toast ; entrée menu sous **Administration**.
+- Sélecteur **« Catégorie TVA »** sur les formulaires facture/devis : affiche **« Standard (X %) »** où X est le
+  **taux actif en vigueur** à la date du document (miroir client `useTvaTaux.tauxEnVigueur`), recalculé quand la date change ;
+  **« Exonéré (0 %) »**. Cohérent car la règle ci-dessus garantit un taux courant unique et défini par type.
+- Module `referentiels.ts` + composable `useTvaTaux` + type `TvaTaux`.
+
+#### Fiabilisation TVA des devis + cas limites
+- **Snapshot du taux sur le devis** : nouvelles colonnes `devis.taux_tva` + `devis.tva_taux_id` (parité avec les factures),
+  renseignées à la création et exposées par `DevisResource`. Le **PDF devis** affiche désormais le **taux réel**
+  (`TVA (X%)`) au lieu de « 19% » codé en dur — un devis exonéré imprime « TVA (0%) ».
+- **Plus de 0% silencieux** : `FacturationService` centralise la résolution dans `resoudreTvaTaux()` ; si aucun taux
+  **standard** n'est en vigueur à la date, la création **échoue (409)** avec un message clair au lieu d'appliquer 0% en douce
+  (l'exonéré reste à 0 sans erreur). `DevisController::store` capture désormais `DomainException` (aligné sur facture).
+- **Édition de devis cohérente** : modifier la prestation recalcule `montant_ht`/`montant_tva`/`montant_ttc`
+  (le taux figé du devis est conservé).
+- **Modal & fuseau horaire** : la date du devis est pré-remplie à aujourd'hui (le taux courant s'affiche d'emblée, comme la facture) ;
+  `toIsoDate` envoie la **date locale** (et non `toISOString()`/UTC) — fini le décalage d'un jour en UTC+1 qui pouvait
+  désaccorder le taux affiché et le taux appliqué.
+- **Migration** additive `add_taux_tva_to_devis_table` + backfill des devis existants non exonérés à 19%.
+
+#### Tests
+- **`TvaTauxApiTest`** (CRUD, admin-only 403, garde 409, validations, clôture auto) + cas de la règle « ≥1 actif par type »
+  (désactiver/supprimer le dernier actif → 409 ; désactivation autorisée s'il reste un autre actif ;
+  `enVigueurLe` ignore un taux inactif) + **2 taux le même jour → 409** (création et édition), **édition d'une date re-clôture
+  le précédent** ; `TvaTauxTest` (départage déterministe par `id` à `date_debut` égale).
+- **`DevisApiTest`** : taux snapshot persisté (standard 19% / exonéré 0%), **devis hors taux en vigueur → 409**,
+  édition prestation → totaux recalculés ; **`FactureApiTest`** : facture standard hors taux → 409 (plus de 0% muet) ;
+  `api-modules.test.ts` étendu (`referentielsApi`).
+
 ### Suppression du timbre fiscal (refactor/suppression-timbre)
 
 Le timbre fiscal était présent en infrastructure mais **toujours nul en pratique** (`creerFacture()`/`creerDevis()`

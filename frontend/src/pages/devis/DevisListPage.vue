@@ -16,6 +16,7 @@ import { useEntreprises } from '@/composables/useEntreprises'
 import { usePrestations } from '@/composables/usePrestations'
 import { useUsers } from '@/composables/useUsers'
 import { useExercices } from '@/composables/useExercices'
+import { useTvaTaux } from '@/composables/useTvaTaux'
 import { useAuthStore } from '@/stores/auth'
 import type { Devis } from '@/types'
 
@@ -31,6 +32,7 @@ const { entreprises, fetchEntreprises } = useEntreprises()
 const { prestations, fetchPrestations } = usePrestations()
 const { users, fetchUsers } = useUsers()
 const { exercices, exerciceCourant, fetchExercices, fetchExerciceCourant } = useExercices()
+const { fetchTaux: fetchTvaTaux, tauxEnVigueur } = useTvaTaux()
 
 const search = ref('')
 const exerciceSelectionne = ref<number | undefined>(undefined)
@@ -49,7 +51,17 @@ const form = reactive({
   exercice_id: null as number | null,
   date_devis: null as Date | null,
   date_validite: null as Date | null,
+  type_tva: 'standard' as 'standard' | 'exonere',
   notes: '',
+})
+
+const tvaOptions = computed(() => {
+  const std = tauxEnVigueur('standard', form.date_devis)
+  const exo = tauxEnVigueur('exonere', form.date_devis)
+  return [
+    { label: std !== null ? `Standard (${std} %)` : 'Standard', value: 'standard' },
+    { label: exo !== null ? `Exonere (${exo} %)` : 'Exonere (0 %)', value: 'exonere' },
+  ]
 })
 
 // Dialog modification devis
@@ -96,7 +108,12 @@ watch(() => editDevisForm.date_devis, (newDate) => {
 
 function toIsoDate(d: Date | null): string {
   if (!d) return ''
-  return d.toISOString().split('T')[0]
+  // Date LOCALE (pas toISOString/UTC) : evite le decalage d'un jour en UTC+1
+  // et garantit que la date envoyee == la date affichee == la date du taux calcule.
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 function formatMontant(v: number) {
@@ -118,8 +135,11 @@ function openCreate() {
   form.entreprise_id = null
   form.prestation_id = null
   form.exercice_id = exerciceCourant.value?.id ?? null
-  form.date_devis = null
+  // Date du jour par defaut (comme la facture) : le taux courant s'affiche d'emblee
+  // et l'echeance (date_validite) est auto-remplie par le watcher.
+  form.date_devis = new Date()
   form.date_validite = null
+  form.type_tva = 'standard'
   form.notes = ''
   dialogVisible.value = true
 }
@@ -134,6 +154,7 @@ async function onSubmit() {
       exercice_id: form.exercice_id ?? undefined,
       date_devis: toIsoDate(form.date_devis),
       date_validite: toIsoDate(form.date_validite),
+      type_tva: form.type_tva,
       notes: form.notes || null,
     })
     dialogVisible.value = false
@@ -219,6 +240,7 @@ onMounted(async () => {
   fetchEntreprises()
   fetchPrestations()
   fetchUsers()
+  fetchTvaTaux()
 })
 </script>
 
@@ -425,6 +447,18 @@ onMounted(async () => {
             <label for="dv-validite">Date validite *</label>
             <DatePicker id="dv-validite" v-model="form.date_validite" dateFormat="dd/mm/yy" :minDate="form.date_devis ?? undefined" fluid />
           </div>
+        </div>
+
+        <div class="form-field">
+          <label for="dv-tva">Categorie TVA *</label>
+          <Select
+            id="dv-tva"
+            v-model="form.type_tva"
+            :options="tvaOptions"
+            optionLabel="label"
+            optionValue="value"
+            fluid
+          />
         </div>
 
         <div class="form-field">

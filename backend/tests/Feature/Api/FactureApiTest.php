@@ -99,6 +99,20 @@ class FactureApiTest extends TestCase
         $this->assertEquals('2026-05-17', $data['date_echeance']);
     }
 
+    public function test_facture_standard_sans_taux_en_vigueur_refuse(): void
+    {
+        // Le seul taux standard demarre le 2023-01-01 : facturer avant doit echouer (409),
+        // au lieu d'appliquer silencieusement 0% sur une facture soumise a la TVA.
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/factures', [
+                'mission_id' => $this->mission->id,
+                'date_facture' => '2022-12-31',
+            ]);
+
+        $response->assertStatus(409);
+        $this->assertDatabaseCount('factures', 0);
+    }
+
     public function test_tranches_automatiques_t1_t2_t3(): void
     {
         // T1

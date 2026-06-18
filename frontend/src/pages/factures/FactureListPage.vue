@@ -20,6 +20,7 @@ import Textarea from 'primevue/textarea'
 import { useFactures } from '@/composables/useFactures'
 import { useMissions } from '@/composables/useMissions'
 import { useExercices } from '@/composables/useExercices'
+import { useTvaTaux } from '@/composables/useTvaTaux'
 import { useAuthStore } from '@/stores/auth'
 import { avoirsApi } from '@/api/modules/avoirs'
 import type { Facture, Avoir } from '@/types'
@@ -111,11 +112,23 @@ function confirmDeleteAvoir(avoir: Avoir) {
 // ---------- Dialog création facture ----------
 const dialogVisible = ref(false)
 const saving = ref(false)
+const { fetchTaux: fetchTvaTaux, tauxEnVigueur } = useTvaTaux()
+
 const form = reactive({
   mission_id: null as number | null,
   exercice_id: null as number | null,
   date_facture: new Date() as Date,
+  type_tva: 'standard' as 'standard' | 'exonere',
   notes: '',
+})
+
+const tvaOptions = computed(() => {
+  const std = tauxEnVigueur('standard', form.date_facture)
+  const exo = tauxEnVigueur('exonere', form.date_facture)
+  return [
+    { label: std !== null ? `Standard (${std} %)` : 'Standard', value: 'standard' },
+    { label: exo !== null ? `Exonere (${exo} %)` : 'Exonere (0 %)', value: 'exonere' },
+  ]
 })
 
 const dateEcheancePreview = computed(() => {
@@ -138,6 +151,7 @@ function openCreate() {
   form.mission_id = null
   form.exercice_id = exerciceCourant.value?.id ?? null
   form.date_facture = new Date()
+  form.type_tva = 'standard'
   form.notes = ''
   dialogVisible.value = true
 }
@@ -150,6 +164,7 @@ async function onSubmitFacture() {
       mission_id: form.mission_id,
       exercice_id: form.exercice_id ?? undefined,
       date_facture: toIsoDate(form.date_facture),
+      type_tva: form.type_tva,
       notes: form.notes || null,
     })
     dialogVisible.value = false
@@ -260,7 +275,12 @@ function confirmDelete(facture: Facture) {
 
 function toIsoDate(d: Date | null): string {
   if (!d) return ''
-  return d.toISOString().split('T')[0]
+  // Date LOCALE (pas toISOString/UTC) : evite le decalage d'un jour en UTC+1
+  // et garantit que la date envoyee == la date affichee == la date du taux calcule.
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 function formatDate(d: string) {
@@ -297,6 +317,7 @@ onMounted(async () => {
   fetchFactures()
   fetchMissions()
   fetchAvoirs()
+  fetchTvaTaux()
 })
 </script>
 
@@ -558,6 +579,18 @@ onMounted(async () => {
             <div class="echeance-preview">{{ dateEcheancePreview }}</div>
             <small class="hint">Date facture + 45 jours</small>
           </div>
+        </div>
+
+        <div class="form-field">
+          <label for="f-tva">Categorie TVA *</label>
+          <Select
+            id="f-tva"
+            v-model="form.type_tva"
+            :options="tvaOptions"
+            optionLabel="label"
+            optionValue="value"
+            fluid
+          />
         </div>
 
         <div class="form-field">

@@ -18,6 +18,7 @@ export interface DevisPayload {
   exercice_id?: number
   date_devis: string
   date_validite: string
+  type_tva?: 'standard' | 'exonere'
   notes?: string | null
 }
 
