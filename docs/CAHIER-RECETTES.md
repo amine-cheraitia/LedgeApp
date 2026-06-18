@@ -80,7 +80,7 @@
 | FAC-02 | Facture créée | Vérifier les tranches | T1 = 30 %, T2 = 30 %, **T3 = solde exact** (`prix_ht − T1 − T2`) ; invariant `T1+T2+T3 == prix_ht` | 🔁 |
 | FAC-03 | Facture 2026 | Lire `taux_tva_snapshot` | Taux **en vigueur à la date de facture** (19 %), **immuable** même appelé en 2030 (`TvaTaux::enVigueurLe`) | 🔁 |
 | FAC-04 | 1er janvier nouvel exercice | Créer une facture | Séquence réinitialisée à 001 ; pas de doublon en concurrence (`lockForUpdate`) | 🔁 |
-| FAC-05 | Facture | Générer le PDF DGI | NIF/NIS/RC, TVA 19/9 %, timbre 1 % plafonné 2500 DA, montant en lettres | ✅ |
+| FAC-05 | Facture | Générer le PDF DGI | NIF/NIS/RC, TVA 19/9 %, montant en lettres | ✅ |
 
 ## 7. Paiements
 

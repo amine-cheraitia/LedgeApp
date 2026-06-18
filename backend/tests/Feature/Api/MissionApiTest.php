@@ -11,7 +11,6 @@ use App\Models\Mission;
 use App\Models\Prestation;
 use App\Models\RegimeFiscal;
 use App\Models\Setting;
-use App\Models\TimbreTaux;
 use App\Models\TvaTaux;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -177,13 +176,6 @@ class MissionApiTest extends TestCase
             'designation' => 'TVA standard',
             'date_debut' => '2023-01-01',
             'type' => 'standard',
-            'actif' => true,
-        ]);
-        TimbreTaux::create([
-            'taux' => 1,
-            'plafond' => 2500,
-            'designation' => 'Timbre fiscal',
-            'date_debut' => '2024-01-01',
             'actif' => true,
         ]);
         Setting::set('facture_prefixe', 'FF');

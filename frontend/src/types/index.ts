@@ -146,7 +146,6 @@ export interface Devis {
   prix_ht: number
   montant_ht: number
   montant_tva: number
-  montant_timbre: number
   montant_ttc: number
   statut: 'brouillon' | 'envoye' | 'accepte' | 'refuse' | 'expire'
   notes: string | null
@@ -176,7 +175,6 @@ export interface Facture {
   devis_id: number | null
   created_by: number
   tva_rate_id: number | null
-  timbre_rate_id: number | null
   numero: string
   type: 'FF' | 'FA'
   facture_origine_id: number | null
@@ -185,7 +183,6 @@ export interface Facture {
   montant_ht: number
   taux_tva: number
   montant_tva: number
-  montant_timbre: number
   montant_ttc: number
   montant_paye: number
   statut_paiement: 'en_attente' | 'partiel' | 'solde'

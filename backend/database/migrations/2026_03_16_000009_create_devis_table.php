@@ -18,7 +18,6 @@ return new class extends Migration
             $table->date('date_validite')->nullable();
             $table->decimal('montant_ht', 12, 2)->default(0);
             $table->decimal('montant_tva', 12, 2)->default(0);
-            $table->decimal('montant_timbre', 12, 2)->default(0);
             $table->decimal('montant_ttc', 12, 2)->default(0);
             $table->enum('statut', ['brouillon', 'envoye', 'accepte', 'refuse', 'expire'])->default('brouillon');
             $table->text('notes')->nullable();

@@ -26,7 +26,6 @@ class DevisResource extends JsonResource
             'prix_ht' => $this->prix_ht,
             'montant_ht' => $this->montant_ht,
             'montant_tva' => $this->montant_tva,
-            'montant_timbre' => $this->montant_timbre,
             'montant_ttc' => $this->montant_ttc,
             'statut' => $this->statut,
             'notes' => $this->notes,

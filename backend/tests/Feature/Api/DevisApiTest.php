@@ -10,7 +10,6 @@ use App\Models\Exercice;
 use App\Models\Prestation;
 use App\Models\RegimeFiscal;
 use App\Models\Setting;
-use App\Models\TimbreTaux;
 use App\Models\TvaTaux;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -72,14 +71,6 @@ class DevisApiTest extends TestCase
             'actif' => true,
         ]);
 
-        TimbreTaux::create([
-            'taux' => 1,
-            'plafond' => 2500,
-            'designation' => 'Timbre fiscal',
-            'date_debut' => '2024-01-01',
-            'actif' => true,
-        ]);
-
         Setting::set('devis_prefixe', 'DV');
     }
 
@@ -128,7 +119,7 @@ class DevisApiTest extends TestCase
         $this->assertEquals(120000, (float) $response->json('data.prix_ht'));
     }
 
-    public function test_tva_calcule_sur_prix_ht_sans_timbre(): void
+    public function test_tva_calcule_sur_prix_ht(): void
     {
         $response = $this->actingAs($this->admin)
             ->postJson('/api/v1/devis', [
@@ -145,8 +136,6 @@ class DevisApiTest extends TestCase
         $this->assertEquals(315000, (float) $data['montant_ht']);
         // TVA = 315 000 * 19% = 59 850
         $this->assertEquals(59850, (float) $data['montant_tva']);
-        // Timbre = 0 sur les devis (s'applique uniquement sur les factures)
-        $this->assertEquals(0, (float) $data['montant_timbre']);
         // TTC = 315 000 + 59 850 = 374 850
         $this->assertEquals(374850, (float) $data['montant_ttc']);
     }

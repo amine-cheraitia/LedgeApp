@@ -100,7 +100,7 @@ Jamais d'appel Axios direct dans les composants Vue.
 backend/tests/
 ├── Feature/Api/           # Tests integration API (DevisApiTest, FactureApiTest, EntrepriseApiTest)
 └── Unit/
-    ├── Models/            # Tests modeles (TvaRate, TimbreRate, Prestation)
+    ├── Models/            # Tests modeles (TvaTaux, Prestation)
     └── Listeners/         # Tests listeners (ConvertProspectToClient)
 
 frontend/src/__tests__/

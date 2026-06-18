@@ -83,7 +83,6 @@ class SecretairePermissionsTest extends TestCase
             'prix_ht' => 250000,
             'montant_ht' => 250000,
             'montant_tva' => 47500,
-            'montant_timbre' => 0,
             'montant_ttc' => 297500,
             'statut' => 'brouillon',
         ]);

@@ -51,7 +51,7 @@ Format : `type(module): description courte`
 
 Exemples :
 ```
-feat(facturation): calcul automatique TVA + timbre fiscal
+feat(facturation): calcul automatique TVA
 feat(portail): activation acces client depuis fiche entreprise
 fix(factures): snapshot tva_taux_id manquant a la creation d'avoir
 chore(deps): mise a jour Laravel 12.x

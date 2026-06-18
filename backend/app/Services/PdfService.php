@@ -78,28 +78,26 @@ class PdfService
     public function genererRapportCloture(Exercice $exercice): PdfInstance
     {
         $factures = Facture::where('exercice_id', $exercice->id)
-            ->where('type', 'facture')
+            ->where('type', 'FF')
             ->with('entreprise')
             ->orderBy('date_facture')
             ->get();
 
         $mois = [];
         for ($m = 1; $m <= 12; $m++) {
-            $mois[$m] = ['ca' => 0.0, 'tva' => 0.0, 'timbre' => 0.0, 'nb' => 0];
+            $mois[$m] = ['ca' => 0.0, 'tva' => 0.0, 'nb' => 0];
         }
 
         foreach ($factures as $facture) {
             $m = (int) $facture->date_facture->format('n');
             $mois[$m]['ca'] += (float) $facture->montant_ht;
             $mois[$m]['tva'] += (float) $facture->montant_tva;
-            $mois[$m]['timbre'] += (float) $facture->montant_timbre;
             $mois[$m]['nb']++;
         }
 
         $totaux = [
             'ca' => array_sum(array_column($mois, 'ca')),
             'tva' => array_sum(array_column($mois, 'tva')),
-            'timbre' => array_sum(array_column($mois, 'timbre')),
             'nb' => array_sum(array_column($mois, 'nb')),
         ];
 

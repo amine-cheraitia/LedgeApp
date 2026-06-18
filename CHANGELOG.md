@@ -9,6 +9,31 @@
 
 ## [Unreleased]
 
+### Suppression du timbre fiscal (refactor/suppression-timbre)
+
+Le timbre fiscal était présent en infrastructure mais **toujours nul en pratique** (`creerFacture()`/`creerDevis()`
+forçaient `montant_timbre = 0` et `timbre_taux_id = null`, le calcul `TimbreTaux` n'était jamais invoqué). Il est
+**entièrement retiré** du périmètre.
+
+#### Backend
+- **Modèle** `TimbreTaux` supprimé ; `Facture`/`Devis` nettoyés (`montant_timbre`, `timbre_taux_id`, relation `timbreTaux()`)
+- **Migrations** : colonnes `montant_timbre` (factures, devis), FK `timbre_taux_id` et table `timbre_taux` retirées
+  (édition des migrations d'origine, schéma propre — nécessite `migrate:fresh`)
+- **`FacturationService`** / **`PdfService`** : timbre retiré de la création facture/devis et de l'agrégation du rapport de clôture
+- **Resources** (`FactureResource`, `DevisResource`), **factories**, **seeder** (`TvaTauxSeeder`) et **PDF de clôture** nettoyés
+- **Tests** : `TimbreTauxTest` supprimé ; références `TimbreTaux`/`montant_timbre` retirées des tests facturation/dashboard
+
+#### Frontend
+- **`types/index.ts`** : `montant_timbre` (Facture, Devis) et `timbre_rate_id` (Facture) retirés ; test `types.test.ts` aligné (TTC = HT + TVA)
+
+#### Docs
+- `CLAUDE.md`, `README.md`, `docs/ARCHITECTURE.md`, `docs/BACKLOG.md` (US-04 → « TVA historisée », US-51 → « Gestion des taux TVA ») mis à jour
+
+#### Fix (repéré pendant la recette)
+- **`PdfService::genererRapportCloture()`** : le filtre des factures utilisait `where('type', 'facture')` alors que
+  le type réel est `'FF'` — le rapport de clôture (US-35) ressortait **toujours vide**. Corrigé en `where('type', 'FF')`
+  (cohérent avec `DashboardService` / `PortailService`). Vérifié : le rapport liste désormais bien les factures et les impayés.
+
 ### Tests front (couche logique) + cahier de recettes (feature/tests-frontend)
 
 #### Tests

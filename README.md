@@ -68,7 +68,7 @@ npm run test:watch            # mode watch
 | Devis (CRUD + lignes dynamiques + conversion en mission) | Fait |
 | Missions (CRUD + calcul prix HT + bascule prospect→client) | Fait |
 | Taches (CRUD nested sous missions + statut inline) | Fait |
-| Factures (CRUD + snapshots TVA/timbre + lien mission) | Fait |
+| Factures (CRUD + snapshots TVA + lien mission) | Fait |
 | Paiements (enregistrement + statut auto) | Fait |
 | Tests backend (PHPUnit — 38 tests) | Fait |
 | Tests frontend (Vitest — 27 tests) | Fait |

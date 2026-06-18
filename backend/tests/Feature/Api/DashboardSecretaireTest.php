@@ -12,7 +12,6 @@ use App\Models\Mission;
 use App\Models\Paiement;
 use App\Models\Prestation;
 use App\Models\Setting;
-use App\Models\TimbreTaux;
 use App\Models\TvaTaux;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -71,10 +70,6 @@ class DashboardSecretaireTest extends TestCase
             ['taux' => 19],
             ['designation' => 'TVA 19%', 'date_debut' => '2020-01-01', 'actif' => true]
         );
-        $timbre = TimbreTaux::firstOrCreate(
-            ['taux' => 1],
-            ['designation' => 'Timbre 1%', 'date_debut' => '2020-01-01', 'plafond' => 2500, 'actif' => true]
-        );
         $entreprise = Entreprise::factory()->create(['statut' => 'client']);
         $prestation = Prestation::firstOrCreate(
             ['code' => 'ACMPT'],
@@ -93,7 +88,6 @@ class DashboardSecretaireTest extends TestCase
             'exercice_id' => $this->exercice->id,
             'mission_id' => $mission->id,
             'tva_taux_id' => $tva->id,
-            'timbre_taux_id' => $timbre->id,
             'montant_ht' => 100000,
             'taux_tva' => 19,
             'montant_tva' => 19000,
