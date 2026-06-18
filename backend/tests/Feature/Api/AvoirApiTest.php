@@ -79,7 +79,6 @@ class AvoirApiTest extends TestCase
             'montant_ht' => 94500,
             'taux_tva' => 19,
             'montant_tva' => 17955,
-            'montant_timbre' => 0,
             'montant_ttc' => 112455,
             'montant_paye' => 0,
             'statut_paiement' => 'en_attente',

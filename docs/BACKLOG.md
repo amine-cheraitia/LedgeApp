@@ -40,21 +40,21 @@
 
 ---
 
-### US-04 · TVA & Timbre historises · M · 5 pts · Sprint 1 ✅
+### US-04 · TVA historisee · M · 5 pts · Sprint 1 ✅
 
-**En tant qu'administrateur**, je veux gerer les taux TVA et timbre fiscal avec historique versionne **afin que** chaque facture retrouve toujours le taux en vigueur a sa date d'emission.
+**En tant qu'administrateur**, je veux gerer les taux TVA avec historique versionne **afin que** chaque facture retrouve toujours le taux en vigueur a sa date d'emission.
 
-- Tables `tva_taux` / `timbre_taux` avec `date_debut` / `date_fin`
-- `TvaTaux::enVigueurLe($date)` · `TimbreTaux::enVigueurLe($date)`
+- Table `tva_taux` avec `date_debut` / `date_fin`
+- `TvaTaux::enVigueurLe($date)`
 - Snapshot immuable copie a la creation de chaque facture — **JAMAIS** `Carbon::now()` dans la resolution
-- Timbre fiscal : 1%, plafonne 2 500 DA
+- Note : le timbre fiscal a ete retire (toujours nul en pratique) — voir CHANGELOG
 - Depend de : —
 
 ---
 
-### US-51 · Gestion des taux TVA & Timbre · M · 3 pts · Sprint 3
+### US-51 · Gestion des taux TVA · M · 3 pts · Sprint 3
 
-**En tant qu'administrateur**, je veux gerer les taux TVA et timbre fiscal depuis l'interface **afin de** ne pas acceder directement a la base de donnees.
+**En tant qu'administrateur**, je veux gerer les taux TVA depuis l'interface **afin de** ne pas acceder directement a la base de donnees.
 
 - Page Settings dediee : `/admin/settings/tva-taux`
 - Datatable : taux actuels avec date_debut / date_fin · type (standard / reduit / exonere) · actions (editer, supprimer)
@@ -164,7 +164,7 @@
 - Un devis = une seule prestation — regle immuable
 - Calcul : `tarif x indice_regime x indice_categorie` — calcule a la creation, jamais modifiable
 - Numerotation `DV{ANNEE}-{NNN}` · statuts : brouillon / envoye / accepte / refuse / expire
-- `FacturationService::creerDevis()` avec calcul TVA/timbre automatique
+- `FacturationService::creerDevis()` avec calcul TVA automatique
 - Frontend : `Select` prestation dans le formulaire, prix HT affiche en lecture seule
 - Bouton "Envoyer" : change le statut en `envoye` — **l'envoi par mail (PDF en PJ) est prevu mais non implemente, depend de US-12**
 - Depend de : **US-01, US-03, US-04, US-05, US-06, US-17**
@@ -177,7 +177,7 @@
 
 **En tant qu'administrateur**, je veux generer un PDF du devis conforme au format algerien **afin de** l'envoyer a l'entreprise pour validation.
 
-- DomPDF · en-tete cabinet (NIF/NIS/RIB) · NIF/NIS/RC client · tableau prestation/prix/TVA · timbre fiscal · zone signature
+- DomPDF · en-tete cabinet (NIF/NIS/RIB) · NIF/NIS/RC client · tableau prestation/prix/TVA · zone signature
 - Depend de : **US-11, US-03**
 
 ---
@@ -227,7 +227,7 @@
 - **3 tranches : T1 = 30% · T2 = 30% · T3 = 40% (solde)**
   - 🐛 Correctif arrondi (#52) : T3 calculee comme **solde exact** (`prix_ht − T1 − T2`) — invariant `T1 + T2 + T3 == prix_ht` garanti et teste, y compris prix a centimes
 - Snapshots immuables copies UNE SEULE FOIS a la creation :
-  `taux_tva` · `montant_tva` · `montant_timbre` · `montant_ttc`
+  `taux_tva` · `montant_tva` · `montant_ttc`
 - `FacturationService::creerFacture()` deja implementee
 - Protection suppression : bloquee si paiements ou avoirs associes
 - Depend de : **US-18, US-04, US-17, US-03**
@@ -271,7 +271,7 @@
 
 **En tant qu'administrateur**, je veux generer un PDF de facture conforme DGI **afin qu'**il soit juridiquement recevable en Algerie.
 
-- DomPDF · NIF/NIS/RC cabinet + client · TVA 19%/9% · timbre 1% plafonne 2 500 DA
+- DomPDF · NIF/NIS/RC cabinet + client · TVA 19%/9%
 - Montant en lettres (francais) · RIB cabinet · numero chronologique
 - Depend de : **US-13, US-03**
 
@@ -440,7 +440,7 @@
 
 **En tant qu'administrateur**, je veux generer un rapport financier de cloture d'exercice PDF **afin de** preparer la cloture annuelle.
 
-- CA par mois · TVA collectee · timbre collecte · impayes fin exercice · filtre par client
+- CA par mois · TVA collectee · impayes fin exercice · filtre par client
 - Depend de : **US-13, US-17, US-33**
 
 ---

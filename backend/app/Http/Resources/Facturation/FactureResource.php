@@ -29,7 +29,6 @@ class FactureResource extends JsonResource
             'montant_ht' => $this->montant_ht,
             'taux_tva' => $this->taux_tva,
             'montant_tva' => $this->montant_tva,
-            'montant_timbre' => $this->montant_timbre,
             'montant_ttc' => $this->montant_ttc,
             'montant_paye' => $this->montant_paye,
             'statut_paiement' => $this->statut_paiement,

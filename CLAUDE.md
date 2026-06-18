@@ -160,13 +160,12 @@ Ce montant est calcule UNE SEULE FOIS a la creation et stocke de facon immuable.
 ```php
 // TOUJOURS passer la date de facturation — JAMAIS Carbon::now()
 $tva = TvaTaux::enVigueurLe($facture->date_facture);
-$timbre = TimbreTaux::enVigueurLe($facture->date_facture);
 ```
 La table `tva_taux` a `date_debut` / `date_fin`. Une facture de 2026 doit retourner 19% meme si appelee en 2030.
 
 ### 3. Snapshots immuables sur facture
 Ces valeurs sont copiees a la creation et **ne changent jamais** :
-`taux_tva_snapshot` - `montant_tva` - `taux_timbre_snapshot` - `montant_timbre` - `prix_ttc`
+`taux_tva_snapshot` - `montant_tva` - `prix_ttc`
 
 ### 4. Numerotation par exercice
 Format : `{prefixe}{annee}-{sequence}`. Reinitialisee chaque exercice. Configurable via `settings`.
@@ -262,7 +261,7 @@ public function __construct(private readonly FacturationService $facturationServ
 | Facturation | DevisController, FactureController, PaiementController | FacturationService | Devis, DevisLigne, Facture, FactureLigne, Paiement |
 | Planning | MissionController, TacheController | MissionService | Mission, Tache, TacheCommentaire |
 | Settings | SettingController | — | Setting |
-| Referentiel | — | — | TvaRate, TimbreRate |
+| Referentiel | — | — | TvaTaux |
 | Relances (a venir) | RelanceController | RelanceService | Relance |
 | KPI (a venir) | KpiController | KpiCalculatorService | KpiObjectif, KpiResultat |
 

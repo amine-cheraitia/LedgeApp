@@ -36,19 +36,5 @@ class TvaTauxSeeder extends Seeder
                 'updated_at' => now(),
             ]
         );
-
-        DB::table('timbre_taux')->updateOrInsert(
-            ['taux' => 1.00],
-            [
-                'taux' => 1.00,
-                'plafond' => 2500.00,
-                'designation' => 'Timbre fiscal LF 2024 (1%, plafonné 2 500 DA)',
-                'date_debut' => '2024-01-01',
-                'date_fin' => null,
-                'actif' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
     }
 }

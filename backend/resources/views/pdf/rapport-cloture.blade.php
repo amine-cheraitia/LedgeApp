@@ -271,13 +271,6 @@
             </td>
             <td>
                 <div class="kpi-card">
-                    <div class="kpi-label">Timbre collecté</div>
-                    <div class="kpi-value">{{ number_format($totaux['timbre'], 0, ',', ' ') }}</div>
-                    <div class="kpi-sub">Dinars Algériens</div>
-                </div>
-            </td>
-            <td>
-                <div class="kpi-card">
                     <div class="kpi-label">Factures émises</div>
                     <div class="kpi-value">{{ $totaux['nb'] }}</div>
                     <div class="kpi-sub">Total exercice</div>
@@ -305,7 +298,6 @@
                 <th class="right">Factures</th>
                 <th class="right">CA HT (DA)</th>
                 <th class="right">TVA (DA)</th>
-                <th class="right">Timbre (DA)</th>
                 <th class="right">Total TTC (DA)</th>
             </tr>
         </thead>
@@ -317,8 +309,7 @@
                     <td class="right">{{ $data['nb'] }}</td>
                     <td class="right">{{ number_format($data['ca'], 2, ',', ' ') }}</td>
                     <td class="right">{{ number_format($data['tva'], 2, ',', ' ') }}</td>
-                    <td class="right">{{ number_format($data['timbre'], 2, ',', ' ') }}</td>
-                    <td class="right bold">{{ number_format($data['ca'] + $data['tva'] + $data['timbre'], 2, ',', ' ') }}</td>
+                    <td class="right bold">{{ number_format($data['ca'] + $data['tva'], 2, ',', ' ') }}</td>
                 </tr>
                 @endif
             @endforeach
@@ -329,8 +320,7 @@
                 <td class="right gold">{{ $totaux['nb'] }}</td>
                 <td class="right gold">{{ number_format($totaux['ca'], 2, ',', ' ') }}</td>
                 <td class="right gold">{{ number_format($totaux['tva'], 2, ',', ' ') }}</td>
-                <td class="right gold">{{ number_format($totaux['timbre'], 2, ',', ' ') }}</td>
-                <td class="right gold">{{ number_format($totaux['ca'] + $totaux['tva'] + $totaux['timbre'], 2, ',', ' ') }}</td>
+                <td class="right gold">{{ number_format($totaux['ca'] + $totaux['tva'], 2, ',', ' ') }}</td>
             </tr>
         </tfoot>
     </table>

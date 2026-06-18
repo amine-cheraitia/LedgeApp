@@ -121,7 +121,6 @@ Mission (dates debut/fin - statut - total - calendrier)
 ### Core / Settings
 Auth, roles et permissions (Spatie Laravel Permission), **parametres globaux configurables sans code** :
 - Taux TVA avec **historique versionne** (date d'entree en vigueur)
-- Timbre fiscal (1%, plafonne 2 500 DA — LF 2024)
 - Coordonnees cabinet (nom, adresse, NIF, NIS, RIB, logo)
 - Numerotation factures (prefixe, format annuel ou sequentiel)
 - Delais de relance (J+X par niveau)
@@ -169,7 +168,7 @@ Donnees : contacts, NIF/NIS, numero RC, article d'imposition, regime fiscal, cat
 ---
 
 ### Facturation
-Devis, factures, avoirs. Separation obligatoire par **exercice fiscal (annee)**. Calcul automatique TVA + timbre fiscal. Generation PDF conforme DGI. Logs immuables (piste d'audit).
+Devis, factures, avoirs. Separation obligatoire par **exercice fiscal (annee)**. Calcul automatique TVA. Generation PDF conforme DGI. Logs immuables (piste d'audit).
 
 **Calcul du prix HT d'une mission :**
 ```
@@ -187,14 +186,12 @@ Exemple : ACMPT pour une PME au regime Reel -> `120 000 x 1.5 x 1.75 = 315 000 D
 **Calcul TVA — devis :**
 ```
 TTC devis = Prix HT + (Prix HT x taux_tva)
-// Le timbre fiscal NE s'applique PAS sur les devis — montant_timbre = 0
 ```
 
 **Calcul TVA — facture :**
 ```
 Montant TVA    = Prix HT x taux_tva_en_vigueur_a_la_date_de_facture
-Timbre fiscal  = min(Prix HT x taux_timbre, plafond_timbre)
-Prix TTC       = Prix HT + Montant TVA + Timbre fiscal
+Prix TTC       = Prix HT + Montant TVA
 ```
 
 > Tous les indices et tarifs de base sont **parametrables via Settings** — aucun redeploiement pour ajuster la grille tarifaire.
@@ -208,7 +205,7 @@ Tranche 3 = 40% du total mission (solde)
 
 **Statut facture** recalcule automatiquement : `en_attente -> partiel -> solde`
 
-**Snapshots immuables** : taux TVA et timbre sont figes a la creation de la facture (pas de recalcul retroactif).
+**Snapshots immuables** : le taux TVA est fige a la creation de la facture (pas de recalcul retroactif).
 
 **Logs immuables** (piste d'audit) sur toutes les transactions financieres.
 
@@ -288,7 +285,6 @@ tva_rates
 ```php
 // Toujours utiliser cette methode, jamais un taux en dur
 $tva = TvaRate::enVigueurLe($facture->date_facture);
-$timbre = TimbreRate::enVigueurLe($facture->date_facture);
 ```
 
 Exemple concret :
@@ -335,7 +331,7 @@ Recherche et filtres toujours contextuels a un exercice. Le portail client affic
 
 | Probleme identifie | Solution dans Ledge |
 |---|---|
-| Pas de TVA / timbre calcules | Calcul auto + historisation des taux |
+| Pas de TVA calculee | Calcul auto + historisation des taux |
 | Pas de suivi statut paiement | Statut auto + relances automatiques |
 | Pas de portail client | Module Portail (Vue.js `/portail`) |
 | Roles basiques | Spatie Laravel Permission (granulaire) |
@@ -354,7 +350,6 @@ Recherche et filtres toujours contextuels a un exercice. Le portail client affic
 |---|---|
 | TVA standard | 19% — LF 2023, art. 21 (historise) |
 | TVA reduite | 9% — services exoneres, art. 23 (historise) |
-| Timbre fiscal | 1% plafonne a 2 500 DA — LF 2024 (historise) |
 | Mentions obligatoires facture | NIF + NIS + RC + Art. imposition, numero chronologique, date |
 | Format DGI | Factures conformes Direction Generale des Impots |
 | Facturation electronique | Projet de loi en cours — architecture prete |
@@ -370,7 +365,6 @@ users                  -> auth + roles Spatie (entreprise_id nullable, portail_a
 entreprises            -> clients & prospects (statut, regime, categorie)
 exercices              -> exercices fiscaux par annee
 tva_rates              -> historique taux TVA (date_debut / date_fin)
-timbre_rates           -> historique taux timbre fiscal
 settings               -> parametres cle/valeur (cabinet, facturation, relances)
 prestations            -> catalogue avec tarif_initial
 regimes_fiscaux        -> Forfait (x1.0) / Reel (x1.5)
@@ -404,7 +398,7 @@ documents              -> fichiers PDF et documents partages portail
 
 **`users.entreprise_id` nullable** — `NULL` pour admin/collaborateur/secretaire, renseigne uniquement pour le role `client`. Isolation automatique des donnees dans le portail via scope Eloquent.
 
-**Table `tva_rates` versionnee** — taux TVA et timbre fiscal historises avec date d'entree en vigueur. Aucun redeploiement pour les mises a jour reglementaires.
+**Table `tva_rates` versionnee** — taux TVA historises avec date d'entree en vigueur. Aucun redeploiement pour les mises a jour reglementaires.
 
 **Table `settings` cle/valeur** — parametres metier en base, modifiables par l'admin sans code.
 
@@ -539,7 +533,7 @@ Voir [docs/GITFLOW.md](GITFLOW.md) pour le detail complet.
 |---|---|---|---|
 | S1-S2 | Cadrage & Bloc 1 | Dossier de cadrage, SWOT, comparatif, charge, budget, architecture | fait |
 | S3-S4 | Architecture & Setup | Schema BDD, migrations, doc technique, Gantt | fait |
-| S5-S6 | Sprint 1 — Core | Auth/roles, Clients, Facturation (calcul HT/TVA/timbre/PDF devis), Settings, Exercices | en cours |
+| S5-S6 | Sprint 1 — Core | Auth/roles, Clients, Facturation (calcul HT/TVA/PDF devis), Settings, Exercices | en cours |
 | S7-S8 | Sprint 2 — Avance | Planning FullCalendar, Relances mails, Portail client, KPI | a faire |
 | S9 | Sprint 3 — Qualite | OWASP Top 10, RGAA (axe + Lighthouse), tests unitaires, staging | a faire |
 | S10-S11 | Recette & MCO | Cahier de recettes, anomalies, CHANGELOG, UptimeRobot, Sentry | a faire |

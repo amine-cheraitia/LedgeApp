@@ -124,7 +124,6 @@ class FacturationService
             $tvaTaux = TvaTaux::enVigueurLe($data['date_devis']);
 
             $montantTva = $tvaTaux ? round($prixHt * (float) $tvaTaux->taux / 100, 2) : 0;
-            // Le timbre fiscal ne s'applique pas sur les devis — uniquement sur les factures
             $montantTtc = round($prixHt + $montantTva, 2);
 
             $devis = Devis::create([
@@ -138,7 +137,6 @@ class FacturationService
                 'prix_ht' => $prixHt,
                 'montant_ht' => $prixHt,
                 'montant_tva' => $montantTva,
-                'montant_timbre' => 0,
                 'montant_ttc' => $montantTtc,
                 'statut' => 'brouillon',
                 'notes' => $data['notes'] ?? null,
@@ -211,7 +209,7 @@ class FacturationService
     /**
      * Cree une facture de mission avec tranche automatique.
      * T1=30%, T2=30%, T3=40% — determinee par le nb de factures existantes sur la mission.
-     * Date echeance = date_facture + 45 jours. Timbre = 0 (non applicable).
+     * Date echeance = date_facture + 45 jours.
      * Snapshots TVA figes a la date de facturation — regle immuable.
      */
     public function creerFacture(array $data, int $userId): Facture
@@ -270,7 +268,6 @@ class FacturationService
                 'devis_id' => $mission->devis_id ?? null,
                 'created_by' => $userId,
                 'tva_taux_id' => $tvaTaux?->id,
-                'timbre_taux_id' => null,
                 'numero' => $this->genererNumero($prefixe, 'factures', $exercice),
                 'type' => 'FF',
                 'date_facture' => $dateFacture,
@@ -278,7 +275,6 @@ class FacturationService
                 'montant_ht' => $montantHt,
                 'taux_tva' => $tauxTva,
                 'montant_tva' => $montantTva,
-                'montant_timbre' => 0,
                 'montant_ttc' => $montantTtc,
                 'montant_paye' => 0,
                 'statut_paiement' => 'en_attente',

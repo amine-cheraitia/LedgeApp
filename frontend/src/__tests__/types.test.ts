@@ -37,7 +37,6 @@ describe('TypeScript interfaces', () => {
       devis_id: null,
       created_by: 1,
       tva_rate_id: 1,
-      timbre_rate_id: 1,
       numero: 'FF2026-001',
       type: 'FF',
       facture_origine_id: null,
@@ -46,12 +45,11 @@ describe('TypeScript interfaces', () => {
       montant_ht: 100000,
       taux_tva: 19,
       montant_tva: 19000,
-      montant_timbre: 1000,
-      montant_ttc: 120000,
+      montant_ttc: 119000,
       montant_paye: 0,
       statut_paiement: 'en_attente',
       mode_paiement: 'non_defini',
-      montant_restant: 120000,
+      montant_restant: 119000,
       pdf_path: null,
       notes: null,
       created_at: '2026-03-25',
@@ -61,8 +59,7 @@ describe('TypeScript interfaces', () => {
     // Snapshots immuables
     expect(facture.taux_tva).toBe(19)
     expect(facture.montant_tva).toBe(19000)
-    expect(facture.montant_timbre).toBe(1000)
-    expect(facture.montant_ttc).toBe(facture.montant_ht + facture.montant_tva + facture.montant_timbre)
+    expect(facture.montant_ttc).toBe(facture.montant_ht + facture.montant_tva)
   })
 
   it('Paiement modes match enum', () => {
