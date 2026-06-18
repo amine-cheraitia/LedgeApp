@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { devisApi, type DevisFilters, type DevisPayload, type ConvertirEnMissionPayload } from '@/api/modules/devis'
+import { getApiErrorMessage } from '@/composables/useApiError'
 import type { Devis } from '@/types'
 
 export function useDevis() {
@@ -36,10 +37,15 @@ export function useDevis() {
   }
 
   async function envoyerDevis(id: number) {
-    const response = await devisApi.envoyer(id)
-    toast.add({ severity: 'success', summary: 'Succes', detail: 'Devis envoye.', life: 3000 })
-    await fetchDevis()
-    return response.data
+    try {
+      const response = await devisApi.envoyer(id)
+      toast.add({ severity: 'success', summary: 'Succes', detail: 'Devis envoye au client par mail.', life: 3000 })
+      await fetchDevis()
+      return response.data
+    } catch (e) {
+      toast.add({ severity: 'error', summary: 'Erreur', detail: getApiErrorMessage(e, 'Envoi impossible.'), life: 4000 })
+      throw e
+    }
   }
 
   async function accepterDevis(id: number) {

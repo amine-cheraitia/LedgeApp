@@ -52,6 +52,19 @@ class FactureController extends Controller
             ->setStatusCode(201);
     }
 
+    public function transmettre(Facture $facture): JsonResponse
+    {
+        $this->authorize('transmettre', $facture);
+
+        try {
+            $this->facturationService->transmettreFacture($facture);
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
+        }
+
+        return response()->json(['message' => 'Facture transmise au client par mail.']);
+    }
+
     public function show(Facture $facture): FactureResource
     {
         $this->authorize('view', $facture);

@@ -34,7 +34,7 @@ const exercicesOuverts = computed(() => exercices.value.filter((e: { statut: str
 
 const {
   factures, loading, totalRecords, filters,
-  fetchFactures, createFacture, deleteFacture, addPaiement, telechargerPdf,
+  fetchFactures, createFacture, deleteFacture, addPaiement, transmettreFacture, telechargerPdf,
   onPage, onSearch, onSort, setExercice,
 } = useFactures()
 
@@ -273,6 +273,17 @@ function confirmDelete(facture: Facture) {
   })
 }
 
+function confirmTransmettre(facture: Facture) {
+  confirm.require({
+    message: `Transmettre la facture "${facture.numero}" par mail au client (PDF joint) ?`,
+    header: 'Transmission de la facture',
+    icon: 'pi pi-envelope',
+    acceptLabel: 'Transmettre',
+    rejectLabel: 'Annuler',
+    accept: () => transmettreFacture(facture.id),
+  })
+}
+
 function toIsoDate(d: Date | null): string {
   if (!d) return ''
   // Date LOCALE (pas toISOString/UTC) : evite le decalage d'un jour en UTC+1
@@ -421,6 +432,16 @@ onMounted(async () => {
                   aria-label="Telecharger le PDF"
                   v-tooltip.top="'Telecharger PDF'"
                   @click="telechargerPdf(data.id, data.numero)"
+                />
+                <Button
+                  v-if="auth.isAdmin || auth.isSecretaire"
+                  icon="pi pi-envelope"
+                  text
+                  rounded
+                  severity="info"
+                  aria-label="Transmettre la facture par mail au client"
+                  v-tooltip.top="'Transmettre par mail'"
+                  @click="confirmTransmettre(data)"
                 />
                 <Button
                   v-if="data.statut_paiement !== 'solde'"

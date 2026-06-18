@@ -124,6 +124,14 @@ describe('devisApi', () => {
 
     expect(mockPut).toHaveBeenCalledWith('/devis/1', { notes: 'maj' })
   })
+
+  it('envoyer calls POST /devis/:id/envoyer', async () => {
+    mockPost.mockResolvedValue({ data: { data: { id: 1, statut: 'envoye' } } })
+
+    await devisApi.envoyer(1)
+
+    expect(mockPost).toHaveBeenCalledWith('/devis/1/envoyer')
+  })
 })
 
 describe('facturesApi', () => {
@@ -155,6 +163,14 @@ describe('facturesApi', () => {
     await facturesApi.getPaiements(1)
 
     expect(mockGet).toHaveBeenCalledWith('/factures/1/paiements')
+  })
+
+  it('transmettre calls POST /factures/:id/transmettre', async () => {
+    mockPost.mockResolvedValue({ data: { message: 'Facture transmise au client par mail.' } })
+
+    await facturesApi.transmettre(1)
+
+    expect(mockPost).toHaveBeenCalledWith('/factures/1/transmettre')
   })
 })
 

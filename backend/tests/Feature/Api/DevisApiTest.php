@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Api;
 
+use App\Mail\DevisMail;
 use App\Models\CategorieEntreprise;
+use App\Models\Devis;
 use App\Models\Entreprise;
 use App\Models\Exercice;
 use App\Models\Prestation;
@@ -13,6 +15,7 @@ use App\Models\Setting;
 use App\Models\TvaTaux;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -72,6 +75,8 @@ class DevisApiTest extends TestCase
         ]);
 
         Setting::set('devis_prefixe', 'DV');
+
+        Mail::fake();
     }
 
     public function test_can_create_devis_avec_une_prestation(): void
@@ -346,5 +351,46 @@ class DevisApiTest extends TestCase
         $this->assertEquals("DV{$annee}-001", $numeros[0]);
         $this->assertEquals("DV{$annee}-002", $numeros[1]);
         $this->assertEquals("DV{$annee}-003", $numeros[2]);
+    }
+
+    public function test_envoyer_devis_envoie_un_mail_avec_pdf_et_passe_en_envoye(): void
+    {
+        $devisId = $this->actingAs($this->admin)->postJson('/api/v1/devis', [
+            'entreprise_id' => $this->entreprise->id,
+            'prestation_id' => $this->prestation->id,
+            'date_devis' => '2026-03-31',
+            'date_validite' => '2026-04-30',
+        ])->json('data.id');
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId}/envoyer")
+            ->assertOk()
+            ->assertJsonPath('data.statut', 'envoye');
+
+        Mail::assertSent(DevisMail::class, fn (DevisMail $mail) => $mail->hasTo($this->entreprise->email));
+
+        $devis = Devis::findOrFail($devisId);
+        $attachments = (new DevisMail($devis))->attachments();
+        $this->assertCount(1, $attachments);
+        $this->assertSame("devis-{$devis->numero}.pdf", $attachments[0]->as);
+    }
+
+    public function test_envoyer_devis_sans_email_entreprise_refuse(): void
+    {
+        $this->entreprise->update(['email' => null]);
+
+        $devisId = $this->actingAs($this->admin)->postJson('/api/v1/devis', [
+            'entreprise_id' => $this->entreprise->id,
+            'prestation_id' => $this->prestation->id,
+            'date_devis' => '2026-03-31',
+            'date_validite' => '2026-04-30',
+        ])->json('data.id');
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId}/envoyer")
+            ->assertStatus(409);
+
+        $this->assertEquals('brouillon', Devis::findOrFail($devisId)->statut);
+        Mail::assertNothingSent();
     }
 }

@@ -155,6 +155,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('factures', [FactureController::class, 'index']);
                 Route::get('factures/{facture}', [FactureController::class, 'show']);
                 Route::get('factures/{facture}/pdf', [FactureController::class, 'pdf']);
+                Route::post('factures/{facture}/transmettre', [FactureController::class, 'transmettre']);
 
                 // Recouvrement — Paiements (lecture + enregistrement)
                 Route::get('factures/{facture}/paiements', [PaiementController::class, 'index']);

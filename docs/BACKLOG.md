@@ -627,13 +627,15 @@
 
 ---
 
-### US-44 · Envoi devis par mail · C · 3 pts · Apres Sprint 3
+### US-44 · Envoi devis (et factures) par mail · C · 3 pts · Apres Sprint 3 ✅
 
-**En tant qu'administrateur**, je veux envoyer le devis par mail au contact principal de l'entreprise **afin que** le client le recoive directement sans manipulation manuelle.
+**En tant qu'administrateur/secretaire**, je veux envoyer le devis (et transmettre la facture) par mail au contact principal de l'entreprise **afin que** le client le recoive directement sans manipulation manuelle.
 
-- Bouton "Envoyer" declenche un `Mailable` Laravel avec le PDF devis en piece jointe
-- Mail envoye au `contact_principal` de l'entreprise
-- Statut passe automatiquement a `envoye` apres envoi confirme
+- Bouton "Envoyer" (devis) / "Transmettre" (facture) declenche un `Mailable` Laravel avec le PDF en piece jointe
+- Mail envoye au contact principal de l'entreprise (a defaut email entreprise)
+- Devis : statut passe automatiquement a `envoye` apres envoi confirme ; refus 409 si pas d'email
+- Transmission facture autorisee a la secretaire (`FacturePolicy::transmettre`)
+- Fournisseur configurable par `.env` (Mailpit en dev, Brevo en demo)
 - Depend de : **US-11, US-12** (PDF devis obligatoire)
 
 ---
@@ -661,9 +663,9 @@
 
 | Statut | US | Pts |
 |---|---|---|
-| ✅ Termine | 42 US | 153 pts |
-| 🔧 En cours | 1 US | 3 pts |
-| A faire | 3 US | 23 pts |
+| ✅ Termine | 44 US | 159 pts |
+| 🔧 En cours | 0 US | 0 pts |
+| A faire | 2 US | 20 pts |
 
 ### Noeuds critiques
 

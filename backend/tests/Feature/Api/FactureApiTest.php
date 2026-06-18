@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Api;
 
+use App\Mail\FactureMail;
 use App\Models\Entreprise;
 use App\Models\Exercice;
+use App\Models\Facture;
 use App\Models\Mission;
 use App\Models\Prestation;
 use App\Models\Setting;
 use App\Models\TvaTaux;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -265,5 +268,63 @@ class FactureApiTest extends TestCase
             ]);
 
         $response->assertStatus(409);
+    }
+
+    public function test_transmettre_facture_envoie_un_mail_avec_pdf(): void
+    {
+        Mail::fake();
+
+        $factureId = $this->actingAs($this->admin)
+            ->postJson('/api/v1/factures', ['mission_id' => $this->mission->id, 'date_facture' => '2026-04-02'])
+            ->json('data.id');
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$factureId}/transmettre")
+            ->assertOk();
+
+        $facture = Facture::findOrFail($factureId);
+        Mail::assertSent(FactureMail::class, fn (FactureMail $mail) => $mail->hasTo($facture->entreprise->email));
+
+        $attachments = (new FactureMail($facture))->attachments();
+        $this->assertCount(1, $attachments);
+        $this->assertSame("facture-{$facture->numero}.pdf", $attachments[0]->as);
+    }
+
+    public function test_transmettre_sans_email_entreprise_refuse(): void
+    {
+        Mail::fake();
+
+        $factureId = $this->actingAs($this->admin)
+            ->postJson('/api/v1/factures', ['mission_id' => $this->mission->id, 'date_facture' => '2026-04-02'])
+            ->json('data.id');
+
+        Facture::findOrFail($factureId)->entreprise->update(['email' => null]);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$factureId}/transmettre")
+            ->assertStatus(409);
+
+        Mail::assertNothingSent();
+    }
+
+    public function test_secretaire_peut_transmettre_collaborateur_non(): void
+    {
+        Mail::fake();
+
+        $factureId = $this->actingAs($this->admin)
+            ->postJson('/api/v1/factures', ['mission_id' => $this->mission->id, 'date_facture' => '2026-04-02'])
+            ->json('data.id');
+
+        $secretaire = User::factory()->create();
+        $secretaire->assignRole('secretaire');
+        $this->actingAs($secretaire)
+            ->postJson("/api/v1/factures/{$factureId}/transmettre")
+            ->assertOk();
+
+        $collaborateur = User::factory()->create();
+        $collaborateur->assignRole('collaborateur');
+        $this->actingAs($collaborateur)
+            ->postJson("/api/v1/factures/{$factureId}/transmettre")
+            ->assertStatus(403);
     }
 }

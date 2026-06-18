@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { facturesApi, type FactureFilters, type FacturePayload, type PaiementPayload } from '@/api/modules/factures'
+import { getApiErrorMessage } from '@/composables/useApiError'
 import type { Facture } from '@/types'
 
 export function useFactures() {
@@ -46,6 +47,16 @@ export function useFactures() {
     toast.add({ severity: 'success', summary: 'Succes', detail: 'Paiement enregistre.', life: 3000 })
     await fetchFactures()
     return response.data
+  }
+
+  async function transmettreFacture(id: number) {
+    try {
+      await facturesApi.transmettre(id)
+      toast.add({ severity: 'success', summary: 'Succes', detail: 'Facture transmise au client par mail.', life: 3000 })
+    } catch (e) {
+      toast.add({ severity: 'error', summary: 'Erreur', detail: getApiErrorMessage(e, 'Transmission impossible.'), life: 4000 })
+      throw e
+    }
   }
 
   async function telechargerPdf(id: number, numero: string) {
@@ -98,6 +109,7 @@ export function useFactures() {
     createFacture,
     deleteFacture,
     addPaiement,
+    transmettreFacture,
     telechargerPdf,
     onPage,
     onSearch,

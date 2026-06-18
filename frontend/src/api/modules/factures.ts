@@ -45,6 +45,10 @@ export const facturesApi = {
     return api.get(`/factures/${id}/pdf`, { responseType: 'blob' }).then(r => r.data)
   },
 
+  transmettre(id: number): Promise<{ message: string }> {
+    return api.post(`/factures/${id}/transmettre`).then(r => r.data)
+  },
+
   delete(id: number): Promise<void> {
     return api.delete(`/factures/${id}`)
   },
