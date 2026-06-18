@@ -119,6 +119,19 @@ class TvaTauxApiTest extends TestCase
             ->assertJsonValidationErrors(['date_fin']);
     }
 
+    public function test_validation_taux_hors_bornes_refusee(): void
+    {
+        $this->actingAs($this->admin)
+            ->postJson('/api/v1/referentiels/tva-taux', $this->payload(['taux' => 150]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['taux']);
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/v1/referentiels/tva-taux', $this->payload(['taux' => -5]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['taux']);
+    }
+
     public function test_non_admin_ne_peut_pas_gerer_les_taux(): void
     {
         $this->actingAs($this->secretaire)

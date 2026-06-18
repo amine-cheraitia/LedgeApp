@@ -22,17 +22,27 @@ export function useTvaTaux() {
   }
 
   async function createTaux(data: TvaTauxPayload) {
-    const response = await referentielsApi.createTvaTaux(data)
-    toast.add({ severity: 'success', summary: 'Succes', detail: 'Taux de TVA cree.', life: 3000 })
-    await fetchTaux()
-    return response.data
+    try {
+      const response = await referentielsApi.createTvaTaux(data)
+      toast.add({ severity: 'success', summary: 'Succes', detail: 'Taux de TVA cree.', life: 3000 })
+      await fetchTaux()
+      return response.data
+    } catch (e) {
+      toast.add({ severity: 'error', summary: 'Erreur', detail: getApiErrorMessage(e, 'Creation impossible.'), life: 4000 })
+      throw e
+    }
   }
 
   async function updateTaux(id: number, data: Partial<TvaTauxPayload>) {
-    const response = await referentielsApi.updateTvaTaux(id, data)
-    toast.add({ severity: 'success', summary: 'Succes', detail: 'Taux de TVA mis a jour.', life: 3000 })
-    await fetchTaux()
-    return response.data
+    try {
+      const response = await referentielsApi.updateTvaTaux(id, data)
+      toast.add({ severity: 'success', summary: 'Succes', detail: 'Taux de TVA mis a jour.', life: 3000 })
+      await fetchTaux()
+      return response.data
+    } catch (e) {
+      toast.add({ severity: 'error', summary: 'Erreur', detail: getApiErrorMessage(e, 'Mise a jour impossible.'), life: 4000 })
+      throw e
+    }
   }
 
   async function deleteTaux(id: number) {
@@ -45,22 +55,5 @@ export function useTvaTaux() {
     }
   }
 
-  function isoLocal(d: Date): string {
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return `${y}-${m}-${day}`
-  }
-
-  // Miroir cote client de TvaTaux::enVigueurLe : taux du type en vigueur a une date donnee
-  function tauxEnVigueur(type: string, date: Date | string | null): number | null {
-    if (!date) return null
-    const dStr = typeof date === 'string' ? date.slice(0, 10) : isoLocal(date)
-    const candidats = taux.value
-      .filter(t => t.type === type && t.date_debut <= dStr && (!t.date_fin || t.date_fin >= dStr))
-      .sort((a, b) => (a.date_debut < b.date_debut ? 1 : -1))
-    return candidats.length ? Number(candidats[0].taux) : null
-  }
-
-  return { taux, loading, fetchTaux, createTaux, updateTaux, deleteTaux, tauxEnVigueur }
+  return { taux, loading, fetchTaux, createTaux, updateTaux, deleteTaux }
 }
