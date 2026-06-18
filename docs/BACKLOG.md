@@ -488,8 +488,19 @@
 - Test statut paiement automatique (`en_attente → partiel → solde`)
 - Test numerotation annuelle reset au 1er janvier
 - Test tranches 30% / 30% / 40%
-- Tests deja existants : 38 tests, 81 assertions (PHPUnit)
 - Depend de : **US-04, US-05, US-13, US-15, US-17**
+
+**✅ Etat actuel (tests realises)**
+- Back : **190 tests PHPUnit** (calcul HT, snapshot TVA, statut paiement automatique, numerotation annuelle reset, tranches 30/30/40)
+- Front : **95 tests Vitest** — 18 modules API, store `auth` (login/logout/getters), composables (`useApiError`, `useCountUp`, patron CRUD via `useEntreprises`)
+- Cahier de recettes : `docs/CAHIER-RECETTES.md` (scenarios fonctionnels / structurels / securite OWASP) — competence C2.3.1
+
+**🔁 Reste a faire (tests a venir)**
+- [ ] **Tests de composants front** (Vue + `@vue/test-utils`) — **apres la refonte design**, sur elements stables (poser des `data-testid` au prealable)
+- [ ] **Tests E2E / parcours** (Playwright) — login → devis → facture → paiement, ancres sur `data-testid`
+- [ ] **Mesure de couverture** — ajouter `@vitest/coverage-v8` + script `test:coverage`, viser **>= 80%** (la « majorite du code developpe » — ref. C2.2.2)
+- [ ] **Extraire les formatters** (`formatDA` inline dans les pages → util partage `src/utils/`) puis les tester unitairement
+- [ ] **Executer le cahier de recettes** — valider les scenarios ⏳, dont **RGA-05** (Lighthouse accessibilite >= 85)
 
 ---
 
