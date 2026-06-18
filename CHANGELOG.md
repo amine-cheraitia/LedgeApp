@@ -23,6 +23,12 @@ Donne à l'admin la main sur les taux de TVA (sans accès BDD) et permet de fact
   d'un type est **bloqué (409)** — sinon la facturation se retrouverait sans taux applicable.
 - **`actif` devient significatif** : `TvaTaux::enVigueurLe($date, $type)` ne résout plus que les taux **actifs**
   (un taux désactivé n'est jamais appliqué). Helpers `estActifEnVigueur()` / `existeAutreActifEnVigueur()`.
+- **Résolution déterministe (priorité au plus récent)** : `enVigueurLe` applique le taux dont la `date_debut` est la plus
+  proche (≤) de la date du document, **départage stable par `id`** si deux taux partagent la même date (plus de choix
+  arbitraire de MySQL → fin du conflit affiché/appliqué sur devis et factures). Le composable client `useTvaTaux` suit la même règle.
+- **Interdiction de deux taux actifs du même type le même jour** : à la création **et** à l'édition, le service refuse
+  (`409`) si un autre taux actif du type commence déjà ce jour-là. La **clôture automatique** du taux précédent est désormais
+  appliquée aussi à l'**édition** d'une `date_debut`/type (re-versionnement — avant, éditer une date « ne changeait rien »).
 - **Choix de catégorie à la création** : `type_tva` (`standard` | `exonere`) dans `StoreFacture`/`StoreDevisRequest` ;
   `FacturationService::creerFacture()`/`creerDevis()` résolvent le taux via `TvaTaux::enVigueurLe($date, $type)`
   (exonéré → TVA 0, TTC = HT). La **valeur reste fixée par la date** (historisation, snapshots immuables).
@@ -53,7 +59,8 @@ Donne à l'admin la main sur les taux de TVA (sans accès BDD) et permet de fact
 #### Tests
 - **`TvaTauxApiTest`** (CRUD, admin-only 403, garde 409, validations, clôture auto) + cas de la règle « ≥1 actif par type »
   (désactiver/supprimer le dernier actif → 409 ; désactivation autorisée s'il reste un autre actif ;
-  `enVigueurLe` ignore un taux inactif).
+  `enVigueurLe` ignore un taux inactif) + **2 taux le même jour → 409** (création et édition), **édition d'une date re-clôture
+  le précédent** ; `TvaTauxTest` (départage déterministe par `id` à `date_debut` égale).
 - **`DevisApiTest`** : taux snapshot persisté (standard 19% / exonéré 0%), **devis hors taux en vigueur → 409**,
   édition prestation → totaux recalculés ; **`FactureApiTest`** : facture standard hors taux → 409 (plus de 0% muet) ;
   `api-modules.test.ts` étendu (`referentielsApi`).

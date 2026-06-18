@@ -202,4 +202,40 @@ class TvaTauxApiTest extends TestCase
         $this->assertNotNull($taux);
         $this->assertEquals(19.0, (float) $taux->taux);
     }
+
+    public function test_creer_un_taux_le_meme_jour_qu_un_actif_refuse(): void
+    {
+        TvaTaux::create($this->payload(['date_debut' => '2026-06-18']));
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/v1/referentiels/tva-taux', $this->payload(['taux' => 21, 'date_debut' => '2026-06-18']))
+            ->assertStatus(409);
+
+        $this->assertDatabaseCount('tva_taux', 1);
+    }
+
+    public function test_modifier_la_date_debut_sur_le_jour_d_un_autre_actif_refuse(): void
+    {
+        TvaTaux::create($this->payload(['date_debut' => '2026-06-18']));
+        $autre = TvaTaux::create($this->payload(['date_debut' => '2026-01-01']));
+
+        $this->actingAs($this->admin)
+            ->putJson("/api/v1/referentiels/tva-taux/{$autre->id}", $this->payload(['date_debut' => '2026-06-18']))
+            ->assertStatus(409);
+
+        $this->assertEquals('2026-01-01', $autre->fresh()->date_debut->toDateString());
+    }
+
+    public function test_modifier_la_date_debut_recloture_le_precedent(): void
+    {
+        $ancien = TvaTaux::create($this->payload(['date_debut' => '2023-01-01']));
+        $courant = TvaTaux::create($this->payload(['taux' => 21, 'date_debut' => '2026-01-01']));
+
+        // Deplacer le taux courant plus tard re-cloture l'ancien a la veille (re-versionnement a l'edition)
+        $this->actingAs($this->admin)
+            ->putJson("/api/v1/referentiels/tva-taux/{$courant->id}", $this->payload(['taux' => 21, 'date_debut' => '2026-06-18']))
+            ->assertOk();
+
+        $this->assertEquals('2026-06-17', $ancien->fresh()->date_fin?->toDateString());
+    }
 }

@@ -68,7 +68,8 @@ export function useTvaTaux() {
     const dStr = typeof date === 'string' ? date.slice(0, 10) : isoLocal(date)
     const candidats = taux.value
       .filter(t => t.type === type && t.actif && t.date_debut <= dStr && (!t.date_fin || t.date_fin >= dStr))
-      .sort((a, b) => (a.date_debut < b.date_debut ? 1 : -1))
+      // Meme regle que le backend enVigueurLe : date_debut la plus recente, puis id le plus grand (departage stable)
+      .sort((a, b) => (a.date_debut !== b.date_debut ? (a.date_debut < b.date_debut ? 1 : -1) : b.id - a.id))
     return candidats.length ? Number(candidats[0].taux) : null
   }
 

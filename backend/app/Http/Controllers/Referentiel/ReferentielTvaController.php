@@ -29,7 +29,11 @@ class ReferentielTvaController extends Controller
     {
         $this->authorize('create', TvaTaux::class);
 
-        $taux = $this->service->creer($request->validated());
+        try {
+            $taux = $this->service->creer($request->validated());
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
+        }
 
         return (new TvaTauxResource($taux))
             ->response()

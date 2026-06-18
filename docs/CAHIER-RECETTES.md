@@ -46,6 +46,8 @@
 | REF-11 | Admin, ≥1 taux Standard actif en vigueur | Ouvrir la modal de création de facture | Catégorie « Standard (X %) » où X = taux Standard actif en vigueur à la date de la facture | 🔁 |
 | REF-12 | Admin | Créer un devis en **exonéré**, générer son PDF | PDF affiche « TVA (0%) » et montant 0 (plus de « 19% » codé en dur) ; le taux est enregistré sur le devis | 🔁 |
 | REF-13 | Aucun taux Standard en vigueur à la date saisie | Créer un devis/facture **standard** à cette date | 409 + message « Aucun taux TVA standard en vigueur au {date}… » (pas de 0% silencieux) | 🔁 |
+| REF-14 | Un taux Standard actif commence le 18/06 | Créer (ou déplacer par édition) un 2e taux Standard actif au 18/06 | 409 + message « Un taux standard actif commence déjà le 18/06/2026… » | 🔁 |
+| REF-15 | Taux Standard en vigueur depuis 2023, ouvert | Créer/éditer un taux Standard au 18/06 | Le précédent est clôturé au 17/06 (versionnement) ; un document du 20/06 applique le nouveau, un du 01/06 l'ancien | 🔁 |
 
 ## 3. Entreprises
 

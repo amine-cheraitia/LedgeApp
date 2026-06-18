@@ -32,7 +32,10 @@ class TvaTaux extends Model
             ->where(function ($q) use ($date) {
                 $q->whereNull('date_fin')->orWhere('date_fin', '>=', $date);
             })
+            // Priorite au taux dont la date de debut est la plus proche (<=) de la date du document ;
+            // departage stable par id (le plus recemment cree) si deux taux partagent la meme date_debut.
             ->orderByDesc('date_debut')
+            ->orderByDesc('id')
             ->first();
     }
 
