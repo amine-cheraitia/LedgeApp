@@ -29,6 +29,11 @@ forçaient `montant_timbre = 0` et `timbre_taux_id = null`, le calcul `TimbreTau
 #### Docs
 - `CLAUDE.md`, `README.md`, `docs/ARCHITECTURE.md`, `docs/BACKLOG.md` (US-04 → « TVA historisée », US-51 → « Gestion des taux TVA ») mis à jour
 
+#### Fix (repéré pendant la recette)
+- **`PdfService::genererRapportCloture()`** : le filtre des factures utilisait `where('type', 'facture')` alors que
+  le type réel est `'FF'` — le rapport de clôture (US-35) ressortait **toujours vide**. Corrigé en `where('type', 'FF')`
+  (cohérent avec `DashboardService` / `PortailService`). Vérifié : le rapport liste désormais bien les factures et les impayés.
+
 ### Tests front (couche logique) + cahier de recettes (feature/tests-frontend)
 
 #### Tests

@@ -78,7 +78,7 @@ class PdfService
     public function genererRapportCloture(Exercice $exercice): PdfInstance
     {
         $factures = Facture::where('exercice_id', $exercice->id)
-            ->where('type', 'facture')
+            ->where('type', 'FF')
             ->with('entreprise')
             ->orderBy('date_facture')
             ->get();
