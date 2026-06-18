@@ -27,6 +27,17 @@ import { facturesApi } from '@/api/modules/factures'
 import { settingsApi } from '@/api/modules/settings'
 import { missionsApi } from '@/api/modules/missions'
 import { tachesApi } from '@/api/modules/taches'
+import { prestationsApi } from '@/api/modules/prestations'
+import { usersApi } from '@/api/modules/users'
+import { contactsApi } from '@/api/modules/contacts'
+import { commentairesApi } from '@/api/modules/commentaires'
+import { avoirsApi } from '@/api/modules/avoirs'
+import { relancesApi } from '@/api/modules/relances'
+import { creancesApi } from '@/api/modules/creances'
+import { auditApi } from '@/api/modules/audit'
+import { planningApi } from '@/api/modules/planning'
+import { statsApi } from '@/api/modules/stats'
+import { portailApi } from '@/api/modules/portail'
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -245,5 +256,355 @@ describe('settingsApi', () => {
     await settingsApi.update(settings)
 
     expect(mockPut).toHaveBeenCalledWith('/settings', { settings })
+  })
+})
+
+describe('prestationsApi', () => {
+  it('getAll calls GET /prestations', async () => {
+    mockGet.mockResolvedValue({ data: { data: [] } })
+
+    const result = await prestationsApi.getAll()
+
+    expect(mockGet).toHaveBeenCalledWith('/prestations')
+    expect(result.data).toEqual([])
+  })
+
+  it('getOne calls GET /prestations/:id', async () => {
+    mockGet.mockResolvedValue({ data: { data: { id: 3 } } })
+
+    await prestationsApi.getOne(3)
+
+    expect(mockGet).toHaveBeenCalledWith('/prestations/3')
+  })
+
+  it('create calls POST /prestations', async () => {
+    const payload = { code: 'ACMPT', designation: 'Assistance', tarif_initial: 120000, duree_mois: 12 }
+    mockPost.mockResolvedValue({ data: { data: { id: 1, ...payload } } })
+
+    await prestationsApi.create(payload)
+
+    expect(mockPost).toHaveBeenCalledWith('/prestations', payload)
+  })
+
+  it('update calls PUT /prestations/:id', async () => {
+    mockPut.mockResolvedValue({ data: { data: { id: 1 } } })
+
+    await prestationsApi.update(1, { tarif_initial: 130000 })
+
+    expect(mockPut).toHaveBeenCalledWith('/prestations/1', { tarif_initial: 130000 })
+  })
+
+  it('delete calls DELETE /prestations/:id', async () => {
+    mockDelete.mockResolvedValue({})
+
+    await prestationsApi.delete(1)
+
+    expect(mockDelete).toHaveBeenCalledWith('/prestations/1')
+  })
+
+  it('calculerPrix posts regime_fiscal + categorie and returns prix_ht', async () => {
+    mockPost.mockResolvedValue({ data: { prix_ht: 315000 } })
+
+    const result = await prestationsApi.calculerPrix(1, 'reel', 'pme')
+
+    expect(mockPost).toHaveBeenCalledWith('/prestations/1/calculer-prix', { regime_fiscal: 'reel', categorie: 'pme' })
+    expect(result.prix_ht).toBe(315000)
+  })
+})
+
+describe('usersApi', () => {
+  it('getAll calls GET /users with params', async () => {
+    const body = { data: [], meta: { current_page: 1, last_page: 1, per_page: 15, total: 0 } }
+    mockGet.mockResolvedValue({ data: body })
+
+    const result = await usersApi.getAll({ page: 1, role: 'admin' })
+
+    expect(mockGet).toHaveBeenCalledWith('/users', { params: { page: 1, role: 'admin' } })
+    expect(result).toEqual(body)
+  })
+
+  it('create calls POST /users', async () => {
+    const payload = { name: 'Amine', email: 'a@b.dz', role: 'collaborateur' }
+    mockPost.mockResolvedValue({ data: { data: { id: 1, ...payload } } })
+
+    await usersApi.create(payload)
+
+    expect(mockPost).toHaveBeenCalledWith('/users', payload)
+  })
+
+  it('update calls PUT /users/:id', async () => {
+    mockPut.mockResolvedValue({ data: { data: { id: 1 } } })
+
+    await usersApi.update(1, { role: 'secretaire' })
+
+    expect(mockPut).toHaveBeenCalledWith('/users/1', { role: 'secretaire' })
+  })
+
+  it('delete calls DELETE /users/:id', async () => {
+    mockDelete.mockResolvedValue({})
+
+    await usersApi.delete(1)
+
+    expect(mockDelete).toHaveBeenCalledWith('/users/1')
+  })
+})
+
+describe('contactsApi', () => {
+  it('getAll calls GET /entreprises/:id/contacts', async () => {
+    mockGet.mockResolvedValue({ data: { data: [] } })
+
+    await contactsApi.getAll(7)
+
+    expect(mockGet).toHaveBeenCalledWith('/entreprises/7/contacts')
+  })
+
+  it('create calls POST /entreprises/:id/contacts', async () => {
+    const payload = { nom: 'Doe', est_principal: true }
+    mockPost.mockResolvedValue({ data: { data: { id: 1, ...payload } } })
+
+    await contactsApi.create(7, payload)
+
+    expect(mockPost).toHaveBeenCalledWith('/entreprises/7/contacts', payload)
+  })
+
+  it('update calls PUT /entreprises/:eid/contacts/:cid', async () => {
+    mockPut.mockResolvedValue({ data: { data: { id: 2 } } })
+
+    await contactsApi.update(7, 2, { email: 'a@b.dz' })
+
+    expect(mockPut).toHaveBeenCalledWith('/entreprises/7/contacts/2', { email: 'a@b.dz' })
+  })
+
+  it('delete calls DELETE /entreprises/:eid/contacts/:cid', async () => {
+    mockDelete.mockResolvedValue({})
+
+    await contactsApi.delete(7, 2)
+
+    expect(mockDelete).toHaveBeenCalledWith('/entreprises/7/contacts/2')
+  })
+})
+
+describe('commentairesApi', () => {
+  it('getAll calls GET /taches/:id/commentaires', async () => {
+    mockGet.mockResolvedValue({ data: { data: [] } })
+
+    await commentairesApi.getAll(9)
+
+    expect(mockGet).toHaveBeenCalledWith('/taches/9/commentaires')
+  })
+
+  it('create posts contenu', async () => {
+    mockPost.mockResolvedValue({ data: { data: { id: 1, contenu: 'RAS' } } })
+
+    await commentairesApi.create(9, 'RAS')
+
+    expect(mockPost).toHaveBeenCalledWith('/taches/9/commentaires', { contenu: 'RAS' })
+  })
+
+  it('update puts contenu', async () => {
+    mockPut.mockResolvedValue({ data: { data: { id: 1, contenu: 'maj' } } })
+
+    await commentairesApi.update(9, 1, 'maj')
+
+    expect(mockPut).toHaveBeenCalledWith('/taches/9/commentaires/1', { contenu: 'maj' })
+  })
+
+  it('delete calls DELETE /taches/:tid/commentaires/:id', async () => {
+    mockDelete.mockResolvedValue({})
+
+    await commentairesApi.delete(9, 1)
+
+    expect(mockDelete).toHaveBeenCalledWith('/taches/9/commentaires/1')
+  })
+})
+
+describe('avoirsApi', () => {
+  it('index calls GET /factures/:id/avoirs', async () => {
+    mockGet.mockResolvedValue({ data: { data: [] } })
+
+    const res = await avoirsApi.index(4)
+
+    expect(mockGet).toHaveBeenCalledWith('/factures/4/avoirs')
+    expect(res.data.data).toEqual([])
+  })
+
+  it('store calls POST /factures/:id/avoirs', async () => {
+    const payload = { montant_ht: 1000, date_avoir: '2026-03-25', motif: 'erreur de facturation' }
+    mockPost.mockResolvedValue({ data: { data: { id: 1 } } })
+
+    await avoirsApi.store(4, payload)
+
+    expect(mockPost).toHaveBeenCalledWith('/factures/4/avoirs', payload)
+  })
+
+  it('getAll calls GET /avoirs with params and unwraps the body', async () => {
+    const body = { data: [], meta: { current_page: 1, last_page: 1, per_page: 15, total: 0 } }
+    mockGet.mockResolvedValue({ data: body })
+
+    const result = await avoirsApi.getAll({ exercice_id: 1 })
+
+    expect(mockGet).toHaveBeenCalledWith('/avoirs', { params: { exercice_id: 1 } })
+    expect(result).toEqual(body)
+  })
+
+  it('delete calls DELETE /avoirs/:id', async () => {
+    mockDelete.mockResolvedValue({})
+
+    await avoirsApi.delete(3)
+
+    expect(mockDelete).toHaveBeenCalledWith('/avoirs/3')
+  })
+})
+
+describe('relancesApi', () => {
+  it('indexParFacture calls GET /factures/:id/relances', async () => {
+    mockGet.mockResolvedValue({ data: { data: [] } })
+
+    await relancesApi.indexParFacture(4)
+
+    expect(mockGet).toHaveBeenCalledWith('/factures/4/relances')
+  })
+
+  it('store posts the niveau', async () => {
+    mockPost.mockResolvedValue({ data: { data: { id: 1, niveau: 1 } } })
+
+    await relancesApi.store(4, { niveau: 1 })
+
+    expect(mockPost).toHaveBeenCalledWith('/factures/4/relances', { niveau: 1 })
+  })
+})
+
+describe('creancesApi', () => {
+  it('index calls GET /creances', async () => {
+    mockGet.mockResolvedValue({ data: { data: [] } })
+
+    await creancesApi.index()
+
+    expect(mockGet).toHaveBeenCalledWith('/creances')
+  })
+})
+
+describe('auditApi', () => {
+  it('getAll calls GET /audit-logs with params', async () => {
+    const body = { data: [], meta: { current_page: 1, last_page: 1, per_page: 15, total: 0 } }
+    mockGet.mockResolvedValue({ data: body })
+
+    const result = await auditApi.getAll({ page: 2 })
+
+    expect(mockGet).toHaveBeenCalledWith('/audit-logs', { params: { page: 2 } })
+    expect(result).toEqual(body)
+  })
+})
+
+describe('planningApi', () => {
+  it('getCalendar calls GET /calendar with params', async () => {
+    mockGet.mockResolvedValue({ data: { data: { missions: [], taches: [] } } })
+    const params = { from: '2026-01-01', to: '2026-01-31' }
+
+    const result = await planningApi.getCalendar(params)
+
+    expect(mockGet).toHaveBeenCalledWith('/calendar', { params })
+    expect(result.data.missions).toEqual([])
+  })
+})
+
+describe('statsApi', () => {
+  it('getDashboard without exercice sends empty params', async () => {
+    mockGet.mockResolvedValue({ data: { data: {} } })
+
+    await statsApi.getDashboard()
+
+    expect(mockGet).toHaveBeenCalledWith('/stats', { params: {} })
+  })
+
+  it('getDashboard with exercice sends exercice_id', async () => {
+    mockGet.mockResolvedValue({ data: { data: {} } })
+
+    await statsApi.getDashboard(2)
+
+    expect(mockGet).toHaveBeenCalledWith('/stats', { params: { exercice_id: 2 } })
+  })
+
+  it('getSecretaireDashboard calls GET /stats/secretaire', async () => {
+    mockGet.mockResolvedValue({ data: { data: {} } })
+
+    await statsApi.getSecretaireDashboard()
+
+    expect(mockGet).toHaveBeenCalledWith('/stats/secretaire')
+  })
+
+  it('getCollaborateurDashboard calls GET /collaborateur/stats', async () => {
+    mockGet.mockResolvedValue({ data: { data: {} } })
+
+    await statsApi.getCollaborateurDashboard()
+
+    expect(mockGet).toHaveBeenCalledWith('/collaborateur/stats')
+  })
+
+  it('upsertKpiObjectif posts to /kpi/objectifs', async () => {
+    const payload = { user_id: 1, exercice_id: 1, type: 'ca_ht', valeur: 1000 }
+    mockPost.mockResolvedValue({ data: { data: { id: 1, type: 'ca_ht', valeur: 1000 } } })
+
+    await statsApi.upsertKpiObjectif(payload)
+
+    expect(mockPost).toHaveBeenCalledWith('/kpi/objectifs', payload)
+  })
+
+  it('deleteKpiObjectif calls DELETE /kpi/objectifs/:id', async () => {
+    mockDelete.mockResolvedValue({})
+
+    await statsApi.deleteKpiObjectif(5)
+
+    expect(mockDelete).toHaveBeenCalledWith('/kpi/objectifs/5')
+  })
+})
+
+describe('portailApi', () => {
+  it('me calls GET /portail/me', async () => {
+    mockGet.mockResolvedValue({ data: { data: { id: 1 } } })
+
+    await portailApi.me()
+
+    expect(mockGet).toHaveBeenCalledWith('/portail/me')
+  })
+
+  it('getFactures calls GET /portail/factures with params', async () => {
+    const body = { data: [], meta: { current_page: 1, last_page: 1, per_page: 15, total: 0 } }
+    mockGet.mockResolvedValue({ data: body })
+
+    const result = await portailApi.getFactures({ statut_paiement: 'en_attente' })
+
+    expect(mockGet).toHaveBeenCalledWith('/portail/factures', { params: { statut_paiement: 'en_attente' } })
+    expect(result).toEqual(body)
+  })
+
+  it('getMissions calls GET /portail/missions with params', async () => {
+    const body = { data: [], meta: { current_page: 1, last_page: 1, per_page: 15, total: 0 } }
+    mockGet.mockResolvedValue({ data: body })
+
+    await portailApi.getMissions({ statut: 'en_cours' })
+
+    expect(mockGet).toHaveBeenCalledWith('/portail/missions', { params: { statut: 'en_cours' } })
+  })
+
+  it('getMission calls GET /portail/missions/:id', async () => {
+    mockGet.mockResolvedValue({ data: { data: { id: 3 } } })
+
+    await portailApi.getMission(3)
+
+    expect(mockGet).toHaveBeenCalledWith('/portail/missions/3')
+  })
+
+  it('getDocuments calls GET /portail/documents', async () => {
+    mockGet.mockResolvedValue({ data: { data: [] } })
+
+    await portailApi.getDocuments()
+
+    expect(mockGet).toHaveBeenCalledWith('/portail/documents')
+  })
+
+  it('rapportMissionPdfUrl builds the URL without any HTTP call', () => {
+    expect(portailApi.rapportMissionPdfUrl(8)).toBe('/api/v1/portail/missions/8/rapport/pdf')
+    expect(mockGet).not.toHaveBeenCalled()
   })
 })

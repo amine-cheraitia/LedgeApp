@@ -9,6 +9,19 @@
 
 ## [Unreleased]
 
+### Tests front (couche logique) + cahier de recettes (feature/tests-frontend)
+
+#### Tests
+- **Vitest** : harnais étendu à **95 tests** — couverture des **18 modules API**, du **store `auth`**
+  (login/logout/fetchUser, normalisation des rôles, getters de rôle, `hasAnyRole`), et des composables
+  (`useApiError`, `useCountUp`, patron CRUD via `useEntreprises`)
+- Couche **logique** uniquement (insensible à la refonte design à venir) ; tests de composants reportés post-refonte
+
+#### Documentation
+- **`docs/CAHIER-RECETTES.md`** (nouveau) : cahier de recettes **niveau application** (RNCP C2.3.1) — scénarios
+  **fonctionnels** (12 domaines), **structurels** (Pint / PHPUnit / Vitest / build / CI) et **sécurité** (OWASP)
+  avec préconditions, étapes et résultats attendus
+
 ### Refonte page Créances + relances (feature/relances)
 
 #### Frontend
