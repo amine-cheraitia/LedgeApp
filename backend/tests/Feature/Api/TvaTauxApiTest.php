@@ -125,4 +125,22 @@ class TvaTauxApiTest extends TestCase
             ->postJson('/api/v1/referentiels/tva-taux', $this->payload())
             ->assertStatus(403);
     }
+
+    public function test_creer_un_taux_cloture_le_precedent_du_meme_type(): void
+    {
+        $ancien = TvaTaux::create($this->payload(['taux' => 19, 'date_debut' => '2023-01-01', 'date_fin' => null]));
+        $exonere = TvaTaux::create($this->payload(['type' => 'exonere', 'taux' => 0, 'designation' => 'Exonere', 'date_debut' => '2023-01-01']));
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/v1/referentiels/tva-taux', $this->payload(['taux' => 21, 'designation' => 'TVA 21', 'date_debut' => '2026-06-18']))
+            ->assertCreated();
+
+        // L'ancien standard est cloture la veille du nouveau ; l'exonere (autre type) n'est pas touche
+        $this->assertEquals('2026-06-17', $ancien->fresh()->date_fin?->toDateString());
+        $this->assertNull($exonere->fresh()->date_fin);
+
+        // Resolution historique : 21% au 18/06, 19% au 01/06
+        $this->assertEquals(21.0, (float) TvaTaux::enVigueurLe('2026-06-18')->taux);
+        $this->assertEquals(19.0, (float) TvaTaux::enVigueurLe('2026-06-01')->taux);
+    }
 }

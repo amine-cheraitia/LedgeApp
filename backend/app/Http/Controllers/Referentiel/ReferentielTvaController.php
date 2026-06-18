@@ -10,8 +10,10 @@ use App\Http\Requests\Referentiel\UpdateTvaTauxRequest;
 use App\Http\Resources\Referentiel\TvaTauxResource;
 use App\Models\Facture;
 use App\Models\TvaTaux;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
 
 class ReferentielTvaController extends Controller
 {
@@ -26,7 +28,19 @@ class ReferentielTvaController extends Controller
     {
         $this->authorize('create', TvaTaux::class);
 
-        $taux = TvaTaux::create($request->validated() + ['actif' => $request->boolean('actif', true)]);
+        $data = $request->validated();
+
+        $taux = DB::transaction(function () use ($data, $request) {
+            $dateDebut = Carbon::parse($data['date_debut']);
+
+            // Versionnement : cloturer le precedent taux ouvert du meme type (la veille du nouveau)
+            TvaTaux::where('type', $data['type'])
+                ->whereNull('date_fin')
+                ->where('date_debut', '<', $dateDebut)
+                ->update(['date_fin' => $dateDebut->copy()->subDay()->toDateString()]);
+
+            return TvaTaux::create($data + ['actif' => $request->boolean('actif', true)]);
+        });
 
         return (new TvaTauxResource($taux))
             ->response()

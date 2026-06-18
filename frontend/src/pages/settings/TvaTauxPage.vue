@@ -117,6 +117,15 @@ function formatDate(s: string | null) {
   return s ? new Date(s).toLocaleDateString('fr-FR') : '—'
 }
 
+// Statut reel : en vigueur / cloture / a venir / inactif (selon les dates, pas seulement le flag actif)
+function statutTaux(t: TvaTaux): { label: string; severity: string } {
+  const today = toIso(new Date()) ?? ''
+  if (!t.actif) return { label: 'Inactif', severity: 'secondary' }
+  if (t.date_debut > today) return { label: 'A venir', severity: 'warn' }
+  if (t.date_fin && t.date_fin < today) return { label: 'Cloture', severity: 'secondary' }
+  return { label: 'En vigueur', severity: 'success' }
+}
+
 onMounted(fetchTaux)
 </script>
 
@@ -145,9 +154,9 @@ onMounted(fetchTaux)
       <Column header="Periode" style="width: 16rem">
         <template #body="{ data }">{{ formatDate(data.date_debut) }} &rarr; {{ data.date_fin ? formatDate(data.date_fin) : 'en cours' }}</template>
       </Column>
-      <Column header="Actif" style="width: 7rem">
+      <Column header="Statut" style="width: 9rem">
         <template #body="{ data }">
-          <Tag :value="data.actif ? 'Actif' : 'Inactif'" :severity="data.actif ? 'success' : 'secondary'" />
+          <Tag :value="statutTaux(data).label" :severity="statutTaux(data).severity" />
         </template>
       </Column>
       <Column header="Actions" style="width: 8rem">

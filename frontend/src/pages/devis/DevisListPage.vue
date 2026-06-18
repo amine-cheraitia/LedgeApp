@@ -16,6 +16,7 @@ import { useEntreprises } from '@/composables/useEntreprises'
 import { usePrestations } from '@/composables/usePrestations'
 import { useUsers } from '@/composables/useUsers'
 import { useExercices } from '@/composables/useExercices'
+import { useTvaTaux } from '@/composables/useTvaTaux'
 import { useAuthStore } from '@/stores/auth'
 import type { Devis } from '@/types'
 
@@ -31,6 +32,7 @@ const { entreprises, fetchEntreprises } = useEntreprises()
 const { prestations, fetchPrestations } = usePrestations()
 const { users, fetchUsers } = useUsers()
 const { exercices, exerciceCourant, fetchExercices, fetchExerciceCourant } = useExercices()
+const { fetchTaux: fetchTvaTaux, tauxEnVigueur } = useTvaTaux()
 
 const search = ref('')
 const exerciceSelectionne = ref<number | undefined>(undefined)
@@ -51,6 +53,15 @@ const form = reactive({
   date_validite: null as Date | null,
   type_tva: 'standard' as 'standard' | 'exonere',
   notes: '',
+})
+
+const tvaOptions = computed(() => {
+  const std = tauxEnVigueur('standard', form.date_devis)
+  const exo = tauxEnVigueur('exonere', form.date_devis)
+  return [
+    { label: std !== null ? `Standard (${std} %)` : 'Standard', value: 'standard' },
+    { label: exo !== null ? `Exonere (${exo} %)` : 'Exonere (0 %)', value: 'exonere' },
+  ]
 })
 
 // Dialog modification devis
@@ -222,6 +233,7 @@ onMounted(async () => {
   fetchEntreprises()
   fetchPrestations()
   fetchUsers()
+  fetchTvaTaux()
 })
 </script>
 
@@ -435,7 +447,7 @@ onMounted(async () => {
           <Select
             id="dv-tva"
             v-model="form.type_tva"
-            :options="[{ label: 'Standard (19%)', value: 'standard' }, { label: 'Exonere (0%)', value: 'exonere' }]"
+            :options="tvaOptions"
             optionLabel="label"
             optionValue="value"
             fluid

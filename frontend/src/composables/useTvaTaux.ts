@@ -45,5 +45,22 @@ export function useTvaTaux() {
     }
   }
 
-  return { taux, loading, fetchTaux, createTaux, updateTaux, deleteTaux }
+  function isoLocal(d: Date): string {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+
+  // Miroir cote client de TvaTaux::enVigueurLe : taux du type en vigueur a une date donnee
+  function tauxEnVigueur(type: string, date: Date | string | null): number | null {
+    if (!date) return null
+    const dStr = typeof date === 'string' ? date.slice(0, 10) : isoLocal(date)
+    const candidats = taux.value
+      .filter(t => t.type === type && t.date_debut <= dStr && (!t.date_fin || t.date_fin >= dStr))
+      .sort((a, b) => (a.date_debut < b.date_debut ? 1 : -1))
+    return candidats.length ? Number(candidats[0].taux) : null
+  }
+
+  return { taux, loading, fetchTaux, createTaux, updateTaux, deleteTaux, tauxEnVigueur }
 }
