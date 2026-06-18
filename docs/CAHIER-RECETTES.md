@@ -122,6 +122,8 @@
 | REL-03 | Sans relance niveau 1 | Envoyer une relance niveau 2 | Bloqué (séquence des niveaux) | 🔁 |
 | REL-04 | Facture soldée | Envoyer une relance | Bloqué | 🔁 |
 | REL-05 | Secrétaire | Envoyer une relance | Autorisé | 🔁 |
+| REL-06 | Entreprise avec **contact principal** (email A) + email entreprise (B) | Envoyer une relance | Mail envoyé à **A** (contact principal prioritaire) ; le toast affiche le vrai destinataire | 🔁 |
+| REL-07 | Entreprise **sans** contact principal **ni** email | Envoyer une relance | Refusé (422) + popin « Cette entreprise n'a pas d'adresse mail… » ; aucune relance créée | 🔁 |
 
 ## 10. Portail client (isolation `entreprise_id`)
 

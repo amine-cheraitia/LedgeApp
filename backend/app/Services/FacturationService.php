@@ -212,7 +212,7 @@ class FacturationService
         $email = $devis->entreprise?->emailDestinataire();
 
         if (empty($email)) {
-            throw new DomainException("L'entreprise n'a pas d'adresse email renseignee.");
+            throw new DomainException("Cette entreprise n'a pas d'adresse mail. Renseignez l'email de l'entreprise ou de son contact principal avant l'envoi.");
         }
 
         Mail::to($email)->send(new DevisMail($devis));
@@ -230,7 +230,7 @@ class FacturationService
         $email = $facture->entreprise?->emailDestinataire();
 
         if (empty($email)) {
-            throw new DomainException("L'entreprise n'a pas d'adresse email renseignee.");
+            throw new DomainException("Cette entreprise n'a pas d'adresse mail. Renseignez l'email de l'entreprise ou de son contact principal avant l'envoi.");
         }
 
         Mail::to($email)->send(new FactureMail($facture));

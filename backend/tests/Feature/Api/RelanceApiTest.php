@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Api;
 
+use App\Mail\RelanceClientMail;
+use App\Models\Contact;
 use App\Models\Entreprise;
 use App\Models\Exercice;
 use App\Models\Facture;
@@ -171,6 +173,42 @@ class RelanceApiTest extends TestCase
             'type' => 'manuelle',
             'statut' => 'envoyee',
         ]);
+    }
+
+    public function test_relance_manuelle_envoyee_au_contact_principal(): void
+    {
+        Mail::fake();
+
+        Contact::create([
+            'entreprise_id' => $this->factureEnAttente->entreprise->id,
+            'nom' => 'Diallo',
+            'email' => 'contact.principal@example.com',
+            'est_principal' => true,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$this->factureEnAttente->id}/relances", ['niveau' => 1]);
+
+        $response->assertCreated();
+        // Le contact principal prime sur l'email general de l'entreprise (reponse non wrappee)
+        $this->assertEquals('contact.principal@example.com', $response->json('email_destinataire'));
+
+        Mail::assertSent(RelanceClientMail::class, fn (RelanceClientMail $mail) => $mail->hasTo('contact.principal@example.com'));
+    }
+
+    public function test_relance_manuelle_refusee_si_aucune_adresse(): void
+    {
+        Mail::fake();
+
+        // Ni contact principal, ni email entreprise
+        $this->factureEnAttente->entreprise->update(['email' => null]);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$this->factureEnAttente->id}/relances", ['niveau' => 1])
+            ->assertStatus(422);
+
+        Mail::assertNothingSent();
+        $this->assertDatabaseCount('relances', 0);
     }
 
     public function test_cannot_send_relance_on_facture_soldee(): void

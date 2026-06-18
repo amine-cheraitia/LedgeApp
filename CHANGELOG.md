@@ -16,7 +16,10 @@ Permet à l'admin/secrétaire d'**envoyer un devis** ou de **transmettre une fac
 #### Backend
 - **Mailables** `DevisMail` / `FactureMail` (calqués sur `RelanceClientMail`) : sujet, vue partagée `mail.document`,
   **PDF généré à la volée** via `PdfService` (`Attachment::fromData(... ->output())`, sans stockage disque).
-- **`Entreprise::emailDestinataire()`** : destinataire = email du **contact principal**, à défaut l'email de l'entreprise (source unique).
+- **`Entreprise::emailDestinataire()`** : destinataire = email du **contact principal**, à défaut l'email de l'entreprise —
+  **source unique** utilisée par les devis, les factures **et les relances** (`RelanceService` aligné, manuelle + automatique).
+  Si **ni l'un ni l'autre** n'est renseigné, message clair standardisé « Cette entreprise n'a pas d'adresse mail… » (popin) ;
+  le toast de succès des créances affiche le **vrai destinataire** (`email_destinataire`).
 - **`FacturationService`** : `envoyerDevis()` envoie désormais le mail **puis** passe le statut à `envoye` (refus `409` si l'entreprise
   n'a pas d'email — statut inchangé) ; `transmettreFacture()` (nouveau) transmet la facture sans changer de statut.
 - **API** : `POST /factures/{id}/transmettre` (`FactureController::transmettre` + `FacturePolicy::transmettre`, **admin + secrétaire**) ;

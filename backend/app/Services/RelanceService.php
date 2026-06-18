@@ -23,10 +23,10 @@ class RelanceService
             throw new DomainException('Impossible d\'envoyer une relance sur une facture soldee.');
         }
 
-        $email = $facture->entreprise?->email;
+        $email = $facture->entreprise?->emailDestinataire();
 
         if (empty($email)) {
-            throw new DomainException('L\'entreprise n\'a pas d\'adresse email renseignee.');
+            throw new DomainException("Cette entreprise n'a pas d'adresse mail. Renseignez l'email de l'entreprise ou de son contact principal avant l'envoi.");
         }
 
         $message = $this->resolveTemplate($niveau, $facture);
@@ -78,7 +78,7 @@ class RelanceService
             }
         }
 
-        $email = $facture->entreprise?->email;
+        $email = $facture->entreprise?->emailDestinataire();
 
         if (empty($email)) {
             return null;

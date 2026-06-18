@@ -6,6 +6,7 @@ namespace Tests\Feature\Api;
 
 use App\Mail\DevisMail;
 use App\Models\CategorieEntreprise;
+use App\Models\Contact;
 use App\Models\Devis;
 use App\Models\Entreprise;
 use App\Models\Exercice;
@@ -373,6 +374,30 @@ class DevisApiTest extends TestCase
         $attachments = (new DevisMail($devis))->attachments();
         $this->assertCount(1, $attachments);
         $this->assertSame("devis-{$devis->numero}.pdf", $attachments[0]->as);
+    }
+
+    public function test_envoyer_devis_priorise_le_contact_principal(): void
+    {
+        Contact::create([
+            'entreprise_id' => $this->entreprise->id,
+            'nom' => 'Diallo',
+            'email' => 'contact.principal@example.com',
+            'est_principal' => true,
+        ]);
+
+        $devisId = $this->actingAs($this->admin)->postJson('/api/v1/devis', [
+            'entreprise_id' => $this->entreprise->id,
+            'prestation_id' => $this->prestation->id,
+            'date_devis' => '2026-03-31',
+            'date_validite' => '2026-04-30',
+        ])->json('data.id');
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId}/envoyer")
+            ->assertOk();
+
+        // Le contact principal prime sur l'email general de l'entreprise
+        Mail::assertSent(DevisMail::class, fn (DevisMail $mail) => $mail->hasTo('contact.principal@example.com'));
     }
 
     public function test_envoyer_devis_sans_email_entreprise_refuse(): void
