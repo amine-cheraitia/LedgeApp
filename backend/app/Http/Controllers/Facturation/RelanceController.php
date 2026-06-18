@@ -36,7 +36,7 @@ class RelanceController extends Controller
                 $request->user()->id,
             );
 
-            return response()->json(new RelanceResource($relance), 201);
+            return (new RelanceResource($relance))->response()->setStatusCode(201);
         } catch (DomainException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }

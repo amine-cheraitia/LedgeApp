@@ -33,6 +33,17 @@ class Entreprise extends Model
         return $this->hasMany(Contact::class);
     }
 
+    /**
+     * Adresse email a utiliser pour joindre l'entreprise : email du contact principal,
+     * a defaut l'email general de l'entreprise. Source unique pour devis/factures/relances.
+     */
+    public function emailDestinataire(): ?string
+    {
+        $principal = $this->contacts()->where('est_principal', true)->value('email');
+
+        return $principal ?: $this->email;
+    }
+
     public function users(): HasMany
     {
         return $this->hasMany(User::class);

@@ -9,6 +9,31 @@
 
 ## [Unreleased]
 
+### Envoi des devis & factures par mail (US-44) — feature/envoi-devis-mail
+
+Permet à l'admin/secrétaire d'**envoyer un devis** ou de **transmettre une facture** au client par mail, avec le **PDF en pièce jointe**.
+
+#### Backend
+- **Mailables** `DevisMail` / `FactureMail` (calqués sur `RelanceClientMail`) : sujet, vue partagée `mail.document`,
+  **PDF généré à la volée** via `PdfService` (`Attachment::fromData(... ->output())`, sans stockage disque).
+- **`Entreprise::emailDestinataire()`** : destinataire = email du **contact principal**, à défaut l'email de l'entreprise —
+  **source unique** utilisée par les devis, les factures **et les relances** (`RelanceService` aligné, manuelle + automatique).
+  Si **ni l'un ni l'autre** n'est renseigné, message clair standardisé « Cette entreprise n'a pas d'adresse mail… » (popin) ;
+  le toast de succès des créances affiche le **vrai destinataire** (`email_destinataire`).
+- **`FacturationService`** : `envoyerDevis()` envoie désormais le mail **puis** passe le statut à `envoye` (refus `409` si l'entreprise
+  n'a pas d'email — statut inchangé) ; `transmettreFacture()` (nouveau) transmet la facture sans changer de statut.
+- **API** : `POST /factures/{id}/transmettre` (`FactureController::transmettre` + `FacturePolicy::transmettre`, **admin + secrétaire**) ;
+  `POST /devis/{id}/envoyer` (existant) envoie maintenant le mail. `DomainException → 409`.
+- **Config** : `MAIL_*` piloté par `.env` (Mailpit en dev, **Brevo** en démo) — aucun changement de code pour switcher.
+
+#### Frontend
+- Bouton **« Envoyer par mail »** (devis brouillon) et **« Transmettre par mail »** (facture, admin+secrétaire) avec **confirmation**,
+  `aria-label`, toasts de succès/erreur (`useDevis.envoyerDevis` / `useFactures.transmettreFacture`, module `factures.transmettre`).
+
+#### Tests
+- `DevisApiTest` : envoi → mail `DevisMail` au bon destinataire **avec pièce jointe PDF** + statut `envoye` ; sans email → `409` (statut inchangé).
+- `FactureApiTest` : transmission → mail `FactureMail` + pièce jointe ; sans email → `409` ; **secrétaire autorisée, collaborateur `403`**.
+
 ### Gestion des taux de TVA (US-51) — feature/gestion-taux-tva
 
 Donne à l'admin la main sur les taux de TVA (sans accès BDD) et permet de facturer en **exonéré**.

@@ -69,6 +69,8 @@
 | DEV-03 | Devis | Générer le PDF | PDF conforme (en-tête cabinet, NIF/NIS client, montant en lettres) | ✅ |
 | DEV-04 | Devis envoyé | Accepter → convertir en mission | Mission créée (`devis_id` renseigné), entreprise bascule Prospect→Client | 🔁 |
 | DEV-05 | Secrétaire | Créer/supprimer un devis | Interdit (écriture facturation = admin) ; **envoi** d'un devis autorisé | 🔁 |
+| DEV-06 | Devis brouillon, entreprise avec email | Cliquer « Envoyer par mail » | Mail au contact principal **avec PDF joint** ; statut passe à `envoye` | 🔁 |
+| DEV-07 | Devis brouillon, entreprise **sans email** | Cliquer « Envoyer par mail » | Refus 409 + message clair ; statut reste `brouillon`, aucun mail envoyé | 🔁 |
 
 ## 5. Missions & Tâches
 
@@ -91,6 +93,7 @@
 | FAC-03 | Facture 2026 | Lire `taux_tva_snapshot` | Taux **en vigueur à la date de facture** (19 %), **immuable** même appelé en 2030 (`TvaTaux::enVigueurLe`) | 🔁 |
 | FAC-04 | 1er janvier nouvel exercice | Créer une facture | Séquence réinitialisée à 001 ; pas de doublon en concurrence (`lockForUpdate`) | 🔁 |
 | FAC-05 | Facture | Générer le PDF DGI | NIF/NIS/RC, TVA 19/9 %, montant en lettres | ✅ |
+| FAC-06 | Facture, admin **ou secrétaire** | Cliquer « Transmettre par mail » | Mail au client **avec PDF joint** ; collaborateur → 403 ; entreprise sans email → 409 | 🔁 |
 
 ## 7. Paiements
 
@@ -119,6 +122,8 @@
 | REL-03 | Sans relance niveau 1 | Envoyer une relance niveau 2 | Bloqué (séquence des niveaux) | 🔁 |
 | REL-04 | Facture soldée | Envoyer une relance | Bloqué | 🔁 |
 | REL-05 | Secrétaire | Envoyer une relance | Autorisé | 🔁 |
+| REL-06 | Entreprise avec **contact principal** (email A) + email entreprise (B) | Envoyer une relance | Mail envoyé à **A** (contact principal prioritaire) ; le toast affiche le vrai destinataire | 🔁 |
+| REL-07 | Entreprise **sans** contact principal **ni** email | Envoyer une relance | Refusé (422) + popin « Cette entreprise n'a pas d'adresse mail… » ; aucune relance créée | 🔁 |
 
 ## 10. Portail client (isolation `entreprise_id`)
 

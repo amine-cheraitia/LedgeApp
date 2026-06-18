@@ -33,4 +33,13 @@ class FacturePolicy
     {
         return $user->hasRole('admin');
     }
+
+    /**
+     * Transmission de la facture au client par mail.
+     * Autorise a la secretaire : elle transmet les factures sans pouvoir les creer/supprimer.
+     */
+    public function transmettre(User $user, Facture $facture): bool
+    {
+        return $user->hasAnyRole(['admin', 'secretaire']);
+    }
 }

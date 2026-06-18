@@ -53,11 +53,11 @@ async function envoyerRelance() {
   if (!relanceFacture.value) return
   relanceSaving.value = true
   try {
-    await relancesApi.store(relanceFacture.value.id, { niveau: relanceNiveau.value })
+    const res = await relancesApi.store(relanceFacture.value.id, { niveau: relanceNiveau.value })
     toast.add({
       severity: 'success',
       summary: 'Relance envoyée',
-      detail: `Niveau ${relanceNiveau.value} envoyé à ${relanceFacture.value.entreprise?.email ?? '—'}`,
+      detail: `Niveau ${relanceNiveau.value} envoyé à ${res.data.data.email_destinataire}`,
       life: 4000,
     })
     relanceDialog.value = false

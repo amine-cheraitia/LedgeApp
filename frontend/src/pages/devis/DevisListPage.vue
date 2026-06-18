@@ -232,6 +232,17 @@ function confirmDelete(devis: Devis) {
   })
 }
 
+function confirmEnvoyer(devis: Devis) {
+  confirm.require({
+    message: `Envoyer le devis "${devis.numero}" par mail au client (PDF joint) ?`,
+    header: 'Envoi du devis',
+    icon: 'pi pi-send',
+    acceptLabel: 'Envoyer',
+    rejectLabel: 'Annuler',
+    accept: () => envoyerDevis(devis.id),
+  })
+}
+
 onMounted(async () => {
   await fetchExerciceCourant()
   await fetchExercices()
@@ -342,9 +353,9 @@ onMounted(async () => {
             icon="pi pi-send"
             text
             severity="info"
-            aria-label="Envoyer"
-            v-tooltip.top="'Envoyer'"
-            @click="envoyerDevis(data.id)"
+            aria-label="Envoyer le devis par mail au client"
+            v-tooltip.top="'Envoyer par mail'"
+            @click="confirmEnvoyer(data)"
           />
           <Button
             v-if="data.statut === 'brouillon' && auth.isAdmin"

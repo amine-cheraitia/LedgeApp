@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Mail\DevisMail;
+use App\Mail\FactureMail;
 use App\Models\Avoir;
 use App\Models\Devis;
 use App\Models\Entreprise;
@@ -19,6 +21,7 @@ use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class FacturationService
 {
@@ -196,15 +199,53 @@ class FacturationService
         return $devis->load('prestation', 'entreprise');
     }
 
+    /**
+     * Envoie le devis au client par mail (PDF en piece jointe) puis bascule le statut en envoye.
+     * Le statut ne change que si le mail a pu partir (adresse email requise).
+     */
     public function envoyerDevis(Devis $devis): Devis
     {
         if ($devis->statut !== 'brouillon') {
             throw new DomainException('Seuls les devis en brouillon peuvent etre envoyes.');
         }
 
+        $email = $devis->entreprise?->emailDestinataire();
+
+        if (empty($email)) {
+            throw new DomainException("Cette entreprise n'a pas d'adresse mail. Renseignez l'email de l'entreprise ou de son contact principal avant l'envoi.");
+        }
+
+        try {
+            Mail::to($email)->send(new DevisMail($devis));
+        } catch (\Throwable $e) {
+            report($e);
+            throw new DomainException("L'email n'a pas pu etre envoye. Verifiez la configuration d'envoi (SMTP).");
+        }
+
         $devis->update(['statut' => 'envoye']);
 
         return $devis->load('prestation', 'entreprise');
+    }
+
+    /**
+     * Transmet la facture au client par mail (PDF en piece jointe). Ne modifie pas le statut.
+     */
+    public function transmettreFacture(Facture $facture): Facture
+    {
+        $email = $facture->entreprise?->emailDestinataire();
+
+        if (empty($email)) {
+            throw new DomainException("Cette entreprise n'a pas d'adresse mail. Renseignez l'email de l'entreprise ou de son contact principal avant l'envoi.");
+        }
+
+        try {
+            Mail::to($email)->send(new FactureMail($facture));
+        } catch (\Throwable $e) {
+            report($e);
+            throw new DomainException("L'email n'a pas pu etre envoye. Verifiez la configuration d'envoi (SMTP).");
+        }
+
+        return $facture;
     }
 
     public function accepterDevis(Devis $devis): Devis
