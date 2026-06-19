@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Mail\DevisMail;
 use App\Mail\FactureMail;
+use App\Mail\MailMessages;
 use App\Models\Avoir;
 use App\Models\Devis;
 use App\Models\Entreprise;
@@ -212,14 +213,14 @@ class FacturationService
         $email = $devis->entreprise?->emailDestinataire();
 
         if (empty($email)) {
-            throw new DomainException("Cette entreprise n'a pas d'adresse mail. Renseignez l'email de l'entreprise ou de son contact principal avant l'envoi.");
+            throw new DomainException(MailMessages::PAS_D_ADRESSE);
         }
 
         try {
             Mail::to($email)->send(new DevisMail($devis));
         } catch (\Throwable $e) {
             report($e);
-            throw new DomainException("L'email n'a pas pu etre envoye. Verifiez la configuration d'envoi (SMTP).");
+            throw new DomainException(MailMessages::ENVOI_ECHOUE);
         }
 
         $devis->update(['statut' => 'envoye']);
@@ -235,14 +236,14 @@ class FacturationService
         $email = $facture->entreprise?->emailDestinataire();
 
         if (empty($email)) {
-            throw new DomainException("Cette entreprise n'a pas d'adresse mail. Renseignez l'email de l'entreprise ou de son contact principal avant l'envoi.");
+            throw new DomainException(MailMessages::PAS_D_ADRESSE);
         }
 
         try {
             Mail::to($email)->send(new FactureMail($facture));
         } catch (\Throwable $e) {
             report($e);
-            throw new DomainException("L'email n'a pas pu etre envoye. Verifiez la configuration d'envoi (SMTP).");
+            throw new DomainException(MailMessages::ENVOI_ECHOUE);
         }
 
         return $facture;

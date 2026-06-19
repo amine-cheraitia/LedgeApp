@@ -175,6 +175,7 @@
 | SEC-06 | A09 — Journalisation | Exceptions API loguées (URL, méthode, IP, user_id) + Sentry | Contexte structuré présent | ✅ |
 | SEC-07 | CORS | `FRONTEND_URL` uniquement, headers restrictifs | Origine non autorisée rejetée | ✅ |
 | SEC-08 | XSS | Pas de `v-html` avec donnée utilisateur | Aucune injection rendue | ✅ |
+| SEC-09 | A04 — Anti-abus | `throttle:6,1` sur les envois mail (devis/facture/relance), `throttle:30,1` sur les PDF | 7ᵉ envoi en < 1 min → 429 (message propre) | 🔁 |
 
 ## 15. Accessibilité (RGAA — bonus C2.2.3)
 
