@@ -9,6 +9,18 @@
 
 ## [Unreleased]
 
+### Durcissement anti-abus (throttle envoi mail / PDF) — chore/durcissement-throttle-mail
+
+Suite à l'audit SOLID / RGAA / OWASP : le code est conforme ; on ajoute une limitation de débit (OWASP A04) sur les actions
+sortantes coûteuses, plus un nettoyage DRY.
+
+- **Throttle** : `throttle:6,1` sur les envois de mail (`POST /devis/{id}/envoyer`, `/factures/{id}/transmettre`,
+  `/factures/{id}/relances`) et `throttle:30,1` sur les routes **PDF** (back-office + portail) → empêche le spam
+  (quota Brevo) et la surcharge CPU ; `ApiExceptionRenderer` renvoie déjà un **429** propre.
+- **DRY** : messages d'envoi mail centralisés dans `App\Mail\MailMessages` (constantes partagées par
+  `FacturationService` et `RelanceService`).
+- **Tests** : `RelanceApiTest` — 429 au-delà de 6 envois/min.
+
 ### Envoi des devis & factures par mail (US-44) — feature/envoi-devis-mail
 
 Permet à l'admin/secrétaire d'**envoyer un devis** ou de **transmettre une facture** au client par mail, avec le **PDF en pièce jointe**.

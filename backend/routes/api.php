@@ -148,14 +148,14 @@ Route::prefix('v1')->group(function () {
                 // Facturation — Devis (lecture + PDF + envoi au client)
                 Route::get('devis', [DevisController::class, 'index']);
                 Route::get('devis/{devis}', [DevisController::class, 'show']);
-                Route::get('devis/{devis}/pdf', [DevisController::class, 'pdf']);
-                Route::post('devis/{devis}/envoyer', [DevisController::class, 'envoyer']);
+                Route::get('devis/{devis}/pdf', [DevisController::class, 'pdf'])->middleware('throttle:30,1');
+                Route::post('devis/{devis}/envoyer', [DevisController::class, 'envoyer'])->middleware('throttle:6,1');
 
                 // Facturation — Factures (lecture + PDF pour transmission au client)
                 Route::get('factures', [FactureController::class, 'index']);
                 Route::get('factures/{facture}', [FactureController::class, 'show']);
-                Route::get('factures/{facture}/pdf', [FactureController::class, 'pdf']);
-                Route::post('factures/{facture}/transmettre', [FactureController::class, 'transmettre']);
+                Route::get('factures/{facture}/pdf', [FactureController::class, 'pdf'])->middleware('throttle:30,1');
+                Route::post('factures/{facture}/transmettre', [FactureController::class, 'transmettre'])->middleware('throttle:6,1');
 
                 // Recouvrement — Paiements (lecture + enregistrement)
                 Route::get('factures/{facture}/paiements', [PaiementController::class, 'index']);
@@ -166,12 +166,12 @@ Route::prefix('v1')->group(function () {
 
                 // Recouvrement — Relances (lecture + envoi)
                 Route::get('factures/{facture}/relances', [RelanceController::class, 'index']);
-                Route::post('factures/{facture}/relances', [RelanceController::class, 'store']);
+                Route::post('factures/{facture}/relances', [RelanceController::class, 'store'])->middleware('throttle:6,1');
 
                 // Facturation — Avoirs (lecture + PDF)
                 Route::get('avoirs', [AvoirController::class, 'indexAll']);
                 Route::get('factures/{facture}/avoirs', [AvoirController::class, 'index']);
-                Route::get('factures/{facture}/avoirs/{avoir}/pdf', [AvoirController::class, 'pdf']);
+                Route::get('factures/{facture}/avoirs/{avoir}/pdf', [AvoirController::class, 'pdf'])->middleware('throttle:30,1');
             });
 
             // ── Tous roles backoffice : utilitaires partages (admin + secretaire + collaborateur) ────
@@ -210,12 +210,12 @@ Route::prefix('v1')->group(function () {
 
             // US-30 — Mes factures
             Route::get('factures', [PortailFactureController::class, 'index']);
-            Route::get('factures/{facture}/pdf', [PortailFactureController::class, 'pdf']);
+            Route::get('factures/{facture}/pdf', [PortailFactureController::class, 'pdf'])->middleware('throttle:30,1');
 
             // US-31 — Mes missions
             Route::get('missions', [PortailMissionController::class, 'index']);
             Route::get('missions/{mission}', [PortailMissionController::class, 'show']);
-            Route::get('missions/{mission}/rapport/pdf', [PortailMissionController::class, 'rapportPdf']);
+            Route::get('missions/{mission}/rapport/pdf', [PortailMissionController::class, 'rapportPdf'])->middleware('throttle:30,1');
 
             // US-32 — Mes documents
             Route::get('documents', [PortailDocumentController::class, 'index']);

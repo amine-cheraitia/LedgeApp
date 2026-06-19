@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Mail\MailMessages;
 use App\Mail\RelanceClientMail;
 use App\Models\Facture;
 use App\Models\Relance;
@@ -27,7 +28,7 @@ class RelanceService
         $email = $facture->entreprise?->emailDestinataire();
 
         if (empty($email)) {
-            throw new DomainException("Cette entreprise n'a pas d'adresse mail. Renseignez l'email de l'entreprise ou de son contact principal avant l'envoi.");
+            throw new DomainException(MailMessages::PAS_D_ADRESSE);
         }
 
         $message = $this->resolveTemplate($niveau, $facture);
@@ -49,7 +50,7 @@ class RelanceService
                 Mail::to($email)->send(new RelanceClientMail($facture, $relance));
             } catch (\Throwable $e) {
                 report($e);
-                throw new DomainException("L'email n'a pas pu etre envoye. Verifiez la configuration d'envoi (SMTP).");
+                throw new DomainException(MailMessages::ENVOI_ECHOUE);
             }
 
             return $relance->load('sentBy');

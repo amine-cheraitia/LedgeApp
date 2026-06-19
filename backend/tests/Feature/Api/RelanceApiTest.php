@@ -211,6 +211,21 @@ class RelanceApiTest extends TestCase
         $this->assertDatabaseCount('relances', 0);
     }
 
+    public function test_envoi_relances_est_limite_par_throttle(): void
+    {
+        Mail::fake();
+
+        // throttle:6,1 -> les 6 premieres passent, la 7e dans la minute est bloquee (429)
+        for ($i = 0; $i < 6; $i++) {
+            $this->actingAs($this->admin)
+                ->postJson("/api/v1/factures/{$this->factureEnAttente->id}/relances", ['niveau' => 1]);
+        }
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$this->factureEnAttente->id}/relances", ['niveau' => 1])
+            ->assertStatus(429);
+    }
+
     public function test_relance_echec_envoi_renvoie_422_et_ne_persiste_pas(): void
     {
         // Simule une panne d'envoi (SMTP/config) : la reponse doit etre propre (422), pas un 500,
