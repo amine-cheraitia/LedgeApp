@@ -27,6 +27,8 @@ const toast = useToast()
 const confirm = useConfirm()
 const auth = useAuthStore()
 
+const localFacture = ref<Facture | null>(null)
+
 const paiements = ref<Paiement[]>([])
 const loadingPaiements = ref(false)
 
@@ -52,14 +54,14 @@ const modeOptions = [
 ]
 
 const montantRestantApres = computed(() => {
-  if (!props.facture) return 0
-  return Math.max(0, props.facture.montant_restant - (paiementForm.value.montant ?? 0))
+  if (!localFacture.value) return 0
+  return Math.max(0, localFacture.value.montant_restant - (paiementForm.value.montant ?? 0))
 })
 
 const statutApres = computed(() => {
-  if (!props.facture) return 'en_attente'
-  const totalApres = Number(props.facture.montant_paye) + Number(paiementForm.value.montant ?? 0)
-  if (totalApres >= Number(props.facture.montant_ttc)) return 'solde'
+  if (!localFacture.value) return 'en_attente'
+  const totalApres = Number(localFacture.value.montant_paye) + Number(paiementForm.value.montant ?? 0)
+  if (totalApres >= Number(localFacture.value.montant_ttc)) return 'solde'
   if (totalApres > 0) return 'partiel'
   return 'en_attente'
 })
@@ -68,17 +70,30 @@ watch(
   () => props.modelValue,
   async (visible) => {
     if (visible && props.facture) {
+      localFacture.value = { ...props.facture }
       step.value = 'history'
       await loadPaiements()
     }
   },
 )
 
+function updateLocalTotals() {
+  if (!localFacture.value) return
+  const totalPaye = paiements.value.reduce((sum, p) => sum + Number(p.montant), 0)
+  const ttc = Number(localFacture.value.montant_ttc)
+  localFacture.value = {
+    ...localFacture.value,
+    montant_paye: totalPaye,
+    montant_restant: Math.max(0, ttc - totalPaye),
+    statut_paiement: totalPaye >= ttc ? 'solde' : totalPaye > 0 ? 'partiel' : 'en_attente',
+  }
+}
+
 async function loadPaiements() {
-  if (!props.facture) return
+  if (!localFacture.value) return
   loadingPaiements.value = true
   try {
-    const res = await facturesApi.getPaiements(props.facture.id)
+    const res = await facturesApi.getPaiements(localFacture.value.id)
     paiements.value = res.data
   } catch {
     toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de charger les paiements.', life: 3000 })
@@ -88,10 +103,10 @@ async function loadPaiements() {
 }
 
 function openForm() {
-  if (!props.facture) return
+  if (!localFacture.value) return
   errors.value = {}
   paiementForm.value = {
-    montant: Number(props.facture.montant_restant),
+    montant: Number(localFacture.value.montant_restant),
     date_paiement: '',
     mode_paiement: 'virement',
     reference: null,
@@ -106,8 +121,8 @@ function validate(): boolean {
   const montant = Number(paiementForm.value.montant ?? 0)
   if (!montant || montant <= 0) {
     errors.value.montant = 'Le montant doit être supérieur à 0 DA.'
-  } else if (props.facture && montant > Number(props.facture.montant_restant)) {
-    errors.value.montant = `Le montant ne peut pas dépasser le restant dû (${formatMontant(props.facture.montant_restant)}).`
+  } else if (localFacture.value && montant > Number(localFacture.value.montant_restant)) {
+    errors.value.montant = `Le montant ne peut pas dépasser le restant dû (${formatMontant(localFacture.value.montant_restant)}).`
   }
   if (!datePaiement.value) {
     errors.value.date = 'La date de paiement est obligatoire.'
@@ -121,10 +136,10 @@ function goToConfirm() {
 }
 
 async function submitPaiement() {
-  if (!props.facture || !datePaiement.value) return
+  if (!localFacture.value || !datePaiement.value) return
   saving.value = true
   try {
-    await facturesApi.createPaiement(props.facture.id, {
+    await facturesApi.createPaiement(localFacture.value.id, {
       ...paiementForm.value,
       date_paiement: toIsoDate(datePaiement.value),
     })
@@ -135,6 +150,7 @@ async function submitPaiement() {
       life: 3000,
     })
     await loadPaiements()
+    updateLocalTotals()
     emit('paiement-changed')
     step.value = 'history'
   } catch (err: any) {
@@ -155,11 +171,12 @@ function confirmDelete(paiement: Paiement) {
     rejectLabel: 'Annuler',
     acceptClass: 'p-button-danger',
     accept: async () => {
-      if (!props.facture) return
+      if (!localFacture.value) return
       try {
-        await facturesApi.deletePaiement(props.facture.id, paiement.id)
+        await facturesApi.deletePaiement(localFacture.value.id, paiement.id)
         toast.add({ severity: 'success', summary: 'Supprimé', detail: 'Le paiement a été annulé.', life: 3000 })
         await loadPaiements()
+        updateLocalTotals()
         emit('paiement-changed')
       } catch (err: any) {
         const detail = err.response?.data?.message ?? 'Suppression impossible.'
@@ -223,37 +240,37 @@ function modeLabel(mode: string): string {
     :blockScroll="true"
   >
     <template #header>
-      <div class="drawer-header" v-if="facture">
+      <div class="drawer-header" v-if="localFacture">
         <div class="drawer-header-top">
-          <span class="drawer-title">{{ facture.numero }}</span>
+          <span class="drawer-title">{{ localFacture.numero }}</span>
           <Tag
-            :value="statutLabel(facture.statut_paiement)"
-            :severity="statutColor(facture.statut_paiement)"
+            :value="statutLabel(localFacture.statut_paiement)"
+            :severity="statutColor(localFacture.statut_paiement)"
           />
         </div>
-        <span class="drawer-sub">{{ facture.entreprise?.raison_sociale }}</span>
+        <span class="drawer-sub">{{ localFacture.entreprise?.raison_sociale }}</span>
       </div>
     </template>
 
-    <div v-if="facture" class="drawer-body">
+    <div v-if="localFacture" class="drawer-body">
 
       <!-- Bande montants -->
       <div class="amounts-band" role="region" aria-label="Résumé financier de la facture">
         <div class="amount-item">
           <span class="amount-label">Total TTC</span>
-          <span class="amount-value">{{ formatMontant(facture.montant_ttc) }}</span>
+          <span class="amount-value">{{ formatMontant(localFacture.montant_ttc) }}</span>
         </div>
         <div class="amount-item">
           <span class="amount-label">Encaissé</span>
-          <span class="amount-value amount-paye">{{ formatMontant(facture.montant_paye) }}</span>
+          <span class="amount-value amount-paye">{{ formatMontant(localFacture.montant_paye) }}</span>
         </div>
         <div class="amount-item">
           <span class="amount-label">Reste dû</span>
           <span
             class="amount-value"
-            :class="facture.montant_restant > 0 ? 'amount-restant' : 'amount-zero'"
+            :class="localFacture.montant_restant > 0 ? 'amount-restant' : 'amount-zero'"
           >
-            {{ formatMontant(facture.montant_restant) }}
+            {{ formatMontant(localFacture.montant_restant) }}
           </span>
         </div>
       </div>
@@ -263,7 +280,7 @@ function modeLabel(mode: string): string {
         <div class="section-header">
           <h2 class="section-title" id="paiements-heading">Paiements enregistrés</h2>
           <Button
-            v-if="facture.statut_paiement !== 'solde' && (auth.isAdmin || auth.isSecretaire)"
+            v-if="localFacture.statut_paiement !== 'solde' && (auth.isAdmin || auth.isSecretaire)"
             label="Ajouter"
             icon="pi pi-plus"
             size="small"
@@ -350,7 +367,7 @@ function modeLabel(mode: string): string {
               {{ errors.montant }}
             </small>
             <small v-else id="pd-montant-hint" class="hint">
-              Reste dû : <strong>{{ formatMontant(facture.montant_restant) }}</strong>
+              Reste dû : <strong>{{ formatMontant(localFacture.montant_restant) }}</strong>
             </small>
           </div>
 
