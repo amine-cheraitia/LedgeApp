@@ -104,9 +104,6 @@ Route::prefix('v1')->group(function () {
                 Route::post('factures', [FactureController::class, 'store']);
                 Route::delete('factures/{facture}', [FactureController::class, 'destroy']);
 
-                // Facturation — Paiements (suppression — admin uniquement)
-                Route::delete('factures/{facture}/paiements/{paiement}', [PaiementController::class, 'destroy']);
-
                 // Facturation — Avoirs (creation / suppression — admin uniquement)
                 Route::post('factures/{facture}/avoirs', [AvoirController::class, 'store']);
                 Route::delete('avoirs/{avoir}', [AvoirController::class, 'destroy']);
@@ -157,9 +154,10 @@ Route::prefix('v1')->group(function () {
                 Route::get('factures/{facture}/pdf', [FactureController::class, 'pdf'])->middleware('throttle:30,1');
                 Route::post('factures/{facture}/transmettre', [FactureController::class, 'transmettre'])->middleware('throttle:6,1');
 
-                // Recouvrement — Paiements (lecture + enregistrement)
+                // Recouvrement — Paiements (lecture + enregistrement + suppression propre saisie)
                 Route::get('factures/{facture}/paiements', [PaiementController::class, 'index']);
                 Route::post('factures/{facture}/paiements', [PaiementController::class, 'store']);
+                Route::delete('factures/{facture}/paiements/{paiement}', [PaiementController::class, 'destroy']);
 
                 // Recouvrement — Creances impayees
                 Route::get('creances', [CreanceController::class, 'index']);

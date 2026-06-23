@@ -17,6 +17,7 @@ import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
 import DatePicker from 'primevue/datepicker'
 import Textarea from 'primevue/textarea'
+import FactureDetailDrawer from '@/components/facturation/FactureDetailDrawer.vue'
 import { useFactures } from '@/composables/useFactures'
 import { useMissions } from '@/composables/useMissions'
 import { useExercices } from '@/composables/useExercices'
@@ -24,7 +25,6 @@ import { useTvaTaux } from '@/composables/useTvaTaux'
 import { useAuthStore } from '@/stores/auth'
 import { avoirsApi } from '@/api/modules/avoirs'
 import type { Facture, Avoir } from '@/types'
-import type { PaiementPayload } from '@/api/modules/factures'
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -34,7 +34,7 @@ const exercicesOuverts = computed(() => exercices.value.filter((e: { statut: str
 
 const {
   factures, loading, totalRecords, filters,
-  fetchFactures, createFacture, deleteFacture, addPaiement, transmettreFacture, telechargerPdf,
+  fetchFactures, createFacture, deleteFacture, transmettreFacture, telechargerPdf,
   onPage, onSearch, onSort, setExercice,
 } = useFactures()
 
@@ -176,50 +176,13 @@ async function onSubmitFacture() {
   }
 }
 
-// ---------- Dialog paiement ----------
-const paiementDialogVisible = ref(false)
-const paiementSaving = ref(false)
-const paiementFacture = ref<Facture | null>(null)
-const paiementForm = reactive<PaiementPayload>({
-  montant: 0,
-  date_paiement: '',
-  mode_paiement: 'virement',
-  reference: null,
-  notes: null,
-})
-const datePaiement = ref<Date | null>(null)
+// ---------- Drawer paiement ----------
+const drawerVisible = ref(false)
+const drawerFacture = ref<Facture | null>(null)
 
-const modeOptions = [
-  { label: 'Virement', value: 'virement' },
-  { label: 'Cheque', value: 'cheque' },
-  { label: 'Autre', value: 'autre' },
-]
-
-function openPaiement(facture: Facture) {
-  paiementFacture.value = facture
-  paiementForm.montant = facture.montant_ttc - facture.montant_paye
-  paiementForm.mode_paiement = 'virement'
-  paiementForm.reference = null
-  paiementForm.notes = null
-  datePaiement.value = new Date()
-  paiementDialogVisible.value = true
-}
-
-async function onSubmitPaiement() {
-  if (!paiementFacture.value || !datePaiement.value) return
-  paiementSaving.value = true
-  try {
-    await addPaiement(paiementFacture.value.id, {
-      ...paiementForm,
-      date_paiement: toIsoDate(datePaiement.value),
-    })
-    paiementDialogVisible.value = false
-  } catch (err: any) {
-    const detail = err.response?.data?.message ?? 'Erreur lors du paiement.'
-    toast.add({ severity: 'error', summary: 'Erreur', detail, life: 5000 })
-  } finally {
-    paiementSaving.value = false
-  }
+function openDrawer(facture: Facture) {
+  drawerFacture.value = facture
+  drawerVisible.value = true
 }
 
 // ---------- Dialog avoir ----------
@@ -444,14 +407,14 @@ onMounted(async () => {
                   @click="confirmTransmettre(data)"
                 />
                 <Button
-                  v-if="data.statut_paiement !== 'solde'"
+                  v-if="auth.isAdmin || auth.isSecretaire"
                   icon="pi pi-wallet"
                   text
                   rounded
                   severity="success"
-                  aria-label="Enregistrer un paiement"
-                  v-tooltip.top="'Paiement'"
-                  @click="openPaiement(data)"
+                  aria-label="Voir les encaissements"
+                  v-tooltip.top="'Encaissements'"
+                  @click="openDrawer(data)"
                 />
                 <Button
                   v-if="auth.isAdmin"
@@ -697,63 +660,12 @@ onMounted(async () => {
       </form>
     </Dialog>
 
-    <!-- Dialog paiement -->
-    <Dialog
-      v-model:visible="paiementDialogVisible"
-      :header="`Paiement — ${paiementFacture?.numero}`"
-      :modal="true"
-      :style="{ width: '28rem' }"
-    >
-      <form @submit.prevent="onSubmitPaiement" class="dialog-form">
-        <div class="form-field">
-          <label for="p-montant">Montant (DA) *</label>
-          <InputNumber
-            id="p-montant"
-            v-model="paiementForm.montant"
-            :min="0.01"
-            mode="decimal"
-            :minFractionDigits="2"
-            fluid
-          />
-          <small v-if="paiementFacture" class="hint">
-            Restant : {{ formatMontant(paiementFacture.montant_ttc - paiementFacture.montant_paye) }}
-          </small>
-        </div>
-
-        <div class="form-field">
-          <label for="p-date">Date paiement *</label>
-          <DatePicker id="p-date" v-model="datePaiement" dateFormat="dd/mm/yy" fluid />
-        </div>
-
-        <div class="form-field">
-          <label for="p-mode">Mode de paiement *</label>
-          <Select
-            id="p-mode"
-            v-model="paiementForm.mode_paiement"
-            :options="modeOptions"
-            optionLabel="label"
-            optionValue="value"
-            fluid
-          />
-        </div>
-
-        <div class="form-field">
-          <label for="p-ref">Reference</label>
-          <InputText id="p-ref" v-model="paiementForm.reference" fluid />
-        </div>
-
-        <div class="dialog-actions">
-          <Button label="Annuler" severity="secondary" text @click="paiementDialogVisible = false" type="button" />
-          <Button
-            type="submit"
-            label="Enregistrer"
-            icon="pi pi-check"
-            :loading="paiementSaving"
-            :disabled="!datePaiement || !paiementForm.montant"
-          />
-        </div>
-      </form>
-    </Dialog>
+    <!-- Drawer encaissements -->
+    <FactureDetailDrawer
+      v-model="drawerVisible"
+      :facture="drawerFacture"
+      @paiement-changed="fetchFactures"
+    />
   </div>
 </template>
 

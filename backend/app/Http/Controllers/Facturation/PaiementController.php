@@ -13,6 +13,7 @@ use App\Models\Paiement;
 use App\Services\FacturationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Request;
 
 class PaiementController extends Controller
 {
@@ -21,7 +22,7 @@ class PaiementController extends Controller
     public function index(Facture $facture): AnonymousResourceCollection
     {
         return PaiementResource::collection(
-            $facture->paiements()->latest('date_paiement')->get()
+            $facture->paiements()->with('recordedBy')->latest('date_paiement')->get()
         );
     }
 
@@ -29,8 +30,16 @@ class PaiementController extends Controller
     {
         if ($facture->estSolde()) {
             return response()->json([
-                'message' => 'Cette facture est deja soldee.',
+                'message' => 'Cette facture est déjà soldée.',
             ], 409);
+        }
+
+        $montantRestant = $facture->montantRestant();
+        if ((float) $request->validated('montant') > $montantRestant) {
+            return response()->json([
+                'message' => "Le montant saisi dépasse le restant dû ({$montantRestant} DA).",
+                'errors'  => ['montant' => ["Le montant ne peut pas dépasser {$montantRestant} DA."]],
+            ], 422);
         }
 
         $paiement = Paiement::create([
@@ -57,11 +66,17 @@ class PaiementController extends Controller
             ->setStatusCode(201);
     }
 
-    public function destroy(Facture $facture, Paiement $paiement): JsonResponse
+    public function destroy(Request $request, Facture $facture, Paiement $paiement): JsonResponse
     {
+        $user = $request->user();
+
+        if (!$user->hasRole('admin') && $paiement->recorded_by !== $user->id) {
+            return response()->json(['message' => 'Vous ne pouvez supprimer que vos propres saisies.'], 403);
+        }
+
         $paiement->delete();
         $this->facturationService->recalculerStatutPaiement($facture);
 
-        return response()->json(['message' => 'Paiement supprime.']);
+        return response()->json(['message' => 'Paiement supprimé.']);
     }
 }

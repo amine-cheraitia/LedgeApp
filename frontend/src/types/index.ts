@@ -252,6 +252,7 @@ export interface Paiement {
   id: number
   facture_id: number
   recorded_by: number
+  recorded_by_name?: string
   montant: number
   date_paiement: string
   mode_paiement: 'virement' | 'cheque' | 'espece' | 'autre'
