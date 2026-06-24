@@ -9,6 +9,27 @@
 
 ## [Unreleased]
 
+### Refonte UX encaissements — feature/ux-encaissements-drawer
+
+Remplace le Dialog paiement minimaliste par un **Drawer latéral** complet avec historique, validation, dark mode et mise à jour temps réel.
+
+#### Backend
+- **`PaiementController`** : `destroy()` supporte désormais la suppression par la secrétaire sur ses propres saisies (`admin OR recorded_by === user.id`) ; garde anti-dépassement dans `store()` (422 si montant > restant dû).
+- **`PaiementResource`** : expose `recorded_by_name` (via eager-load `recordedBy`) pour l'affichage « par X ».
+- **Routes** : `DELETE /factures/{id}/paiements/{p}` déplacée du groupe `admin` vers `admin|secretaire`.
+
+#### Frontend
+- **`FactureDetailDrawer.vue`** (nouveau) : panneau latéral droit — historique des paiements, étape de confirmation, validation temps réel, dark mode.
+  - Validation formulaire : montant ≤ 0, négatif ou > restant dû → message `role="alert"` (RGAA C4.1.3).
+  - Mise à jour instantanée du badge et des montants (ENCAISSÉ / RESTE DÛ) sans fermer le Drawer via `updateLocalTotals()`.
+  - Dark mode : tokens CSS adaptatifs (`--p-surface-ground` pour les lignes, nuances `300` pour les couleurs sémantiques).
+- **`FactureListPage.vue`** : bouton `pi-wallet` ouvre le Drawer ; Dialog paiement supprimé.
+
+#### Tests
+- `PaiementApiTest` (13 cas) : droits (admin / secrétaire / collaborateur), validations métier (0 / négatif / dépassement / déjà soldé), `InvoicePaid`, suppression avec droits fins.
+- `FactureDetailDrawer.test.ts` (17 cas) : affichage, dark mode classes, navigation, validation RGAA, permissions delete.
+- `PaiementFactory` créée.
+
 ### Durcissement anti-abus (throttle envoi mail / PDF) — chore/durcissement-throttle-mail
 
 Suite à l'audit SOLID / RGAA / OWASP : le code est conforme ; on ajoute une limitation de débit (OWASP A04) sur les actions

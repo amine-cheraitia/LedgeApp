@@ -287,6 +287,7 @@
 - Event `InvoicePaid` → `CancelRelancesOnPayment` : annulation automatique des relances en cours
 - Routes : `POST /factures/{id}/paiements` · `DELETE /factures/{id}/paiements/{id}`
 - Depend de : **US-13**
+- **Améliorations UX (feature/ux-encaissements-drawer)** : Drawer latéral remplace le Dialog — historique visible avant saisie, étape de confirmation, validation stricte (montant ≤ 0 / > restant), mise à jour temps réel sans re-ouverture, secrétaire peut corriger ses propres saisies, dark mode conforme RGAA.
 
 ---
 
