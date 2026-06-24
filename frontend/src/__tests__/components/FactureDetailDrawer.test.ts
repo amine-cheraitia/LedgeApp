@@ -49,9 +49,10 @@ const stubs = {
     template: '<div class="p-drawer-stub"><slot name="header" /><slot /></div>',
   },
   Button: {
+    inheritAttrs: false,
     emits: ['click'],
     props: ['label', 'loading', 'disabled', 'type', 'icon', 'iconPos', 'severity', 'text', 'rounded', 'size'],
-    template: '<button :type="type || \'button\'" :disabled="disabled" @click="$emit(\'click\')">{{ label }}</button>',
+    template: '<button v-bind="$attrs" :type="type || \'button\'" :disabled="disabled" @click="$emit(\'click\')">{{ label }}</button>',
   },
   InputNumber: {
     props: ['modelValue', 'min', 'mode', 'minFractionDigits', 'fluid', 'ariaRequired', 'ariaDescribedby', 'ariaInvalid'],
@@ -143,8 +144,6 @@ async function mountDrawer(overrides: { isAdmin?: boolean; isSecretaire?: boolea
     updated_at: '',
   }
 
-  mockGetPaiements.mockResolvedValue({ data: mockPaiements })
-
   const wrapper = mount(FactureDetailDrawer, {
     props: { modelValue: true, facture: mockFacture },
     global: { stubs, plugins: [] },
@@ -159,6 +158,7 @@ async function mountDrawer(overrides: { isAdmin?: boolean; isSecretaire?: boolea
 describe('FactureDetailDrawer — affichage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockGetPaiements.mockResolvedValue({ data: mockPaiements })
   })
 
   it('affiche le numéro de la facture dans le header', async () => {
