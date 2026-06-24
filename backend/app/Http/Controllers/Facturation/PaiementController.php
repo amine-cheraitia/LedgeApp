@@ -12,8 +12,8 @@ use App\Models\Facture;
 use App\Models\Paiement;
 use App\Services\FacturationService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class PaiementController extends Controller
 {
@@ -38,7 +38,7 @@ class PaiementController extends Controller
         if ((float) $request->validated('montant') > $montantRestant) {
             return response()->json([
                 'message' => "Le montant saisi dépasse le restant dû ({$montantRestant} DA).",
-                'errors'  => ['montant' => ["Le montant ne peut pas dépasser {$montantRestant} DA."]],
+                'errors' => ['montant' => ["Le montant ne peut pas dépasser {$montantRestant} DA."]],
             ], 422);
         }
 
@@ -70,7 +70,7 @@ class PaiementController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->hasRole('admin') && $paiement->recorded_by !== $user->id) {
+        if (! $user->hasRole('admin') && $paiement->recorded_by !== $user->id) {
             return response()->json(['message' => 'Vous ne pouvez supprimer que vos propres saisies.'], 403);
         }
 

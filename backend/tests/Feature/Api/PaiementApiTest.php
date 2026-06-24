@@ -24,9 +24,13 @@ class PaiementApiTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private User $secretaire;
+
     private User $collaborateur;
+
     private Facture $facture;
+
     private float $montantTtc;
 
     protected function setUp(): void

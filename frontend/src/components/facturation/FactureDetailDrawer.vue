@@ -75,6 +75,7 @@ watch(
       await loadPaiements()
     }
   },
+  { immediate: true },
 )
 
 function updateLocalTotals() {

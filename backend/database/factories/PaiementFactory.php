@@ -19,13 +19,13 @@ class PaiementFactory extends Factory
     public function definition(): array
     {
         return [
-            'facture_id'    => Facture::factory(),
-            'recorded_by'   => User::factory(),
-            'montant'       => fake()->randomFloat(2, 1000, 50000),
+            'facture_id' => Facture::factory(),
+            'recorded_by' => User::factory(),
+            'montant' => fake()->randomFloat(2, 1000, 50000),
             'date_paiement' => fake()->dateThisYear()->format('Y-m-d'),
             'mode_paiement' => fake()->randomElement(['virement', 'cheque', 'autre']),
-            'reference'     => null,
-            'notes'         => null,
+            'reference' => null,
+            'notes' => null,
         ];
     }
 }
