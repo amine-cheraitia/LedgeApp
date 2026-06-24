@@ -193,8 +193,6 @@ describe('FactureDetailDrawer — affichage', () => {
 
   it('le bouton supprimer est visible pour un admin', async () => {
     const wrapper = await mountDrawer({ isAdmin: true })
-    const btns = wrapper.findAll('button').filter(b => b.text() === '')
-    // Le bouton supprimer (pi-trash) est présent dans la liste de paiements
     expect(wrapper.findAll('.paiements-list button').length).toBeGreaterThan(0)
   })
 })

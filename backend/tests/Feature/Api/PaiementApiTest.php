@@ -323,21 +323,22 @@ class PaiementApiTest extends TestCase
 
     public function test_suppression_recalcule_le_statut_de_la_facture(): void
     {
-        $paiement = Paiement::create([
-            'facture_id' => $this->facture->id,
-            'recorded_by' => $this->admin->id,
-            'montant' => 5000,
-            'date_paiement' => date('Y').'-04-10',
-            'mode_paiement' => 'virement',
-        ]);
+        $response = $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$this->facture->id}/paiements", [
+                'montant' => 5000,
+                'date_paiement' => date('Y').'-04-10',
+                'mode_paiement' => 'virement',
+            ]);
 
-        // Après création le statut est partiel
+        $paiementId = $response->json('data.id');
+
+        // Après création via API le statut est partiel
         $this->facture->refresh();
         $this->assertEquals('partiel', $this->facture->statut_paiement);
 
         // Après suppression, retour en attente
         $this->actingAs($this->admin)
-            ->deleteJson("/api/v1/factures/{$this->facture->id}/paiements/{$paiement->id}");
+            ->deleteJson("/api/v1/factures/{$this->facture->id}/paiements/{$paiementId}");
 
         $this->facture->refresh();
         $this->assertEquals('en_attente', $this->facture->statut_paiement);
