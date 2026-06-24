@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import type { EventInput, EventDropArg } from '@fullcalendar/core'
 import type { EventResizeDoneArg } from '@fullcalendar/interaction'
@@ -8,50 +8,129 @@ import { tachesApi } from '@/api/modules/taches'
 import { usersApi } from '@/api/modules/users'
 import type { User } from '@/types'
 
-const MISSION_COLORS: Record<string, string> = {
-  en_cours: '#3B82F6',
-  terminee: '#22C55E',
+// ── Palettes ──────────────────────────────────────────────────────────────────
+
+const PRESTATION_PALETTE = [
+  '#6366F1', // indigo
+  '#EC4899', // rose
+  '#14B8A6', // teal
+  '#F97316', // orange
+  '#8B5CF6', // violet
+  '#06B6D4', // cyan
+  '#84CC16', // lime
+  '#D946EF', // fuchsia
+  '#A855F7', // purple
+  '#10B981', // emerald
+]
+
+const STATUS_BORDER: Record<string, string> = {
+  en_cours:  '#3B82F6',
+  terminee:  '#22C55E',
   suspendue: '#F59E0B',
-  annulee: '#6B7280',
+  annulee:   '#6B7280',
 }
 
 const TACHE_COLORS: Record<string, string> = {
-  a_faire: '#0EA5E9',
+  a_faire:  '#0EA5E9',
   en_cours: '#8B5CF6',
   terminee: '#22C55E',
-  bloquee: '#EF4444',
+  bloquee:  '#EF4444',
 }
 
+export function prestationColor(id: number | null): string {
+  if (id === null) return '#94A3B8'
+  return PRESTATION_PALETTE[id % PRESTATION_PALETTE.length]
+}
+
+// ── Conversion événements ─────────────────────────────────────────────────────
+
 function missionToEvent(m: CalendarMission): EventInput {
+  const bg     = prestationColor(m.prestation_id)
+  const border = STATUS_BORDER[m.statut] ?? bg
   return {
     id: `mission-${m.id}`,
     title: m.titre,
     start: m.date_debut,
     end: m.date_fin ?? undefined,
-    backgroundColor: MISSION_COLORS[m.statut] ?? '#3B82F6',
-    borderColor: MISSION_COLORS[m.statut] ?? '#3B82F6',
+    backgroundColor: bg + 'CC', // 80 % opacité
+    borderColor: border,
+    textColor: '#fff',
     extendedProps: { ...m },
     allDay: true,
+    classNames: [`fc-mission-statut-${m.statut}`],
   }
 }
 
 function tacheToEvent(t: CalendarTache): EventInput {
+  const color = TACHE_COLORS[t.statut] ?? '#0EA5E9'
   return {
     id: `tache-${t.id}`,
     title: t.titre,
     start: t.date_echeance,
-    backgroundColor: TACHE_COLORS[t.statut] ?? '#0EA5E9',
-    borderColor: TACHE_COLORS[t.statut] ?? '#0EA5E9',
+    backgroundColor: color,
+    borderColor: color,
+    textColor: '#fff',
     extendedProps: { ...t },
     allDay: true,
   }
 }
 
+// ── Composable ────────────────────────────────────────────────────────────────
+
 export function usePlanning() {
   const toast = useToast()
+
+  // Filtre collaborateur
   const collaborateurFilter = ref<number | null>(null)
   const collaborateurs = ref<User[]>([])
   const loadingCollab = ref(false)
+
+  // Données brutes
+  const rawMissions = ref<CalendarMission[]>([])
+  const rawTaches   = ref<CalendarTache[]>([])
+  const loadingEvents = ref(false)
+
+  // Plage courante (pour le refresh après action)
+  const currentFrom = ref('')
+  const currentTo   = ref('')
+
+  // Filtres statuts (actifs par défaut : tout sauf terminée/annulée)
+  const activeStatuts = ref<Set<string>>(new Set(['en_cours', 'suspendue']))
+  const showTaches    = ref(true)
+
+  // Événements filtrés → passés directement au calendrier
+  const filteredEvents = computed<EventInput[]>(() => [
+    ...rawMissions.value
+      .filter(m => activeStatuts.value.has(m.statut))
+      .map(missionToEvent),
+    ...(showTaches.value ? rawTaches.value.map(tacheToEvent) : []),
+  ])
+
+  // Stats par statut (pour les compteurs dans les chips)
+  const missionCountByStatut = computed(() => {
+    const counts: Record<string, number> = {}
+    for (const m of rawMissions.value) {
+      counts[m.statut] = (counts[m.statut] ?? 0) + 1
+    }
+    return counts
+  })
+
+  // Prestations uniques présentes sur la période (pour la légende dynamique)
+  const prestationsVues = computed(() => {
+    const seen = new Map<number, { id: number; code: string; designation: string }>()
+    for (const m of rawMissions.value) {
+      if (m.prestation_id && !seen.has(m.prestation_id)) {
+        seen.set(m.prestation_id, {
+          id: m.prestation_id,
+          code: m.prestation_code ?? '',
+          designation: m.prestation ?? m.prestation_code ?? '',
+        })
+      }
+    }
+    return [...seen.values()]
+  })
+
+  // ── Méthodes ───────────────────────────────────────────────────────────────
 
   async function fetchCollaborateurs() {
     loadingCollab.value = true
@@ -61,32 +140,47 @@ export function usePlanning() {
         (u) => u.roles.includes('admin') || u.roles.includes('collaborateur'),
       )
     } catch {
-      // silencieux — le filtre est optionnel
+      // silencieux — filtre optionnel
     } finally {
       loadingCollab.value = false
     }
   }
 
-  async function fetchEvents(
-    fetchInfo: { startStr: string; endStr: string },
-    successCallback: (events: EventInput[]) => void,
-    failureCallback: (error: Error) => void,
-  ) {
+  async function loadEvents(from: string, to: string) {
+    currentFrom.value = from
+    currentTo.value   = to
+    loadingEvents.value = true
     try {
-      const params = {
-        from: fetchInfo.startStr.slice(0, 10),
-        to: fetchInfo.endStr.slice(0, 10),
+      const { data } = await planningApi.getCalendar({
+        from,
+        to,
         ...(collaborateurFilter.value !== null ? { collaborateur_id: collaborateurFilter.value } : {}),
-      }
-      const { data } = await planningApi.getCalendar(params)
-      const events: EventInput[] = [
-        ...data.missions.map(missionToEvent),
-        ...data.taches.map(tacheToEvent),
-      ]
-      successCallback(events)
-    } catch (err) {
-      failureCallback(err instanceof Error ? err : new Error('Erreur calendrier'))
+      })
+      rawMissions.value = data.missions
+      rawTaches.value   = data.taches
+    } catch {
+      toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de charger le planning.', life: 3000 })
+    } finally {
+      loadingEvents.value = false
     }
+  }
+
+  function toggleStatut(statut: string) {
+    const next = new Set(activeStatuts.value)
+    next.has(statut) ? next.delete(statut) : next.add(statut)
+    activeStatuts.value = next
+  }
+
+  function toggleTaches() {
+    showTaches.value = !showTaches.value
+  }
+
+  async function changerStatutMission(missionId: number, statut: string) {
+    await missionsApi.update(missionId, { statut: statut as any })
+    // Mise à jour locale immédiate
+    const m = rawMissions.value.find(x => x.id === missionId)
+    if (m) m.statut = statut as any
+    rawMissions.value = [...rawMissions.value] // trigger reactivity
   }
 
   async function onEventDrop(info: EventDropArg) {
@@ -96,10 +190,9 @@ export function usePlanning() {
         const m = props as CalendarMission
         const newStart = info.event.startStr.slice(0, 10)
         const delta = info.delta.days
-        const oldEnd = m.date_fin
-        const newEnd = oldEnd
+        const newEnd = m.date_fin
           ? (() => {
-              const d = new Date(oldEnd)
+              const d = new Date(m.date_fin)
               d.setDate(d.getDate() + delta)
               return d.toISOString().slice(0, 10)
             })()
@@ -118,20 +211,15 @@ export function usePlanning() {
       }
     } catch {
       info.revert()
-      toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de déplacer l\'événement.', life: 3000 })
+      toast.add({ severity: 'error', summary: 'Erreur', detail: "Impossible de déplacer l'événement.", life: 3000 })
     }
   }
 
   async function onEventResize(info: EventResizeDoneArg) {
     const props = info.event.extendedProps as CalendarMission
-    if (props.type !== 'mission') {
-      info.revert()
-      return
-    }
+    if (props.type !== 'mission') { info.revert(); return }
     try {
-      await missionsApi.update(props.id, {
-        date_fin: info.event.endStr.slice(0, 10),
-      })
+      await missionsApi.update(props.id, { date_fin: info.event.endStr.slice(0, 10) })
       toast.add({ severity: 'success', summary: 'Mission redimensionnée', detail: props.reference, life: 2000 })
     } catch {
       info.revert()
@@ -140,11 +228,28 @@ export function usePlanning() {
   }
 
   return {
+    // Filtre collaborateur
     collaborateurFilter,
     collaborateurs,
     loadingCollab,
     fetchCollaborateurs,
-    fetchEvents,
+    // Événements
+    filteredEvents,
+    loadingEvents,
+    loadEvents,
+    // Filtres statuts
+    activeStatuts,
+    showTaches,
+    toggleStatut,
+    toggleTaches,
+    missionCountByStatut,
+    // Légende
+    prestationsVues,
+    prestationColor,
+    STATUS_BORDER,
+    TACHE_COLORS,
+    // Actions
+    changerStatutMission,
     onEventDrop,
     onEventResize,
   }

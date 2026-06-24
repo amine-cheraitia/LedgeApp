@@ -57,6 +57,8 @@ class CalendarService
             'date_fin' => $m->date_fin?->toDateString(),
             'statut' => $m->statut,
             'prix_ht' => (float) $m->prix_ht,
+            'prestation_id' => $m->prestation_id,
+            'prestation_code' => $m->prestation?->code,
             'entreprise' => $m->entreprise?->raison_sociale,
             'prestation' => $m->prestation?->designation,
         ])->all();

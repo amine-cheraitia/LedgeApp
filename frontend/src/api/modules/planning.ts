@@ -21,6 +21,8 @@ export interface CalendarMission {
   date_fin: string | null
   statut: Mission['statut']
   prix_ht: number
+  prestation_id: number | null
+  prestation_code: string | null
   entreprise: string | null
   prestation: string | null
 }
