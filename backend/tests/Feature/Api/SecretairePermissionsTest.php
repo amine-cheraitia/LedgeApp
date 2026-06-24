@@ -259,12 +259,14 @@ class SecretairePermissionsTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_secretaire_ne_peut_pas_supprimer_un_paiement(): void
+    public function test_secretaire_ne_peut_pas_supprimer_le_paiement_dautrui(): void
     {
+        $autreSaisi = User::factory()->create();
+
         $facture = $this->creerFacture();
         $paiement = Paiement::create([
             'facture_id' => $facture->id,
-            'recorded_by' => $this->secretaire->id,
+            'recorded_by' => $autreSaisi->id,
             'montant' => 10000,
             'date_paiement' => now()->toDateString(),
             'mode_paiement' => 'virement',

@@ -18,6 +18,7 @@ class PaiementResource extends JsonResource
             'id' => $this->id,
             'facture_id' => $this->facture_id,
             'recorded_by' => $this->recorded_by,
+            'recorded_by_name' => $this->whenLoaded('recordedBy', fn () => $this->recordedBy->name),
             'montant' => $this->montant,
             'date_paiement' => $this->date_paiement?->toDateString(),
             'mode_paiement' => $this->mode_paiement,
