@@ -28,10 +28,10 @@ const toast  = useToast()
 const auth   = useAuthStore()
 
 const {
-  collaborateurFilter, collaborateurs, loadingCollab, fetchCollaborateurs,
+  collaborateurFilter, collaborateurs, fetchCollaborateurs,
   filteredEvents, loadingEvents, loadEvents,
-  activeStatuts, showTaches, toggleStatut, toggleTaches,
-  missionCountByStatut, prestationsVues, prestationColor, STATUS_BORDER, TACHE_COLORS,
+  activeStatuts, toggleStatut,
+  missionCountByStatut, prestationsVues, prestationColor, STATUS_BORDER,
   changerStatutMission, onEventDrop, onEventResize,
   teamWeekStart, teamWeekDays, teamGridData, loadingEquipe,
   initWeek, prevWeek, nextWeek, loadEquipeWeek, chargeColor, chargeLabel,
