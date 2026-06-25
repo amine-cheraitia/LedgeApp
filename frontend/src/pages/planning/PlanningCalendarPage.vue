@@ -6,6 +6,7 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import listPlugin from '@fullcalendar/list'
+import multiMonthPlugin from '@fullcalendar/multimonth'
 import frLocale from '@fullcalendar/core/locales/fr'
 import type { CalendarOptions, EventClickArg } from '@fullcalendar/core'
 import Dialog from 'primevue/dialog'
@@ -40,19 +41,20 @@ const calendarRef = ref<InstanceType<typeof FullCalendar> | null>(null)
 
 // Options stables — les events sont gérés via l'API FullCalendar (watch ci-dessous)
 const calendarOptions: CalendarOptions = {
-  plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin],
+  plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin, multiMonthPlugin],
   locale: frLocale,
-  initialView: 'dayGridMonth',
+  initialView: 'multiMonthYear',
   headerToolbar: {
     left:   'prev,next today',
     center: 'title',
-    right:  'dayGridMonth,timeGridWeek,listWeek',
+    right:  'multiMonthYear,dayGridMonth,timeGridWeek,listWeek',
   },
   buttonText: {
     today:  "Aujourd'hui",
     month:  'Mois',
     week:   'Semaine',
     list:   'Liste',
+    year:   'Année',
   },
   events:      [],
   datesSet:    (info) => loadEvents(info.startStr.slice(0, 10), info.endStr.slice(0, 10)),
