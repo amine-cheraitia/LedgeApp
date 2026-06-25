@@ -20,10 +20,12 @@ import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
 import { useToast } from 'primevue/usetoast'
 import { usePlanning } from '@/composables/usePlanning'
+import { useAuthStore } from '@/stores/auth'
 import type { CalendarMission, CalendarTache } from '@/api/modules/planning'
 
 const router = useRouter()
 const toast  = useToast()
+const auth   = useAuthStore()
 
 const {
   collaborateurFilter, collaborateurs, loadingCollab, fetchCollaborateurs,
@@ -43,7 +45,7 @@ const calendarRef = ref<InstanceType<typeof FullCalendar> | null>(null)
 const calendarOptions: CalendarOptions = {
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin, multiMonthPlugin],
   locale: frLocale,
-  initialView: 'multiMonthYear',
+  initialView: 'dayGridMonth',
   headerToolbar: {
     left:   'prev,next today',
     center: 'title',
@@ -226,14 +228,23 @@ fetchCollaborateurs()
         <!-- ══════════════════ ONGLET MISSIONS ══════════════════ -->
         <TabPanel value="missions">
 
-          <!-- Stats période -->
-          <div class="missions-stats" aria-label="Statistiques de la période">
-            <span v-if="statsEnCours > 0" class="stat-chip stat-chip--blue">
-              {{ statsEnCours }} en cours
-            </span>
-            <span v-if="statsSuspendu > 0" class="stat-chip stat-chip--orange">
-              {{ statsSuspendu }} suspendue{{ statsSuspendu > 1 ? 's' : '' }}
-            </span>
+          <!-- Barre de la vue missions -->
+          <div class="missions-toolbar">
+            <div class="missions-stats" aria-label="Statistiques de la période">
+              <span v-if="statsEnCours > 0" class="stat-chip stat-chip--blue">
+                {{ statsEnCours }} en cours
+              </span>
+              <span v-if="statsSuspendu > 0" class="stat-chip stat-chip--orange">
+                {{ statsSuspendu }} suspendue{{ statsSuspendu > 1 ? 's' : '' }}
+              </span>
+            </div>
+            <Button
+              v-if="auth.isAdmin"
+              label="Nouvelle mission"
+              icon="pi pi-plus"
+              aria-label="Créer une nouvelle mission"
+              @click="router.push('/missions')"
+            />
           </div>
 
           <!-- Filtres statuts -->
@@ -313,7 +324,7 @@ fetchCollaborateurs()
             </div>
 
             <!-- Chargement -->
-            <div v-if="loadingEquipe" class="calendar-loading" role="status" aria-live="polite">
+            <div v-if="loadingEquipe" class="equipe-loading" role="status" aria-live="polite">
               <i class="pi pi-spin pi-spinner" aria-hidden="true" style="font-size:1.5rem" />
               <span>Chargement…</span>
             </div>
@@ -596,8 +607,14 @@ fetchCollaborateurs()
   border-radius: 8px;
   padding: 1rem;
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  position: relative;
 }
 .calendar-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: color-mix(in srgb, var(--p-surface-card) 70%, transparent);
+  border-radius: 8px;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -705,10 +722,21 @@ fetchCollaborateurs()
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin-bottom: 0.75rem;
   padding-top: 0.75rem;
+  margin-bottom: 0.75rem;
 }
-.missions-stats { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.missions-stats { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+
+/* ── Chargement équipe (non superposé — la grille n'est pas encore là) ──────── */
+.equipe-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+  padding: 2rem;
+  color: var(--p-text-muted-color);
+  font-size: 0.88rem;
+}
 
 /* ── Vue Équipe ──────────────────────────────────────────────────────────────── */
 .equipe-container {
