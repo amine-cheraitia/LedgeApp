@@ -226,31 +226,14 @@ fetchCollaborateurs()
         <!-- ══════════════════ ONGLET MISSIONS ══════════════════ -->
         <TabPanel value="missions">
 
-          <!-- En-tête missions -->
-          <div class="missions-toolbar">
-            <div class="missions-stats" aria-label="Statistiques de la période">
-              <span v-if="statsEnCours > 0" class="stat-chip stat-chip--blue">
-                {{ statsEnCours }} en cours
-              </span>
-              <span v-if="statsSuspendu > 0" class="stat-chip stat-chip--orange">
-                {{ statsSuspendu }} suspendue{{ statsSuspendu > 1 ? 's' : '' }}
-              </span>
-            </div>
-            <div class="missions-collab-filter">
-              <label for="filtre-collaborateur" class="sr-only">Filtrer par collaborateur</label>
-              <Select
-                id="filtre-collaborateur"
-                v-model="collaborateurFilter"
-                :options="collaborateurs"
-                option-label="name"
-                option-value="id"
-                placeholder="Tous les collaborateurs"
-                :loading="loadingCollab"
-                show-clear
-                aria-label="Filtrer par collaborateur"
-                style="min-width: 220px"
-              />
-            </div>
+          <!-- Stats période -->
+          <div class="missions-stats" aria-label="Statistiques de la période">
+            <span v-if="statsEnCours > 0" class="stat-chip stat-chip--blue">
+              {{ statsEnCours }} en cours
+            </span>
+            <span v-if="statsSuspendu > 0" class="stat-chip stat-chip--orange">
+              {{ statsSuspendu }} suspendue{{ statsSuspendu > 1 ? 's' : '' }}
+            </span>
           </div>
 
           <!-- Filtres statuts -->
