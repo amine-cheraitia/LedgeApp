@@ -84,6 +84,7 @@ class CalendarService
             'mission_id' => $t->mission_id,
             'mission_ref' => $t->mission?->reference,
             'entreprise' => $t->mission?->entreprise?->raison_sociale,
+            'assigned_to' => $t->assigned_to,
             'assignee' => $t->assignee?->name,
         ])->all();
     }

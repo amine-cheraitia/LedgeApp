@@ -37,6 +37,7 @@ export interface CalendarTache {
   mission_id: number
   mission_ref: string | null
   entreprise: string | null
+  assigned_to: number | null
   assignee: string | null
 }
 

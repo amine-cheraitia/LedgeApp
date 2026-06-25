@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import type { EventInput, EventDropArg } from '@fullcalendar/core'
 import type { EventResizeDoneArg } from '@fullcalendar/interaction'
@@ -227,6 +227,77 @@ export function usePlanning() {
     }
   }
 
+  // ── Vue Équipe ────────────────────────────────────────────────────────────────
+
+  const teamWeekStart  = ref<string>('')
+  const rawTachesEquipe = ref<CalendarTache[]>([])
+  const loadingEquipe  = ref(false)
+
+  function initWeek() {
+    const d = new Date()
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7)) // ramener au lundi
+    teamWeekStart.value = d.toISOString().slice(0, 10)
+  }
+
+  function shiftWeek(days: number) {
+    const d = new Date(teamWeekStart.value)
+    d.setDate(d.getDate() + days)
+    teamWeekStart.value = d.toISOString().slice(0, 10)
+  }
+
+  const prevWeek = () => shiftWeek(-7)
+  const nextWeek = () => shiftWeek(7)
+
+  const teamWeekDays = computed<string[]>(() => {
+    if (!teamWeekStart.value) return []
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(teamWeekStart.value)
+      d.setDate(d.getDate() + i)
+      return d.toISOString().slice(0, 10)
+    })
+  })
+
+  async function loadEquipeWeek() {
+    if (!teamWeekStart.value || teamWeekDays.value.length === 0) return
+    loadingEquipe.value = true
+    try {
+      const from = teamWeekStart.value
+      const to   = teamWeekDays.value[6]
+      const { data } = await planningApi.getCalendar({ from, to })
+      rawTachesEquipe.value = data.taches
+    } catch {
+      toast.add({ severity: 'error', summary: 'Erreur', detail: "Impossible de charger la vue équipe.", life: 3000 })
+    } finally {
+      loadingEquipe.value = false
+    }
+  }
+
+  watch(teamWeekStart, loadEquipeWeek)
+
+  // Grille : collaborateurId → date → tâches
+  const teamGridData = computed<Record<number, Record<string, CalendarTache[]>>>(() => {
+    const grid: Record<number, Record<string, CalendarTache[]>> = {}
+    for (const t of rawTachesEquipe.value) {
+      if (!t.assigned_to || !t.date_echeance) continue
+      if (!grid[t.assigned_to]) grid[t.assigned_to] = {}
+      if (!grid[t.assigned_to][t.date_echeance]) grid[t.assigned_to][t.date_echeance] = []
+      grid[t.assigned_to][t.date_echeance].push(t)
+    }
+    return grid
+  })
+
+  function chargeColor(count: number): string {
+    if (count === 0) return 'var(--p-green-500)'
+    if (count <= 2)  return 'var(--p-orange-400)'
+    return 'var(--p-red-500)'
+  }
+
+  function chargeLabel(count: number): string {
+    if (count === 0) return 'Disponible'
+    if (count <= 2)  return 'Modéré'
+    return 'Chargé'
+  }
+
   return {
     // Filtre collaborateur
     collaborateurFilter,
@@ -252,5 +323,16 @@ export function usePlanning() {
     changerStatutMission,
     onEventDrop,
     onEventResize,
+    // Vue Équipe
+    teamWeekStart,
+    teamWeekDays,
+    teamGridData,
+    loadingEquipe,
+    initWeek,
+    prevWeek,
+    nextWeek,
+    loadEquipeWeek,
+    chargeColor,
+    chargeLabel,
   }
 }
