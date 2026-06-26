@@ -152,13 +152,17 @@ function statutSeverity(statut: string) {
   return map[statut] ?? 'secondary'
 }
 
+function statutLabel(statut: string) {
+  const map: Record<string, string> = {
+    en_cours: 'En cours', terminee: 'Terminée', suspendue: 'Suspendue', annulee: 'Annulée',
+  }
+  return map[statut] ?? statut
+}
+
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString('fr-FR')
 }
 
-function formatMontant(v: number) {
-  return new Intl.NumberFormat('fr-DZ').format(v) + ' DA'
-}
 
 onMounted(async () => {
   // Collaborateur : pas d'accès aux référentiels — on charge uniquement ses missions
@@ -221,29 +225,60 @@ onMounted(async () => {
       stripedRows
       removableSort
     >
-      <Column field="reference" header="Reference" sortable />
-      <Column header="Entreprise" sortField="entreprise_id">
-        <template #body="{ data }">{{ data.entreprise?.raison_sociale ?? '-' }}</template>
-      </Column>
-      <Column header="Prestation">
-        <template #body="{ data }">{{ data.prestation?.designation ?? '-' }}</template>
-      </Column>
-      <Column field="prix_ht" header="Prix HT" sortable>
-        <template #body="{ data }">{{ formatMontant(data.prix_ht) }}</template>
-      </Column>
-      <Column field="date_debut" header="Debut" sortable>
-        <template #body="{ data }">{{ formatDate(data.date_debut) }}</template>
-      </Column>
-      <Column field="statut" header="Statut" sortable>
-        <template #body="{ data }">
-          <Tag :value="data.statut" :severity="statutSeverity(data.statut)" />
+      <Column header="#" style="width: 3rem; min-width: 3rem">
+        <template #body="{ index }">
+          <span class="row-number">{{ (filters.page - 1) * (filters.per_page ?? 15) + index + 1 }}</span>
         </template>
       </Column>
-      <Column header="Actions" style="width: 8rem">
+      <Column field="reference" header="N° de mission" sortable style="min-width: 10rem">
         <template #body="{ data }">
-          <Button icon="pi pi-eye" text rounded @click="goToDetail(data)" aria-label="Voir le détail de la mission" v-tooltip.top="'Voir detail'" />
-          <Button v-if="!auth.isCollaborateur" icon="pi pi-pencil" text rounded severity="secondary" @click="openEdit(data)" aria-label="Modifier la mission" v-tooltip.top="'Modifier'" />
-          <Button v-if="!auth.isCollaborateur" icon="pi pi-trash" text rounded severity="danger" @click="confirmDelete(data)" aria-label="Supprimer la mission" v-tooltip.top="'Supprimer'" />
+          <span class="mission-ref">{{ data.reference }}</span>
+        </template>
+      </Column>
+      <Column header="Raison sociale" sortField="entreprise_id" sortable style="min-width: 11rem">
+        <template #body="{ data }">{{ data.entreprise?.raison_sociale ?? '—' }}</template>
+      </Column>
+      <Column header="Prestation" style="min-width: 10rem">
+        <template #body="{ data }">{{ data.prestation?.designation ?? '—' }}</template>
+      </Column>
+      <Column field="date_debut" header="Date de début" sortable style="min-width: 9rem">
+        <template #body="{ data }">{{ formatDate(data.date_debut) }}</template>
+      </Column>
+      <Column field="date_fin" header="Date de fin" sortable class="col-date-fin" style="min-width: 9rem">
+        <template #body="{ data }">{{ data.date_fin ? formatDate(data.date_fin) : '—' }}</template>
+      </Column>
+      <Column field="statut" header="Statut" sortable style="min-width: 8rem">
+        <template #body="{ data }">
+          <Tag :value="statutLabel(data.statut)" :severity="statutSeverity(data.statut)" />
+        </template>
+      </Column>
+      <Column header="Actions" style="width: 9rem; min-width: 9rem">
+        <template #body="{ data }">
+          <div class="actions-cell">
+            <Button
+              icon="pi pi-arrow-right"
+              text rounded severity="info" size="small"
+              aria-label="Voir le détail de la mission"
+              v-tooltip.top="'Voir le détail'"
+              @click="goToDetail(data)"
+            />
+            <Button
+              v-if="!auth.isCollaborateur"
+              icon="pi pi-pencil"
+              text rounded severity="secondary" size="small"
+              aria-label="Modifier la mission"
+              v-tooltip.top="'Modifier'"
+              @click="openEdit(data)"
+            />
+            <Button
+              v-if="!auth.isCollaborateur"
+              icon="pi pi-times"
+              text rounded severity="danger" size="small"
+              aria-label="Supprimer la mission"
+              v-tooltip.top="'Supprimer'"
+              @click="confirmDelete(data)"
+            />
+          </div>
         </template>
       </Column>
     </DataTable>
@@ -411,5 +446,45 @@ onMounted(async () => {
   justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 0.5rem;
+}
+
+/* ── Table ──────────────────────────────────────────────────────────────────── */
+.row-number {
+  font-size: 0.78rem;
+  color: var(--p-text-muted-color);
+  font-weight: 500;
+}
+
+.mission-ref {
+  font-weight: 600;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.actions-cell {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.15rem;
+  align-items: center;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  :deep(.col-date-fin) { display: none; }
+}
+
+@media (max-width: 640px) {
+  .page-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .toolbar-left,
+  .toolbar-right {
+    width: 100%;
+  }
+  .toolbar-left :deep(input),
+  .toolbar-right :deep(.p-select) {
+    width: 100% !important;
+  }
 }
 </style>
