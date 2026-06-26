@@ -227,7 +227,7 @@ onMounted(async () => {
     >
       <Column header="#" style="width: 3rem; min-width: 3rem">
         <template #body="{ index }">
-          <span class="row-number">{{ (filters.page - 1) * (filters.per_page ?? 15) + index + 1 }}</span>
+          <span class="row-number">{{ ((filters.page ?? 1) - 1) * (filters.per_page ?? 15) + index + 1 }}</span>
         </template>
       </Column>
       <Column field="reference" header="N° de mission" sortable style="min-width: 10rem">
