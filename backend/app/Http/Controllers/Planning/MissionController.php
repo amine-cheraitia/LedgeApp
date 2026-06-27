@@ -47,12 +47,17 @@ class MissionController extends Controller
             ->setStatusCode(201);
     }
 
-    public function show(Mission $mission): MissionResource
+    public function show(Request $request, Mission $mission): MissionResource
     {
         $this->authorize('view', $mission);
 
+        // Le collaborateur ne voit que ses propres tâches sur la fiche mission.
         return new MissionResource(
-            $mission->load('entreprise', 'prestation', 'exercice', 'collaborateurs', 'taches.assignee', 'factures')
+            $mission->load([
+                'entreprise', 'prestation', 'exercice', 'collaborateurs',
+                'taches' => fn ($q) => $q->visiblePour($request->user()),
+                'taches.assignee', 'factures',
+            ])
         );
     }
 

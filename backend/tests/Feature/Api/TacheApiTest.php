@@ -152,7 +152,7 @@ class TacheApiTest extends TestCase
             ->assertStatus(409);
     }
 
-    public function test_collaborateur_ne_voit_que_ses_taches_assignees(): void
+    public function test_collaborateur_ne_voit_que_ses_propres_taches(): void
     {
         $collaborateur = User::factory()->create();
         $collaborateur->assignRole('collaborateur');
@@ -166,17 +166,111 @@ class TacheApiTest extends TestCase
             'assigned_to' => $collaborateur->id,
         ]);
 
-        // Tâche non assignée
+        // Tâche non assignée (affectée à personne)
         $this->actingAs($this->admin)->postJson("/api/v1/missions/{$this->missionId}/taches", [
             'titre' => 'Non assignee',
         ]);
 
-        // Le collaborateur peut lister toutes les tâches de sa mission (US-45)
+        // Le collaborateur ne voit QUE sa tâche (pas celles des autres)
         $response = $this->actingAs($collaborateur)
             ->getJson("/api/v1/missions/{$this->missionId}/taches");
 
         $response->assertOk();
+        $this->assertCount(1, $response->json('data'));
+        $this->assertEquals('Pour collab', $response->json('data.0.titre'));
+    }
+
+    public function test_admin_voit_toutes_les_taches_de_la_mission(): void
+    {
+        $collaborateur = User::factory()->create();
+        $collaborateur->assignRole('collaborateur');
+
+        $this->actingAs($this->admin)->postJson("/api/v1/missions/{$this->missionId}/taches", [
+            'titre' => 'Pour collab',
+            'assigned_to' => $collaborateur->id,
+        ]);
+        $this->actingAs($this->admin)->postJson("/api/v1/missions/{$this->missionId}/taches", [
+            'titre' => 'Non assignee',
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->getJson("/api/v1/missions/{$this->missionId}/taches");
+
+        $response->assertOk();
         $this->assertCount(2, $response->json('data'));
+    }
+
+    public function test_collaborateur_ne_peut_pas_voir_une_tache_non_assignee(): void
+    {
+        $collaborateur = User::factory()->create();
+        $collaborateur->assignRole('collaborateur');
+        Mission::find($this->missionId)->collaborateurs()->attach($collaborateur->id);
+
+        // Tâche non affectée au collaborateur
+        $autreTacheId = $this->actingAs($this->admin)
+            ->postJson("/api/v1/missions/{$this->missionId}/taches", ['titre' => 'Tache autrui'])
+            ->json('data.id');
+
+        $this->actingAs($collaborateur)
+            ->getJson("/api/v1/missions/{$this->missionId}/taches/{$autreTacheId}")
+            ->assertForbidden();
+    }
+
+    public function test_collaborateur_ne_peut_pas_commenter_une_tache_non_assignee(): void
+    {
+        $collaborateur = User::factory()->create();
+        $collaborateur->assignRole('collaborateur');
+        Mission::find($this->missionId)->collaborateurs()->attach($collaborateur->id);
+
+        $tacheId = $this->actingAs($this->admin)
+            ->postJson("/api/v1/missions/{$this->missionId}/taches", ['titre' => 'Tache autrui'])
+            ->json('data.id');
+
+        $this->actingAs($collaborateur)
+            ->postJson("/api/v1/taches/{$tacheId}/commentaires", ['contenu' => 'Coucou'])
+            ->assertForbidden();
+    }
+
+    public function test_collaborateur_peut_commenter_sa_tache(): void
+    {
+        $collaborateur = User::factory()->create();
+        $collaborateur->assignRole('collaborateur');
+
+        $tacheId = $this->actingAs($this->admin)
+            ->postJson("/api/v1/missions/{$this->missionId}/taches", [
+                'titre' => 'Ma tache',
+                'assigned_to' => $collaborateur->id,
+            ])->json('data.id');
+
+        $this->actingAs($collaborateur)
+            ->postJson("/api/v1/taches/{$tacheId}/commentaires", ['contenu' => 'Je commence'])
+            ->assertCreated();
+    }
+
+    public function test_collaborateur_ne_peut_ni_modifier_ni_supprimer_le_commentaire_d_un_admin(): void
+    {
+        $collaborateur = User::factory()->create();
+        $collaborateur->assignRole('collaborateur');
+
+        $tacheId = $this->actingAs($this->admin)
+            ->postJson("/api/v1/missions/{$this->missionId}/taches", [
+                'titre' => 'Ma tache',
+                'assigned_to' => $collaborateur->id,
+            ])->json('data.id');
+
+        // Commentaire laissé par l'admin sur la tâche du collaborateur
+        $commentaireId = $this->actingAs($this->admin)
+            ->postJson("/api/v1/taches/{$tacheId}/commentaires", ['contenu' => 'Commentaire admin'])
+            ->json('data.id');
+
+        // Le collaborateur (affecté) ne peut ni modifier ni supprimer ce commentaire
+        $this->actingAs($collaborateur)
+            ->putJson("/api/v1/taches/{$tacheId}/commentaires/{$commentaireId}", ['contenu' => 'Modif'])
+            ->assertForbidden();
+
+        $this->actingAs($collaborateur)
+            ->deleteJson("/api/v1/taches/{$tacheId}/commentaires/{$commentaireId}")
+            ->assertForbidden();
     }
 
     public function test_tache_statut_initial_est_a_faire(): void

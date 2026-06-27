@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -26,6 +27,17 @@ class Tache extends Model
         'date_debut' => 'date',
         'date_echeance' => 'date',
     ];
+
+    /**
+     * Limite la requête aux tâches visibles par l'utilisateur :
+     * l'admin voit tout, le collaborateur uniquement celles qui lui sont affectées.
+     */
+    public function scopeVisiblePour(Builder $query, User $user): Builder
+    {
+        return $user->hasRole('admin')
+            ? $query
+            : $query->where('assigned_to', $user->id);
+    }
 
     public function mission(): BelongsTo
     {

@@ -11,16 +11,18 @@ use App\Http\Resources\Planning\TacheResource;
 use App\Models\Mission;
 use App\Models\Tache;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class TacheController extends Controller
 {
-    public function index(Mission $mission): AnonymousResourceCollection
+    public function index(Request $request, Mission $mission): AnonymousResourceCollection
     {
         $this->authorize('view', $mission);
 
+        // Le collaborateur ne voit que ses propres tâches au sein de la mission.
         return TacheResource::collection(
-            $mission->taches()->with('assignee')->latest()->get()
+            $mission->taches()->visiblePour($request->user())->with('assignee')->latest()->get()
         );
     }
 
@@ -37,7 +39,7 @@ class TacheController extends Controller
 
     public function show(Mission $mission, Tache $tache): TacheResource
     {
-        $this->authorize('view', $mission);
+        $this->authorize('view', $tache);
 
         return new TacheResource($tache->load('assignee'));
     }
