@@ -9,29 +9,36 @@
 
 ## [Unreleased]
 
-### Correctifs page Planning — fix/correctifs-planning
+### Correctifs page Planning & accès aux tâches par rôle — fix/correctifs-planning
 
-Six correctifs issus des tests utilisateur sur la page Planning : affichage, vues, et deux règles métier d'affectation des tâches désormais **appliquées par le backend** (défense en profondeur).
+Correctifs issus des tests utilisateur sur la page Planning : affichage, vues, comportement **différencié par rôle**, et règles métier d'affectation / isolation des tâches désormais **appliquées par le backend** (défense en profondeur).
 
-#### Frontend
-- **Onglet Missions** (`usePlanning.ts`) : le calendrier n'affiche plus que les **missions** (les tâches restent dans l'onglet Équipe et les fiches mission).
-- **Onglet Équipe** (`usePlanning.ts`) : une tâche s'affiche désormais sur **tous les jours de sa plage** (`date_debut → date_echeance`) intersectés avec la semaine visible, au lieu du seul jour d'échéance.
+#### Frontend — Planning par rôle
+- **Collaborateur** (`PlanningCalendarPage.vue` / `usePlanning.ts`) : la page n'affiche plus qu'**un seul calendrier = ses tâches** (pas d'onglets), **colorées par priorité** (Très faible → Critique), avec une **légende priorité**. Calendrier **non éditable** (ni drag ni resize). Il ne voit jamais les tâches des autres.
+- **Admin** : conserve les onglets **Missions** (calendrier des missions) et **Équipe**. Dans l'onglet Équipe, **cliquer sur la tâche d'un collaborateur ouvre le même modal** que sur le calendrier des missions (chip rendu en `<button>` accessible).
+- **Onglet Missions** (`usePlanning.ts`) : le calendrier n'affiche que les **missions** (les tâches restent dans l'onglet Équipe et les fiches mission).
+- **Quatre vues** (`PlanningCalendarPage.vue`) : **Année / Mois / Semaine / Liste**, libellés FR — partout (Missions admin et planning collaborateur).
 - **Décalage d'un jour corrigé** (`usePlanning.ts`) : la fin des barres (`allDay` exclusif côté FullCalendar) est ajustée (+1 jour à l'affichage, −1 à la persistance d'un redimensionnement) ; une mission 24 → 26 couvre bien 24/25/26.
-- **Nouvelles vues** (`PlanningCalendarPage.vue`) : **Jour**, **Liste du mois**, **Liste de l'année** ajoutées (en plus d'Année / Mois / Semaine / Liste semaine), libellés FR ; toolbar responsive (`flex-wrap`).
-- **Sélecteur d'affectation** (`MissionDetailPage` / `TacheDetailPage`) : ne liste plus que les **administrateurs et collaborateurs** (`useUsers.fetchUsers({ role: ['admin','collaborateur'] })`).
-- **Toasts d'erreur** : le message du backend (422) est désormais remonté lors d'un drag/resize hors bornes au lieu d'un message générique.
+- **Détail mission / tâche** : un collaborateur ne voit que **ses** tâches dans la fiche mission ; le **formulaire de commentaire est masqué** sur une tâche qui ne lui est pas affectée ; il ne peut **ni modifier ni supprimer** un commentaire qui n'est pas le sien.
+- **Sélecteur d'affectation** (`MissionDetailPage` / `TacheDetailPage`) : ne liste que les **administrateurs et collaborateurs** (`useUsers.fetchUsers({ role: ['admin','collaborateur'] })`).
+- **Toasts d'erreur** : le message du backend (422) est remonté lors d'un drag/resize hors bornes au lieu d'un message générique.
 
-#### Backend
-- **`ValidatesTacheDates`** (nouveau trait, mutualisé par `StoreTacheRequest` / `UpdateTacheRequest`) :
-  - `date_debut` ≥ **début de la mission** ; `date_echeance` ≤ **fin de la mission** — **sauf si la mission est en retard** (fin planifiée déjà dépassée), auquel cas l'échéance peut la dépasser. Rejet **422** + messages FR.
-  - `assigned_to` : une tâche ne peut être affectée qu'à un **collaborateur ou un administrateur** (jamais à la secrétaire) — règle `Closure`, rejet **422**.
-- **`UserController@index`** : inchangé — `?role[]=…` (déjà supporté par le scope Spatie `role()`, sémantique OR).
+#### Backend — isolation des tâches par rôle
+- **`Tache::scopeVisiblePour(User)`** : scope réutilisable — l'admin voit tout, le collaborateur uniquement les tâches qui lui sont affectées (`assigned_to`).
+- **`TachePolicy::view`** : admin, ou collaborateur affecté à la tâche. Appliquée sur :
+  - `TacheController@index` (liste scopée via `visiblePour`) et `@show` (**403** si tâche non affectée) ;
+  - `MissionController@show` (chargement des tâches scopé) ;
+  - `TacheCommentaireController@index` / `@store` (**403** : un collaborateur non affecté ne peut ni lister ni poster de commentaire).
+- **Immutabilité des commentaires** : `update` / `destroy` restent limités à l'**auteur ou à un admin** (`TacheCommentairePolicy`, inchangé).
+- **`ValidatesTacheDates`** (trait mutualisé `StoreTacheRequest` / `UpdateTacheRequest`) :
+  - `date_debut` ≥ **début de la mission** ; `date_echeance` ≤ **fin de la mission** — **sauf si la mission est en retard**, auquel cas l'échéance peut la dépasser. Rejet **422** + messages FR.
+  - `assigned_to` : une tâche ne peut être affectée qu'à un **collaborateur ou un administrateur** (jamais à la secrétaire). Rejet **422**.
 
 #### Frontend (API)
 - **`UserFilters.role`** : accepte `string | string[]` (`useUsers.fetchUsers` accepte un override de filtres sans changer le comportement par défaut de `UserListPage`).
 
 #### Tests
-- `TacheApiTest` : affectation secrétaire → 422 ; collaborateur → 201 ; `date_debut` avant début mission → 422 ; `date_echeance` après fin mission (mission à l'heure) → 422 ; échéance au-delà de la fin **autorisée** si mission en retard.
+- `TacheApiTest` : le collaborateur **ne voit que ses propres tâches** (l'admin les voit toutes) ; **403** à la consultation et au commentaire d'une tâche non affectée ; **201** au commentaire de sa propre tâche ; **403** à la modification/suppression du commentaire d'un admin (immutabilité) ; affectation secrétaire → 422 ; collaborateur → 201 ; bornes de dates `date_debut`/`date_echeance` → 422 ; échéance au-delà de la fin **autorisée** si mission en retard.
 
 ### Tâches — date de début & affichage en plage sur le planning — feature/tache-date-debut
 
