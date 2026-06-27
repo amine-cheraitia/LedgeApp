@@ -9,6 +9,24 @@
 
 ## [Unreleased]
 
+### Missions — visibilité collaborateur, priorisation & refonte table — feature/fix-mission-list
+
+Affinements du module Missions : un collaborateur assigné à une tâche voit la mission parente, ses missions en cours sont priorisées, et la table missions est repensée.
+
+#### Backend
+- **`MissionService::listerMissions()` + `MissionPolicy::view()`** : un collaborateur **assigné à une tâche** d'une mission (mais absent de `mission_user`) voit désormais la mission, ses tâches et ses commentaires (`whereHas('taches', assigned_to)` en OR de `whereHas('collaborateurs')`).
+- **`MissionService::listerMissions()`** : pour le collaborateur, les missions **en cours** remontent en tête de liste (tri statut puis date).
+- **`TacheCommentaireController::store()`** : le **1er commentaire** sur une tâche `a_faire` la fait passer en `en_cours` ; une tâche `terminee`/`annulee` n'est pas réactivée.
+
+#### Frontend
+- **`MissionListPage.vue`** : refonte de la table missions — colonnes #, N° de mission, Raison sociale, Prestation, Date de début, **Date de fin** (triable), Statut (libellés lisibles), Actions sur une ligne ; colonne Prix HT retirée ; icône « voir » → `pi-eye` ; responsive (Date de fin masquée < 900px, toolbar empilée < 640px).
+- **`TacheDetailPage.vue`** : reflète le passage automatique en `en_cours` au 1er commentaire.
+- **`fix(ci)`** : `filters.page` potentiellement `undefined` (TS18048) corrigé.
+
+#### Tests
+- `MissionApiTest` : priorisation des missions en cours pour le collaborateur.
+- `TacheApiTest` : 1er commentaire sur tâche `a_faire` → `en_cours` ; commentaire sur tâche `terminee` ne change pas le statut.
+
 ### Refonte UX encaissements — feature/ux-encaissements-drawer
 
 Remplace le Dialog paiement minimaliste par un **Drawer latéral** complet avec historique, validation, dark mode et mise à jour temps réel.
