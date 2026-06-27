@@ -20,7 +20,9 @@ class MissionPolicy
             return true;
         }
 
-        return $mission->collaborateurs()->where('user_id', $user->id)->exists();
+        // Accès accordé si le collaborateur est membre de la mission OU assigné à l'une de ses tâches
+        return $mission->collaborateurs()->where('user_id', $user->id)->exists()
+            || $mission->taches()->where('assigned_to', $user->id)->exists();
     }
 
     public function create(User $user): bool
