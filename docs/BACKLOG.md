@@ -252,6 +252,9 @@
 
 - FullCalendar (Vue.js) · vues mois / semaine / jour · glisser-deposer
 - Code couleur par statut · filtre par collaborateur
+- Refonte en onglets **Calendrier** / **Equipe** · vue annuelle (12 mois, plugin `multimonth`) par defaut · loader overlay · bouton « Nouvelle mission »
+- Onglet **Equipe** : grille de disponibilite collaborateur x jour (charge **Disponible / Modere / Charge**)
+- Legende dynamique par prestation (palette de couleurs)
 - Depend de : **US-18, US-19**
 
 ---

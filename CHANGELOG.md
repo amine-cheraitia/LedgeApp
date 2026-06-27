@@ -9,6 +9,24 @@
 
 ## [Unreleased]
 
+### Refonte page Planning — feature/refonte-planning
+
+Refonte complète de la page Planning : navigation par onglets, vue annuelle, et nouvelle vue **Équipe** (charge / disponibilité par collaborateur).
+
+#### Frontend
+- **`PlanningCalendarPage.vue`** : refonte en deux onglets — **Calendrier** (missions & tâches) et **Équipe**.
+  - **Vue annuelle par défaut** (12 mois) via le plugin `@fullcalendar/multimonth`, + vues Mois / Semaine / Jour / Liste.
+  - **Loader overlay** pendant le chargement ; bouton **« Nouvelle mission »**.
+  - **Légende dynamique** par prestation (palette de couleurs) ; bordures de couleur par statut de mission.
+- **Onglet Équipe** (`usePlanning.ts`) : **grille de disponibilité** collaborateur × jour de la semaine, charge colorée (**Disponible / Modéré / Chargé**), navigation semaine précédente / suivante.
+- Filtre collaborateur **retiré de l'onglet Missions** (remplacé par la vue Équipe).
+
+#### Backend
+- **`CalendarService`** : expose `prestation_id` / `prestation_code` (légende par prestation) et `assigned_to` (grille Équipe) ; `planning.ts` typé en conséquence.
+
+#### Dépendances
+- Ajout de **`@fullcalendar/multimonth`** (vue annuelle 12 mois).
+
 ### Missions — visibilité collaborateur, priorisation & refonte table — feature/fix-mission-list
 
 Affinements du module Missions : un collaborateur assigné à une tâche voit la mission parente, ses missions en cours sont priorisées, et la table missions est repensée.
