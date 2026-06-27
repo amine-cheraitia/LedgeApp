@@ -115,6 +115,11 @@ const isStatutEditable = computed(() => {
   return auth.isCollaborateur && tache.value.assigned_to === auth.user?.id
 })
 
+// Un collaborateur ne peut commenter qu'une tâche qui lui est affectée (l'admin commente partout).
+const peutCommenter = computed(() =>
+  auth.isAdmin || (auth.isCollaborateur && tache.value?.assigned_to === auth.user?.id),
+)
+
 function peutModifierCommentaire(c: TacheCommentaire) {
   const auteurId = c.user_id ?? c.user?.id
   return auth.isAdmin || auteurId === auth.user?.id
@@ -438,8 +443,8 @@ onMounted(async () => {
         </li>
       </ul>
 
-      <!-- Formulaire nouveau commentaire -->
-      <form class="nouveau-commentaire-form" @submit.prevent="envoyerCommentaire">
+      <!-- Formulaire nouveau commentaire (masqué si la tâche n'est pas affectée au collaborateur) -->
+      <form v-if="peutCommenter" class="nouveau-commentaire-form" @submit.prevent="envoyerCommentaire">
         <label for="nouveau-commentaire" class="nouveau-commentaire-label">
           Ajouter un commentaire
         </label>

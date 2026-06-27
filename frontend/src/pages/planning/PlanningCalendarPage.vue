@@ -32,6 +32,7 @@ const {
   filteredEvents, loadingEvents, loadEvents,
   activeStatuts, toggleStatut,
   missionCountByStatut, prestationsVues, prestationColor, STATUS_BORDER,
+  TACHE_PRIORITY_COLORS,
   changerStatutMission, onEventDrop, onEventResize,
   teamWeekStart, teamWeekDays, teamGridData, loadingEquipe,
   initWeek, prevWeek, nextWeek, loadEquipeWeek, chargeColor, chargeLabel,
@@ -49,25 +50,23 @@ const calendarOptions: CalendarOptions = {
   headerToolbar: {
     left:   'prev,next today',
     center: 'title',
-    right:  'multiMonthYear,dayGridMonth,timeGridWeek,dayGridDay,listWeek,listMonth,listYear',
+    right:  'multiMonthYear,dayGridMonth,timeGridWeek,listMonth',
   },
   buttonText: {
-    today:  "Aujourd'hui",
-    year:   'Année',
-    month:  'Mois',
-    week:   'Semaine',
-    day:    'Jour',
+    today: "Aujourd'hui",
+    year:  'Année',
+    month: 'Mois',
+    week:  'Semaine',
   },
-  // Libellés distincts pour chaque vue liste (un seul buttonText.list ne suffit pas).
+  // La 4e vue « Liste » s'appuie sur listMonth (agenda du mois courant).
   views: {
-    listWeek:  { buttonText: 'Liste semaine' },
-    listMonth: { buttonText: 'Liste du mois' },
-    listYear:  { buttonText: "Liste de l'année" },
+    listMonth: { buttonText: 'Liste' },
   },
   events:      [],
   datesSet:    (info) => loadEvents(info.startStr.slice(0, 10), info.endStr.slice(0, 10)),
-  editable:    true,
-  droppable:   true,
+  // Le collaborateur consulte ses tâches en lecture seule (le backend ignore ses dates).
+  editable:    auth.isAdmin,
+  droppable:   auth.isAdmin,
   eventDrop:   onEventDrop,
   eventResize: onEventResize,
   eventClick:  openDetail,
@@ -102,6 +101,12 @@ function openDetail(info: EventClickArg) {
   if (isMission(selectedEvent.value)) {
     pendingStatut.value = selectedEvent.value.statut
   }
+  dialogVisible.value = true
+}
+
+// Ouvre le même modal que le calendrier depuis une chip de la vue Équipe.
+function openTacheModal(tache: CalendarTache) {
+  selectedEvent.value = tache
   dialogVisible.value = true
 }
 
@@ -210,14 +215,16 @@ function isToday(iso: string): boolean {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-fetchCollaborateurs()
+// La liste des collaborateurs ne sert qu'à l'admin (vue Équipe).
+if (!auth.isCollaborateur) fetchCollaborateurs()
 </script>
 
 <template>
   <main class="planning-page" role="main" aria-labelledby="planning-title">
     <h1 id="planning-title" class="page-title">Planning</h1>
 
-    <Tabs value="missions">
+    <!-- ══ ADMIN : onglets Missions + Équipe ══ -->
+    <Tabs v-if="auth.isAdmin" value="missions">
       <TabList>
         <Tab value="missions">
           <i class="pi pi-calendar" aria-hidden="true" style="margin-right:0.4rem" />
@@ -396,15 +403,18 @@ fetchCollaborateurs()
                     aria-hidden="true"
                   />
                   <template v-if="(teamGridData[collab.id]?.[day] ?? []).length > 0">
-                    <div
+                    <button
                       v-for="tache in teamGridData[collab.id][day]"
                       :key="tache.id"
+                      type="button"
                       class="tache-chip"
                       :class="`tache-chip--${tache.statut}`"
                       :title="`${tache.titre} — ${tache.mission_ref ?? ''}`"
+                      :aria-label="`Voir la tâche ${tache.titre}`"
+                      @click="openTacheModal(tache)"
                     >
                       {{ tache.titre }}
-                    </div>
+                    </button>
                   </template>
                   <span v-else class="dispo-label">Dispo</span>
                 </div>
@@ -429,6 +439,30 @@ fetchCollaborateurs()
 
       </TabPanels>
     </Tabs>
+
+    <!-- ══ COLLABORATEUR : calendrier de SES tâches uniquement ══ -->
+    <template v-else>
+      <p class="collab-subtitle">Mes tâches</p>
+      <section class="calendar-wrapper" role="region" aria-label="Calendrier de mes tâches">
+        <div v-if="loadingEvents" class="calendar-loading" role="status" aria-live="polite">
+          <i class="pi pi-spin pi-spinner" aria-hidden="true" style="font-size:1.5rem" />
+          <span>Chargement…</span>
+        </div>
+        <FullCalendar ref="calendarRef" :options="calendarOptions" />
+        <!-- Légende : couleur par priorité -->
+        <div class="legend" aria-label="Légende des priorités">
+          <div class="legend-section">
+            <span class="legend-section-title">Priorité</span>
+            <div class="legend-items">
+              <span v-for="(color, prio) in TACHE_PRIORITY_COLORS" :key="prio" class="legend-item">
+                <span class="legend-dot" :style="{ background: color }" aria-hidden="true" />
+                {{ prioriteLabel(Number(prio)) }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </template>
 
     <!-- Dialog détail mission/tâche (depuis calendrier Missions) -->
     <Dialog
@@ -557,6 +591,11 @@ fetchCollaborateurs()
   font-size: 1.5rem;
   font-weight: 600;
   margin: 0;
+}
+.collab-subtitle {
+  margin: 0.25rem 0 1rem;
+  color: var(--p-text-muted-color);
+  font-size: 0.95rem;
 }
 .header-stats {
   display: flex;
@@ -870,16 +909,23 @@ fetchCollaborateurs()
   transition: background-color 0.2s;
 }
 .tache-chip {
+  display: block;
+  width: 100%;
+  font: inherit;
   font-size: 0.7rem;
+  text-align: left;
+  appearance: none;
+  border: 0;
   padding: 0.15rem 0.35rem;
   border-radius: 4px;
   background: var(--p-surface-border);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  cursor: default;
+  cursor: pointer;
   line-height: 1.4;
 }
+.tache-chip:hover { filter: brightness(0.95); }
 .tache-chip--en_cours  { background: #8B5CF620; color: #8B5CF6; }
 .tache-chip--a_faire   { background: #0EA5E920; color: #0EA5E9; }
 .tache-chip--bloquee   { background: #EF444420; color: #EF4444; }

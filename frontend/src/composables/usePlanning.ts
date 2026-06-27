@@ -6,6 +6,7 @@ import { planningApi, type CalendarMission, type CalendarTache } from '@/api/mod
 import { missionsApi } from '@/api/modules/missions'
 import { tachesApi } from '@/api/modules/taches'
 import { usersApi } from '@/api/modules/users'
+import { useAuthStore } from '@/stores/auth'
 import type { User } from '@/types'
 
 // ── Palettes ──────────────────────────────────────────────────────────────────
@@ -35,6 +36,19 @@ const TACHE_COLORS: Record<string, string> = {
   en_cours: '#8B5CF6',
   terminee: '#22C55E',
   bloquee:  '#EF4444',
+}
+
+// Couleur d'une tâche selon sa priorité (1 = très faible … 5 = critique).
+const TACHE_PRIORITY_COLORS: Record<number, string> = {
+  1: '#22C55E', // Très faible — vert
+  2: '#84CC16', // Faible — lime
+  3: '#EAB308', // Moyenne — ambre
+  4: '#F97316', // Haute — orange
+  5: '#EF4444', // Critique — rouge
+}
+
+export function prioriteColor(p: number): string {
+  return TACHE_PRIORITY_COLORS[Math.min(5, Math.max(1, p))] ?? '#94A3B8'
 }
 
 export function prestationColor(id: number | null): string {
@@ -78,10 +92,31 @@ function missionToEvent(m: CalendarMission): EventInput {
   }
 }
 
+// Tâche → événement (planning collaborateur). Couleur selon la priorité.
+function tacheToEvent(t: CalendarTache): EventInput {
+  const color  = prioriteColor(t.priorite)
+  const start  = t.date_debut ?? t.date_echeance ?? undefined
+  const endSrc = t.date_echeance ?? t.date_debut
+  return {
+    id: `tache-${t.id}`,
+    title: t.titre,
+    start,
+    // FullCalendar : la fin d'un événement allDay est EXCLUSIVE → +1 jour pour couvrir l'échéance.
+    end: endSrc ? addDays(endSrc, 1) : undefined,
+    backgroundColor: color + 'CC', // 80 % opacité
+    borderColor: color,
+    textColor: '#fff',
+    extendedProps: { ...t },
+    allDay: true,
+    classNames: [`fc-tache-prio-${t.priorite}`],
+  }
+}
+
 // ── Composable ────────────────────────────────────────────────────────────────
 
 export function usePlanning() {
   const toast = useToast()
+  const auth  = useAuthStore()
 
   // Filtre collaborateur
   const collaborateurFilter = ref<number | null>(null)
@@ -100,11 +135,15 @@ export function usePlanning() {
   // Filtres statuts (actifs par défaut : tout sauf terminée/annulée)
   const activeStatuts = ref<Set<string>>(new Set(['en_cours', 'suspendue']))
 
-  // Événements filtrés → MISSIONS UNIQUEMENT (les tâches vivent dans l'onglet Équipe)
+  // Événements filtrés selon le rôle :
+  // - collaborateur → SES tâches uniquement (déjà scopées serveur), colorées par priorité ;
+  // - admin → missions filtrées par statut (les tâches vivent dans l'onglet Équipe).
   const filteredEvents = computed<EventInput[]>(() =>
-    rawMissions.value
-      .filter(m => activeStatuts.value.has(m.statut))
-      .map(missionToEvent),
+    auth.isCollaborateur
+      ? rawTaches.value.map(tacheToEvent)
+      : rawMissions.value
+          .filter(m => activeStatuts.value.has(m.statut))
+          .map(missionToEvent),
   )
 
   // Stats par statut (pour les compteurs dans les chips)
@@ -330,6 +369,8 @@ export function usePlanning() {
     // Légende
     prestationsVues,
     prestationColor,
+    prioriteColor,
+    TACHE_PRIORITY_COLORS,
     STATUS_BORDER,
     TACHE_COLORS,
     // Actions
