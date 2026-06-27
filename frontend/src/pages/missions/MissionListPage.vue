@@ -256,7 +256,7 @@ onMounted(async () => {
         <template #body="{ data }">
           <div class="actions-cell">
             <Button
-              icon="pi pi-arrow-right"
+              icon="pi pi-eye"
               text rounded severity="info" size="small"
               aria-label="Voir le détail de la mission"
               v-tooltip.top="'Voir le détail'"
