@@ -36,7 +36,10 @@ class MissionService
         return Mission::with('entreprise', 'prestation', 'exercice')
             ->when(
                 $user->hasRole('collaborateur'),
-                fn ($q) => $q->whereHas('collaborateurs', fn ($c) => $c->where('user_id', $user->id))
+                fn ($q) => $q->where(fn ($q2) => $q2
+                    ->whereHas('collaborateurs', fn ($c) => $c->where('user_id', $user->id))
+                    ->orWhereHas('taches', fn ($t) => $t->where('assigned_to', $user->id))
+                )
             )
             ->when($filters['exercice_id'] ?? null, fn ($q, $v) => $q->where('exercice_id', $v))
             ->when($filters['entreprise_id'] ?? null, fn ($q, $v) => $q->where('entreprise_id', $v))
