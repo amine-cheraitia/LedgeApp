@@ -37,12 +37,14 @@ const togglingPortail = ref(false)
 // Dialog création tâche
 const createDialogVisible = ref(false)
 const savingCreate = ref(false)
+const createDateDebut = ref<Date | null>(null)
 const createDateEcheance = ref<Date | null>(null)
 const createForm = ref<TachePayload>({
   titre: '',
   description: '',
   assigned_to: null,
   statut: 'a_faire',
+  date_debut: null,
   date_echeance: null,
   priorite: 1,
 })
@@ -51,6 +53,7 @@ const createForm = ref<TachePayload>({
 const editDialogVisible = ref(false)
 const savingEdit = ref(false)
 const editTache = ref<Tache | null>(null)
+const editDateDebut = ref<Date | null>(null)
 const editDateEcheance = ref<Date | null>(null)
 const editForm = ref<TachePayload>({
   titre: '',
@@ -160,7 +163,8 @@ async function telechargerMandat() {
 // ─── Tâches ────────────────────────────────────────────────────────────────
 
 function openCreateDialog() {
-  createForm.value = { titre: '', description: '', assigned_to: null, statut: 'a_faire', date_echeance: null, priorite: 1 }
+  createForm.value = { titre: '', description: '', assigned_to: null, statut: 'a_faire', date_debut: null, date_echeance: null, priorite: 1 }
+  createDateDebut.value = null
   createDateEcheance.value = null
   createDialogVisible.value = true
 }
@@ -171,6 +175,7 @@ async function onSubmitCreate() {
   try {
     await tachesApi.create(missionId.value, {
       ...createForm.value,
+      date_debut: toIsoDate(createDateDebut.value),
       date_echeance: toIsoDate(createDateEcheance.value),
     })
     toast.add({ severity: 'success', summary: 'Succès', detail: 'Tâche créée.', life: 3000 })
@@ -192,6 +197,7 @@ function openEditDialog(tache: Tache) {
     statut: tache.statut,
     priorite: tache.priorite,
   }
+  editDateDebut.value = tache.date_debut ? new Date(tache.date_debut) : null
   editDateEcheance.value = tache.date_echeance ? new Date(tache.date_echeance) : null
   editDialogVisible.value = true
 }
@@ -202,6 +208,7 @@ async function onSubmitEdit() {
   try {
     await tachesApi.update(missionId.value, editTache.value.id, {
       ...editForm.value,
+      date_debut: toIsoDate(editDateDebut.value),
       date_echeance: toIsoDate(editDateEcheance.value),
     })
     toast.add({ severity: 'success', summary: 'Succès', detail: 'Tâche modifiée.', life: 3000 })
@@ -563,6 +570,9 @@ onMounted(() => {
             <span v-else class="text-muted">Non assignée</span>
           </template>
         </Column>
+        <Column header="Début" style="width: 8rem;">
+          <template #body="{ data }">{{ formatDate(data.date_debut) }}</template>
+        </Column>
         <Column header="Échéance" style="width: 8rem;">
           <template #body="{ data }">{{ formatDate(data.date_echeance) }}</template>
         </Column>
@@ -628,8 +638,12 @@ onMounted(() => {
           <Select id="c-assigne" v-model="createForm.assigned_to" :options="users" optionLabel="name" optionValue="id" placeholder="Non assignée" showClear fluid />
         </div>
         <div class="form-field">
+          <label for="c-debut">Début</label>
+          <DatePicker id="c-debut" v-model="createDateDebut" dateFormat="dd/mm/yy" fluid />
+        </div>
+        <div class="form-field">
           <label for="c-echeance">Échéance</label>
-          <DatePicker id="c-echeance" v-model="createDateEcheance" dateFormat="dd/mm/yy" fluid />
+          <DatePicker id="c-echeance" v-model="createDateEcheance" dateFormat="dd/mm/yy" :minDate="createDateDebut ?? undefined" fluid />
         </div>
         <div class="form-field">
           <label for="c-priorite">Priorité</label>
@@ -658,8 +672,12 @@ onMounted(() => {
           <Select id="e-assigne" v-model="editForm.assigned_to" :options="users" optionLabel="name" optionValue="id" placeholder="Non assignée" showClear fluid />
         </div>
         <div class="form-field">
+          <label for="e-debut">Début</label>
+          <DatePicker id="e-debut" v-model="editDateDebut" dateFormat="dd/mm/yy" fluid />
+        </div>
+        <div class="form-field">
           <label for="e-echeance">Échéance</label>
-          <DatePicker id="e-echeance" v-model="editDateEcheance" dateFormat="dd/mm/yy" fluid />
+          <DatePicker id="e-echeance" v-model="editDateEcheance" dateFormat="dd/mm/yy" :minDate="editDateDebut ?? undefined" fluid />
         </div>
         <div class="form-field">
           <label for="e-priorite">Priorité</label>

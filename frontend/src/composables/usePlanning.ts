@@ -62,11 +62,14 @@ function missionToEvent(m: CalendarMission): EventInput {
 }
 
 function tacheToEvent(t: CalendarTache): EventInput {
+  // Plage debut -> echeance (comme une mission). Repli en point si une seule date.
+  // Le back ne renvoie que des taches ayant au moins une des deux dates.
   const color = TACHE_COLORS[t.statut] ?? '#0EA5E9'
   return {
     id: `tache-${t.id}`,
     title: t.titre,
-    start: t.date_echeance,
+    start: t.date_debut ?? t.date_echeance ?? undefined,
+    end: t.date_debut && t.date_echeance ? t.date_echeance : undefined,
     backgroundColor: color,
     borderColor: color,
     textColor: '#fff',
@@ -204,8 +207,16 @@ export function usePlanning() {
         toast.add({ severity: 'success', summary: 'Mission déplacée', detail: m.reference, life: 2000 })
       } else {
         const t = props as CalendarTache
+        // Deplacer la barre decale les deux dates du meme delta (jours).
+        const delta = info.delta.days
+        const shift = (d: string): string => {
+          const x = new Date(d)
+          x.setDate(x.getDate() + delta)
+          return x.toISOString().slice(0, 10)
+        }
         await tachesApi.update(t.mission_id, t.id, {
-          date_echeance: info.event.startStr.slice(0, 10),
+          ...(t.date_debut ? { date_debut: shift(t.date_debut) } : {}),
+          ...(t.date_echeance ? { date_echeance: shift(t.date_echeance) } : {}),
         })
         toast.add({ severity: 'success', summary: 'Tâche déplacée', detail: t.titre, life: 2000 })
       }
@@ -216,14 +227,20 @@ export function usePlanning() {
   }
 
   async function onEventResize(info: EventResizeDoneArg) {
-    const props = info.event.extendedProps as CalendarMission
-    if (props.type !== 'mission') { info.revert(); return }
+    const props = info.event.extendedProps as CalendarMission | CalendarTache
+    const newEnd = info.event.endStr.slice(0, 10)
     try {
-      await missionsApi.update(props.id, { date_fin: info.event.endStr.slice(0, 10) })
-      toast.add({ severity: 'success', summary: 'Mission redimensionnée', detail: props.reference, life: 2000 })
+      if (props.type === 'mission') {
+        await missionsApi.update(props.id, { date_fin: newEnd })
+        toast.add({ severity: 'success', summary: 'Mission redimensionnée', detail: props.reference, life: 2000 })
+      } else {
+        // Redimensionner une tâche ajuste son échéance (même convention que la mission).
+        await tachesApi.update(props.mission_id, props.id, { date_echeance: newEnd })
+        toast.add({ severity: 'success', summary: 'Tâche redimensionnée', detail: props.titre, life: 2000 })
+      }
     } catch {
       info.revert()
-      toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de redimensionner la mission.', life: 3000 })
+      toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de redimensionner l\'événement.', life: 3000 })
     }
   }
 

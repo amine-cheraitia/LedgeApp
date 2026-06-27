@@ -21,6 +21,7 @@ class TacheResource extends JsonResource
             'titre' => $this->titre,
             'description' => $this->description,
             'statut' => $this->statut,
+            'date_debut' => $this->date_debut?->toDateString(),
             'date_echeance' => $this->date_echeance?->toDateString(),
             'priorite' => $this->priorite,
             'assignee' => $this->whenLoaded('assignee'),

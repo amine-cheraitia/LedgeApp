@@ -116,6 +116,7 @@ export interface Tache {
   titre: string
   description: string | null
   statut: 'a_faire' | 'en_cours' | 'terminee' | 'bloquee'
+  date_debut: string | null
   date_echeance: string | null
   priorite: number
   assignee?: User

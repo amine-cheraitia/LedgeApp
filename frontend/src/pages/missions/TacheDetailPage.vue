@@ -36,6 +36,7 @@ const loading = ref(true)
 // Edit tache dialog
 const editDialogVisible = ref(false)
 const savingEdit = ref(false)
+const editDateDebut = ref<Date | null>(null)
 const editDateEcheance = ref<Date | null>(null)
 const editForm = ref<TachePayload>({
   titre: '',
@@ -141,6 +142,7 @@ function openEdit() {
     statut: tache.value.statut,
     priorite: tache.value.priorite,
   }
+  editDateDebut.value = tache.value.date_debut ? new Date(tache.value.date_debut) : null
   editDateEcheance.value = tache.value.date_echeance ? new Date(tache.value.date_echeance) : null
   editDialogVisible.value = true
 }
@@ -151,6 +153,7 @@ async function onSubmitEdit() {
   try {
     const res = await tachesApi.update(missionId.value, tache.value.id, {
       ...editForm.value,
+      date_debut: toIsoDate(editDateDebut.value),
       date_echeance: toIsoDate(editDateEcheance.value),
     })
     tache.value = res.data
@@ -280,6 +283,14 @@ onMounted(async () => {
               {{ initiales(tache.assignee.name) }}
             </span>
             <span>{{ tache.assignee?.name ?? 'Non assignée' }}</span>
+          </div>
+        </div>
+
+        <div class="meta-item">
+          <span class="meta-label">Début</span>
+          <div class="meta-value">
+            <i class="pi pi-calendar" aria-hidden="true" style="margin-right: 0.35rem; color: var(--p-text-muted-color);"></i>
+            {{ formatDate(tache.date_debut) }}
           </div>
         </div>
 
@@ -485,8 +496,13 @@ onMounted(async () => {
         </div>
 
         <div class="form-field">
+          <label for="e-debut">Début</label>
+          <DatePicker id="e-debut" v-model="editDateDebut" dateFormat="dd/mm/yy" fluid />
+        </div>
+
+        <div class="form-field">
           <label for="e-echeance">Échéance</label>
-          <DatePicker id="e-echeance" v-model="editDateEcheance" dateFormat="dd/mm/yy" fluid />
+          <DatePicker id="e-echeance" v-model="editDateEcheance" dateFormat="dd/mm/yy" :minDate="editDateDebut ?? undefined" fluid />
         </div>
 
         <div class="form-field">

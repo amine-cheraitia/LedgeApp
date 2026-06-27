@@ -9,6 +9,26 @@
 
 ## [Unreleased]
 
+### Tâches — date de début & affichage en plage sur le planning — feature/tache-date-debut
+
+Une tâche peut désormais porter une **date de début** en plus de son échéance ; sur le planning elle s'affiche en **plage** (barre début → échéance) au lieu d'un simple point.
+
+#### Backend
+- **Migration** `add_date_debut_to_taches_table` : colonne `date_debut` (nullable) sur `taches`.
+- **`Tache`** : `date_debut` ajouté au `$fillable` et casté en `date`.
+- **`StoreTacheRequest` / `UpdateTacheRequest`** : `date_debut` `nullable | date | before_or_equal:date_echeance`.
+- **`TacheResource`** : expose `date_debut`.
+- **`CalendarService::fetchTaches()`** : filtre par **chevauchement de plage** (`COALESCE(date_debut, date_echeance)` vs fenêtre, en **bindings** — pas de `DB::raw` avec input utilisateur) au lieu de la seule échéance ; une tâche dont la plage croise la fenêtre apparaît même si ni début ni échéance n'y tombent.
+
+#### Frontend
+- **Planning** (`usePlanning.ts`) : une tâche avec début **et** échéance s'affiche en **barre** ; un seul jour → **point**. Le glisser-déposer décale **les deux dates** ; le redimensionnement ajuste l'**échéance**.
+- **Popup tâche** (`PlanningCalendarPage.vue`) : ligne **« Début »** ajoutée ; échéance null-safe.
+- **`MissionDetailPage` / `TacheDetailPage`** : sélecteur **Date de début** (création + édition) et affichage.
+
+#### Tests
+- `TacheApiTest` : création avec `date_debut`, rejet si `date_debut > date_echeance`.
+- `CalendarApiTest` : tâche dont la **plage chevauche** la fenêtre (début avant / échéance après).
+
 ### Refonte page Planning — feature/refonte-planning
 
 Refonte complète de la page Planning : navigation par onglets, vue annuelle, et nouvelle vue **Équipe** (charge / disponibilité par collaborateur).

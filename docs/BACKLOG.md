@@ -255,6 +255,7 @@
 - Refonte en onglets **Calendrier** / **Equipe** · vue annuelle (12 mois, plugin `multimonth`) par defaut · loader overlay · bouton « Nouvelle mission »
 - Onglet **Equipe** : grille de disponibilite collaborateur x jour (charge **Disponible / Modere / Charge**)
 - Legende dynamique par prestation (palette de couleurs)
+- Tache avec **date de debut + echeance** affichee en **plage** (barre) ; drag = decale les 2 dates, resize = ajuste l'echeance ; filtre planning par **chevauchement** de plage
 - Depend de : **US-18, US-19**
 
 ---

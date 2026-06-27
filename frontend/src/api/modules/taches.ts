@@ -6,6 +6,7 @@ export interface TachePayload {
   description?: string
   assigned_to?: number | null
   statut?: string
+  date_debut?: string | null
   date_echeance?: string | null
   priorite?: number
 }

@@ -502,6 +502,10 @@ fetchCollaborateurs()
               <Tag :value="STATUT_LABELS[selectedTache?.statut ?? ''] ?? selectedTache?.statut" :severity="STATUT_SEVERITY[selectedTache?.statut ?? ''] ?? 'info'" />
             </div>
             <div class="detail-row">
+              <span class="detail-label">Début</span>
+              <span class="detail-value">{{ formatDate(selectedTache?.date_debut) }}</span>
+            </div>
+            <div class="detail-row">
               <span class="detail-label">Échéance</span>
               <span class="detail-value">{{ formatDate(selectedTache?.date_echeance) }}</span>
             </div>
