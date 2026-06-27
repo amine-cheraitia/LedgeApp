@@ -5,7 +5,8 @@ export interface UserFilters {
   page?: number
   per_page?: number
   search?: string
-  role?: string
+  // Tableau → ?role[]=admin&role[]=collaborateur (Spatie role() = OR côté back)
+  role?: string | string[]
 }
 
 export interface UserPayload {

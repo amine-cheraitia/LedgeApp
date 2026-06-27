@@ -254,4 +254,77 @@ class TacheApiTest extends TestCase
             ->assertStatus(422)
             ->assertJsonValidationErrors(['date_debut']);
     }
+
+    public function test_assignation_a_un_secretaire_est_rejetee(): void
+    {
+        $secretaire = User::factory()->create();
+        $secretaire->assignRole('secretaire');
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/missions/{$this->missionId}/taches", [
+                'titre' => 'Pour secretaire',
+                'assigned_to' => $secretaire->id,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['assigned_to']);
+    }
+
+    public function test_assignation_a_un_collaborateur_est_acceptee(): void
+    {
+        $collaborateur = User::factory()->create();
+        $collaborateur->assignRole('collaborateur');
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/missions/{$this->missionId}/taches", [
+                'titre' => 'Pour collaborateur',
+                'assigned_to' => $collaborateur->id,
+            ])
+            ->assertCreated();
+    }
+
+    public function test_date_debut_avant_debut_mission_est_rejetee(): void
+    {
+        // Mission : date_debut = 2026-04-01
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/missions/{$this->missionId}/taches", [
+                'titre' => 'Trop tot',
+                'date_debut' => '2026-03-31',
+                'date_echeance' => '2026-04-15',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['date_debut']);
+    }
+
+    public function test_date_echeance_apres_fin_mission_est_rejetee_si_mission_a_lheure(): void
+    {
+        // Mission : date_fin = 2027-03-31 (dans le futur → mission a l'heure)
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/missions/{$this->missionId}/taches", [
+                'titre' => 'Trop tard',
+                'date_debut' => '2027-03-01',
+                'date_echeance' => '2027-04-15',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['date_echeance']);
+    }
+
+    public function test_date_echeance_apres_fin_autorisee_si_mission_en_retard(): void
+    {
+        // Mission dont la fin planifiee est deja depassee → echeance libre au-dela.
+        $missionRetard = Mission::factory()->create([
+            'entreprise_id' => Entreprise::first()->id,
+            'exercice_id' => Exercice::first()->id,
+            'date_debut' => '2024-01-01',
+            'date_fin' => '2024-06-30',
+            'statut' => 'en_cours',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/missions/{$missionRetard->id}/taches", [
+                'titre' => 'Rattrapage',
+                'date_debut' => '2024-02-01',
+                'date_echeance' => '2026-12-31',
+            ])
+            ->assertCreated();
+    }
 }

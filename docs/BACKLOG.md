@@ -242,6 +242,7 @@
 - Date debut/fin · statut initial `a_faire` · notification au collaborateur assigne
 - Plusieurs taches par mission · `TacheController` nested sous `/missions/{id}/taches`
 - Protection suppression : bloquee si commentaires associes
+- 🔄 **Bornage dates & role d'affectation (fix/correctifs-planning)** : `date_debut` >= debut mission et `date_echeance` <= fin mission (sauf mission **en retard** → echeance libre au-dela) ; une tache n'est affectable qu'a un **collaborateur ou un administrateur** (jamais la secretaire). Regles appliquees cote backend (trait `ValidatesTacheDates`, rejet 422).
 - Depend de : **US-18, US-02**
 
 ---
@@ -256,6 +257,7 @@
 - Onglet **Equipe** : grille de disponibilite collaborateur x jour (charge **Disponible / Modere / Charge**)
 - Legende dynamique par prestation (palette de couleurs)
 - Tache avec **date de debut + echeance** affichee en **plage** (barre) ; drag = decale les 2 dates, resize = ajuste l'echeance ; filtre planning par **chevauchement** de plage
+- 🔄 **Correctifs planning (fix/correctifs-planning)** : onglet **Missions = missions uniquement** ; onglet **Equipe** affiche la tache sur **toute sa plage** ; decalage d'un jour corrige (fin `allDay` exclusive FullCalendar) ; vues **Jour / Liste du mois / Liste de l'annee** ajoutees ; toasts d'erreur portant le message backend
 - Depend de : **US-18, US-19**
 
 ---

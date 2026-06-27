@@ -229,7 +229,8 @@ function confirmDeleteCommentaire(c: TacheCommentaire) {
 onMounted(async () => {
   await loadTache()
   await fetchCommentaires(tacheId.value)
-  if (!auth.isCollaborateur) fetchUsers()
+  // Seuls collaborateurs/admins sont assignables à une tâche.
+  if (!auth.isCollaborateur) fetchUsers({ role: ['admin', 'collaborateur'], per_page: 100 })
 })
 </script>
 

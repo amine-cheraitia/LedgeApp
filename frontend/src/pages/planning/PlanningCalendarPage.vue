@@ -49,14 +49,20 @@ const calendarOptions: CalendarOptions = {
   headerToolbar: {
     left:   'prev,next today',
     center: 'title',
-    right:  'multiMonthYear,dayGridMonth,timeGridWeek,listWeek',
+    right:  'multiMonthYear,dayGridMonth,timeGridWeek,dayGridDay,listWeek,listMonth,listYear',
   },
   buttonText: {
     today:  "Aujourd'hui",
+    year:   'Année',
     month:  'Mois',
     week:   'Semaine',
-    list:   'Liste',
-    year:   'Année',
+    day:    'Jour',
+  },
+  // Libellés distincts pour chaque vue liste (un seul buttonText.list ne suffit pas).
+  views: {
+    listWeek:  { buttonText: 'Liste semaine' },
+    listMonth: { buttonText: 'Liste du mois' },
+    listYear:  { buttonText: "Liste de l'année" },
   },
   events:      [],
   datesSet:    (info) => loadEvents(info.startStr.slice(0, 10), info.endStr.slice(0, 10)),
@@ -612,6 +618,11 @@ fetchCollaborateurs()
   padding: 1rem;
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   position: relative;
+}
+/* 7 vues à droite : autoriser le retour à la ligne sur petits écrans (mobile-first). */
+.calendar-wrapper :deep(.fc-toolbar) {
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 .calendar-loading {
   position: absolute;

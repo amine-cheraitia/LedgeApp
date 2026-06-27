@@ -9,6 +9,30 @@
 
 ## [Unreleased]
 
+### Correctifs page Planning — fix/correctifs-planning
+
+Six correctifs issus des tests utilisateur sur la page Planning : affichage, vues, et deux règles métier d'affectation des tâches désormais **appliquées par le backend** (défense en profondeur).
+
+#### Frontend
+- **Onglet Missions** (`usePlanning.ts`) : le calendrier n'affiche plus que les **missions** (les tâches restent dans l'onglet Équipe et les fiches mission).
+- **Onglet Équipe** (`usePlanning.ts`) : une tâche s'affiche désormais sur **tous les jours de sa plage** (`date_debut → date_echeance`) intersectés avec la semaine visible, au lieu du seul jour d'échéance.
+- **Décalage d'un jour corrigé** (`usePlanning.ts`) : la fin des barres (`allDay` exclusif côté FullCalendar) est ajustée (+1 jour à l'affichage, −1 à la persistance d'un redimensionnement) ; une mission 24 → 26 couvre bien 24/25/26.
+- **Nouvelles vues** (`PlanningCalendarPage.vue`) : **Jour**, **Liste du mois**, **Liste de l'année** ajoutées (en plus d'Année / Mois / Semaine / Liste semaine), libellés FR ; toolbar responsive (`flex-wrap`).
+- **Sélecteur d'affectation** (`MissionDetailPage` / `TacheDetailPage`) : ne liste plus que les **administrateurs et collaborateurs** (`useUsers.fetchUsers({ role: ['admin','collaborateur'] })`).
+- **Toasts d'erreur** : le message du backend (422) est désormais remonté lors d'un drag/resize hors bornes au lieu d'un message générique.
+
+#### Backend
+- **`ValidatesTacheDates`** (nouveau trait, mutualisé par `StoreTacheRequest` / `UpdateTacheRequest`) :
+  - `date_debut` ≥ **début de la mission** ; `date_echeance` ≤ **fin de la mission** — **sauf si la mission est en retard** (fin planifiée déjà dépassée), auquel cas l'échéance peut la dépasser. Rejet **422** + messages FR.
+  - `assigned_to` : une tâche ne peut être affectée qu'à un **collaborateur ou un administrateur** (jamais à la secrétaire) — règle `Closure`, rejet **422**.
+- **`UserController@index`** : inchangé — `?role[]=…` (déjà supporté par le scope Spatie `role()`, sémantique OR).
+
+#### Frontend (API)
+- **`UserFilters.role`** : accepte `string | string[]` (`useUsers.fetchUsers` accepte un override de filtres sans changer le comportement par défaut de `UserListPage`).
+
+#### Tests
+- `TacheApiTest` : affectation secrétaire → 422 ; collaborateur → 201 ; `date_debut` avant début mission → 422 ; `date_echeance` après fin mission (mission à l'heure) → 422 ; échéance au-delà de la fin **autorisée** si mission en retard.
+
 ### Tâches — date de début & affichage en plage sur le planning — feature/tache-date-debut
 
 Une tâche peut désormais porter une **date de début** en plus de son échéance ; sur le planning elle s'affiche en **plage** (barre début → échéance) au lieu d'un simple point.
