@@ -318,6 +318,7 @@
 - `TacheCommentaireController` avec CRUD (index, store, update, destroy)
 - `TacheCommentairePolicy` : modification/suppression reservee a l'auteur · Admin peut tout modifier/supprimer
 - Routes : `apiResource('taches.commentaires')` nested
+- Le **1er commentaire** sur une tache `a_faire` la fait passer en `en_cours` (engagement) — une tache `terminee`/`annulee` n'est pas reactivee
 - Depend de : **US-19**
 
 ---
@@ -538,7 +539,8 @@
 **En tant que collaborateur**, je veux n'avoir acces qu'aux missions auxquelles je suis affecte et ne pouvoir modifier que mes propres taches **afin de** respecter le principe de moindre privilege.
 
 - Routes restructurees en 3 groupes Spatie (`role:admin`, `role:admin|secretaire`, tous backoffice) — collaborateur bloque sur facturation, entreprises, referentiels en ecriture
-- Missions : visibles uniquement si dans `mission_user` — `MissionPolicy::view` + `MissionService::listerMissions(User)` filtre par `whereHas('collaborateurs')`
+- Missions : visibles si membre (`mission_user`) **ou** assigne a une tache de la mission — `MissionPolicy::view` + `MissionService::listerMissions(User)` (`whereHas('collaborateurs')` **OR** `whereHas('taches', assigned_to)`)
+- Missions du collaborateur : les missions **en cours** sont priorisees en tete de liste (tri statut puis date)
 - Missions : modification/creation/suppression reservees a admin/secretaire
 - Taches : lecture de toutes les taches de la mission autorisee — modification reservee a `assigned_to === user->id` (statut uniquement) via `TachePolicy`
 - Taches : creation/suppression reservees a admin/secretaire

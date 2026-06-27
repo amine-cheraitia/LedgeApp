@@ -117,6 +117,48 @@ class MissionApiTest extends TestCase
         $this->assertCount(1, $response->json('data'));
     }
 
+    public function test_collaborateur_voit_missions_en_cours_en_premier(): void
+    {
+        $collaborateur = User::factory()->create();
+        $collaborateur->assignRole('collaborateur');
+
+        // Mission 1 -> passee a terminee
+        $m1 = $this->actingAs($this->admin)
+            ->postJson('/api/v1/missions', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_debut' => '2026-04-01',
+                'date_fin' => '2027-03-31',
+            ])
+            ->json('data.id');
+        Mission::find($m1)->update(['statut' => 'terminee']);
+
+        // Mission 2 -> reste en_cours
+        $m2 = $this->actingAs($this->admin)
+            ->postJson('/api/v1/missions', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_debut' => '2026-05-01',
+                'date_fin' => '2027-04-30',
+            ])
+            ->json('data.id');
+
+        // Le collaborateur est rattache aux deux missions
+        Mission::find($m1)->collaborateurs()->attach($collaborateur->id);
+        Mission::find($m2)->collaborateurs()->attach($collaborateur->id);
+
+        $data = $this->actingAs($collaborateur)
+            ->getJson('/api/v1/missions')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertCount(2, $data);
+        // La mission en_cours doit remonter en tete, la terminee ensuite
+        $this->assertEquals($m2, $data[0]['id']);
+        $this->assertEquals('en_cours', $data[0]['statut']);
+        $this->assertEquals('terminee', $data[1]['statut']);
+    }
+
     public function test_can_show_mission_detail(): void
     {
         $createResponse = $this->actingAs($this->admin)

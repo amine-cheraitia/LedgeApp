@@ -36,7 +36,10 @@ class MissionService
         return Mission::with('entreprise', 'prestation', 'exercice')
             ->when(
                 $user->hasRole('collaborateur'),
-                fn ($q) => $q->whereHas('collaborateurs', fn ($c) => $c->where('user_id', $user->id))
+                fn ($q) => $q->where(fn ($q2) => $q2
+                    ->whereHas('collaborateurs', fn ($c) => $c->where('user_id', $user->id))
+                    ->orWhereHas('taches', fn ($t) => $t->where('assigned_to', $user->id))
+                )
             )
             ->when($filters['exercice_id'] ?? null, fn ($q, $v) => $q->where('exercice_id', $v))
             ->when($filters['entreprise_id'] ?? null, fn ($q, $v) => $q->where('entreprise_id', $v))
@@ -45,7 +48,14 @@ class MissionService
                 ->where('reference', 'like', "%{$s}%")
                 ->orWhereHas('entreprise', fn ($eq) => $eq->where('raison_sociale', 'like', "%{$s}%"))
             )
-            ->orderBy($sortField, $sortDir)
+            // Pour le collaborateur sans tri explicite : missions en_cours d'abord, puis plus recentes
+            ->when(
+                $user->hasRole('collaborateur') && ! ($filters['sort_field'] ?? null),
+                fn ($q) => $q
+                    ->orderByRaw("CASE statut WHEN 'en_cours' THEN 0 WHEN 'suspendue' THEN 1 WHEN 'terminee' THEN 2 ELSE 3 END")
+                    ->orderBy('created_at', 'desc'),
+                fn ($q) => $q->orderBy($sortField, $sortDir)
+            )
             ->paginate($filters['per_page'] ?? 15);
     }
 

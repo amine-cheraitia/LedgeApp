@@ -187,6 +187,40 @@ class TacheApiTest extends TestCase
         $this->assertEquals('a_faire', $response->json('data.statut'));
     }
 
+    public function test_commentaire_sur_tache_a_faire_la_passe_en_cours(): void
+    {
+        $tacheId = $this->actingAs($this->admin)
+            ->postJson("/api/v1/missions/{$this->missionId}/taches", ['titre' => 'Ma tache'])
+            ->json('data.id');
+
+        // La tache est initialement a_faire ; le 1er commentaire doit l'engager
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/taches/{$tacheId}/commentaires", ['contenu' => 'Premier commentaire'])
+            ->assertCreated();
+
+        $this->assertDatabaseHas('taches', ['id' => $tacheId, 'statut' => 'en_cours']);
+    }
+
+    public function test_commentaire_sur_tache_terminee_ne_change_pas_le_statut(): void
+    {
+        $tacheId = $this->actingAs($this->admin)
+            ->postJson("/api/v1/missions/{$this->missionId}/taches", ['titre' => 'Ma tache'])
+            ->json('data.id');
+
+        $this->actingAs($this->admin)
+            ->putJson("/api/v1/missions/{$this->missionId}/taches/{$tacheId}", [
+                'titre' => 'Ma tache',
+                'statut' => 'terminee',
+            ])
+            ->assertOk();
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/taches/{$tacheId}/commentaires", ['contenu' => 'Un commentaire'])
+            ->assertCreated();
+
+        $this->assertDatabaseHas('taches', ['id' => $tacheId, 'statut' => 'terminee']);
+    }
+
     public function test_validation_titre_requis(): void
     {
         $this->actingAs($this->admin)

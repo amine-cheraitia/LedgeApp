@@ -182,6 +182,10 @@ async function envoyerCommentaire() {
     await createCommentaire(tacheId.value, contenu)
     newContenu.value = ''
     await fetchCommentaires(tacheId.value)
+    // Reflète la transition automatique du backend (a_faire → en_cours au 1er commentaire)
+    if (tache.value && tache.value.statut === 'a_faire') {
+      tache.value.statut = 'en_cours'
+    }
   } finally {
     sending.value = false
   }

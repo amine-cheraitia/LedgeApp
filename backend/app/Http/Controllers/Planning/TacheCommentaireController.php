@@ -12,6 +12,7 @@ use App\Models\Tache;
 use App\Models\TacheCommentaire;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
 
 class TacheCommentaireController extends Controller
 {
@@ -28,10 +29,19 @@ class TacheCommentaireController extends Controller
     {
         $this->authorize('view', $tache->mission);
 
-        $commentaire = $tache->commentaires()->create([
-            'user_id' => $request->user()->id,
-            'contenu' => $request->validated('contenu'),
-        ]);
+        $commentaire = DB::transaction(function () use ($request, $tache) {
+            $commentaire = $tache->commentaires()->create([
+                'user_id' => $request->user()->id,
+                'contenu' => $request->validated('contenu'),
+            ]);
+
+            // Le 1er commentaire engage la tache : a_faire -> en_cours
+            if ($tache->statut === 'a_faire') {
+                $tache->update(['statut' => 'en_cours']);
+            }
+
+            return $commentaire;
+        });
 
         return (new TacheCommentaireResource($commentaire->load('user')))
             ->response()
