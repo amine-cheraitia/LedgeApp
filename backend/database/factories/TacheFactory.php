@@ -22,7 +22,9 @@ class TacheFactory extends Factory
             'titre' => fake()->sentence(4),
             'description' => fake()->paragraph(),
             'statut' => 'a_faire',
-            'date_echeance' => fake()->optional()->dateTimeBetween('now', '+2 months')?->format('Y-m-d'),
+            // date_debut <= date_echeance par construction (intervalles disjoints)
+            'date_debut' => fake()->optional()->dateTimeBetween('now', '+1 month')?->format('Y-m-d'),
+            'date_echeance' => fake()->optional()->dateTimeBetween('+1 month', '+2 months')?->format('Y-m-d'),
             'priorite' => fake()->numberBetween(1, 4),
         ];
     }

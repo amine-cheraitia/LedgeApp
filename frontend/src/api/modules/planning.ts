@@ -31,7 +31,8 @@ export interface CalendarTache {
   id: number
   type: 'tache'
   titre: string
-  date_echeance: string
+  date_debut: string | null
+  date_echeance: string | null
   statut: Tache['statut']
   priorite: number
   mission_id: number

@@ -228,4 +228,30 @@ class TacheApiTest extends TestCase
             ->assertStatus(422)
             ->assertJsonValidationErrors(['titre']);
     }
+
+    public function test_peut_creer_tache_avec_date_debut(): void
+    {
+        $response = $this->actingAs($this->admin)
+            ->postJson("/api/v1/missions/{$this->missionId}/taches", [
+                'titre' => 'Tache datee',
+                'date_debut' => '2026-05-01',
+                'date_echeance' => '2026-05-15',
+            ]);
+
+        $response->assertCreated();
+        $this->assertEquals('2026-05-01', $response->json('data.date_debut'));
+        $this->assertEquals('2026-05-15', $response->json('data.date_echeance'));
+    }
+
+    public function test_date_debut_posterieure_a_echeance_est_rejetee(): void
+    {
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/missions/{$this->missionId}/taches", [
+                'titre' => 'Dates incoherentes',
+                'date_debut' => '2026-05-20',
+                'date_echeance' => '2026-05-10',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['date_debut']);
+    }
 }

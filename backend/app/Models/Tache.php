@@ -14,7 +14,7 @@ class Tache extends Model
 
     protected $fillable = [
         'mission_id', 'assigned_to', 'titre', 'description',
-        'statut', 'date_echeance', 'priorite',
+        'statut', 'date_debut', 'date_echeance', 'priorite',
     ];
 
     protected $attributes = [
@@ -23,6 +23,7 @@ class Tache extends Model
     ];
 
     protected $casts = [
+        'date_debut' => 'date',
         'date_echeance' => 'date',
     ];
 
