@@ -133,7 +133,7 @@ async function onSubmit() {
 
 function confirmDelete(mission: Mission) {
   confirm.require({
-    message: `Supprimer la mission ${mission.reference} ?`,
+    message: `Êtes-vous sûr de vouloir supprimer la mission ${mission.reference} ? Cette action est irréversible et supprimera aussi ses tâches et commentaires.`,
     header: 'Confirmation',
     acceptLabel: 'Supprimer',
     rejectLabel: 'Annuler',
