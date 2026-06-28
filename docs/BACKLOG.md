@@ -192,6 +192,7 @@
 - `MissionService::creerMission()` avec generation reference sequentielle
 - Conversion devis → mission via `POST /devis/{id}/convertir-en-mission` (stocke `devis_id`)
 - Protection suppression : bloquee si factures associees
+- 🔄 **Robustesse suppression (fix/robustesse-suppression-mission)** : le blocage **409** (mission avec factures) etait avale cote front (echec silencieux) ; `useMissions.deleteMission` remonte desormais le **message backend** dans un toast d'erreur (pattern aligne sur `deleteTache`), avec tests de regression
 - Depend de : **US-06, US-05, US-17**
 
 ---

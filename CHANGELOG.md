@@ -9,6 +9,11 @@
 
 ## [Unreleased]
 
+### Robustesse suppression de mission — fix/robustesse-suppression-mission
+
+- **Échec silencieux corrigé** (`useMissions.ts`) : la suppression d'une mission bloquée par le backend (HTTP **409** « mission avec factures associées ») n'affichait **aucun retour** à l'utilisateur — `deleteMission` n'avait pas de `try/catch`, la promesse rejetée était avalée par le callback de confirmation et la mission restait dans la liste sans explication. Désormais le **message métier du backend** est remonté dans un toast d'erreur (même pattern que `deleteTache`), avec message de repli si le backend n'en fournit pas. Aucun toast de succès ni rafraîchissement de liste en cas d'échec.
+- **Tests** (`useMissions.test.ts`) : succès (suppression + refetch + toast succès) ; échec **409** → toast erreur portant le message backend, sans rejet de promesse ; message de repli si le backend ne fournit pas de `message`.
+
 ### Correctifs page Planning & accès aux tâches par rôle — fix/correctifs-planning
 
 Correctifs issus des tests utilisateur sur la page Planning : affichage, vues, comportement **différencié par rôle**, et règles métier d'affectation / isolation des tâches désormais **appliquées par le backend** (défense en profondeur).

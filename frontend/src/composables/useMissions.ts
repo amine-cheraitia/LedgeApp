@@ -43,9 +43,16 @@ export function useMissions() {
   }
 
   async function deleteMission(id: number) {
-    await missionsApi.delete(id)
-    toast.add({ severity: 'success', summary: 'Succes', detail: 'Mission supprimee.', life: 3000 })
-    await fetchMissions()
+    try {
+      await missionsApi.delete(id)
+      toast.add({ severity: 'success', summary: 'Succes', detail: 'Mission supprimee.', life: 3000 })
+      await fetchMissions()
+    } catch (err: any) {
+      // Remonte le message metier du backend (ex: 409 « mission avec factures associees »)
+      // au lieu d'un echec silencieux. Meme pattern que deleteTache.
+      const detail = err.response?.data?.message ?? 'Impossible de supprimer la mission.'
+      toast.add({ severity: 'error', summary: 'Erreur', detail, life: 4000 })
+    }
   }
 
   function onPage(event: { page: number }) {
