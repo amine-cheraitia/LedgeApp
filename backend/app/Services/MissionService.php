@@ -10,6 +10,7 @@ use App\Models\Mission;
 use App\Models\Prestation;
 use App\Models\Setting;
 use App\Models\Tache;
+use App\Models\TacheCommentaire;
 use App\Models\User;
 use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -170,6 +171,17 @@ class MissionService
         }
 
         DB::transaction(function () use ($mission) {
+            // Les taches sont soft-deletees en masse : ni les events Eloquent ni le
+            // cascadeOnDelete SQL ne se declenchent (soft delete = UPDATE). On nettoie
+            // donc explicitement leurs commentaires pour ne pas laisser d'orphelins actifs.
+            $tacheIds = $mission->taches()->pluck('id');
+            TacheCommentaire::whereIn('tache_id', $tacheIds)->delete();
+
+            // Les documents ne sont pas supprimes (ils restent rattaches a l'entreprise) :
+            // on les detache de la mission, comme le ferait le nullOnDelete de la FK
+            // (inactif ici puisque la mission est seulement soft-deletee).
+            $mission->documents()->update(['mission_id' => null]);
+
             $mission->taches()->delete();
             $mission->collaborateurs()->detach();
             $mission->delete();
