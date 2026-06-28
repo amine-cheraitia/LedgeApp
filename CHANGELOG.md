@@ -9,6 +9,12 @@
 
 ## [Unreleased]
 
+### Correctifs gestion des taux de TVA — fix/tva-validation-dates-libelle-categorie
+
+- **Libellé de catégorie figé corrigé** (`TvaTauxPage.vue`) : dans la modale, les options du sélecteur « Categorie » affichaient un pourcentage **hardcodé** (« Standard (19%) ») déconnecté du champ « Taux (%) » — en éditant un taux à 35 %, la catégorie restait « Standard (19%) ». `typeOptions` devient un `computed` qui suit le taux saisi → **« Standard (35%) »** (Exonéré reste 0 %), mis à jour en direct.
+- **Date de fin antérieure à la date de début empêchée côté UI** (`TvaTauxPage.vue`) : le `DatePicker` de fin reçoit `:minDate="form.date_debut"` (jours antérieurs non sélectionnables) ; un `watch` remet la date de fin à `null` si l'on recule la date de début après une fin déjà choisie. Le backend rejetait déjà ce cas (`after_or_equal:date_debut`) — la contrainte UI évite désormais la saisie invalide en amont.
+- **Tests** : `TvaTauxApiTest` couvre désormais aussi le **chemin update** (PUT avec `date_fin` < `date_debut` → 422), en complément du test de création existant.
+
 ### Sécurité — Invitation par lien & définition de mot de passe en libre-service — feature/invitation-definition-mot-de-passe
 
 L'administrateur ne manipule, ne voit ni ne transmet plus **aucun mot de passe** — ni à l'activation d'un accès client, ni à la création d'un collaborateur/secrétaire. Chaque utilisateur **définit lui-même** son mot de passe via un lien d'invitation sécurisé reçu par email. Implémente enfin le « email set-password » décrit de longue date (US-29, CLAUDE.md) mais jamais codé.
