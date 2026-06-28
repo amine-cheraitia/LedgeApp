@@ -91,7 +91,6 @@ onMounted(() => {
         <div class="auth-field">
           <label for="reset-password" class="auth-label">Nouveau mot de passe</label>
           <Password
-            id="reset-password"
             v-model="password"
             :toggle-mask="true"
             :feedback="true"
@@ -111,7 +110,6 @@ onMounted(() => {
         <div class="auth-field">
           <label for="reset-password-confirm" class="auth-label">Confirmer le mot de passe</label>
           <Password
-            id="reset-password-confirm"
             v-model="passwordConfirmation"
             :toggle-mask="true"
             :feedback="false"

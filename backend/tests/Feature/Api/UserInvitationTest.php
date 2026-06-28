@@ -78,6 +78,21 @@ class UserInvitationTest extends TestCase
         $this->assertFalse(Hash::check('IgnoreMoi123!', $user->password));
     }
 
+    public function test_modification_user_conserve_son_email(): void
+    {
+        $user = User::factory()->create(['email' => 'edit@test.dz', 'name' => 'Ancien']);
+        $user->assignRole('collaborateur');
+
+        $response = $this->actingAs($this->admin)->putJson("/api/v1/users/{$user->id}", [
+            'name' => 'Nouveau Nom',
+            'email' => 'edit@test.dz', // meme email : la regle unique doit ignorer l'utilisateur courant
+            'role' => 'secretaire',
+        ]);
+
+        $response->assertOk()->assertJsonPath('data.name', 'Nouveau Nom');
+        $this->assertTrue($user->fresh()->hasRole('secretaire'));
+    }
+
     public function test_creation_user_exige_un_role(): void
     {
         $response = $this->actingAs($this->admin)->postJson('/api/v1/users', [
