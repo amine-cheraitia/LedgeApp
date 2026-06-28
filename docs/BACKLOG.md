@@ -259,6 +259,7 @@
 - Legende dynamique par prestation (palette de couleurs)
 - Tache avec **date de debut + echeance** affichee en **plage** (barre) ; drag = decale les 2 dates, resize = ajuste l'echeance ; filtre planning par **chevauchement** de plage
 - 🔄 **Correctifs planning par role (fix/correctifs-planning)** : **collaborateur** = un seul calendrier de **ses taches**, colorees **par priorite**, non editable ; **admin** = onglets Missions / Equipe, clic sur une tache d'Equipe ouvre le meme modal que les missions ; onglet **Missions = missions uniquement** ; **4 vues** partout (**Annee / Mois / Semaine / Liste**) ; decalage d'un jour corrige (fin `allDay` exclusive FullCalendar) ; toasts d'erreur portant le message backend
+- 🔄 **Correctifs complementaires (fix/correctifs-planning)** : **priorites alignees sur 4 niveaux** (Faible / Normale / Haute / Urgente) — source de verite unique `utils/priorite.ts`, couleurs alignees sur les badges PrimeVue, borne backend `max:4` ; **decalage d'un jour a la saisie corrige** (formatage de date local au lieu d'`toISOString` UTC, helper `utils/date.ts`) ; **alerte de conflit d'affectation reactive et non bloquante** — endpoint `GET /taches/conflits` (admin) + composable `useTacheConflits` previennent en temps reel si le collaborateur choisi a deja une tache chevauchant la periode (toutes missions confondues)
 - Depend de : **US-18, US-19**
 
 ---
