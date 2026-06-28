@@ -11,6 +11,21 @@ export interface TachePayload {
   priorite?: number
 }
 
+export interface ConflitTache {
+  id: number
+  titre: string
+  date_debut: string | null
+  date_echeance: string | null
+  mission: { id: number | null; reference: string | null }
+}
+
+export interface ConflitParams {
+  collaborateur_id: number
+  date_debut: string | null
+  date_echeance: string | null
+  exclude_tache_id?: number
+}
+
 export const tachesApi = {
   getAll(missionId: number): Promise<{ data: Tache[] }> {
     return api.get(`/missions/${missionId}/taches`).then(r => r.data)
@@ -30,5 +45,10 @@ export const tachesApi = {
 
   delete(missionId: number, tacheId: number): Promise<void> {
     return api.delete(`/missions/${missionId}/taches/${tacheId}`)
+  },
+
+  // Tâches du collaborateur chevauchant la période (toutes missions) — avertissement de conflit.
+  conflits(params: ConflitParams): Promise<{ data: ConflitTache[] }> {
+    return api.get('/taches/conflits', { params }).then(r => r.data)
   },
 }

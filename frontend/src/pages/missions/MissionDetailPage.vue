@@ -15,8 +15,11 @@ import Select from 'primevue/select'
 import { missionsApi } from '@/api/modules/missions'
 import { tachesApi, type TachePayload } from '@/api/modules/taches'
 import { useUsers } from '@/composables/useUsers'
+import { useTacheConflits } from '@/composables/useTacheConflits'
 import { useAuthStore } from '@/stores/auth'
 import type { Mission, Tache } from '@/types'
+import { PRIORITE_OPTIONS, prioriteLabel, prioriteSeverity } from '@/utils/priorite'
+import { toIsoDate, parseIsoDate } from '@/utils/date'
 
 const route = useRoute()
 const router = useRouter()
@@ -65,12 +68,18 @@ const editForm = ref<TachePayload>({
 
 const missionId = computed(() => Number(route.params.id))
 
-const prioriteOptions = [
-  { label: 'Faible', value: 1 },
-  { label: 'Normale', value: 2 },
-  { label: 'Haute', value: 3 },
-  { label: 'Urgente', value: 4 },
-]
+// Détection réactive de conflit d'affectation (avertissement non bloquant).
+const { conflits: conflitsCreate } = useTacheConflits(
+  computed(() => createForm.value.assigned_to),
+  createDateDebut,
+  createDateEcheance,
+)
+const { conflits: conflitsEdit } = useTacheConflits(
+  computed(() => editForm.value.assigned_to),
+  editDateDebut,
+  editDateEcheance,
+  computed(() => editTache.value?.id ?? null),
+)
 
 const statutTacheOptions = [
   { label: 'À faire', value: 'a_faire' },
@@ -78,10 +87,6 @@ const statutTacheOptions = [
   { label: 'Terminée', value: 'terminee' },
   { label: 'Bloquée', value: 'bloquee' },
 ]
-
-function toIsoDate(d: Date | null): string | null {
-  return d ? d.toISOString().split('T')[0] : null
-}
 
 async function loadMission() {
   loading.value = true
@@ -197,8 +202,8 @@ function openEditDialog(tache: Tache) {
     statut: tache.statut,
     priorite: tache.priorite,
   }
-  editDateDebut.value = tache.date_debut ? new Date(tache.date_debut) : null
-  editDateEcheance.value = tache.date_echeance ? new Date(tache.date_echeance) : null
+  editDateDebut.value = parseIsoDate(tache.date_debut)
+  editDateEcheance.value = parseIsoDate(tache.date_echeance)
   editDialogVisible.value = true
 }
 
@@ -268,14 +273,6 @@ function statutTacheLabel(statut: string) {
     a_faire: 'À faire', en_cours: 'En cours', terminee: 'Terminée', bloquee: 'Bloquée',
   }
   return map[statut] ?? statut
-}
-
-function prioriteLabel(p: number) {
-  return ['', 'Faible', 'Normale', 'Haute', 'Urgente'][p] ?? p.toString()
-}
-
-function prioriteSeverity(p: number) {
-  return ['', 'secondary', 'info', 'warn', 'danger'][p] ?? 'secondary'
 }
 
 function formatDate(d: string | null) {
@@ -648,11 +645,22 @@ onMounted(() => {
         </div>
         <div class="form-field">
           <label for="c-priorite">Priorité</label>
-          <Select id="c-priorite" v-model="createForm.priorite" :options="prioriteOptions" optionLabel="label" optionValue="value" fluid />
+          <Select id="c-priorite" v-model="createForm.priorite" :options="PRIORITE_OPTIONS" optionLabel="label" optionValue="value" fluid />
         </div>
         <div class="form-field">
           <label for="c-desc">Description</label>
           <Textarea id="c-desc" v-model="createForm.description" rows="3" fluid />
+        </div>
+        <div v-if="conflitsCreate.length" class="conflit-warning" role="status" aria-live="polite">
+          <i class="pi pi-exclamation-triangle" aria-hidden="true" />
+          <div>
+            <strong>{{ conflitsCreate.length }} tâche(s)</strong> de ce collaborateur chevauchent cette période :
+            <ul>
+              <li v-for="c in conflitsCreate" :key="c.id">
+                {{ c.titre }} ({{ formatDate(c.date_debut) }} → {{ formatDate(c.date_echeance) }}<template v-if="c.mission.reference">, {{ c.mission.reference }}</template>)
+              </li>
+            </ul>
+          </div>
         </div>
         <div class="form-actions">
           <Button label="Annuler" severity="secondary" type="button" @click="createDialogVisible = false" />
@@ -682,7 +690,7 @@ onMounted(() => {
         </div>
         <div class="form-field">
           <label for="e-priorite">Priorité</label>
-          <Select id="e-priorite" v-model="editForm.priorite" :options="prioriteOptions" optionLabel="label" optionValue="value" fluid />
+          <Select id="e-priorite" v-model="editForm.priorite" :options="PRIORITE_OPTIONS" optionLabel="label" optionValue="value" fluid />
         </div>
         <div class="form-field">
           <label for="e-statut">Statut</label>
@@ -691,6 +699,17 @@ onMounted(() => {
         <div class="form-field">
           <label for="e-desc">Description</label>
           <Textarea id="e-desc" v-model="editForm.description" rows="3" fluid />
+        </div>
+        <div v-if="conflitsEdit.length" class="conflit-warning" role="status" aria-live="polite">
+          <i class="pi pi-exclamation-triangle" aria-hidden="true" />
+          <div>
+            <strong>{{ conflitsEdit.length }} tâche(s)</strong> de ce collaborateur chevauchent cette période :
+            <ul>
+              <li v-for="c in conflitsEdit" :key="c.id">
+                {{ c.titre }} ({{ formatDate(c.date_debut) }} → {{ formatDate(c.date_echeance) }}<template v-if="c.mission.reference">, {{ c.mission.reference }}</template>)
+              </li>
+            </ul>
+          </div>
         </div>
         <div class="form-actions">
           <Button label="Annuler" severity="secondary" type="button" @click="editDialogVisible = false" />
@@ -706,6 +725,30 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.conflit-warning {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  border-left: 4px solid #f59e0b;
+  border-radius: 6px;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.85rem;
+  color: var(--p-text-color);
+}
+.conflit-warning i {
+  color: #f59e0b;
+  font-size: 1.05rem;
+  margin-top: 0.1rem;
+}
+.conflit-warning ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+}
+.conflit-warning li {
+  margin-top: 0.15rem;
+}
 .page-header {
   display: flex;
   justify-content: space-between;

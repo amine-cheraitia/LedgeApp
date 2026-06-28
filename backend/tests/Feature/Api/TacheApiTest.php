@@ -421,4 +421,157 @@ class TacheApiTest extends TestCase
             ])
             ->assertCreated();
     }
+
+    // ─── Priorite : borne 4 niveaux (Faible/Normale/Haute/Urgente) ───────────────
+
+    public function test_priorite_superieure_a_4_est_rejetee(): void
+    {
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/missions/{$this->missionId}/taches", [
+                'titre' => 'Priorite hors borne',
+                'priorite' => 5,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['priorite']);
+    }
+
+    public function test_priorite_4_urgente_est_acceptee(): void
+    {
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/missions/{$this->missionId}/taches", [
+                'titre' => 'Tache urgente',
+                'priorite' => 4,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.priorite', 4);
+    }
+
+    // ─── Detection de conflit d'affectation ──────────────────────────────────────
+
+    private function creerTacheCollaborateur(int $collaborateurId, string $debut, string $echeance, ?int $missionId = null): int
+    {
+        return $this->actingAs($this->admin)
+            ->postJson('/api/v1/missions/'.($missionId ?? $this->missionId).'/taches', [
+                'titre' => 'Tache collaborateur',
+                'assigned_to' => $collaborateurId,
+                'date_debut' => $debut,
+                'date_echeance' => $echeance,
+            ])
+            ->json('data.id');
+    }
+
+    public function test_conflits_detecte_un_chevauchement(): void
+    {
+        $collaborateur = User::factory()->create();
+        $collaborateur->assignRole('collaborateur');
+
+        $this->creerTacheCollaborateur($collaborateur->id, '2026-06-01', '2026-06-05');
+
+        $response = $this->actingAs($this->admin)->getJson('/api/v1/taches/conflits?'.http_build_query([
+            'collaborateur_id' => $collaborateur->id,
+            'date_debut' => '2026-06-03',
+            'date_echeance' => '2026-06-07',
+        ]));
+
+        $response->assertOk();
+        $this->assertCount(1, $response->json('data'));
+    }
+
+    public function test_conflits_aucun_hors_periode(): void
+    {
+        $collaborateur = User::factory()->create();
+        $collaborateur->assignRole('collaborateur');
+
+        $this->creerTacheCollaborateur($collaborateur->id, '2026-06-01', '2026-06-05');
+
+        $response = $this->actingAs($this->admin)->getJson('/api/v1/taches/conflits?'.http_build_query([
+            'collaborateur_id' => $collaborateur->id,
+            'date_debut' => '2026-06-10',
+            'date_echeance' => '2026-06-15',
+        ]));
+
+        $response->assertOk();
+        $this->assertCount(0, $response->json('data'));
+    }
+
+    public function test_conflits_exclut_la_tache_courante(): void
+    {
+        $collaborateur = User::factory()->create();
+        $collaborateur->assignRole('collaborateur');
+
+        $tacheId = $this->creerTacheCollaborateur($collaborateur->id, '2026-06-01', '2026-06-05');
+
+        // En edition de cette meme tache : elle ne doit pas se signaler elle-meme.
+        $response = $this->actingAs($this->admin)->getJson('/api/v1/taches/conflits?'.http_build_query([
+            'collaborateur_id' => $collaborateur->id,
+            'date_debut' => '2026-06-01',
+            'date_echeance' => '2026-06-05',
+            'exclude_tache_id' => $tacheId,
+        ]));
+
+        $response->assertOk();
+        $this->assertCount(0, $response->json('data'));
+    }
+
+    public function test_conflits_detecte_a_travers_les_missions(): void
+    {
+        $collaborateur = User::factory()->create();
+        $collaborateur->assignRole('collaborateur');
+
+        // Tache existante dans une AUTRE mission, meme collaborateur.
+        $autreMission = Mission::factory()->create([
+            'entreprise_id' => Entreprise::first()->id,
+            'exercice_id' => Exercice::first()->id,
+            'date_debut' => '2026-01-01',
+            'date_fin' => '2026-12-31',
+            'statut' => 'en_cours',
+        ]);
+        $this->creerTacheCollaborateur($collaborateur->id, '2026-06-01', '2026-06-05', $autreMission->id);
+
+        $response = $this->actingAs($this->admin)->getJson('/api/v1/taches/conflits?'.http_build_query([
+            'collaborateur_id' => $collaborateur->id,
+            'date_debut' => '2026-06-03',
+            'date_echeance' => '2026-06-07',
+        ]));
+
+        $response->assertOk();
+        $this->assertCount(1, $response->json('data'));
+    }
+
+    public function test_conflits_collaborateur_id_requis(): void
+    {
+        $this->actingAs($this->admin)
+            ->getJson('/api/v1/taches/conflits?'.http_build_query([
+                'date_debut' => '2026-06-03',
+            ]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['collaborateur_id']);
+    }
+
+    public function test_conflits_au_moins_une_date_requise(): void
+    {
+        $collaborateur = User::factory()->create();
+        $collaborateur->assignRole('collaborateur');
+
+        $this->actingAs($this->admin)
+            ->getJson('/api/v1/taches/conflits?'.http_build_query([
+                'collaborateur_id' => $collaborateur->id,
+            ]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['date_debut']);
+    }
+
+    public function test_conflits_interdit_au_collaborateur(): void
+    {
+        $collaborateur = User::factory()->create();
+        $collaborateur->assignRole('collaborateur');
+
+        $this->actingAs($collaborateur)
+            ->getJson('/api/v1/taches/conflits?'.http_build_query([
+                'collaborateur_id' => $collaborateur->id,
+                'date_debut' => '2026-06-03',
+                'date_echeance' => '2026-06-07',
+            ]))
+            ->assertForbidden();
+    }
 }

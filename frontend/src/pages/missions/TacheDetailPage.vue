@@ -12,9 +12,12 @@ import DatePicker from 'primevue/datepicker'
 import Dialog from 'primevue/dialog'
 import { tachesApi, type TachePayload } from '@/api/modules/taches'
 import { useCommentaires } from '@/composables/useCommentaires'
+import { useTacheConflits } from '@/composables/useTacheConflits'
 import { useUsers } from '@/composables/useUsers'
 import { useAuthStore } from '@/stores/auth'
 import type { Tache, TacheCommentaire } from '@/types'
+import { PRIORITE_OPTIONS, prioriteLabel, prioriteSeverity } from '@/utils/priorite'
+import { toIsoDate, parseIsoDate } from '@/utils/date'
 
 const route = useRoute()
 const router = useRouter()
@@ -46,6 +49,14 @@ const editForm = ref<TachePayload>({
   priorite: 1,
 })
 
+// Détection réactive de conflit d'affectation (avertissement non bloquant à l'édition).
+const { conflits: conflitsEdit } = useTacheConflits(
+  computed(() => editForm.value.assigned_to),
+  editDateDebut,
+  editDateEcheance,
+  computed(() => tache.value?.id ?? null),
+)
+
 // Comments
 const newContenu = ref('')
 const sending = ref(false)
@@ -59,17 +70,6 @@ const statutOptions = [
   { label: 'Bloquée', value: 'bloquee' },
 ]
 
-const prioriteOptions = [
-  { label: 'Faible', value: 1 },
-  { label: 'Normale', value: 2 },
-  { label: 'Haute', value: 3 },
-  { label: 'Urgente', value: 4 },
-]
-
-function toIsoDate(d: Date | null): string | null {
-  return d ? d.toISOString().split('T')[0] : null
-}
-
 function statutSeverity(s: string) {
   const map: Record<string, string> = {
     a_faire: 'secondary', en_cours: 'info', terminee: 'success', bloquee: 'danger',
@@ -82,14 +82,6 @@ function statutLabel(s: string) {
     a_faire: 'À faire', en_cours: 'En cours', terminee: 'Terminée', bloquee: 'Bloquée',
   }
   return map[s] ?? s
-}
-
-function prioriteLabel(p: number) {
-  return ['', 'Faible', 'Normale', 'Haute', 'Urgente'][p] ?? p.toString()
-}
-
-function prioriteSeverity(p: number) {
-  return ['', 'secondary', 'info', 'warn', 'danger'][p] ?? 'secondary'
 }
 
 function formatDate(d: string | null) {
@@ -147,8 +139,8 @@ function openEdit() {
     statut: tache.value.statut,
     priorite: tache.value.priorite,
   }
-  editDateDebut.value = tache.value.date_debut ? new Date(tache.value.date_debut) : null
-  editDateEcheance.value = tache.value.date_echeance ? new Date(tache.value.date_echeance) : null
+  editDateDebut.value = parseIsoDate(tache.value.date_debut)
+  editDateEcheance.value = parseIsoDate(tache.value.date_echeance)
   editDialogVisible.value = true
 }
 
@@ -516,7 +508,7 @@ onMounted(async () => {
           <Select
             id="e-priorite"
             v-model="editForm.priorite"
-            :options="prioriteOptions"
+            :options="PRIORITE_OPTIONS"
             optionLabel="label"
             optionValue="value"
             fluid
@@ -535,6 +527,18 @@ onMounted(async () => {
           />
         </div>
 
+        <div v-if="conflitsEdit.length" class="conflit-warning" role="status" aria-live="polite">
+          <i class="pi pi-exclamation-triangle" aria-hidden="true" />
+          <div>
+            <strong>{{ conflitsEdit.length }} tâche(s)</strong> de ce collaborateur chevauchent cette période :
+            <ul>
+              <li v-for="c in conflitsEdit" :key="c.id">
+                {{ c.titre }} ({{ formatDate(c.date_debut) }} → {{ formatDate(c.date_echeance) }}<template v-if="c.mission.reference">, {{ c.mission.reference }}</template>)
+              </li>
+            </ul>
+          </div>
+        </div>
+
         <div class="form-actions">
           <Button label="Annuler" severity="secondary" type="button" @click="editDialogVisible = false" />
           <Button label="Enregistrer" type="submit" icon="pi pi-check" :loading="savingEdit" :disabled="!editForm.titre" />
@@ -549,6 +553,30 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+.conflit-warning {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  border-left: 4px solid #f59e0b;
+  border-radius: 6px;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.85rem;
+  color: var(--p-text-color);
+}
+.conflit-warning i {
+  color: #f59e0b;
+  font-size: 1.05rem;
+  margin-top: 0.1rem;
+}
+.conflit-warning ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+}
+.conflit-warning li {
+  margin-top: 0.15rem;
+}
 .sr-only {
   position: absolute;
   width: 1px;
