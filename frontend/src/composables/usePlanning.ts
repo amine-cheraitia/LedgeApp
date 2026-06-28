@@ -8,6 +8,7 @@ import { tachesApi } from '@/api/modules/taches'
 import { usersApi } from '@/api/modules/users'
 import { useAuthStore } from '@/stores/auth'
 import type { User } from '@/types'
+import { prioriteColor } from '@/utils/priorite'
 
 // ── Palettes ──────────────────────────────────────────────────────────────────
 
@@ -38,18 +39,7 @@ const TACHE_COLORS: Record<string, string> = {
   bloquee:  '#EF4444',
 }
 
-// Couleur d'une tâche selon sa priorité (1 = très faible … 5 = critique).
-const TACHE_PRIORITY_COLORS: Record<number, string> = {
-  1: '#22C55E', // Très faible — vert
-  2: '#84CC16', // Faible — lime
-  3: '#EAB308', // Moyenne — ambre
-  4: '#F97316', // Haute — orange
-  5: '#EF4444', // Critique — rouge
-}
-
-export function prioriteColor(p: number): string {
-  return TACHE_PRIORITY_COLORS[Math.min(5, Math.max(1, p))] ?? '#94A3B8'
-}
+// Couleur d'une tâche selon sa priorité : voir @/utils/priorite (source de vérité, 4 niveaux).
 
 export function prestationColor(id: number | null): string {
   if (id === null) return '#94A3B8'
@@ -369,8 +359,6 @@ export function usePlanning() {
     // Légende
     prestationsVues,
     prestationColor,
-    prioriteColor,
-    TACHE_PRIORITY_COLORS,
     STATUS_BORDER,
     TACHE_COLORS,
     // Actions

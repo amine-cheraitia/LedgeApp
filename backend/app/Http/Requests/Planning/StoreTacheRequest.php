@@ -26,7 +26,7 @@ class StoreTacheRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'assigned_to' => ['nullable', 'integer', 'exists:users,id', $this->assignableRule()],
             'statut' => ['sometimes', 'in:a_faire,en_cours,terminee,bloquee'],
-            'priorite' => ['sometimes', 'integer', 'min:1', 'max:5'],
+            'priorite' => ['sometimes', 'integer', 'min:1', 'max:4'],
         ], $this->tacheDateRules());
     }
 

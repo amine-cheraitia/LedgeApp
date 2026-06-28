@@ -22,6 +22,7 @@ import { useToast } from 'primevue/usetoast'
 import { usePlanning } from '@/composables/usePlanning'
 import { useAuthStore } from '@/stores/auth'
 import type { CalendarMission, CalendarTache } from '@/api/modules/planning'
+import { prioriteLabel, PRIORITE_COLORS } from '@/utils/priorite'
 
 const router = useRouter()
 const toast  = useToast()
@@ -32,7 +33,6 @@ const {
   filteredEvents, loadingEvents, loadEvents,
   activeStatuts, toggleStatut,
   missionCountByStatut, prestationsVues, prestationColor, STATUS_BORDER,
-  TACHE_PRIORITY_COLORS,
   changerStatutMission, onEventDrop, onEventResize,
   teamWeekStart, teamWeekDays, teamGridData, loadingEquipe,
   initWeek, prevWeek, nextWeek, loadEquipeWeek, chargeColor, chargeLabel,
@@ -162,14 +162,6 @@ const STATUT_SEVERITY: Record<string, 'info' | 'success' | 'warn' | 'danger' | '
 const MISSION_STATUTS = ['en_cours', 'suspendue', 'terminee', 'annulee'] as const
 
 const statutOptions = MISSION_STATUTS.map(s => ({ label: STATUT_LABELS[s], value: s }))
-
-function prioriteLabel(p: number): string {
-  if (p <= 1) return 'Très faible'
-  if (p === 2) return 'Faible'
-  if (p === 3) return 'Moyenne'
-  if (p === 4) return 'Haute'
-  return 'Critique'
-}
 
 function formatDate(d: string | null | undefined): string {
   if (!d) return '—'
@@ -454,7 +446,7 @@ if (!auth.isCollaborateur) fetchCollaborateurs()
           <div class="legend-section">
             <span class="legend-section-title">Priorité</span>
             <div class="legend-items">
-              <span v-for="(color, prio) in TACHE_PRIORITY_COLORS" :key="prio" class="legend-item">
+              <span v-for="(color, prio) in PRIORITE_COLORS" :key="prio" class="legend-item">
                 <span class="legend-dot" :style="{ background: color }" aria-hidden="true" />
                 {{ prioriteLabel(Number(prio)) }}
               </span>
