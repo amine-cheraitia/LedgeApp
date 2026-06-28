@@ -92,8 +92,8 @@ const portailDialogVisible = ref(false)
 const portailSaving = ref(false)
 const portailEntreprise = ref<Entreprise | null>(null)
 const portailForm = ref({ name: '', email: '' })
-const credentialsDialogVisible = ref(false)
-const credentials = ref({ email: '', password: '' })
+const invitationDialogVisible = ref(false)
+const invitation = ref({ email: '', link: '' })
 
 const emptyForm = (): Partial<Entreprise> => ({
   raison_sociale: '',
@@ -202,11 +202,7 @@ async function onActiverPortail() {
     const result = await entreprisesApi.activerPortail(portailEntreprise.value.id, portailForm.value)
     toast.add({ severity: 'success', summary: 'Succes', detail: result.message, life: 3000 })
     portailDialogVisible.value = false
-    credentials.value = {
-      email: portailForm.value.email,
-      password: result.temporary_password,
-    }
-    credentialsDialogVisible.value = true
+    showInvitation(portailForm.value.email, result.invitation_url)
     await fetchEntreprises()
   } catch (error: any) {
     const message = error.response?.data?.message || 'Erreur lors de l\'activation.'
@@ -216,7 +212,25 @@ async function onActiverPortail() {
   }
 }
 
-async function onTogglePortail(entreprise: Entreprise) {
+function onTogglePortail(entreprise: Entreprise, estActif: boolean) {
+  // Verrouiller (couper l'acces) est une action sensible : on confirme.
+  // Reactiver restaure simplement l'acces : pas de confirmation.
+  if (!estActif) {
+    doTogglePortail(entreprise)
+    return
+  }
+
+  confirm.require({
+    message: `Verrouiller l'acces portail de « ${entreprise.raison_sociale} » ? Le client ne pourra plus se connecter tant que l'acces n'aura pas ete reactive.`,
+    header: 'Verrouiller l\'acces',
+    icon: 'pi pi-lock',
+    acceptLabel: 'Verrouiller',
+    rejectLabel: 'Annuler',
+    accept: () => doTogglePortail(entreprise),
+  })
+}
+
+async function doTogglePortail(entreprise: Entreprise) {
   try {
     const result = await entreprisesApi.togglePortail(entreprise.id)
     toast.add({ severity: 'success', summary: 'Succes', detail: result.message, life: 3000 })
@@ -227,10 +241,36 @@ async function onTogglePortail(entreprise: Entreprise) {
   }
 }
 
-function copyCredentials() {
-  const text = `Email: ${credentials.value.email}\nMot de passe: ${credentials.value.password}`
-  navigator.clipboard.writeText(text)
-  toast.add({ severity: 'info', summary: 'Copie', detail: 'Identifiants copies dans le presse-papier.', life: 2000 })
+function onResendInvitation(entreprise: Entreprise) {
+  confirm.require({
+    message: `Renvoyer une invitation a « ${entreprise.raison_sociale} » ? Un nouveau lien sera envoye a ${entreprise.email || 'l\'adresse du client'} et l'ancien lien deviendra invalide.`,
+    header: 'Renvoyer l\'invitation',
+    icon: 'pi pi-envelope',
+    acceptLabel: 'Renvoyer',
+    rejectLabel: 'Annuler',
+    accept: () => doResendInvitation(entreprise),
+  })
+}
+
+async function doResendInvitation(entreprise: Entreprise) {
+  try {
+    const result = await entreprisesApi.renvoyerInvitation(entreprise.id)
+    toast.add({ severity: 'success', summary: 'Succes', detail: result.message, life: 3000 })
+    showInvitation(entreprise.email ?? '', result.invitation_url)
+  } catch (error: any) {
+    const message = error.response?.data?.message || 'Erreur lors de l\'envoi de l\'invitation.'
+    toast.add({ severity: 'error', summary: 'Erreur', detail: message, life: 5000 })
+  }
+}
+
+function showInvitation(email: string, link: string) {
+  invitation.value = { email, link }
+  invitationDialogVisible.value = true
+}
+
+function copyInvitationLink() {
+  navigator.clipboard.writeText(invitation.value.link)
+  toast.add({ severity: 'info', summary: 'Copie', detail: 'Lien d\'invitation copie dans le presse-papier.', life: 2000 })
 }
 
 // --- Contacts ---
@@ -407,8 +447,18 @@ onMounted(() => {
                 text
                 size="small"
                 :severity="data.portail_user.portail_actif ? 'danger' : 'success'"
-                :aria-label="data.portail_user.portail_actif ? 'Desactiver portail' : 'Reactiver portail'"
-                @click="onTogglePortail(data)"
+                :aria-label="data.portail_user.portail_actif ? `Verrouiller l'acces de ${data.raison_sociale}` : `Reactiver l'acces de ${data.raison_sociale}`"
+                v-tooltip.top="data.portail_user.portail_actif ? 'Verrouiller l\'acces' : 'Reactiver l\'acces'"
+                @click="onTogglePortail(data, data.portail_user.portail_actif)"
+              />
+              <Button
+                icon="pi pi-envelope"
+                text
+                size="small"
+                severity="secondary"
+                :aria-label="`Renvoyer l'invitation a ${data.raison_sociale}`"
+                v-tooltip.top="'Renvoyer l\'invitation'"
+                @click="onResendInvitation(data)"
               />
             </template>
             <Button
@@ -707,32 +757,28 @@ onMounted(() => {
       </form>
     </Dialog>
 
-    <!-- Dialog credentials (admin uniquement) -->
+    <!-- Dialog invitation portail (admin uniquement) -->
     <Dialog
       v-if="auth.isAdmin"
-      v-model:visible="credentialsDialogVisible"
-      header="Identifiants portail"
+      v-model:visible="invitationDialogVisible"
+      header="Invitation envoyee"
       :modal="true"
-      :style="{ width: '28rem' }"
+      :style="{ width: '32rem' }"
       :closable="true"
     >
-      <div class="credentials-box" role="alert" aria-live="polite">
-        <p><strong>Transmettez ces identifiants au client.</strong></p>
-        <p>Ils ne seront plus accessibles apres fermeture.</p>
-        <div class="credentials-fields">
-          <div class="credential-row">
-            <span class="credential-label">Email :</span>
-            <code>{{ credentials.email }}</code>
-          </div>
-          <div class="credential-row">
-            <span class="credential-label">Mot de passe :</span>
-            <code>{{ credentials.password }}</code>
-          </div>
-        </div>
+      <div class="credentials-box" role="status" aria-live="polite">
+        <p>
+          Un e-mail d'invitation a ete envoye a <strong>{{ invitation.email }}</strong>.
+          Le client y definira lui-meme son mot de passe.
+        </p>
+        <p class="invitation-note">
+          Si l'e-mail n'arrive pas, transmettez ce lien securise (valable 24 h, a usage unique) :
+        </p>
+        <code class="invitation-link">{{ invitation.link }}</code>
       </div>
       <div class="dialog-actions">
-        <Button label="Copier les identifiants" icon="pi pi-copy" @click="copyCredentials" />
-        <Button label="Fermer" severity="secondary" text @click="credentialsDialogVisible = false" />
+        <Button label="Copier le lien" icon="pi pi-copy" @click="copyInvitationLink" />
+        <Button label="Fermer" severity="secondary" text @click="invitationDialogVisible = false" />
       </div>
     </Dialog>
   </div>
@@ -775,6 +821,18 @@ onMounted(() => {
   padding: 1rem;
   margin-bottom: 0.75rem;
   color: var(--p-text-color);
+}
+.credentials-box p { margin: 0 0 0.5rem; line-height: 1.5; }
+.invitation-note { font-size: 0.8125rem; color: var(--p-text-muted-color, #64748b); }
+.invitation-link {
+  display: block;
+  background: rgba(128,128,128,0.15);
+  color: var(--p-text-color);
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  word-break: break-all;
+  user-select: all;
 }
 .credentials-fields { margin-top: 0.75rem; }
 .credential-row {

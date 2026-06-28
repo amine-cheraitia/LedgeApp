@@ -30,8 +30,14 @@ export const entreprisesApi = {
     return api.delete(`/entreprises/${id}`)
   },
 
-  activerPortail(id: number, data: { name: string; email: string }) {
+  // Active l'acces : cree le compte client et envoie une invitation a definir
+  // le mot de passe. invitation_url est un repli copiable (sans mot de passe).
+  activerPortail(id: number, data: { name: string; email: string }): Promise<{ message: string; invitation_url: string }> {
     return api.post(`/entreprises/${id}/activer-portail`, data).then(r => r.data)
+  },
+
+  renvoyerInvitation(id: number): Promise<{ message: string; invitation_url: string }> {
+    return api.post(`/entreprises/${id}/renvoyer-invitation`).then(r => r.data)
   },
 
   togglePortail(id: number) {

@@ -30,11 +30,23 @@ export function useUsers() {
   async function createUser(data: UserPayload) {
     try {
       const response = await usersApi.create(data)
-      toast.add({ severity: 'success', summary: 'Succes', detail: 'Utilisateur cree.', life: 3000 })
+      toast.add({ severity: 'success', summary: 'Succes', detail: 'Utilisateur cree. Invitation envoyee.', life: 3000 })
       await fetchUsers()
-      return response.data
+      return response
     } catch (error: any) {
       const message = error.response?.data?.message || 'Erreur lors de la creation.'
+      toast.add({ severity: 'error', summary: 'Erreur', detail: message, life: 5000 })
+      throw error
+    }
+  }
+
+  async function resendInvitation(id: number) {
+    try {
+      const response = await usersApi.renvoyerInvitation(id)
+      toast.add({ severity: 'success', summary: 'Succes', detail: 'Invitation renvoyee.', life: 3000 })
+      return response
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Erreur lors de l\'envoi de l\'invitation.'
       toast.add({ severity: 'error', summary: 'Erreur', detail: message, life: 5000 })
       throw error
     }
@@ -84,6 +96,7 @@ export function useUsers() {
     createUser,
     updateUser,
     deleteUser,
+    resendInvitation,
     onPage,
     onSearch,
   }
