@@ -133,7 +133,7 @@ async function onSubmit() {
 
 function confirmDelete(mission: Mission) {
   confirm.require({
-    message: `Supprimer la mission ${mission.reference} ?`,
+    message: `Supprimer la mission ${mission.reference} ? Toutes ses tâches et leurs commentaires seront également supprimés. Les documents associés seront conservés (détachés de la mission).`,
     header: 'Confirmation',
     acceptLabel: 'Supprimer',
     rejectLabel: 'Annuler',
