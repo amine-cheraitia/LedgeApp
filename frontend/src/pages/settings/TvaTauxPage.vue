@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -17,11 +17,6 @@ import type { TvaTauxPayload } from '@/api/modules/referentiels'
 
 const confirm = useConfirm()
 const { taux, loading, fetchTaux, createTaux, updateTaux, deleteTaux } = useTvaTaux()
-
-const typeOptions = [
-  { label: 'Standard (19%)', value: 'standard' },
-  { label: 'Exonere (0%)', value: 'exonere' },
-]
 
 interface FormState {
   taux: number
@@ -61,6 +56,20 @@ const saving = ref(false)
 const mode = ref<'create' | 'edit'>('create')
 const editId = ref<number | null>(null)
 const form = ref<FormState>(emptyForm())
+
+// Libelle de categorie : suit le taux saisi (ex. "Standard (35%)"), pas une valeur figee.
+const typeOptions = computed(() => [
+  { label: `Standard (${form.value.taux ?? 0}%)`, value: 'standard' },
+  { label: 'Exonere (0%)', value: 'exonere' },
+])
+
+// Coherence des dates : si on recule la date de debut apres une date de fin deja
+// choisie, on remet la date de fin a null (le minDate du picker bloque le reste).
+watch(() => form.value.date_debut, (debut) => {
+  if (debut && form.value.date_fin && form.value.date_fin < debut) {
+    form.value.date_fin = null
+  }
+})
 
 const dialogTitle = computed(() => (mode.value === 'create' ? 'Nouveau taux de TVA' : 'Modifier le taux de TVA'))
 
@@ -192,7 +201,7 @@ onMounted(fetchTaux)
           </div>
           <div class="form-field">
             <label for="t-fin">Date de fin</label>
-            <DatePicker id="t-fin" v-model="form.date_fin" dateFormat="yy-mm-dd" showIcon showButtonBar fluid />
+            <DatePicker id="t-fin" v-model="form.date_fin" :minDate="form.date_debut || undefined" dateFormat="yy-mm-dd" showIcon showButtonBar fluid />
           </div>
         </div>
 

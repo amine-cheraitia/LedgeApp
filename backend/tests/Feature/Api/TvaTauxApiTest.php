@@ -120,6 +120,16 @@ class TvaTauxApiTest extends TestCase
             ->assertJsonValidationErrors(['date_fin']);
     }
 
+    public function test_validation_date_fin_avant_debut_refusee_a_la_modification(): void
+    {
+        $taux = TvaTaux::create($this->payload());
+
+        $this->actingAs($this->admin)
+            ->putJson("/api/v1/referentiels/tva-taux/{$taux->id}", $this->payload(['date_debut' => '2024-06-01', 'date_fin' => '2024-01-01']))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['date_fin']);
+    }
+
     public function test_validation_taux_hors_bornes_refusee(): void
     {
         $this->actingAs($this->admin)
