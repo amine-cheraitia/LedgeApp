@@ -102,10 +102,20 @@ class EntrepriseController extends Controller
         $result = $service->activerPortail($entreprise, $validated['name'], $validated['email']);
 
         return response()->json([
-            'message' => 'Acces portail active.',
+            'message' => 'Acces portail active. Une invitation a ete envoyee a '.$validated['email'].'.',
             'user' => new UserResource($result['user']),
-            'temporary_password' => $result['temporary_password'],
+            'invitation_url' => $result['invitation_url'],
         ], 201);
+    }
+
+    public function renvoyerInvitation(Entreprise $entreprise, PortailService $service): JsonResponse
+    {
+        $result = $service->renvoyerInvitation($entreprise);
+
+        return response()->json([
+            'message' => 'Invitation renvoyee a '.$result['user']->email.'.',
+            'invitation_url' => $result['invitation_url'],
+        ]);
     }
 
     public function togglePortail(Entreprise $entreprise, PortailService $service): JsonResponse

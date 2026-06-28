@@ -12,10 +12,8 @@ export interface UserFilters {
 export interface UserPayload {
   name: string
   email: string
-  password?: string
   role: string
   entreprise_id?: number | null
-  portail_actif?: boolean
 }
 
 export const usersApi = {
@@ -27,12 +25,18 @@ export const usersApi = {
     return api.get(`/users/${id}`).then(r => r.data)
   },
 
-  create(data: UserPayload): Promise<{ data: User }> {
+  // La creation declenche l'envoi d'une invitation : l'utilisateur definit son
+  // mot de passe lui-meme. invitation_url est un repli copiable (sans mot de passe).
+  create(data: UserPayload): Promise<{ data: User; invitation_url: string }> {
     return api.post('/users', data).then(r => r.data)
   },
 
   update(id: number, data: Partial<UserPayload>): Promise<{ data: User }> {
     return api.put(`/users/${id}`, data).then(r => r.data)
+  },
+
+  renvoyerInvitation(id: number): Promise<{ message: string; invitation_url: string }> {
+    return api.post(`/users/${id}/renvoyer-invitation`).then(r => r.data)
   },
 
   delete(id: number): Promise<void> {

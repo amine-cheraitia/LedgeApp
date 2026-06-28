@@ -9,6 +9,36 @@
 
 ## [Unreleased]
 
+### Sécurité — Invitation par lien & définition de mot de passe en libre-service — feature/invitation-definition-mot-de-passe
+
+L'administrateur ne manipule, ne voit ni ne transmet plus **aucun mot de passe** — ni à l'activation d'un accès client, ni à la création d'un collaborateur/secrétaire. Chaque utilisateur **définit lui-même** son mot de passe via un lien d'invitation sécurisé reçu par email. Implémente enfin le « email set-password » décrit de longue date (US-29, CLAUDE.md) mais jamais codé.
+
+#### Avant / Après
+- **Avant** : l'activation portail générait `Str::random(12)` **renvoyé en clair** dans la réponse JSON et affiché à l'admin ; la création d'un staff exigeait que l'admin **saisisse** le mot de passe. L'admin connaissait donc le secret et devait le transmettre manuellement.
+- **Après** : le compte est créé avec un mot de passe placeholder **aléatoire (40 car.) inutilisable** ; un email d'invitation contenant un **lien à usage unique et expirable** est envoyé. Aucun mot de passe ne transite jamais.
+
+#### Backend
+- **`InvitationService`** (service transverse) : `inviter(User)` génère un jeton via le broker natif (`Password::createToken`), envoie l'email et retourne l'URL `FRONTEND_URL/definir-mot-de-passe?token=…&email=…` (repli copiable, **sans mot de passe**) ; `envoyerReinitialisation(User)` pour le libre-service.
+- **`PasswordController`** (routes publiques) : `POST /api/v1/forgot-password` (réponse **générique** anti-énumération d'emails) et `POST /api/v1/reset-password` (`Password::reset` + `Password::defaults()` + `confirmed`). Les deux **throttlées** (`throttle:6,1`).
+- **Mailables** `InvitationCompteMail` / `ReinitialisationMotDePasseMail` + templates Blade `mail/invitation`, `mail/reset-password` (bouton + lien de repli, mention d'expiration).
+- **`PortailService::activerPortail`** : ne renvoie plus `temporary_password` mais `invitation_url` ; `renvoyerInvitation()` ajouté. **`UserController::store`** passe par `StoreUserRequest` (plus de champ `password`), crée le compte et déclenche l'invitation ; `update` ne permet plus de fixer un mot de passe ; `renvoyerInvitation()` ajouté.
+- Routes admin de renvoi : `POST /api/v1/users/{user}/renvoyer-invitation`, `POST /api/v1/entreprises/{entreprise}/renvoyer-invitation`.
+- **Config** : `auth.passwords.users.expire` piloté par `AUTH_PASSWORD_RESET_EXPIRE` (défaut **1440 min / 24 h**, confortable pour une invitation) ; `app.frontend_url` (`FRONTEND_URL`) pour construire les liens.
+
+#### Frontend
+- Nouvelles pages publiques `DefinirMotDePassePage.vue` (`/definir-mot-de-passe`, sert invitation **et** réinitialisation) et `MotDePasseOubliePage.vue` (`/mot-de-passe-oublie`). RGAA : `role="alert"`/`aria-live`, labels, focus visible.
+- `LoginPage.vue` : le lien « Mot de passe oublié ? » pointe désormais vers le vrai flux libre-service (fin de l'impasse « contactez l'administrateur »).
+- `EntrepriseListPage.vue` / `UserListPage.vue` : suppression de l'affichage du mot de passe en clair ; après activation/création, dialog **« Invitation envoyée »** avec **lien copiable** (repli) ; action **« Renvoyer l'invitation »** par ligne. Champ mot de passe retiré du formulaire utilisateur.
+- Module API `auth.ts` (`forgotPassword`, `resetPassword`) ; `users.ts` / `entreprises.ts` adaptés (`invitation_url`, `renvoyerInvitation`, retrait de `password`).
+
+#### Tests
+- `UserInvitationTest` : création staff → invitation envoyée, **aucun mot de passe** exposé, rôle assigné, champ `password` ignoré, rôle obligatoire (422), renvoi d'invitation, non-admin interdit (403).
+- `PasswordResetTest` : forgot envoie un lien si le compte existe, **réponse générique** sinon, **throttling** (429) ; reset définit le mot de passe, rejette un token invalide (422), exige robustesse + confirmation.
+- `PortailAccessTest` : activation **n'expose plus** de mot de passe et **envoie une invitation** ; renvoi d'invitation au client existant. **273 tests** au vert.
+
+#### Note exploitation
+- Le choix du mot de passe par l'utilisateur transite par `POST /reset-password` : **HTTPS obligatoire en production** (le dev local reste en HTTP). Lien d'invitation/réinitialisation valable 24 h, à usage unique.
+
 ### Robustesse suppression de mission — fix/robustesse-suppression-mission
 
 - **Échec silencieux corrigé** (`useMissions.ts`) : la suppression d'une mission bloquée par le backend (HTTP **409** « mission avec factures associées ») n'affichait **aucun retour** à l'utilisateur — `deleteMission` n'avait pas de `try/catch`, la promesse rejetée était avalée par le callback de confirmation et la mission restait dans la liste sans explication. Désormais le **message métier du backend** est remonté dans un toast d'erreur (même pattern que `deleteTache`), avec message de repli si le backend n'en fournit pas. Aucun toast de succès ni rafraîchissement de liste en cas d'échec.

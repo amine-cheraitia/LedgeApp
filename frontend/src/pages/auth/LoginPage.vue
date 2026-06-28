@@ -23,13 +23,6 @@ function openAideConnexion(): void {
   aideDialogVisible.value = true
 }
 
-function openMotDePasseOublie(): void {
-  aideDialogTitle.value = 'Mot de passe oublié'
-  aideDialogText.value =
-    'La réinitialisation du mot de passe est gérée par l’administrateur du cabinet. Contactez-le pour obtenir un nouvel accès ou un lien sécurisé.'
-  aideDialogVisible.value = true
-}
-
 async function handleLogin() {
   error.value = ''
   try {
@@ -183,14 +176,9 @@ async function handleLogin() {
             />
 
             <div class="login-forgot-wrap">
-              <button
-                type="button"
-                class="login-text-btn"
-                aria-label="Informations en cas de mot de passe oublié"
-                @click="openMotDePasseOublie"
-              >
+              <RouterLink to="/mot-de-passe-oublie" class="login-text-btn">
                 Mot de passe oublié ?
-              </button>
+              </RouterLink>
             </div>
           </form>
 

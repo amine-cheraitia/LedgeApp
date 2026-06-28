@@ -18,6 +18,18 @@ const router = createRouter({
       meta: { guest: true },
     },
     {
+      path: '/mot-de-passe-oublie',
+      name: 'mot-de-passe-oublie',
+      component: () => import('@/pages/auth/MotDePasseOubliePage.vue'),
+      meta: { guest: true },
+    },
+    {
+      path: '/definir-mot-de-passe',
+      name: 'definir-mot-de-passe',
+      component: () => import('@/pages/auth/DefinirMotDePassePage.vue'),
+      meta: { guest: true },
+    },
+    {
       path: '/',
       component: () => import('@/layout/AppLayout.vue'),
       meta: { requiresAuth: true, backoffice: true },

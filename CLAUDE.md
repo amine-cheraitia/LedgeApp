@@ -218,8 +218,11 @@ Tranche 3 = 40% du total mission (solde)
 
 ## Portail client — activation
 Admin -> Fiche Entreprise (statut=client) -> "Activer acces portail"
--> Cree User avec `entreprise_id` + role `client` + envoie email set-password
+-> Cree User avec `entreprise_id` + role `client` (mot de passe placeholder aleatoire inutilisable)
+-> Envoie une **invitation par email** (lien a usage unique via `InvitationService`) : le client **definit lui-meme** son mot de passe sur `/definir-mot-de-passe`.
 -> `portail_actif = 1` pour activer, `0` pour revoquer
+
+**Regle absolue : l'admin ne genere, ne voit ni ne transmet jamais de mot de passe.** Idem pour la creation d'un staff (collaborateur/secretaire) : creation sans mot de passe -> invitation. Repli si l'email n'arrive pas : un **lien copiable (sans mot de passe)** est affiche a l'admin. Renvoi possible via `renvoyer-invitation`. Mot de passe oublie en libre-service : `/mot-de-passe-oublie` -> `POST /forgot-password` (reponse generique) -> meme page `/definir-mot-de-passe`.
 
 ---
 
@@ -254,7 +257,7 @@ public function __construct(private readonly FacturationService $facturationServ
 
 | Domaine | Controllers | Services | Modeles |
 |---|---|---|---|
-| Auth | AuthController, UserController | — | User |
+| Auth | AuthController, UserController, PasswordController | InvitationService | User |
 | Entreprises | EntrepriseController | — | Entreprise, CategorieEntreprise, RegimeFiscal |
 | Exercices | ExerciceController | — | Exercice |
 | Prestations | PrestationController | — | Prestation |
@@ -311,6 +314,8 @@ GET    /sanctum/csrf-cookie      # recup CSRF token
 POST   /api/v1/login             # login (cookie session)
 POST   /api/v1/logout            # logout
 GET    /api/v1/me                # user connecte + role
+POST   /api/v1/forgot-password   # public — envoie lien reinit (reponse generique, throttle 6/min)
+POST   /api/v1/reset-password    # public — definit le mot de passe via jeton (throttle 6/min)
 ```
 
 Sanctum en mode SPA : authentification cookie-based (pas de tokens Bearer). CORS configure pour `localhost:5173`.

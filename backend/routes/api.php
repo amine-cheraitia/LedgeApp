@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Audit\AuditController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\Dashboard\KpiController;
@@ -39,6 +40,10 @@ Route::prefix('v1')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
     Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
+    // Mot de passe — definition (invitation) / reinitialisation (libre-service), via jeton a usage unique
+    Route::post('/forgot-password', [PasswordController::class, 'forgot'])->middleware('throttle:6,1');
+    Route::post('/reset-password', [PasswordController::class, 'reset'])->middleware('throttle:6,1');
+
     // Routes authentifiees
     Route::middleware('auth:sanctum')->group(function () {
 
@@ -53,6 +58,7 @@ Route::prefix('v1')->group(function () {
                 Route::post('users', [UserController::class, 'store']);
                 Route::put('users/{user}', [UserController::class, 'update']);
                 Route::delete('users/{user}', [UserController::class, 'destroy']);
+                Route::post('users/{user}/renvoyer-invitation', [UserController::class, 'renvoyerInvitation'])->middleware('throttle:6,1');
 
                 // Parametres cabinet (ecriture)
                 Route::put('settings', [SettingController::class, 'update']);
@@ -60,6 +66,7 @@ Route::prefix('v1')->group(function () {
                 // Entreprises (ecriture + portail — admin uniquement)
                 Route::delete('entreprises/{entreprise}', [EntrepriseController::class, 'destroy']);
                 Route::post('entreprises/{entreprise}/activer-portail', [EntrepriseController::class, 'activerPortail']);
+                Route::post('entreprises/{entreprise}/renvoyer-invitation', [EntrepriseController::class, 'renvoyerInvitation'])->middleware('throttle:6,1');
                 Route::post('entreprises/{entreprise}/toggle-portail', [EntrepriseController::class, 'togglePortail']);
 
                 // Exercices (ecriture + rapport cloture)

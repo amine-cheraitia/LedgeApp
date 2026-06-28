@@ -204,7 +204,8 @@
 
 **En tant que client**, je veux acceder a un portail securise distinct **afin de** consulter mes donnees en autonomie.
 
-- Activation par l'Admin depuis la fiche Entreprise → User cree avec `entreprise_id` + role `client` + email set-password
+- Activation par l'Admin depuis la fiche Entreprise → User cree avec `entreprise_id` + role `client`
+- **Invitation par lien securise (implementee)** : aucun mot de passe genere ni transmis ; le client le definit lui-meme via un email d'invitation (jeton a usage unique, 24 h). Repli : lien copiable affiche a l'admin. Voir CHANGELOG `feature/invitation-definition-mot-de-passe`.
 - URL `/portail` dediee · scope isolation absolue `->where('entreprise_id', auth()->user()->entreprise_id)`
 - `portail_actif = 1` pour activer · `0` pour revoquer
 - Middleware `EnsurePortailAccess` deja en place

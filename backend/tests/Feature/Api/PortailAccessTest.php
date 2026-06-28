@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Api;
 
+use App\Mail\InvitationCompteMail;
 use App\Models\Entreprise;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -60,8 +62,10 @@ class PortailAccessTest extends TestCase
         $this->assertTrue($user->hasRole('client'));
     }
 
-    public function test_activation_retourne_mot_de_passe_temporaire(): void
+    public function test_activation_envoie_invitation_sans_mot_de_passe(): void
     {
+        Mail::fake();
+
         $response = $this->actingAs($this->admin)
             ->postJson("/api/v1/entreprises/{$this->entreprise->id}/activer-portail", [
                 'name' => 'Contact Client',
@@ -69,9 +73,33 @@ class PortailAccessTest extends TestCase
             ]);
 
         $response->assertCreated()
-            ->assertJsonStructure(['temporary_password']);
+            ->assertJsonStructure(['message', 'user', 'invitation_url']);
 
-        $this->assertNotEmpty($response->json('temporary_password'));
+        // Aucun mot de passe (clair ou temporaire) n'est jamais expose a l'admin.
+        $this->assertNull($response->json('temporary_password'));
+        $this->assertNull($response->json('password'));
+        $this->assertNotEmpty($response->json('invitation_url'));
+
+        Mail::assertSent(InvitationCompteMail::class, fn (InvitationCompteMail $mail) => $mail->hasTo('client2@test.dz'));
+    }
+
+    public function test_renvoyer_invitation_au_client_existant(): void
+    {
+        Mail::fake();
+
+        $clientUser = User::factory()->create([
+            'entreprise_id' => $this->entreprise->id,
+            'portail_actif' => true,
+        ]);
+        $clientUser->assignRole('client');
+
+        $response = $this->actingAs($this->admin)
+            ->postJson("/api/v1/entreprises/{$this->entreprise->id}/renvoyer-invitation");
+
+        $response->assertOk()
+            ->assertJsonStructure(['message', 'invitation_url']);
+
+        Mail::assertSent(InvitationCompteMail::class, fn (InvitationCompteMail $mail) => $mail->hasTo($clientUser->email));
     }
 
     public function test_activation_echoue_si_statut_prospect(): void
