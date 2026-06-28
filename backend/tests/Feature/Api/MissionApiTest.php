@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Tests\Feature\Api;
 
 use App\Models\CategorieEntreprise;
+use App\Models\Document;
 use App\Models\Entreprise;
 use App\Models\Exercice;
 use App\Models\Mission;
 use App\Models\Prestation;
 use App\Models\RegimeFiscal;
 use App\Models\Setting;
+use App\Models\Tache;
+use App\Models\TacheCommentaire;
 use App\Models\TvaTaux;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -239,6 +242,64 @@ class MissionApiTest extends TestCase
             ->deleteJson("/api/v1/missions/{$missionId}");
 
         $response->assertStatus(409);
+    }
+
+    public function test_suppression_mission_soft_delete_les_taches_et_leurs_commentaires(): void
+    {
+        $missionId = $this->actingAs($this->admin)
+            ->postJson('/api/v1/missions', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_debut' => '2026-04-01',
+                'date_fin' => '2027-03-31',
+            ])
+            ->json('data.id');
+
+        $tache = Tache::factory()->create(['mission_id' => $missionId]);
+        $commentaire = TacheCommentaire::create([
+            'tache_id' => $tache->id,
+            'user_id' => $this->admin->id,
+            'contenu' => 'Note de suivi',
+            'visible_portail' => false,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->deleteJson("/api/v1/missions/{$missionId}")
+            ->assertNoContent();
+
+        // La mission et sa tache sont soft-deletees...
+        $this->assertSoftDeleted('missions', ['id' => $missionId]);
+        $this->assertSoftDeleted('taches', ['id' => $tache->id]);
+        // ...et le commentaire ne reste pas un orphelin actif.
+        $this->assertSoftDeleted('tache_commentaires', ['id' => $commentaire->id]);
+    }
+
+    public function test_suppression_mission_detache_les_documents_sans_les_supprimer(): void
+    {
+        $missionId = $this->actingAs($this->admin)
+            ->postJson('/api/v1/missions', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_debut' => '2026-04-01',
+                'date_fin' => '2027-03-31',
+            ])
+            ->json('data.id');
+
+        $document = Document::create([
+            'entreprise_id' => $this->entreprise->id,
+            'mission_id' => $missionId,
+            'uploaded_by' => $this->admin->id,
+            'nom' => 'rapport.pdf',
+            'chemin' => 'documents/rapport.pdf',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->deleteJson("/api/v1/missions/{$missionId}")
+            ->assertNoContent();
+
+        // Le document est conserve (il appartient a l'entreprise) mais detache de la mission.
+        $this->assertDatabaseHas('documents', ['id' => $document->id, 'mission_id' => null]);
+        $this->assertNotSoftDeleted('documents', ['id' => $document->id]);
     }
 
     public function test_sequential_reference_numbering(): void

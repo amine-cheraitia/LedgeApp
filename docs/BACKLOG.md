@@ -192,7 +192,10 @@
 - `MissionService::creerMission()` avec generation reference sequentielle
 - Conversion devis → mission via `POST /devis/{id}/convertir-en-mission` (stocke `devis_id`)
 - Protection suppression : bloquee si factures associees
-- 🔄 **Robustesse suppression (fix/robustesse-suppression-mission)** : le blocage **409** (mission avec factures) etait avale cote front (echec silencieux) ; `useMissions.deleteMission` remonte desormais le **message backend** dans un toast d'erreur (pattern aligne sur `deleteTache`), avec tests de regression
+- 🔄 **Robustesse suppression (fix/robustesse-suppression-mission)** : la suppression d'une mission (soft-delete) laissait des incoherences corrigees sur la branche —
+  - **front** : le blocage **409** (mission avec factures) etait avale cote front (echec silencieux) ; `useMissions.deleteMission` remonte desormais le **message backend** dans un toast d'erreur (pattern aligne sur `deleteTache`)
+  - **back** (`MissionService::supprimerMission`) : les **commentaires** des taches restaient actifs (orphelins) → desormais soft-deletes dans la transaction ; les **documents** gardaient un `mission_id` vers une mission disparue → desormais **detaches** (`mission_id = null`, sans suppression, le nullOnDelete ne se declenchant pas sur un soft-delete)
+  - tests de regression front (`useMissions.test.ts`) et back (`MissionApiTest`)
 - Depend de : **US-06, US-05, US-17**
 
 ---

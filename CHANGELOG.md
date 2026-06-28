@@ -12,7 +12,9 @@
 ### Robustesse suppression de mission — fix/robustesse-suppression-mission
 
 - **Échec silencieux corrigé** (`useMissions.ts`) : la suppression d'une mission bloquée par le backend (HTTP **409** « mission avec factures associées ») n'affichait **aucun retour** à l'utilisateur — `deleteMission` n'avait pas de `try/catch`, la promesse rejetée était avalée par le callback de confirmation et la mission restait dans la liste sans explication. Désormais le **message métier du backend** est remonté dans un toast d'erreur (même pattern que `deleteTache`), avec message de repli si le backend n'en fournit pas. Aucun toast de succès ni rafraîchissement de liste en cas d'échec.
-- **Tests** (`useMissions.test.ts`) : succès (suppression + refetch + toast succès) ; échec **409** → toast erreur portant le message backend, sans rejet de promesse ; message de repli si le backend ne fournit pas de `message`.
+- **Commentaires de tâches orphelins corrigés** (`MissionService::supprimerMission`) : la mission étant **soft-deletée**, ni les events Eloquent ni le `cascadeOnDelete` SQL ne se déclenchaient ; les tâches étaient soft-deletées mais leurs **commentaires restaient actifs** (orphelins pointant vers une tâche supprimée). Ils sont désormais soft-deletés explicitement dans la même transaction.
+- **Documents rattachés à une mission supprimée corrigés** (`MissionService::supprimerMission`) : le soft-delete n'activait pas le `nullOnDelete` de la FK `documents.mission_id`, laissant des documents pointer vers une mission disparue. Ils sont désormais **détachés** (`mission_id = null`) — sans suppression, puisqu'ils restent rattachés à l'entreprise — conformément à l'intention du schéma.
+- **Tests** : front (`useMissions.test.ts`) succès + échec **409** + message de repli ; back (`MissionApiTest`) la suppression soft-delete les tâches **et** leurs commentaires, et **détache** les documents sans les supprimer.
 
 ### Correctifs page Planning & accès aux tâches par rôle — fix/correctifs-planning
 
