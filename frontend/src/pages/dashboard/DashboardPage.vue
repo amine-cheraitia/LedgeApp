@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useCountUp } from '@/composables/useCountUp'
 import { useLayout } from '@/layout/composables/layout'
 import SecretaireDashboardSection from '@/pages/dashboard/SecretaireDashboardSection.vue'
+import { prioriteLabel, prioriteSeverity } from '@/utils/priorite'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import Select from 'primevue/select'
 import Message from 'primevue/message'
@@ -74,14 +75,6 @@ function formatRelativeDate(dateStr: string): string {
 
 function joursRestants(dateStr: string): number {
   return Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000)
-}
-
-function prioriteLabel(p: number): string {
-  return p >= 3 ? 'Urgente' : p === 2 ? 'Haute' : 'Normale'
-}
-
-function prioriteSeverity(p: number): 'danger' | 'warn' | 'secondary' {
-  return p >= 3 ? 'danger' : p === 2 ? 'warn' : 'secondary'
 }
 
 function statutPaiementSeverity(statut: string): string {

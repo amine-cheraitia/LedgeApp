@@ -9,9 +9,11 @@ use App\Models\Exercice;
 use App\Models\Mission;
 use App\Models\Prestation;
 use App\Models\Setting;
+use App\Models\Tache;
 use App\Models\User;
 use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 class MissionService
@@ -141,6 +143,24 @@ class MissionService
 
             return $mission->load('entreprise', 'prestation', 'collaborateurs');
         });
+    }
+
+    /**
+     * Détecte les tâches d'un collaborateur qui chevauchent une période donnée,
+     * toutes missions confondues. Sert à prévenir l'admin d'un conflit d'affectation
+     * au moment où il choisit le collaborateur ou les dates (avertissement non bloquant).
+     *
+     * @return Collection<int, Tache>
+     */
+    public function detecterConflitsTache(int $collaborateurId, ?string $debut, ?string $echeance, ?int $excludeId = null): Collection
+    {
+        return Tache::query()
+            ->where('assigned_to', $collaborateurId)
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
+            ->chevauche($debut, $echeance)
+            ->with('mission:id,reference')
+            ->orderBy('date_debut')
+            ->get();
     }
 
     public function supprimerMission(Mission $mission): void

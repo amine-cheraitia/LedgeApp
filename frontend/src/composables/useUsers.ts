@@ -10,12 +10,13 @@ export function useUsers() {
   const totalRecords = ref(0)
   const filters = ref<UserFilters>({ page: 1, per_page: 15 })
 
-  async function fetchUsers() {
+  async function fetchUsers(overrides?: Partial<UserFilters>) {
     loading.value = true
     try {
       const response = await usersApi.getAll({
         ...filters.value,
-        search: filters.value.search || undefined,
+        ...overrides,
+        search: (overrides?.search ?? filters.value.search) || undefined,
       })
       users.value = response.data
       totalRecords.value = response.meta?.total ?? response.data.length

@@ -6,7 +6,9 @@ import { planningApi, type CalendarMission, type CalendarTache } from '@/api/mod
 import { missionsApi } from '@/api/modules/missions'
 import { tachesApi } from '@/api/modules/taches'
 import { usersApi } from '@/api/modules/users'
+import { useAuthStore } from '@/stores/auth'
 import type { User } from '@/types'
+import { prioriteColor } from '@/utils/priorite'
 
 // ── Palettes ──────────────────────────────────────────────────────────────────
 
@@ -37,12 +39,30 @@ const TACHE_COLORS: Record<string, string> = {
   bloquee:  '#EF4444',
 }
 
+// Couleur d'une tâche selon sa priorité : voir @/utils/priorite (source de vérité, 4 niveaux).
+
 export function prestationColor(id: number | null): string {
   if (id === null) return '#94A3B8'
   return PRESTATION_PALETTE[id % PRESTATION_PALETTE.length]
 }
 
 // ── Conversion événements ─────────────────────────────────────────────────────
+
+// Ajoute n jours à une date ISO 'YYYY-MM-DD'. UTC pour éviter les décalages DST.
+function addDays(iso: string, n: number): string {
+  const d = new Date(iso + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}
+
+// Extrait le message d'erreur backend (message global ou 1re erreur de validation).
+function extractError(e: any, fallback: string): string {
+  return (
+    e?.response?.data?.message
+    ?? (Object.values(e?.response?.data?.errors ?? {})?.[0] as string[] | undefined)?.[0]
+    ?? fallback
+  )
+}
 
 function missionToEvent(m: CalendarMission): EventInput {
   const bg     = prestationColor(m.prestation_id)
@@ -51,7 +71,8 @@ function missionToEvent(m: CalendarMission): EventInput {
     id: `mission-${m.id}`,
     title: m.titre,
     start: m.date_debut,
-    end: m.date_fin ?? undefined,
+    // FullCalendar : la fin d'un événement allDay est EXCLUSIVE → +1 jour pour couvrir date_fin.
+    end: m.date_fin ? addDays(m.date_fin, 1) : undefined,
     backgroundColor: bg + 'CC', // 80 % opacité
     borderColor: border,
     textColor: '#fff',
@@ -61,20 +82,23 @@ function missionToEvent(m: CalendarMission): EventInput {
   }
 }
 
+// Tâche → événement (planning collaborateur). Couleur selon la priorité.
 function tacheToEvent(t: CalendarTache): EventInput {
-  // Plage debut -> echeance (comme une mission). Repli en point si une seule date.
-  // Le back ne renvoie que des taches ayant au moins une des deux dates.
-  const color = TACHE_COLORS[t.statut] ?? '#0EA5E9'
+  const color  = prioriteColor(t.priorite)
+  const start  = t.date_debut ?? t.date_echeance ?? undefined
+  const endSrc = t.date_echeance ?? t.date_debut
   return {
     id: `tache-${t.id}`,
     title: t.titre,
-    start: t.date_debut ?? t.date_echeance ?? undefined,
-    end: t.date_debut && t.date_echeance ? t.date_echeance : undefined,
-    backgroundColor: color,
+    start,
+    // FullCalendar : la fin d'un événement allDay est EXCLUSIVE → +1 jour pour couvrir l'échéance.
+    end: endSrc ? addDays(endSrc, 1) : undefined,
+    backgroundColor: color + 'CC', // 80 % opacité
     borderColor: color,
     textColor: '#fff',
     extendedProps: { ...t },
     allDay: true,
+    classNames: [`fc-tache-prio-${t.priorite}`],
   }
 }
 
@@ -82,6 +106,7 @@ function tacheToEvent(t: CalendarTache): EventInput {
 
 export function usePlanning() {
   const toast = useToast()
+  const auth  = useAuthStore()
 
   // Filtre collaborateur
   const collaborateurFilter = ref<number | null>(null)
@@ -99,15 +124,17 @@ export function usePlanning() {
 
   // Filtres statuts (actifs par défaut : tout sauf terminée/annulée)
   const activeStatuts = ref<Set<string>>(new Set(['en_cours', 'suspendue']))
-  const showTaches    = ref(true)
 
-  // Événements filtrés → passés directement au calendrier
-  const filteredEvents = computed<EventInput[]>(() => [
-    ...rawMissions.value
-      .filter(m => activeStatuts.value.has(m.statut))
-      .map(missionToEvent),
-    ...(showTaches.value ? rawTaches.value.map(tacheToEvent) : []),
-  ])
+  // Événements filtrés selon le rôle :
+  // - collaborateur → SES tâches uniquement (déjà scopées serveur), colorées par priorité ;
+  // - admin → missions filtrées par statut (les tâches vivent dans l'onglet Équipe).
+  const filteredEvents = computed<EventInput[]>(() =>
+    auth.isCollaborateur
+      ? rawTaches.value.map(tacheToEvent)
+      : rawMissions.value
+          .filter(m => activeStatuts.value.has(m.statut))
+          .map(missionToEvent),
+  )
 
   // Stats par statut (pour les compteurs dans les chips)
   const missionCountByStatut = computed(() => {
@@ -174,10 +201,6 @@ export function usePlanning() {
     activeStatuts.value = next
   }
 
-  function toggleTaches() {
-    showTaches.value = !showTaches.value
-  }
-
   async function changerStatutMission(missionId: number, statut: string) {
     await missionsApi.update(missionId, { statut: statut as any })
     // Mise à jour locale immédiate
@@ -188,47 +211,36 @@ export function usePlanning() {
 
   async function onEventDrop(info: EventDropArg) {
     const props = info.event.extendedProps as CalendarMission | CalendarTache
+    const delta = info.delta.days
     try {
       if (props.type === 'mission') {
         const m = props as CalendarMission
-        const newStart = info.event.startStr.slice(0, 10)
-        const delta = info.delta.days
-        const newEnd = m.date_fin
-          ? (() => {
-              const d = new Date(m.date_fin)
-              d.setDate(d.getDate() + delta)
-              return d.toISOString().slice(0, 10)
-            })()
-          : null
         await missionsApi.update(m.id, {
-          date_debut: newStart,
-          ...(newEnd ? { date_fin: newEnd } : {}),
+          ...(m.date_debut ? { date_debut: addDays(m.date_debut, delta) } : {}),
+          ...(m.date_fin ? { date_fin: addDays(m.date_fin, delta) } : {}),
         })
         toast.add({ severity: 'success', summary: 'Mission déplacée', detail: m.reference, life: 2000 })
       } else {
         const t = props as CalendarTache
         // Deplacer la barre decale les deux dates du meme delta (jours).
-        const delta = info.delta.days
-        const shift = (d: string): string => {
-          const x = new Date(d)
-          x.setDate(x.getDate() + delta)
-          return x.toISOString().slice(0, 10)
-        }
         await tachesApi.update(t.mission_id, t.id, {
-          ...(t.date_debut ? { date_debut: shift(t.date_debut) } : {}),
-          ...(t.date_echeance ? { date_echeance: shift(t.date_echeance) } : {}),
+          ...(t.date_debut ? { date_debut: addDays(t.date_debut, delta) } : {}),
+          ...(t.date_echeance ? { date_echeance: addDays(t.date_echeance, delta) } : {}),
         })
         toast.add({ severity: 'success', summary: 'Tâche déplacée', detail: t.titre, life: 2000 })
       }
-    } catch {
+    } catch (e: any) {
       info.revert()
-      toast.add({ severity: 'error', summary: 'Erreur', detail: "Impossible de déplacer l'événement.", life: 3000 })
+      toast.add({ severity: 'error', summary: 'Erreur', detail: extractError(e, "Impossible de déplacer l'événement."), life: 4000 })
     }
   }
 
   async function onEventResize(info: EventResizeDoneArg) {
     const props = info.event.extendedProps as CalendarMission | CalendarTache
-    const newEnd = info.event.endStr.slice(0, 10)
+    // endStr est EXCLUSIF (allDay) → dernier jour réel = endStr - 1.
+    const newEnd = info.event.endStr
+      ? addDays(info.event.endStr.slice(0, 10), -1)
+      : info.event.startStr.slice(0, 10)
     try {
       if (props.type === 'mission') {
         await missionsApi.update(props.id, { date_fin: newEnd })
@@ -238,9 +250,9 @@ export function usePlanning() {
         await tachesApi.update(props.mission_id, props.id, { date_echeance: newEnd })
         toast.add({ severity: 'success', summary: 'Tâche redimensionnée', detail: props.titre, life: 2000 })
       }
-    } catch {
+    } catch (e: any) {
       info.revert()
-      toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de redimensionner l\'événement.', life: 3000 })
+      toast.add({ severity: 'error', summary: 'Erreur', detail: extractError(e, "Impossible de redimensionner l'événement."), life: 4000 })
     }
   }
 
@@ -291,14 +303,29 @@ export function usePlanning() {
 
   watch(teamWeekStart, loadEquipeWeek)
 
-  // Grille : collaborateurId → date → tâches
+  // Grille : collaborateurId → date (YYYY-MM-DD) → tâches présentes ce jour-là.
+  // Chaque tâche couvre TOUTE sa plage début → échéance (intersectée avec la semaine visible).
   const teamGridData = computed<Record<number, Record<string, CalendarTache[]>>>(() => {
     const grid: Record<number, Record<string, CalendarTache[]>> = {}
+    const days = teamWeekDays.value
+    if (days.length === 0) return grid
+    const weekStart = days[0]
+    const weekEnd   = days[days.length - 1]
+
     for (const t of rawTachesEquipe.value) {
-      if (!t.assigned_to || !t.date_echeance) continue
+      if (!t.assigned_to) continue
+      const startStr = t.date_debut ?? t.date_echeance
+      const endStr   = t.date_echeance ?? t.date_debut
+      if (!startStr || !endStr) continue           // tâche sans aucune date → ignorée
+
+      const from = startStr > weekStart ? startStr : weekStart   // intersection avec la semaine
+      const to   = endStr   < weekEnd   ? endStr   : weekEnd
+      if (from > to) continue                       // hors semaine visible
+
       if (!grid[t.assigned_to]) grid[t.assigned_to] = {}
-      if (!grid[t.assigned_to][t.date_echeance]) grid[t.assigned_to][t.date_echeance] = []
-      grid[t.assigned_to][t.date_echeance].push(t)
+      for (let d = from; d <= to; d = addDays(d, 1)) {  // inclusif, ≤ 7 itérations
+        ;(grid[t.assigned_to][d] ??= []).push(t)
+      }
     }
     return grid
   })
@@ -327,9 +354,7 @@ export function usePlanning() {
     loadEvents,
     // Filtres statuts
     activeStatuts,
-    showTaches,
     toggleStatut,
-    toggleTaches,
     missionCountByStatut,
     // Légende
     prestationsVues,

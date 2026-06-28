@@ -9,6 +9,45 @@
 
 ## [Unreleased]
 
+### Correctifs page Planning & accès aux tâches par rôle — fix/correctifs-planning
+
+Correctifs issus des tests utilisateur sur la page Planning : affichage, vues, comportement **différencié par rôle**, et règles métier d'affectation / isolation des tâches désormais **appliquées par le backend** (défense en profondeur).
+
+#### Frontend — Planning par rôle
+- **Collaborateur** (`PlanningCalendarPage.vue` / `usePlanning.ts`) : la page n'affiche plus qu'**un seul calendrier = ses tâches** (pas d'onglets), **colorées par priorité** (Faible → Urgente, 4 niveaux — voir correctif ci-dessous), avec une **légende priorité**. Calendrier **non éditable** (ni drag ni resize). Il ne voit jamais les tâches des autres.
+- **Admin** : conserve les onglets **Missions** (calendrier des missions) et **Équipe**. Dans l'onglet Équipe, **cliquer sur la tâche d'un collaborateur ouvre le même modal** que sur le calendrier des missions (chip rendu en `<button>` accessible).
+- **Onglet Missions** (`usePlanning.ts`) : le calendrier n'affiche que les **missions** (les tâches restent dans l'onglet Équipe et les fiches mission).
+- **Quatre vues** (`PlanningCalendarPage.vue`) : **Année / Mois / Semaine / Liste**, libellés FR — partout (Missions admin et planning collaborateur).
+- **Décalage d'un jour corrigé** (`usePlanning.ts`) : la fin des barres (`allDay` exclusif côté FullCalendar) est ajustée (+1 jour à l'affichage, −1 à la persistance d'un redimensionnement) ; une mission 24 → 26 couvre bien 24/25/26.
+- **Détail mission / tâche** : un collaborateur ne voit que **ses** tâches dans la fiche mission ; le **formulaire de commentaire est masqué** sur une tâche qui ne lui est pas affectée ; il ne peut **ni modifier ni supprimer** un commentaire qui n'est pas le sien.
+- **Sélecteur d'affectation** (`MissionDetailPage` / `TacheDetailPage`) : ne liste que les **administrateurs et collaborateurs** (`useUsers.fetchUsers({ role: ['admin','collaborateur'] })`).
+- **Toasts d'erreur** : le message du backend (422) est remonté lors d'un drag/resize hors bornes au lieu d'un message générique.
+
+#### Backend — isolation des tâches par rôle
+- **`Tache::scopeVisiblePour(User)`** : scope réutilisable — l'admin voit tout, le collaborateur uniquement les tâches qui lui sont affectées (`assigned_to`).
+- **`TachePolicy::view`** : admin, ou collaborateur affecté à la tâche. Appliquée sur :
+  - `TacheController@index` (liste scopée via `visiblePour`) et `@show` (**403** si tâche non affectée) ;
+  - `MissionController@show` (chargement des tâches scopé) ;
+  - `TacheCommentaireController@index` / `@store` (**403** : un collaborateur non affecté ne peut ni lister ni poster de commentaire).
+- **Immutabilité des commentaires** : `update` / `destroy` restent limités à l'**auteur ou à un admin** (`TacheCommentairePolicy`, inchangé).
+- **`ValidatesTacheDates`** (trait mutualisé `StoreTacheRequest` / `UpdateTacheRequest`) :
+  - `date_debut` ≥ **début de la mission** ; `date_echeance` ≤ **fin de la mission** — **sauf si la mission est en retard**, auquel cas l'échéance peut la dépasser. Rejet **422** + messages FR.
+  - `assigned_to` : une tâche ne peut être affectée qu'à un **collaborateur ou un administrateur** (jamais à la secrétaire). Rejet **422**.
+
+#### Frontend (API)
+- **`UserFilters.role`** : accepte `string | string[]` (`useUsers.fetchUsers` accepte un override de filtres sans changer le comportement par défaut de `UserListPage`).
+
+#### Tests
+- `TacheApiTest` : le collaborateur **ne voit que ses propres tâches** (l'admin les voit toutes) ; **403** à la consultation et au commentaire d'une tâche non affectée ; **201** au commentaire de sa propre tâche ; **403** à la modification/suppression du commentaire d'un admin (immutabilité) ; affectation secrétaire → 422 ; collaborateur → 201 ; bornes de dates `date_debut`/`date_echeance` → 422 ; échéance au-delà de la fin **autorisée** si mission en retard.
+
+#### Correctifs complémentaires (priorités, décalage de date, conflit d'affectation)
+- **Priorités cohérentes — 4 niveaux** : la légende du planning et le Dashboard affichaient des niveaux inventés (5 niveaux « Très faible → Critique » côté planning, mapping 3 niveaux cassé au Dashboard). Le système n'a que **4 priorités : Faible / Normale / Haute / Urgente**. Centralisation dans une source de vérité unique `frontend/src/utils/priorite.ts` (libellés, severities, couleurs alignées sur les badges PrimeVue — gris/bleu/ambre/rouge) réutilisée par `usePlanning.ts`, `PlanningCalendarPage.vue`, `TacheDetailPage.vue`, `MissionDetailPage.vue` et `DashboardPage.vue`. Backend : `StoreTacheRequest` / `UpdateTacheRequest` bornent désormais `priorite` à **`max:4`** (au lieu de `max:5`).
+- **Décalage d'un jour à la saisie corrigé** : une échéance saisie au 7 juin était enregistrée au 6 juin. Cause : `toIsoDate()` passait par `Date.toISOString()` (UTC), repassant à la veille en UTC+1. Nouveau helper `frontend/src/utils/date.ts` (`toIsoDate` / `parseIsoDate`) formatant à partir des composants **locaux** ; appliqué à la saisie et au pré-remplissage des formulaires (`TacheDetailPage.vue`, `MissionDetailPage.vue`).
+- **Alerte de conflit d'affectation réactive (non bloquante)** : à la création/édition d'une tâche, si le collaborateur choisi a déjà une tâche qui **chevauche** la période saisie (toutes missions confondues), un avertissement s'affiche en temps réel (au changement de dates **ou** de collaborateur) ; l'enregistrement reste autorisé. Backend : `Tache::scopeChevauche()` (chevauchement `COALESCE`, bindings), `MissionService::detecterConflitsTache()`, `TacheController@conflits` (admin only via `MissionPolicy::create`), `CheckTacheConflitsRequest`, `ConflitTacheResource`, route `GET /api/v1/taches/conflits`. Frontend : `tachesApi.conflits`, composable `useTacheConflits` (debounce + anti-course), encart d'avertissement `role="status"` / `aria-live="polite"` dans les 3 dialogues (création + édition mission, édition tâche).
+
+#### Tests (correctifs complémentaires)
+- `TacheApiTest` : `priorite = 5` → **422**, `priorite = 4` → **201** ; conflit détecté sur chevauchement, **0** hors période, exclusion de la tâche courante (`exclude_tache_id`), détection **inter-missions** ; `collaborateur_id` manquant / aucune date → **422** ; endpoint **interdit au collaborateur** → 403.
+
 ### Tâches — date de début & affichage en plage sur le planning — feature/tache-date-debut
 
 Une tâche peut désormais porter une **date de début** en plus de son échéance ; sur le planning elle s'affiche en **plage** (barre début → échéance) au lieu d'un simple point.

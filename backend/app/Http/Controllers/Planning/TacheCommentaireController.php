@@ -18,7 +18,7 @@ class TacheCommentaireController extends Controller
 {
     public function index(Tache $tache): AnonymousResourceCollection
     {
-        $this->authorize('view', $tache->mission);
+        $this->authorize('view', $tache);
 
         return TacheCommentaireResource::collection(
             $tache->commentaires()->with('user')->latest()->get()
@@ -27,7 +27,8 @@ class TacheCommentaireController extends Controller
 
     public function store(StoreTacheCommentaireRequest $request, Tache $tache): JsonResponse
     {
-        $this->authorize('view', $tache->mission);
+        // Seul un utilisateur pouvant voir la tâche (admin ou collaborateur affecté) peut commenter.
+        $this->authorize('view', $tache);
 
         $commentaire = DB::transaction(function () use ($request, $tache) {
             $commentaire = $tache->commentaires()->create([

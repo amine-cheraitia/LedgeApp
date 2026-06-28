@@ -194,6 +194,9 @@ Route::prefix('v1')->group(function () {
                 Route::get('missions/{mission}/mandat/pdf', [MissionController::class, 'mandatPdf']);
                 Route::apiResource('missions', MissionController::class);
 
+                // Planning — Detection de conflit d'affectation (avant l'apiResource pour eviter toute collision)
+                Route::get('taches/conflits', [TacheController::class, 'conflits']);
+
                 // Planning — Taches (gate mission dans TacheController::index)
                 Route::apiResource('missions.taches', TacheController::class)->parameters(['taches' => 'tache']);
 
