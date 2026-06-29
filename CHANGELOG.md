@@ -9,6 +9,15 @@
 
 ## [Unreleased]
 
+### Numérotation des factures sans trou & suppression conforme — feature/facture-suppression-conforme-numerotation
+
+Aligne la suppression de factures sur les règles de conformité (numérotation séquentielle **continue**, annulation par **avoir**).
+
+- **Réutilisation du numéro de la dernière facture** (`FacturationService::supprimerFacture`) : la suppression d'une facture autorisée passe d'un **soft delete** à un **hard delete** (`forceDelete`). Le `numero` est physiquement libéré, donc réutilisé par le générateur `MAX(numero)+1` — supprimer FF{annee}-003 puis recréer redonne **FF{annee}-003** (avant : un trou → 004, car la ligne soft-deletée restait comptée dans le `MAX` via `DB::table()`).
+- **Blocage de la suppression d'une facture non-dernière** : seule la dernière facture de la séquence (préfixe+exercice) peut être supprimée. Sinon → **409** avec un message invitant à **créer un avoir (FA)** pour annuler la facture sans casser la numérotation. Blocage également si la facture a des **paiements** (message enrichi) ou un **avoir** rattaché (nouveau).
+- **Frontend** (`FactureListPage.vue`) : un refus de suppression (auparavant silencieux) s'affiche désormais dans une **popup/modal** dédiée (« Suppression impossible ») qui reste ouverte jusqu'à fermeture, laissant le temps de lire le message et sa suggestion d'avoir.
+- **Tests** (`FactureApiTest`) : suppression de la dernière facture → numéro réutilisé ; suppression d'une facture non-dernière → 409 + suggestion d'avoir ; facture avec avoir → 409.
+
 ### Correctifs gestion des taux de TVA — fix/tva-validation-dates-libelle-categorie
 
 - **Libellé de catégorie figé corrigé** (`TvaTauxPage.vue`) : dans la modale, les options du sélecteur « Categorie » affichaient un pourcentage **hardcodé** (« Standard (19%) ») déconnecté du champ « Taux (%) » — en éditant un taux à 35 %, la catégorie restait « Standard (19%) ». `typeOptions` devient un `computed` qui suit le taux saisi → **« Standard (35%) »** (Exonéré reste 0 %), mis à jour en direct.

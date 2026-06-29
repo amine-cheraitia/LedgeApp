@@ -37,6 +37,8 @@ export function useFactures() {
   }
 
   async function deleteFacture(id: number) {
+    // L'erreur (409 : pas la derniere, paiement ou avoir lie) est laissee remonter :
+    // la page l'affiche dans une popup pour laisser le temps de la lire.
     await facturesApi.delete(id)
     toast.add({ severity: 'success', summary: 'Succes', detail: 'Facture supprimee.', life: 3000 })
     await fetchFactures()

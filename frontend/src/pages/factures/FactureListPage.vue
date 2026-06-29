@@ -225,6 +225,11 @@ async function onSubmitAvoir() {
 }
 
 // ---------- Helpers ----------
+// Popup d'erreur de suppression (ex. facture non-derniere) : un modal laisse le
+// temps de lire le message (suggestion d'avoir), contrairement a un toast fugace.
+const deleteErrorVisible = ref(false)
+const deleteErrorMessage = ref('')
+
 function confirmDelete(facture: Facture) {
   confirm.require({
     message: `Supprimer la facture "${facture.numero}" ?`,
@@ -232,7 +237,14 @@ function confirmDelete(facture: Facture) {
     icon: 'pi pi-exclamation-triangle',
     acceptLabel: 'Supprimer',
     rejectLabel: 'Annuler',
-    accept: () => deleteFacture(facture.id),
+    accept: async () => {
+      try {
+        await deleteFacture(facture.id)
+      } catch (err: any) {
+        deleteErrorMessage.value = err.response?.data?.message ?? 'Suppression impossible.'
+        deleteErrorVisible.value = true
+      }
+    },
   })
 }
 
@@ -666,10 +678,43 @@ onMounted(async () => {
       :facture="drawerFacture"
       @paiement-changed="fetchFactures"
     />
+
+    <!-- Popup : suppression refusee (facture non-derniere, paiement ou avoir lie) -->
+    <Dialog
+      v-model:visible="deleteErrorVisible"
+      header="Suppression impossible"
+      :modal="true"
+      :style="{ width: 'min(100vw - 2rem, 30rem)' }"
+      :closable="true"
+    >
+      <div class="delete-error-body" role="alert" aria-live="assertive">
+        <i class="pi pi-exclamation-triangle delete-error-icon" aria-hidden="true" />
+        <p class="delete-error-text">{{ deleteErrorMessage }}</p>
+      </div>
+      <template #footer>
+        <Button label="Fermer" icon="pi pi-check" @click="deleteErrorVisible = false" />
+      </template>
+    </Dialog>
   </div>
 </template>
 
 <style scoped>
+.delete-error-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.delete-error-icon {
+  font-size: 1.5rem;
+  color: var(--p-orange-500, #f97316);
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+.delete-error-text {
+  margin: 0;
+  line-height: 1.55;
+  color: var(--p-text-color);
+}
 .page-header {
   display: flex;
   justify-content: space-between;
