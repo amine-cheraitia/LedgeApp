@@ -341,4 +341,65 @@ class FactureApiTest extends TestCase
             ->postJson("/api/v1/factures/{$factureId}/transmettre")
             ->assertStatus(403);
     }
+
+    public function test_supprimer_la_derniere_facture_libere_son_numero_pour_reutilisation(): void
+    {
+        $creer = fn (string $date) => $this->actingAs($this->admin)
+            ->postJson('/api/v1/factures', ['mission_id' => $this->mission->id, 'date_facture' => $date]);
+
+        $creer('2026-04-01')->assertCreated();
+        $creer('2026-04-02')->assertCreated();
+        $r3 = $creer('2026-04-03')->assertCreated();
+        $id3 = $r3->json('data.id');
+        $numero3 = $r3->json('data.numero');
+
+        // Supprimer la derniere facture de la sequence
+        $this->actingAs($this->admin)
+            ->deleteJson("/api/v1/factures/{$id3}")
+            ->assertStatus(204);
+
+        // Hard delete : la ligne n'existe plus (numero physiquement libere)
+        $this->assertDatabaseMissing('factures', ['id' => $id3]);
+
+        // La prochaine facture reutilise le numero libere, sans trou
+        $numero4 = $creer('2026-04-04')->assertCreated()->json('data.numero');
+        $this->assertSame($numero3, $numero4);
+    }
+
+    public function test_supprimer_une_facture_non_derniere_est_bloque_et_suggere_un_avoir(): void
+    {
+        $creer = fn (string $date) => $this->actingAs($this->admin)
+            ->postJson('/api/v1/factures', ['mission_id' => $this->mission->id, 'date_facture' => $date]);
+
+        $id1 = $creer('2026-04-01')->assertCreated()->json('data.id');
+        $creer('2026-04-02')->assertCreated();
+        $creer('2026-04-03')->assertCreated();
+
+        $response = $this->actingAs($this->admin)->deleteJson("/api/v1/factures/{$id1}");
+
+        $response->assertStatus(409);
+        $this->assertStringContainsStringIgnoringCase('avoir', (string) $response->json('message'));
+        $this->assertDatabaseHas('factures', ['id' => $id1]);
+    }
+
+    public function test_supprimer_une_facture_avec_avoir_est_bloque(): void
+    {
+        $factureId = $this->actingAs($this->admin)
+            ->postJson('/api/v1/factures', ['mission_id' => $this->mission->id, 'date_facture' => '2026-04-02'])
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$factureId}/avoirs", [
+                'montant_ht' => 1000,
+                'date_avoir' => '2026-04-05',
+                'motif' => 'Annulation partielle',
+            ])->assertCreated();
+
+        $this->actingAs($this->admin)
+            ->deleteJson("/api/v1/factures/{$factureId}")
+            ->assertStatus(409);
+
+        $this->assertDatabaseHas('factures', ['id' => $factureId]);
+    }
 }

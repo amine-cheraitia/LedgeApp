@@ -121,6 +121,38 @@ class FacturationServiceTest extends TestCase
         $this->assertEquals('FF2026-001', $numero2026);
     }
 
+    public function test_supprimer_la_derniere_facture_libere_le_numero(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $this->service->creerFacture(['mission_id' => $this->mission->id, 'date_facture' => '2026-01-10'], $admin->id);
+        $this->service->creerFacture(['mission_id' => $this->mission->id, 'date_facture' => '2026-02-10'], $admin->id);
+        $facture3 = $this->service->creerFacture(['mission_id' => $this->mission->id, 'date_facture' => '2026-03-10'], $admin->id);
+
+        $this->assertEquals('FF2026-003', $facture3->numero);
+
+        // Hard delete de la derniere : la ligne disparait physiquement
+        $this->service->supprimerFacture($facture3);
+        $this->assertDatabaseMissing('factures', ['id' => $facture3->id]);
+
+        // Le numero libere est reutilise, sans trou
+        $this->assertEquals('FF2026-003', $this->service->genererNumero('FF', 'factures', $this->exercice));
+    }
+
+    public function test_supprimer_une_facture_non_derniere_est_refuse(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $facture1 = $this->service->creerFacture(['mission_id' => $this->mission->id, 'date_facture' => '2026-01-10'], $admin->id);
+        $this->service->creerFacture(['mission_id' => $this->mission->id, 'date_facture' => '2026-02-10'], $admin->id);
+        $this->service->creerFacture(['mission_id' => $this->mission->id, 'date_facture' => '2026-03-10'], $admin->id);
+
+        $this->expectException(DomainException::class);
+        $this->service->supprimerFacture($facture1);
+    }
+
     // -------------------------------------------------------------------------
     // Tranches de facturation 30% / 30% / 40%
     // -------------------------------------------------------------------------

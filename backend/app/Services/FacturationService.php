@@ -410,13 +410,39 @@ class FacturationService
     public function supprimerFacture(Facture $facture): void
     {
         if ($facture->paiements()->exists()) {
-            throw new DomainException('Impossible de supprimer une facture avec des paiements.');
+            throw new DomainException('Impossible de supprimer une facture avec des paiements. Pour l\'annuler, creez un avoir (FA).');
+        }
+
+        if ($facture->avoirs()->exists()) {
+            throw new DomainException('Impossible de supprimer une facture deja annulee par un avoir.');
+        }
+
+        if (! $this->estDerniereDeLaSequence($facture)) {
+            throw new DomainException("La facture {$facture->numero} n'est pas la dernière de la séquence : la supprimer créerait un trou dans la numérotation. Pour l'annuler tout en restant conforme, créez un avoir (FA).");
         }
 
         DB::transaction(function () use ($facture) {
             $facture->lignes()->delete();
-            $facture->delete();
+            // Hard delete : libere physiquement le numero pour qu'il soit reutilise
+            // par genererNumero (MAX+1). Un soft delete laisserait la ligne en base,
+            // donc un trou dans la numerotation.
+            $facture->forceDelete();
         });
+    }
+
+    /**
+     * Une facture est la derniere de sa sequence si aucune autre facture non
+     * supprimee du meme prefixe+annee n'a un numero superieur.
+     */
+    private function estDerniereDeLaSequence(Facture $facture): bool
+    {
+        $prefixeAnnee = substr($facture->numero, 0, strrpos($facture->numero, '-') + 1);
+
+        $max = Facture::where('exercice_id', $facture->exercice_id)
+            ->where('numero', 'like', $prefixeAnnee.'%')
+            ->max('numero');
+
+        return $facture->numero === $max;
     }
 
     /**
