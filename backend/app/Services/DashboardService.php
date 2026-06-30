@@ -455,10 +455,11 @@ class DashboardService
      */
     private function compterEncaissements(Carbon $now): array
     {
-        $encaissements = Paiement::whereBetween('date_paiement', [
-            $now->copy()->startOfMonth()->toDateString(),
-            $now->copy()->endOfMonth()->toDateString(),
-        ]);
+        // whereYear+whereMonth (et non un whereBetween de dates) : un date_paiement
+        // compare comme datetime ('...-30 00:00:00') depassait la borne haute '...-30',
+        // ce qui excluait les encaissements faits le dernier jour du mois.
+        $encaissements = Paiement::whereYear('date_paiement', $now->year)
+            ->whereMonth('date_paiement', $now->month);
 
         return [
             'count' => (clone $encaissements)->count(),
