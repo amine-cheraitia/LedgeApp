@@ -7,304 +7,246 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: DejaVu Sans, sans-serif;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             font-size: 10pt;
-            color: #222;
+            color: #1e293b;
             line-height: 1.4;
         }
 
-        /* ── Footer fixe ───────────────────────────── */
+        /* ── Footer fixe (2 colonnes) ──────────────── */
         .footer {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            height: 28px;
-            border-top: 1px solid #c8d4e3;
+            height: 34px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 7px;
             text-align: center;
-            font-size: 7.5pt;
-            color: #999;
-            padding-top: 6px;
         }
+        .footer .f-cabinet { font-size: 7.5pt; font-weight: bold; color: #475569; }
+        .footer .f-legal { font-size: 7pt; color: #94a3b8; margin-top: 1px; }
 
-        /* ── Conteneur principal ───────────────────── */
-        .page { padding: 0 0 40px 0; }
+        .page { padding: 0 0 46px 0; }
 
-        /* ── Bande d'en-tête ───────────────────────── */
+        /* ── En-tête bleu nuit ─────────────────────── */
         .header-band {
-            background-color: #1e3a5f;
-            padding: 14px 22px 16px 22px;
-            margin-bottom: 0;
+            background-color: #152138; /* fallback si gradient non rendu */
+            background-image: linear-gradient(125deg, #28406b 0%, #182842 45%, #0d1525 100%);
+            padding: 18px 30px 20px 30px;
         }
-        .header-band td { vertical-align: middle; }
+        .header-inner td { vertical-align: top; }
 
-        /* Logo Ledge */
-        .ledge-logo-box {
-            display: inline-block;
-            background-color: #3b82f6;
-            color: #ffffff;
-            font-size: 9pt;
-            font-weight: bold;
-            width: 18px;
-            height: 18px;
-            text-align: center;
-            line-height: 18px;
-            border-radius: 3px;
-            letter-spacing: 0;
+        /* Logo damier 2x2 */
+        .logo-grid { border-collapse: separate; }
+        .logo-grid td {
+            width: 15px;
+            height: 15px;
+            border-radius: 4px;
         }
-        .ledge-brand {
+        .logo-light { background-color: #cbd5e1; }
+        .logo-dark  { background-color: #51607a; }
+
+        .brand-name {
+            font-size: 20pt;
+            font-weight: bold;
+            color: #ffffff;
+            letter-spacing: 0.3px;
+            line-height: 1.1;
+        }
+        .brand-sub {
+            font-size: 8.5pt;
+            color: #93a4bd;
+            margin-top: 1px;
+        }
+
+        .doc-facture {
+            font-size: 22pt;
+            font-weight: bold;
+            color: #ffffff;
+            letter-spacing: 3px;
+        }
+        .doc-num { font-size: 9.5pt; color: #93a4bd; margin-top: 3px; }
+
+        /* Pilule statut (liseré) */
+        .pill {
+            display: inline-block;
+            padding: 4px 12px;
             font-size: 7.5pt;
-            color: #7ba7d4;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            vertical-align: middle;
-            margin-left: 4px;
-        }
-        .header-brand-row { margin-bottom: 8px; }
-
-        .header-band .cabinet-nom {
-            font-size: 16pt;
-            font-weight: bold;
-            color: #ffffff;
-            letter-spacing: 0.5px;
-        }
-        .header-band .statut-cell { text-align: right; vertical-align: bottom; }
-
-        /* ── Badge statut paiement ──────────────────── */
-        .badge {
-            display: inline-block;
-            padding: 4px 11px;
-            font-size: 8pt;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 0.8px;
-            border-radius: 2px;
+            border-radius: 11px;
+            border: 1px solid #93a4bd;
+            color: #93a4bd;
         }
-        .badge-en_attente { background: #fef9c3; color: #854d0e; }
-        .badge-partiel    { background: #dbeafe; color: #1d4ed8; }
-        .badge-solde      { background: #dcfce7; color: #166534; }
+        .pill-en_attente { border-color: #d4af37; color: #e2c14e; }
+        .pill-partiel    { border-color: #60a5fa; color: #93c5fd; }
+        .pill-solde      { border-color: #4ade80; color: #86efac; }
 
-        /* ── Bande bleue claire sous le header ─────── */
-        .subheader {
-            background-color: #eef3f9;
-            padding: 8px 22px;
-            border-bottom: 2px solid #1e3a5f;
-            margin-bottom: 22px;
+        /* ── Cartes infos / destinataire ───────────── */
+        /* Carte appliquee directement sur la cellule <td> : meme ligne => meme hauteur */
+        td.card {
+            background-color: #f8fafc;
+            border: 1px solid #e8ecf1;
+            border-radius: 8px;
+            padding: 14px 16px;
+            vertical-align: top;
         }
-        .subheader .doc-title {
-            font-size: 13pt;
-            font-weight: bold;
-            color: #1e3a5f;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-        .subheader .doc-numero { font-size: 9pt; color: #6b7280; }
-
-        /* ── Boîtes infos ───────────────────────────── */
-        .box-inner {
-            border: 1px solid #c8d4e3;
-            border-top: 3px solid #1e3a5f;
-            padding: 10px 12px;
-        }
-        .box-title {
+        .card-title {
             font-size: 7.5pt;
             font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 0.7px;
-            color: #1e3a5f;
-            margin-bottom: 8px;
-            padding-bottom: 5px;
-            border-bottom: 1px solid #e2e8f0;
+            letter-spacing: 1.2px;
+            color: #94a3b8;
+            margin-bottom: 11px;
         }
-        .dest-nom {
-            font-size: 11pt;
-            font-weight: bold;
-            color: #1e293b;
-            margin-bottom: 7px;
-        }
+        .kv { width: 100%; border-collapse: collapse; }
+        .kv td { padding-bottom: 6px; }
+        .kv td.k { font-size: 8.5pt; color: #94a3b8; }
+        .kv td.v { font-size: 9pt; font-weight: bold; color: #1e293b; text-align: right; }
+        .dest-nom { font-size: 11.5pt; font-weight: bold; color: #1e293b; margin-bottom: 9px; }
 
-        /* ── Tableau lignes ─────────────────────────── */
-        .section-wrap { padding: 0 22px; margin-bottom: 18px; }
+        /* ── Tableau prestation ────────────────────── */
+        .section-wrap { padding: 0 30px; }
         .section-label {
             font-size: 8pt;
             font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 0.7px;
-            color: #1e3a5f;
-            margin-bottom: 6px;
+            letter-spacing: 1.2px;
+            color: #94a3b8;
+            margin-bottom: 8px;
         }
-
-        table.presta {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 9pt;
-        }
-        table.presta thead tr { background-color: #1e3a5f; color: #fff; }
+        table.presta { width: 100%; border-collapse: collapse; font-size: 9pt; }
         table.presta thead th {
-            padding: 7px 10px;
+            background-color: #152138;
+            color: #ffffff;
+            padding: 9px 14px;
             font-size: 8pt;
             text-align: left;
             font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.4px;
         }
         table.presta thead th.r { text-align: right; }
-        table.presta tbody tr { background-color: #f8fafd; }
-        table.presta tbody td {
-            padding: 10px 10px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        table.presta tbody td.r { text-align: right; white-space: nowrap; }
+        table.presta thead th:first-child { border-top-left-radius: 6px; }
+        table.presta thead th:last-child { border-top-right-radius: 6px; }
+        table.presta tbody td { padding: 12px 14px; border-bottom: 1px solid #e8ecf1; vertical-align: top; }
+        table.presta tbody td.r { text-align: right; white-space: nowrap; font-weight: bold; color: #1e293b; }
         .presta-label { font-size: 9.5pt; font-weight: bold; color: #1e293b; }
+        .presta-sub { font-size: 8pt; color: #94a3b8; margin-top: 2px; }
 
-        /* ── Totaux ─────────────────────────────────── */
-        .totaux-wrap { padding: 0 22px; margin-bottom: 28px; }
-        table.totaux-outer { width: 100%; border-collapse: collapse; }
+        /* ── Totaux ────────────────────────────────── */
+        .totaux-wrap { padding: 0 30px; margin-top: 16px; }
         table.totaux-inner { width: 100%; border-collapse: collapse; }
-        table.totaux-inner tr td {
-            padding: 5px 10px;
-            font-size: 9pt;
-            border-bottom: 1px solid #e2e8f0;
-            color: #334155;
-        }
-        table.totaux-inner tr td:last-child {
-            text-align: right;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-        table.totaux-inner tr.ttc td {
-            background-color: #1e3a5f;
-            color: #fff;
-            font-size: 10.5pt;
-            font-weight: bold;
-            padding: 8px 10px;
-            border-bottom: none;
-        }
+        table.totaux-inner td { padding: 6px 4px; font-size: 9.5pt; color: #475569; }
+        table.totaux-inner td.v { text-align: right; font-weight: bold; color: #1e293b; white-space: nowrap; }
+        .ttc-box { background-color: #152138; border-radius: 8px; padding: 11px 16px; margin-top: 4px; }
+        .ttc-box td { vertical-align: middle; }
+        .ttc-label { font-size: 9.5pt; color: #cbd5e1; letter-spacing: 0.5px; }
+        .ttc-val { font-size: 13pt; font-weight: bold; color: #ffffff; text-align: right; white-space: nowrap; }
 
-
-        /* ── Mode de paiement ───────────────────────── */
-        .paiement-wrap { padding: 0 22px; margin-bottom: 20px; }
-        .paiement-inner {
-            background-color: #f0f4f9;
-            border: 1px solid #c8d4e3;
-            border-left: 3px solid #1e3a5f;
-            padding: 9px 12px;
-            font-size: 9pt;
-            color: #334155;
+        /* ── Mention + règlement ───────────────────── */
+        .mention {
+            background-color: #eef2f7;
+            border-left: 3px solid #152138;
+            border-radius: 0 4px 4px 0;
+            padding: 9px 14px;
+            font-size: 8.5pt;
+            color: #475569;
         }
-
+        .reglement { font-size: 9pt; color: #64748b; }
     </style>
 </head>
 <body>
 
 <div class="footer">
-    {{ $cabinet['nom'] }}
-    @if($cabinet['nif']) &nbsp;·&nbsp; NIF&nbsp;: {{ $cabinet['nif'] }} @endif
-    @if($cabinet['nis']) &nbsp;·&nbsp; NIS&nbsp;: {{ $cabinet['nis'] }} @endif
-    @if($cabinet['rib']) &nbsp;·&nbsp; RIB&nbsp;: {{ $cabinet['rib'] }} @endif
+    <div class="f-cabinet">{{ $cabinet['nom'] }}</div>
+    <div class="f-legal">
+        @if($cabinet['adresse']){{ $cabinet['adresse'] }}@endif
+        @if($cabinet['nif']) &nbsp;·&nbsp; NIF : {{ $cabinet['nif'] }}@endif
+        @if($cabinet['nis']) &nbsp;·&nbsp; NIS : {{ $cabinet['nis'] }}@endif
+        @if($cabinet['agrement']) &nbsp;·&nbsp; N° d'agrément : {{ $cabinet['agrement'] }}@endif
+    </div>
 </div>
 
 <div class="page">
 
-    {{-- ── En-tête bleu ─────────────────────────────────────── --}}
-    <table class="header-band" width="100%" cellpadding="0" cellspacing="0">
+    {{-- ── En-tête ──────────────────────────────────────────── --}}
+    <div class="header-band">
+    <table class="header-inner" width="100%" cellpadding="0" cellspacing="0">
         <tr>
             <td>
-                <div class="header-brand-row">
-                    <table cellpadding="0" cellspacing="0"><tr>
-                        <td class="ledge-logo-box">L</td>
-                        <td class="ledge-brand">Ledge</td>
-                    </tr></table>
-                </div>
-                <div class="cabinet-nom">{{ $cabinet['nom'] }}</div>
+                <table cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td style="vertical-align: middle; padding-right: 11px;">
+                            <table class="logo-grid" cellpadding="0" cellspacing="3">
+                                <tr><td class="logo-light"></td><td class="logo-dark"></td></tr>
+                                <tr><td class="logo-dark"></td><td class="logo-light"></td></tr>
+                            </table>
+                        </td>
+                        <td style="vertical-align: middle;">
+                            <div class="brand-name">Ledge</div>
+                            <div class="brand-sub">{{ $cabinet['nom'] }}</div>
+                        </td>
+                    </tr>
+                </table>
             </td>
-            <td class="statut-cell">
-                <span class="badge badge-{{ $facture->statut_paiement }}">{{ ucfirst(str_replace('_', ' ', $facture->statut_paiement)) }}</span>
+            <td style="text-align: right;">
+                <div class="doc-facture">FACTURE</div>
+                <div class="doc-num">N° {{ $facture->numero }}</div>
+                <div style="margin-top: 9px;">
+                    <span class="pill pill-{{ $facture->statut_paiement }}">{{ str_replace('_', ' ', $facture->statut_paiement) }}</span>
+                </div>
             </td>
         </tr>
     </table>
+    </div>
 
-    {{-- ── Sous-en-tête titre + numéro ──────────────────────── --}}
-    <table class="subheader" width="100%" cellpadding="0" cellspacing="0">
+    {{-- ── Cartes infos facture + destinataire ──────────────── --}}
+    <table width="100%" cellpadding="0" cellspacing="0" style="padding: 26px 30px 0 30px;">
         <tr>
-            <td>
-                <div class="doc-title">Facture</div>
-                <div class="doc-numero">N° {{ $facture->numero }}</div>
+            <td class="card" style="width: 48%;">
+                <div class="card-title">Informations facture</div>
+                <table class="kv">
+                    <tr><td class="k">Date</td><td class="v">{{ $facture->date_facture->format('d/m/Y') }}</td></tr>
+                    <tr><td class="k">Échéance</td><td class="v">{{ $facture->date_echeance->format('d/m/Y') }}</td></tr>
+                    @if($facture->mission)
+                    <tr><td class="k">Mission</td><td class="v">{{ $facture->mission->reference }}</td></tr>
+                    @endif
+                    <tr><td class="k" style="padding-bottom:0;">Exercice</td><td class="v" style="padding-bottom:0;">{{ $facture->exercice->annee ?? '—' }}</td></tr>
+                </table>
+            </td>
+            <td style="width: 4%;"></td>
+            <td class="card" style="width: 48%;">
+                <div class="card-title">Destinataire</div>
+                <div class="dest-nom">{{ $facture->entreprise->raison_sociale }}</div>
+                <table class="kv">
+                    @if($facture->entreprise->nif)
+                    <tr><td class="k">NIF</td><td class="v">{{ $facture->entreprise->nif }}</td></tr>
+                    @endif
+                    @if($facture->entreprise->nis)
+                    <tr><td class="k">NIS</td><td class="v">{{ $facture->entreprise->nis }}</td></tr>
+                    @endif
+                    @if($facture->entreprise->num_rc)
+                    <tr><td class="k">RC</td><td class="v">{{ $facture->entreprise->num_rc }}</td></tr>
+                    @endif
+                    @if($facture->entreprise->adresse)
+                    <tr><td class="k" style="padding-bottom:0;">Adresse</td><td class="v" style="padding-bottom:0;">{{ $facture->entreprise->adresse }}@if($facture->entreprise->ville), {{ $facture->entreprise->ville }}@endif</td></tr>
+                    @endif
+                </table>
             </td>
         </tr>
     </table>
 
-    {{-- ── Infos facture + Destinataire ─────────────────────── --}}
-    <table width="100%" cellpadding="0" cellspacing="0" style="padding: 0 22px; margin-bottom: 20px;">
-        <tr>
-            <td style="width: 46%; vertical-align: top; padding-right: 14px;">
-                <div class="box-inner">
-                    <div class="box-title">Informations facture</div>
-                    <table width="100%" cellpadding="0" cellspacing="0">
-                        <tr>
-                            <td style="font-size:8pt; color:#94a3b8; width:80px; padding-bottom:4px;">Date</td>
-                            <td style="font-size:9pt; font-weight:600; color:#1e293b; padding-bottom:4px;">{{ $facture->date_facture->format('d/m/Y') }}</td>
-                        </tr>
-                        <tr>
-                            <td style="font-size:8pt; color:#94a3b8; padding-bottom:4px;">Échéance</td>
-                            <td style="font-size:9pt; font-weight:600; color:#1e293b; padding-bottom:4px;">{{ $facture->date_echeance->format('d/m/Y') }}</td>
-                        </tr>
-                        @if($facture->mission)
-                        <tr>
-                            <td style="font-size:8pt; color:#94a3b8; padding-bottom:4px;">Mission</td>
-                            <td style="font-size:9pt; font-weight:600; color:#1e293b; padding-bottom:4px;">{{ $facture->mission->reference }}</td>
-                        </tr>
-                        @endif
-                        <tr>
-                            <td style="font-size:8pt; color:#94a3b8;">Exercice</td>
-                            <td style="font-size:9pt; font-weight:600; color:#1e293b;">{{ $facture->exercice->annee ?? '—' }}</td>
-                        </tr>
-                    </table>
-                </div>
-            </td>
-            <td style="width: 48%; vertical-align: top;">
-                <div class="box-inner">
-                    <div class="box-title">Destinataire</div>
-                    <div class="dest-nom">{{ $facture->entreprise->raison_sociale }}</div>
-                    <table width="100%" cellpadding="0" cellspacing="0">
-                        @if($facture->entreprise->nif)
-                        <tr>
-                            <td style="font-size:8pt; color:#94a3b8; width:55px; padding-bottom:3px;">NIF</td>
-                            <td style="font-size:8.5pt; color:#334155; padding-bottom:3px;">{{ $facture->entreprise->nif }}</td>
-                        </tr>
-                        @endif
-                        @if($facture->entreprise->nis)
-                        <tr>
-                            <td style="font-size:8pt; color:#94a3b8; padding-bottom:3px;">NIS</td>
-                            <td style="font-size:8.5pt; color:#334155; padding-bottom:3px;">{{ $facture->entreprise->nis }}</td>
-                        </tr>
-                        @endif
-                        @if($facture->entreprise->num_rc)
-                        <tr>
-                            <td style="font-size:8pt; color:#94a3b8; padding-bottom:3px;">RC</td>
-                            <td style="font-size:8.5pt; color:#334155; padding-bottom:3px;">{{ $facture->entreprise->num_rc }}</td>
-                        </tr>
-                        @endif
-                        @if($facture->entreprise->adresse)
-                        <tr>
-                            <td style="font-size:8pt; color:#94a3b8;">Adresse</td>
-                            <td style="font-size:8.5pt; color:#334155;">{{ $facture->entreprise->adresse }}@if($facture->entreprise->ville), {{ $facture->entreprise->ville }}@endif</td>
-                        </tr>
-                        @endif
-                    </table>
-                </div>
-            </td>
-        </tr>
-    </table>
-
-    {{-- ── Tableau des lignes ─────────────────────────────────── --}}
-    <div class="section-wrap">
+    {{-- ── Détail de la prestation ──────────────────────────── --}}
+    <div class="section-wrap" style="margin-top: 26px;">
         <div class="section-label">Détail de la prestation</div>
         <table class="presta" cellpadding="0" cellspacing="0">
             <thead>
                 <tr>
-                    <th style="width:55%">Désignation</th>
-                    <th class="r" style="width:22%">Prix HT</th>
+                    <th style="width:54%">Désignation</th>
+                    <th class="r" style="width:23%">Prix HT</th>
                     <th class="r" style="width:23%">TVA ({{ number_format((float)$facture->taux_tva, 0) }}%)</th>
                 </tr>
             </thead>
@@ -320,7 +262,7 @@
                     <td>
                         <div class="presta-label">{{ $prestationNom }}</div>
                         @if($pct !== null)
-                        <div style="font-size:8pt; color:#64748b; margin-top:2px;">Tranche {{ $pct }}%</div>
+                        <div class="presta-sub">Tranche {{ $pct }}%</div>
                         @endif
                     </td>
                     <td class="r">{{ number_format((float)$ligne->total_ht, 2, ',', ' ') }} DA</td>
@@ -331,41 +273,45 @@
         </table>
     </div>
 
-    {{-- ── Totaux ──────────────────────────────────────────────── --}}
+    {{-- ── Totaux ───────────────────────────────────────────── --}}
     <div class="totaux-wrap">
-        <table class="totaux-outer" cellpadding="0" cellspacing="0">
+        <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
-                <td style="width:52%">&nbsp;</td>
-                <td style="width:48%; vertical-align:top;">
+                <td style="width:54%">&nbsp;</td>
+                <td style="width:46%; vertical-align: top;">
                     <table class="totaux-inner" cellpadding="0" cellspacing="0">
                         <tr>
                             <td>Montant HT</td>
-                            <td>{{ number_format((float)$facture->montant_ht, 2, ',', ' ') }} DA</td>
+                            <td class="v">{{ number_format((float)$facture->montant_ht, 2, ',', ' ') }} DA</td>
                         </tr>
                         <tr>
                             <td>TVA ({{ number_format((float)$facture->taux_tva, 0) }}%)</td>
-                            <td>{{ number_format((float)$facture->montant_tva, 2, ',', ' ') }} DA</td>
-                        </tr>
-                        <tr class="ttc">
-                            <td>TOTAL TTC</td>
-                            <td>{{ number_format((float)$facture->montant_ttc, 2, ',', ' ') }} DA</td>
+                            <td class="v">{{ number_format((float)$facture->montant_tva, 2, ',', ' ') }} DA</td>
                         </tr>
                     </table>
+                    <div class="ttc-box">
+                        <table width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                                <td class="ttc-label">TOTAL TTC</td>
+                                <td class="ttc-val">{{ number_format((float)$facture->montant_ttc, 2, ',', ' ') }} DA</td>
+                            </tr>
+                        </table>
+                    </div>
                 </td>
             </tr>
         </table>
     </div>
 
-    {{-- ── Montant en lettres ─────────────────────────────────── --}}
-    <div class="totaux-wrap" style="margin-top: -10px; margin-bottom: 20px;">
-        <div style="background-color:#f0f4f9; border-left:3px solid #1e3a5f; padding:8px 12px; font-size:8.5pt; color:#1e3a5f; font-style:italic;">
+    {{-- ── Montant en lettres ───────────────────────────────── --}}
+    <div class="section-wrap" style="margin-top: 22px;">
+        <div class="mention">
             Arrêté la présente facture à la somme de <strong>{{ $montantEnLettres }}</strong>.
         </div>
     </div>
 
-    {{-- ── Mode de paiement ───────────────────────────────────── --}}
-    <div class="paiement-wrap">
-        <div class="paiement-inner">
+    {{-- ── Mode de règlement ────────────────────────────────── --}}
+    <div class="section-wrap" style="margin-top: 16px;">
+        <div class="reglement">
             <strong>Mode de règlement :</strong>
             @if($facture->mode_paiement === 'virement')
                 Virement bancaire

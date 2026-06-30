@@ -9,6 +9,16 @@
 
 ## [Unreleased]
 
+### Refonte des PDF (facture, devis, avoir) — feature/facture-date-exercice-et-retrait-notes
+
+Nouveau design des documents PDF, cohérent sur les trois types, avec une couleur d'en-tête distincte par document :
+- **En-tête** : bande à **dégradé** (police « Helvetica Neue »/Helvetica), logo damier 2×2 « Ledge » + sous-titre = nom du cabinet (paramètre `cabinet_nom`), titre du document + N° + **pilule de statut à liseré**. Couleurs : **facture = bleu nuit**, **devis = teal**, **avoir = gris ardoise**.
+- **Cartes** « Informations » / « Destinataire » de **même largeur et même hauteur** (cellules `<td>` stylisées), valeurs alignées à droite.
+- **Tableau** à en-tête coloré, **TOTAL TTC** dans un bloc arrondi, mention en lettres, **pied de page centré** (cabinet + adresse + NIF/NIS/agrément, depuis les paramètres). Sections « Signatures » et « Observations » retirées.
+- **Spécifique devis** : ligne « **Validité du devis : jusqu'au JJ/MM/AAAA** », statut (brouillon/envoyé/accepté/refusé/expiré), code + désignation + description de la prestation.
+- **Spécifique avoir** : **facture d'origine**, mission, **motif** (section dédiée), « TOTAL AVOIR TTC », destinataire repris de la facture d'origine.
+- Rendu compatible **dompdf v3.1.5** (mise en page par tables, `border-radius` et `linear-gradient` supportés). Aucune donnée/contrôleur modifié (mêmes variables passées par `PdfService`).
+
 ### Facturation : date bornée à l'exercice + retrait du champ Notes — feature/facture-date-exercice-et-retrait-notes
 
 #### Date de facturation bornée à l'exercice + messages explicites
