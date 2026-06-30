@@ -120,7 +120,6 @@ const mockFacture: Facture = {
   mode_paiement: 'virement',
   montant_restant: 1650,
   pdf_path: null,
-  notes: null,
   entreprise: { id: 1, raison_sociale: 'CCSA Test', nif: null, nis: null, num_rc: null, article_imposition: null, regime_fiscal: 'reel', categorie: 'PME', secteur_activite: null, adresse: null, ville: null, wilaya: null, telephone: null, email: null, contact_principal: null, statut: 'client', notes: null, created_at: '', updated_at: '' },
   created_at: '2026-06-01T00:00:00.000000Z',
   updated_at: '2026-06-23T00:00:00.000000Z',

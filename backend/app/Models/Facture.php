@@ -27,7 +27,7 @@ class Facture extends Model
         'tva_taux_id', 'numero', 'type', 'facture_origine_id',
         'date_facture', 'date_echeance', 'montant_ht', 'taux_tva', 'montant_tva',
         'montant_ttc', 'montant_paye', 'statut_paiement',
-        'mode_paiement', 'pdf_path', 'notes',
+        'mode_paiement', 'pdf_path',
     ];
 
     protected $casts = [

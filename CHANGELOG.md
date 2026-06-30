@@ -9,6 +9,16 @@
 
 ## [Unreleased]
 
+### Facturation : date bornée à l'exercice + retrait du champ Notes — feature/facture-date-exercice-et-retrait-notes
+
+#### Date de facturation bornée à l'exercice + messages explicites
+- **Backend** (`StoreFactureRequest`) : `date_facture` doit désormais tomber **dans l'exercice choisi** (`exercice_id` fourni, sinon `Exercice::current()`) entre `date_ouverture` et `date_cloture`, sinon **422** avec un message explicite « La date de facturation doit être comprise dans l'exercice {annee} (du JJ/MM/AAAA au JJ/MM/AAAA). ». Ajout de `messages()`/`attributes()` FR pour tous les champs (fini les « The date_facture field… »).
+- **Frontend** (`FactureListPage.vue`) : le `DatePicker` de la facture est borné (`:minDate`/`:maxDate`) à l'exercice sélectionné — impossible de choisir une date hors exercice ; un `watch` ramène la date dans la plage au changement d'exercice.
+- **Tests** : `date_facture` hors exercice → 422 ; le test « sans taux TVA en vigueur » utilise désormais un exercice 2022 dédié (cohérent avec la nouvelle borne).
+
+#### Suppression du champ « Notes » des factures et devis
+Le champ `notes` (qui n'apparaissait que sur les PDF en « Observations ») est **retiré partout** pour les **factures** et **devis** : migration `dropColumn('notes')` (factures + devis), `$fillable` des modèles, FormRequests, `FacturationService` (`creerFacture`/`creerDevis`), Resources, **PDF Blade** (section Observations + CSS), factories, et côté frontend (types `Facture`/`Devis`, modules API, `useDevis`, formulaires `FactureListPage`/`DevisListPage`, tests). Les champs `notes` distincts de **paiement**, **entreprise** et **mission** sont **conservés**.
+
 ### Numérotation des factures sans trou & suppression conforme — feature/facture-suppression-conforme-numerotation
 
 Aligne la suppression de factures sur les règles de conformité (numérotation séquentielle **continue**, annulation par **avoir**).

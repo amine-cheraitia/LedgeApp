@@ -10,7 +10,6 @@ import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
 import MultiSelect from 'primevue/multiselect'
 import DatePicker from 'primevue/datepicker'
-import Textarea from 'primevue/textarea'
 import { useDevis } from '@/composables/useDevis'
 import { useEntreprises } from '@/composables/useEntreprises'
 import { usePrestations } from '@/composables/usePrestations'
@@ -52,7 +51,6 @@ const form = reactive({
   date_devis: null as Date | null,
   date_validite: null as Date | null,
   type_tva: 'standard' as 'standard' | 'exonere',
-  notes: '',
 })
 
 const tvaOptions = computed(() => {
@@ -74,7 +72,6 @@ const editDevisForm = reactive({
   prestation_id: null as number | null,
   date_devis: null as Date | null,
   date_validite: null as Date | null,
-  notes: '',
 })
 
 // Dialog conversion en mission
@@ -140,7 +137,6 @@ function openCreate() {
   form.date_devis = new Date()
   form.date_validite = null
   form.type_tva = 'standard'
-  form.notes = ''
   dialogVisible.value = true
 }
 
@@ -155,7 +151,6 @@ async function onSubmit() {
       date_devis: toIsoDate(form.date_devis),
       date_validite: toIsoDate(form.date_validite),
       type_tva: form.type_tva,
-      notes: form.notes || null,
     })
     dialogVisible.value = false
   } catch {
@@ -172,7 +167,6 @@ function openEditDevis(devis: Devis) {
   editDevisForm.prestation_id = devis.prestation?.id ?? devis.prestation_id ?? null
   editDevisForm.date_devis = devis.date_devis ? new Date(devis.date_devis) : null
   editDevisForm.date_validite = devis.date_validite ? new Date(devis.date_validite) : null
-  editDevisForm.notes = devis.notes ?? ''
   editDevisVisible.value = true
 }
 
@@ -185,7 +179,6 @@ async function onSubmitEditDevis() {
       prestation_id: editDevisForm.prestation_id ?? undefined,
       date_devis: editDevisForm.date_devis ? toIsoDate(editDevisForm.date_devis) : undefined,
       date_validite: editDevisForm.date_validite ? toIsoDate(editDevisForm.date_validite) : undefined,
-      notes: editDevisForm.notes || undefined,
     })
     editDevisVisible.value = false
   } catch {
@@ -472,11 +465,6 @@ onMounted(async () => {
           />
         </div>
 
-        <div class="form-field">
-          <label for="dv-notes">Notes</label>
-          <Textarea id="dv-notes" v-model="form.notes" rows="2" fluid />
-        </div>
-
         <div class="dialog-actions">
           <Button label="Annuler" severity="secondary" text @click="dialogVisible = false" />
           <Button type="submit" label="Creer" icon="pi pi-check" :loading="saving" />
@@ -528,11 +516,6 @@ onMounted(async () => {
             <label for="ed-validite">Date validite *</label>
             <DatePicker id="ed-validite" v-model="editDevisForm.date_validite" dateFormat="dd/mm/yy" :minDate="editDevisForm.date_devis ?? undefined" fluid />
           </div>
-        </div>
-
-        <div class="form-field">
-          <label for="ed-notes">Notes</label>
-          <Textarea id="ed-notes" v-model="editDevisForm.notes" rows="2" fluid />
         </div>
 
         <div class="dialog-actions">

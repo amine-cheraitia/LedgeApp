@@ -181,15 +181,6 @@
             border-bottom: none;
         }
 
-        /* ── Notes ──────────────────────────────────── */
-        .notes-wrap { padding: 0 22px; margin-bottom: 20px; }
-        .notes-inner {
-            background-color: #f8fafd;
-            border-left: 3px solid #1e3a5f;
-            padding: 9px 12px;
-            font-size: 9pt;
-            color: #334155;
-        }
 
         /* ── Mode de paiement ───────────────────────── */
         .paiement-wrap { padding: 0 22px; margin-bottom: 20px; }
@@ -412,14 +403,6 @@
             @endif
         </div>
     </div>
-
-    {{-- ── Notes ──────────────────────────────────────────────── --}}
-    @if($facture->notes)
-    <div class="notes-wrap">
-        <div class="section-label">Observations</div>
-        <div class="notes-inner">{{ $facture->notes }}</div>
-    </div>
-    @endif
 
     {{-- ── Signatures ──────────────────────────────────────────── --}}
     <div class="sign-wrap">

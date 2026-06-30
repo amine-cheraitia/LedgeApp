@@ -83,7 +83,7 @@ export function useDevis() {
     }
   }
 
-  async function updateDevis(id: number, data: { entreprise_id?: number; prestation_id?: number; date_devis?: string; date_validite?: string; notes?: string }) {
+  async function updateDevis(id: number, data: { entreprise_id?: number; prestation_id?: number; date_devis?: string; date_validite?: string }) {
     await devisApi.update(id, data)
     toast.add({ severity: 'success', summary: 'Succes', detail: 'Devis mis a jour.', life: 3000 })
     await fetchDevis()

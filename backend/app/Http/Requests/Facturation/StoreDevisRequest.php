@@ -26,7 +26,6 @@ class StoreDevisRequest extends FormRequest
             'date_devis' => ['required', 'date'],
             'date_validite' => ['required', 'date', 'after_or_equal:date_devis'],
             'type_tva' => ['nullable', Rule::in(['standard', 'exonere'])],
-            'notes' => ['nullable', 'string'],
         ];
     }
 

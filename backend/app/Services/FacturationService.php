@@ -166,7 +166,6 @@ class FacturationService
                 'montant_tva' => $montantTva,
                 'montant_ttc' => $montantTtc,
                 'statut' => 'brouillon',
-                'notes' => $data['notes'] ?? null,
             ]);
 
             return $devis->load('prestation', 'entreprise');
@@ -354,7 +353,6 @@ class FacturationService
                 'montant_paye' => 0,
                 'statut_paiement' => 'en_attente',
                 'mode_paiement' => 'non_defini',
-                'notes' => $data['notes'] ?? null,
             ]);
 
             FactureLigne::create([

@@ -32,7 +32,6 @@ class FactureFactory extends Factory
             'montant_ttc' => fake()->randomFloat(2, 15000, 600000),
             'montant_paye' => 0,
             'statut_paiement' => 'en_attente',
-            'notes' => null,
         ];
     }
 

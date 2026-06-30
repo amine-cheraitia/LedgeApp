@@ -34,7 +34,6 @@ class FactureResource extends JsonResource
             'statut_paiement' => $this->statut_paiement,
             'mode_paiement' => $this->mode_paiement,
             'montant_restant' => $this->montantRestant(),
-            'notes' => $this->notes,
             'entreprise' => $this->whenLoaded('entreprise'),
             'mission' => $this->whenLoaded('mission'),
             'lignes' => FactureLigneResource::collection($this->whenLoaded('lignes')),
