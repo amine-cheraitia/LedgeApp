@@ -19,6 +19,12 @@
 #### Suppression du champ « Notes » des factures et devis
 Le champ `notes` (qui n'apparaissait que sur les PDF en « Observations ») est **retiré partout** pour les **factures** et **devis** : migration `dropColumn('notes')` (factures + devis), `$fillable` des modèles, FormRequests, `FacturationService` (`creerFacture`/`creerDevis`), Resources, **PDF Blade** (section Observations + CSS), factories, et côté frontend (types `Facture`/`Devis`, modules API, `useDevis`, formulaires `FactureListPage`/`DevisListPage`, tests). Les champs `notes` distincts de **paiement**, **entreprise** et **mission** sont **conservés**.
 
+#### PDF facture
+- Retrait de la **section « Signatures »** (et de son CSS) sur le PDF de facture.
+
+#### Correctif annexe (dashboard secrétaire)
+- `DashboardService::compterEncaissements` : les encaissements du mois affichaient **0 le dernier jour du mois** (un `whereBetween` de dates excluait un `date_paiement` comparé comme datetime). Remplacé par `whereYear`+`whereMonth` (pattern déjà utilisé pour les factures du mois). Bug préexistant.
+
 ### Numérotation des factures sans trou & suppression conforme — feature/facture-suppression-conforme-numerotation
 
 Aligne la suppression de factures sur les règles de conformité (numérotation séquentielle **continue**, annulation par **avoir**).
