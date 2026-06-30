@@ -212,16 +212,6 @@
             border-bottom: none;
         }
 
-        /* ── Notes ──────────────────────────────────── */
-        .notes-wrap { padding: 0 22px; margin-bottom: 28px; }
-        .notes-inner {
-            background-color: #f8fafd;
-            border-left: 3px solid #1e3a5f;
-            padding: 9px 12px;
-            font-size: 9pt;
-            color: #334155;
-        }
-
         /* ── Signatures ─────────────────────────────── */
         .sign-wrap { padding: 0 22px; margin-top: 30px; }
         table.sign { width: 100%; border-collapse: collapse; }
@@ -413,14 +403,6 @@
             Arrêté le présent devis à la somme de <strong>{{ $montantEnLettres }}</strong>.
         </div>
     </div>
-
-    {{-- ── Notes ──────────────────────────────────────────────── --}}
-    @if($devis->notes)
-    <div class="notes-wrap">
-        <div class="section-label">Observations</div>
-        <div class="notes-inner">{{ $devis->notes }}</div>
-    </div>
-    @endif
 
     {{-- ── Signatures ──────────────────────────────────────────── --}}
     <div class="sign-wrap">

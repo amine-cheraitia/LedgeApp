@@ -162,7 +162,6 @@ export interface Devis {
   montant_tva: number
   montant_ttc: number
   statut: 'brouillon' | 'envoye' | 'accepte' | 'refuse' | 'expire'
-  notes: string | null
   entreprise?: Entreprise
   prestation?: Prestation
   created_at: string
@@ -203,7 +202,6 @@ export interface Facture {
   mode_paiement: 'virement' | 'cheque' | 'autre' | 'non_defini'
   montant_restant: number
   pdf_path: string | null
-  notes: string | null
   entreprise?: Entreprise
   exercice?: Exercice
   mission?: Mission

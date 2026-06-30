@@ -51,7 +51,6 @@ describe('TypeScript interfaces', () => {
       mode_paiement: 'non_defini',
       montant_restant: 119000,
       pdf_path: null,
-      notes: null,
       created_at: '2026-03-25',
       updated_at: '2026-03-25',
     }

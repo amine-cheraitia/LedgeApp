@@ -24,7 +24,7 @@ import { useExercices } from '@/composables/useExercices'
 import { useTvaTaux } from '@/composables/useTvaTaux'
 import { useAuthStore } from '@/stores/auth'
 import { avoirsApi } from '@/api/modules/avoirs'
-import type { Facture, Avoir } from '@/types'
+import type { Facture, Avoir, Exercice } from '@/types'
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -119,7 +119,6 @@ const form = reactive({
   exercice_id: null as number | null,
   date_facture: new Date() as Date,
   type_tva: 'standard' as 'standard' | 'exonere',
-  notes: '',
 })
 
 const tvaOptions = computed(() => {
@@ -138,6 +137,24 @@ const dateEcheancePreview = computed(() => {
   return d.toLocaleDateString('fr-FR')
 })
 
+// Bornes du DatePicker : la date de facture doit rester dans l'exercice choisi.
+const exerciceObj = computed(() => exercices.value.find((e: Exercice) => e.id === form.exercice_id) ?? null)
+const dateMin = computed(() => (exerciceObj.value ? new Date(exerciceObj.value.date_ouverture) : undefined))
+const dateMax = computed(() => (exerciceObj.value ? new Date(exerciceObj.value.date_cloture) : undefined))
+
+// Au changement d'exercice : si la date sort des bornes, on la ramene dedans
+// (aujourd'hui si dans la plage, sinon le 1er jour de l'exercice).
+watch(() => form.exercice_id, () => {
+  const min = dateMin.value
+  const max = dateMax.value
+  if (!min || !max) return
+  const d = form.date_facture
+  if (!d || d < min || d > max) {
+    const today = new Date()
+    form.date_facture = today >= min && today <= max ? today : min
+  }
+})
+
 function trancheLabel(mission_id: number | null): string {
   if (!mission_id) return '—'
   const nb = factures.value.filter((f: Facture) => f.mission_id === mission_id).length
@@ -152,7 +169,6 @@ function openCreate() {
   form.exercice_id = exerciceCourant.value?.id ?? null
   form.date_facture = new Date()
   form.type_tva = 'standard'
-  form.notes = ''
   dialogVisible.value = true
 }
 
@@ -165,7 +181,6 @@ async function onSubmitFacture() {
       exercice_id: form.exercice_id ?? undefined,
       date_facture: toIsoDate(form.date_facture),
       type_tva: form.type_tva,
-      notes: form.notes || null,
     })
     dialogVisible.value = false
   } catch (err: any) {
@@ -568,7 +583,7 @@ onMounted(async () => {
         <div class="form-row">
           <div class="form-field">
             <label for="f-date">Date facture *</label>
-            <DatePicker id="f-date" v-model="form.date_facture" dateFormat="dd/mm/yy" fluid />
+            <DatePicker id="f-date" v-model="form.date_facture" :minDate="dateMin" :maxDate="dateMax" dateFormat="dd/mm/yy" fluid />
           </div>
           <div class="form-field">
             <label>Echeance (auto)</label>
@@ -587,11 +602,6 @@ onMounted(async () => {
             optionValue="value"
             fluid
           />
-        </div>
-
-        <div class="form-field">
-          <label for="f-notes">Notes</label>
-          <Textarea id="f-notes" v-model="form.notes" rows="2" fluid />
         </div>
 
         <div class="dialog-actions">

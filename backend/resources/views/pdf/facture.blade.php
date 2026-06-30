@@ -181,15 +181,6 @@
             border-bottom: none;
         }
 
-        /* ── Notes ──────────────────────────────────── */
-        .notes-wrap { padding: 0 22px; margin-bottom: 20px; }
-        .notes-inner {
-            background-color: #f8fafd;
-            border-left: 3px solid #1e3a5f;
-            padding: 9px 12px;
-            font-size: 9pt;
-            color: #334155;
-        }
 
         /* ── Mode de paiement ───────────────────────── */
         .paiement-wrap { padding: 0 22px; margin-bottom: 20px; }
@@ -202,32 +193,6 @@
             color: #334155;
         }
 
-        /* ── Signatures ─────────────────────────────── */
-        .sign-wrap { padding: 0 22px; margin-top: 30px; }
-        table.sign { width: 100%; border-collapse: collapse; }
-        table.sign td { vertical-align: top; width: 50%; }
-        table.sign td:last-child { text-align: right; }
-        .sign-label {
-            font-size: 8pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            color: #1e3a5f;
-            letter-spacing: 0.4px;
-            margin-bottom: 50px;
-        }
-        .sign-line {
-            border-top: 1px solid #334155;
-            width: 75%;
-            margin-top: 52px;
-        }
-        .sign-line-r {
-            border-top: 1px solid #334155;
-            width: 75%;
-            margin-top: 52px;
-            margin-left: auto;
-        }
-        .sign-sub { font-size: 8pt; color: #64748b; margin-top: 5px; }
-        .sign-sub-r { font-size: 8pt; color: #64748b; margin-top: 5px; text-align: right; }
     </style>
 </head>
 <body>
@@ -411,32 +376,6 @@
                 À définir
             @endif
         </div>
-    </div>
-
-    {{-- ── Notes ──────────────────────────────────────────────── --}}
-    @if($facture->notes)
-    <div class="notes-wrap">
-        <div class="section-label">Observations</div>
-        <div class="notes-inner">{{ $facture->notes }}</div>
-    </div>
-    @endif
-
-    {{-- ── Signatures ──────────────────────────────────────────── --}}
-    <div class="sign-wrap">
-        <table class="sign" cellpadding="0" cellspacing="0">
-            <tr>
-                <td>
-                    <div class="sign-label">Pour {{ $cabinet['nom'] }}</div>
-                    <div class="sign-line"></div>
-                    <div class="sign-sub">Signature et cachet</div>
-                </td>
-                <td>
-                    <div class="sign-label" style="text-align:right;">{{ $facture->entreprise->raison_sociale }}</div>
-                    <div class="sign-line-r"></div>
-                    <div class="sign-sub-r">Signature et cachet<br>Mention : « Bon pour acquit »</div>
-                </td>
-            </tr>
-        </table>
     </div>
 
 </div>

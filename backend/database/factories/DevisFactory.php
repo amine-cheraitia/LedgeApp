@@ -34,7 +34,6 @@ class DevisFactory extends Factory
             'montant_tva' => round($prixHt * 0.19, 2),
             'montant_ttc' => round($prixHt * 1.19, 2),
             'statut' => 'brouillon',
-            'notes' => null,
         ];
     }
 

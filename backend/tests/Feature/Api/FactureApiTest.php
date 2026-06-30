@@ -104,16 +104,39 @@ class FactureApiTest extends TestCase
 
     public function test_facture_standard_sans_taux_en_vigueur_refuse(): void
     {
-        // Le seul taux standard demarre le 2023-01-01 : facturer avant doit echouer (409),
+        // Exercice 2022 ouvert ; le seul taux standard demarre le 2023-01-01.
+        // Facturer en 2022 (dans l'exercice mais avant le taux) doit echouer (409),
         // au lieu d'appliquer silencieusement 0% sur une facture soumise a la TVA.
+        $exercice2022 = Exercice::create([
+            'annee' => 2022,
+            'date_ouverture' => '2022-01-01',
+            'date_cloture' => '2022-12-31',
+            'statut' => 'ouvert',
+        ]);
+
         $response = $this->actingAs($this->admin)
             ->postJson('/api/v1/factures', [
                 'mission_id' => $this->mission->id,
+                'exercice_id' => $exercice2022->id,
                 'date_facture' => '2022-12-31',
             ]);
 
         $response->assertStatus(409);
         $this->assertDatabaseCount('factures', 0);
+    }
+
+    public function test_date_facture_hors_exercice_refusee(): void
+    {
+        // L'exercice courant (setUp) est l'annee en cours : une date hors de ses
+        // bornes doit etre rejetee avec un 422 sur le champ date_facture.
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/factures', [
+                'mission_id' => $this->mission->id,
+                'date_facture' => '2020-01-01',
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['date_facture']);
     }
 
     public function test_tranches_automatiques_t1_t2_t3(): void

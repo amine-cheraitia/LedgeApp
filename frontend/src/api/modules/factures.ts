@@ -17,7 +17,6 @@ export interface FacturePayload {
   exercice_id?: number
   date_facture: string
   type_tva?: 'standard' | 'exonere'
-  notes?: string | null
 }
 
 export interface PaiementPayload {

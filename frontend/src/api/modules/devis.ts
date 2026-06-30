@@ -19,7 +19,6 @@ export interface DevisPayload {
   date_devis: string
   date_validite: string
   type_tva?: 'standard' | 'exonere'
-  notes?: string | null
 }
 
 export interface ConvertirEnMissionPayload {
@@ -41,7 +40,7 @@ export const devisApi = {
     return api.post('/devis', data).then(r => r.data)
   },
 
-  update(id: number, data: Partial<{ entreprise_id: number; prestation_id: number; date_devis: string; date_validite: string; notes: string }>): Promise<{ data: Devis }> {
+  update(id: number, data: Partial<{ entreprise_id: number; prestation_id: number; date_devis: string; date_validite: string }>): Promise<{ data: Devis }> {
     return api.put(`/devis/${id}`, data).then(r => r.data)
   },
 

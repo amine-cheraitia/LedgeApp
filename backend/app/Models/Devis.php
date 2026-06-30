@@ -26,7 +26,7 @@ class Devis extends Model
     protected $fillable = [
         'entreprise_id', 'prestation_id', 'exercice_id', 'created_by', 'numero',
         'date_devis', 'date_validite', 'prix_ht', 'montant_ht', 'taux_tva',
-        'tva_taux_id', 'montant_tva', 'montant_ttc', 'statut', 'notes',
+        'tva_taux_id', 'montant_tva', 'montant_ttc', 'statut',
     ];
 
     protected $casts = [

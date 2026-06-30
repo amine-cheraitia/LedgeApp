@@ -324,7 +324,6 @@ class DevisApiTest extends TestCase
             'prestation_id' => $this->prestation->id,
             'date_devis' => '2026-03-31',
             'date_validite' => '2026-04-30',
-            'notes' => 'Test PDF',
         ])->json('data.id');
 
         $response = $this->actingAs($this->admin)

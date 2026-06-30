@@ -118,11 +118,11 @@ describe('devisApi', () => {
   })
 
   it('update calls PUT /devis/:id', async () => {
-    mockPut.mockResolvedValue({ data: { data: { id: 1, notes: 'maj' } } })
+    mockPut.mockResolvedValue({ data: { data: { id: 1, date_validite: '2026-05-01' } } })
 
-    await devisApi.update(1, { notes: 'maj' })
+    await devisApi.update(1, { date_validite: '2026-05-01' })
 
-    expect(mockPut).toHaveBeenCalledWith('/devis/1', { notes: 'maj' })
+    expect(mockPut).toHaveBeenCalledWith('/devis/1', { date_validite: '2026-05-01' })
   })
 
   it('envoyer calls POST /devis/:id/envoyer', async () => {
