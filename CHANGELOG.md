@@ -9,6 +9,17 @@
 
 ## [Unreleased]
 
+### Refonte UI Dashboard + Login (identité navy/slate, light + dark) — feature/refonte-ui-dashboard-login
+
+Refonte visuelle d'après maquettes, appliquée globalement via les tokens partagés (cohérente sur toute l'app), sur les deux modes clair/sombre :
+- **Identité navy/slate monochrome** — suppression de l'accent orange. Boutons/CTA/avatar en **slate**, bleu réservé aux focus/liens, couleurs **sémantiques** conservées (bleu = données, vert = succès, **ambre** = alerte/recouvrement, rouge = danger).
+- **Preset PrimeVue figé** (`main.ts`, `definePreset`) : `primary` = surface (slate/navy) ; **surface = slate pour les deux modes** (le dark passait par le gris `zinc` d'Aura → désormais **navy**). Le **configurateur de thème** runtime (bouton palette) est retiré ; seul le toggle clair/sombre (icône ambre) demeure.
+- **Cartes** (`.card`, KPI, hero) : coins plus **arrondis** (14px) + **ombre douce au repos** (tokens `--ledge-shadow-card`), fond canvas gris clair / **navy** en dark, cartes surélevées (blanc / slate-800).
+- **Sidebar / topbar** : navy en dark, item actif en **pastille slate** (fini l'orange), avatar slate, focus **bleu** visible (RGAA) en clair et sombre.
+- **Login** : carte du formulaire **blanche + ombre** en clair (n'existait qu'en dark), coins 14px, **CTA slate** (au lieu d'orange), FAB/focus sans orange, dégradé navy du panneau de marque conservé.
+- **Logo** (`LedgeLogo`) unifié sur le **damier 2×2** (cohérent login + PDF) au lieu du sceau circulaire.
+- Contrôles : `vue-tsc` ✓, `vite build` ✓, 122 tests unitaires ✓.
+
 ### Refonte des PDF (facture, devis, avoir) — feature/facture-date-exercice-et-retrait-notes
 
 Nouveau design des documents PDF, cohérent sur les trois types, avec une couleur d'en-tête distincte par document :

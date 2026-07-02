@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useLayout } from '@/layout/composables/layout'
 import LedgeLogo from '@/components/LedgeLogo.vue'
-import AppConfigurator from './AppConfigurator.vue'
 
 const { toggleMenu, toggleDarkMode, isDarkTheme } = useLayout()
 </script>
@@ -25,23 +24,12 @@ const { toggleMenu, toggleDarkMode, isDarkTheme } = useLayout()
       <div class="layout-config-menu">
         <button
           type="button"
-          class="layout-topbar-action"
+          class="layout-topbar-action layout-topbar-theme-toggle"
           :aria-label="isDarkTheme ? 'Passer en mode clair' : 'Passer en mode sombre'"
           @click="toggleDarkMode"
         >
           <i :class="['pi', isDarkTheme ? 'pi-moon' : 'pi-sun']"></i>
         </button>
-        <div class="relative">
-          <button
-            v-styleclass="{ selector: '@next', enterFromClass: 'hidden', enterActiveClass: 'p-anchored-overlay-enter-active', leaveToClass: 'hidden', leaveActiveClass: 'p-anchored-overlay-leave-active', hideOnOutsideClick: true }"
-            type="button"
-            class="layout-topbar-action layout-topbar-action-highlight"
-            aria-label="Configuration du theme"
-          >
-            <i class="pi pi-palette"></i>
-          </button>
-          <AppConfigurator />
-        </div>
       </div>
     </div>
   </header>

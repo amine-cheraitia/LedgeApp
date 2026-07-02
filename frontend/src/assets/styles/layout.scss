@@ -2,9 +2,9 @@
    Ledge — Layout (Trust & Authority — Ledger Edition)
    ================================================================ */
 
-/* Focus visible — RGAA */
+/* Focus visible — RGAA (bleu accent : visible en light ET dark) */
 :focus-visible {
-  outline: 3px solid var(--p-primary-color);
+  outline: 2px solid var(--ledge-accent);
   outline-offset: 2px;
 }
 
@@ -13,7 +13,7 @@
   position: absolute;
   top: -40px;
   left: 0;
-  background: var(--p-primary-color);
+  background: var(--ledge-brand-strong);
   color: white;
   padding: 0.5rem 1rem;
   z-index: 9999;
@@ -61,8 +61,8 @@
   transition: left 0.2s;
 
   .app-dark & {
-    background-color: var(--p-surface-900);
-    border-bottom-color: var(--p-surface-700);
+    background-color: #0b1220;
+    border-bottom-color: var(--p-surface-800);
   }
 }
 
@@ -127,13 +127,9 @@
   }
 }
 
-.layout-topbar-action-highlight {
-  background-color: var(--p-primary-100);
-  color: var(--p-primary-color);
-
-  .app-dark & {
-    background-color: color-mix(in srgb, var(--p-primary-color), transparent 84%);
-  }
+/* Toggle clair/sombre — accent ambre (soleil / lune) */
+.layout-topbar-theme-toggle i {
+  color: var(--ledge-warning-bright);
 }
 
 /* ================================================================
@@ -154,8 +150,8 @@
   border-right: 1px solid var(--p-surface-200);
 
   .app-dark & {
-    background-color: var(--p-surface-900);
-    border-right-color: var(--p-surface-700);
+    background-color: #0b1220;
+    border-right-color: var(--p-surface-800);
   }
 }
 
@@ -273,7 +269,7 @@
 
   .app-dark & {
     border-top-color: var(--p-surface-800);
-    background-color: var(--p-surface-950);
+    background-color: transparent;
   }
 }
 
@@ -285,18 +281,13 @@
   width: 2.25rem;
   height: 2.25rem;
   border-radius: 50%;
-  background: var(--ledge-accent);
+  background: var(--ledge-brand);
   color: #fff;
   font-family: var(--ledge-ff-mono);
   font-weight: 600;
   font-size: 0.78rem;
   letter-spacing: 0;
   user-select: none;
-
-  .app-dark & {
-    background: var(--ledge-accent);
-    color: #1A1613;
-  }
 }
 
 .layout-sidebar-user-meta {
@@ -422,16 +413,16 @@
 
   &.active-route {
     font-weight: 600;
-    color: var(--ledge-accent);
-    background-color: color-mix(in srgb, var(--ledge-accent), transparent 88%);
+    color: var(--p-text-color);
+    background-color: var(--p-surface-200);
 
     .app-dark & {
-      color: var(--ledge-accent);
-      background-color: color-mix(in srgb, var(--ledge-accent), transparent 82%);
+      color: #ffffff;
+      background-color: var(--p-surface-700);
     }
 
     .layout-menuitem-icon {
-      color: var(--ledge-accent);
+      color: var(--p-text-color);
     }
   }
 }
@@ -502,10 +493,10 @@
 
   &:hover {
     background: var(--p-surface-200);
-    color: var(--ledge-accent);
+    color: var(--p-text-color);
 
     .layout-menuitem-icon {
-      color: var(--ledge-accent);
+      color: var(--p-text-color);
     }
   }
 
@@ -536,6 +527,11 @@
   min-height: 100vh;
   padding: 3.5rem 0 0 0;
   transition: margin-left 0.2s;
+  background-color: var(--p-surface-100);
+
+  .app-dark & {
+    background-color: var(--p-surface-900);
+  }
 }
 
 .layout-main {
@@ -699,8 +695,8 @@
     }
 
     .layout-menu a.active-route {
-      background-color: color-mix(in srgb, var(--ledge-accent), transparent 86%);
-      color: var(--ledge-accent);
+      background-color: color-mix(in srgb, var(--ledge-accent), transparent 88%);
+      color: var(--p-text-color);
       box-shadow: inset 2px 0 0 var(--ledge-accent);
     }
 
@@ -769,11 +765,12 @@
 .card {
   background-color: var(--p-surface-0);
   border: 1px solid var(--p-surface-200);
-  border-radius: var(--ledge-radius-md);
+  border-radius: var(--ledge-radius-card);
+  box-shadow: var(--ledge-shadow-card);
   padding: 1.5rem;
 
   .app-dark & {
-    background-color: var(--p-surface-900);
+    background-color: var(--p-surface-800);
     border-color: var(--p-surface-700);
   }
 }

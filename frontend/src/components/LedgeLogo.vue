@@ -15,17 +15,11 @@ defineProps<{
       aria-label="Ledge"
       class="ledge-logo-mark"
     >
-      <!-- Sceau circulaire — autorite comptable -->
-      <circle cx="20" cy="20" r="19" fill="none" stroke="currentColor" stroke-width="1.5" />
-
-      <!-- Lettre L stylisee, branche serif (rappel Fraunces) -->
-      <path
-        d="M14 11 L14 27 L26 27 L26 24 L17 24 L17 11 Z"
-        fill="currentColor"
-      />
-
-      <!-- Trait de soulignement type ledger -->
-      <line x1="11" y1="30" x2="29" y2="30" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" />
+      <!-- Damier 2x2 — marque Ledge (coherent login + PDF) -->
+      <rect x="3" y="3" width="15" height="15" rx="4" fill="currentColor" opacity="0.9" />
+      <rect x="22" y="3" width="15" height="15" rx="4" fill="currentColor" opacity="0.6" />
+      <rect x="3" y="22" width="15" height="15" rx="4" fill="currentColor" opacity="0.6" />
+      <rect x="22" y="22" width="15" height="15" rx="4" fill="currentColor" opacity="0.9" />
     </svg>
 
     <span v-if="withWordmark" class="ledge-logo-wordmark">Ledge</span>

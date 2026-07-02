@@ -364,14 +364,11 @@ async function handleLogin() {
   background: #111827;
 }
 
-/* Dark mode : card formulaire avec surface levée + bordure subtile
-   pour distinguer le contenu du fond */
+/* Dark mode : card formulaire en surface slate levée + bordure subtile */
 .app-dark .login-main-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--ledge-radius-md);
-  padding: 1.5rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  background: var(--p-surface-800);
+  border-color: var(--p-surface-700);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
 }
 
 /* Dark mode : séparation panneau brand / formulaire sur desktop */
@@ -387,9 +384,16 @@ async function handleLogin() {
   }
 }
 
+/* Carte formulaire : blanche, arrondie, ombre douce (light).
+   En dark : surface slate (voir .app-dark .login-main-card ci-dessus). */
 .login-main-card {
   width: 100%;
   max-width: 22rem;
+  background: var(--p-surface-0);
+  border: 1px solid var(--p-surface-200);
+  border-radius: var(--ledge-radius-card);
+  box-shadow: var(--ledge-shadow-card);
+  padding: 1.75rem;
 }
 
 .login-form-head {
@@ -511,7 +515,7 @@ async function handleLogin() {
   transition: background-color 9999s ease-out;
 }
 
-/* Bouton CTA — accent chaud (Trust & Authority : warm vibrant CTA) */
+/* Bouton CTA — identite navy / slate (pas d'orange) */
 /* :deep(.login-submit) cible l'élément racine du composant Button */
 :deep(.login-submit) {
   margin-top: 0.25rem;
@@ -519,15 +523,15 @@ async function handleLogin() {
   border-radius: var(--ledge-radius-md);
   font-weight: 600;
   font-size: 1rem;
-  background: var(--ledge-accent) !important;
-  border-color: var(--ledge-accent) !important;
+  background: var(--ledge-brand) !important;
+  border-color: var(--ledge-brand) !important;
   color: #ffffff !important;
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 :deep(.login-submit:not(:disabled):hover) {
-  background: #a13209 !important;
-  border-color: #a13209 !important;
+  background: var(--ledge-brand-strong) !important;
+  border-color: var(--ledge-brand-strong) !important;
 }
 
 :deep(.login-submit:focus-visible) {
@@ -561,7 +565,7 @@ async function handleLogin() {
   border-radius: var(--ledge-radius-sm);
 }
 
-/* Dark : lien neutre lisible, pas de bleu incohérent avec l'accent orange */
+/* Dark : lien neutre lisible sur fond navy */
 .app-dark .login-text-btn {
   color: #e2e8f0;
 }
@@ -652,10 +656,10 @@ async function handleLogin() {
   }
 }
 
-/* Dark : accent orange cohérent avec le CTA, pas l'emerald PrimeVue */
+/* Dark : FAB navy/slate cohérent avec le CTA */
 .app-dark .login-help-fab {
-  background: var(--ledge-accent);
-  box-shadow: 0 4px 14px rgba(194, 65, 12, 0.4);
+  background: var(--ledge-brand);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
 }
 
 .login-aide-body {
