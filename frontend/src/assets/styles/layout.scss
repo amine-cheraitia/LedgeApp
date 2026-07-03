@@ -596,6 +596,18 @@
    Mobile
    ================================================================ */
 @media screen and (max-width: 991px) {
+  /* Drawer mobile : la sidebar descend SOUS la topbar (qui conserve le
+     hamburger + le logo). On masque le brand interne de la sidebar pour
+     eviter un logo en double / masque par la topbar. */
+  .layout-sidebar {
+    top: 3.5rem;
+    height: calc(100dvh - 3.5rem);
+  }
+
+  .layout-sidebar-brand {
+    display: none;
+  }
+
   .layout-static,
   .layout-overlay {
     .layout-main-container {
