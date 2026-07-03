@@ -169,7 +169,7 @@ const caMensuelData = computed(() => ({
   datasets: [{
     label: 'CA TTC',
     data: stats.value?.ca_mensuel?.data ?? [],
-    backgroundColor: themeColors.value.primary || '#10b981',
+    backgroundColor: isDarkTheme.value ? '#94a3b8' : '#64748b',
     borderRadius: 6,
     maxBarThickness: 38,
   }],
@@ -349,7 +349,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
           </div>
           <p class="kpi-card__value" :aria-label="`${collabStats.taches.total} tâches`">{{ animTaches }}</p>
           <p class="kpi-card__sub">
-            <span class="text-orange-500 font-semibold">{{ collabStats.taches.en_cours }} en cours</span>
+            <span class="text-amber-500 font-semibold">{{ collabStats.taches.en_cours }} en cours</span>
             <span class="kpi-dot" aria-hidden="true"> · </span>
             <span>{{ collabStats.taches.a_faire }} à faire</span>
           </p>
@@ -370,7 +370,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
           </div>
           <p
             class="kpi-card__value"
-            :class="collabStats.taches.taux_completion >= 70 ? 'text-green-500' : 'text-orange-500'"
+            :class="collabStats.taches.taux_completion >= 70 ? 'text-green-500' : 'text-amber-500'"
             :aria-label="`Taux de complétion : ${collabStats.taches.taux_completion}%`"
           >{{ animTaux }}%</p>
           <p class="kpi-card__sub">{{ collabStats.taches.terminees }} / {{ collabStats.taches.total }} tâches terminées</p>
@@ -757,19 +757,19 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
             <span class="text-muted-color font-medium">Taux de recouvrement</span>
             <div
               class="flex items-center justify-center rounded-border"
-              :class="stats.kpi.taux_recouvrement >= stats.kpi.seuil_recouvrement ? 'bg-green-100 dark:bg-green-400/10' : 'bg-orange-100 dark:bg-orange-400/10'"
+              :class="stats.kpi.taux_recouvrement >= stats.kpi.seuil_recouvrement ? 'bg-green-100 dark:bg-green-400/10' : 'bg-amber-100 dark:bg-amber-400/10'"
               style="width: 2.5rem; height: 2.5rem"
             >
               <i
                 class="text-xl!"
-                :class="stats.kpi.taux_recouvrement >= stats.kpi.seuil_recouvrement ? 'pi pi-check-circle text-green-500' : 'pi pi-exclamation-circle text-orange-500'"
+                :class="stats.kpi.taux_recouvrement >= stats.kpi.seuil_recouvrement ? 'pi pi-check-circle text-green-500' : 'pi pi-exclamation-circle text-amber-500'"
                 aria-hidden="true"
               ></i>
             </div>
           </div>
           <div
             class="font-bold text-2xl"
-            :class="stats.kpi.taux_recouvrement >= stats.kpi.seuil_recouvrement ? 'text-green-600' : 'text-orange-500'"
+            :class="stats.kpi.taux_recouvrement >= stats.kpi.seuil_recouvrement ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'"
           >
             {{ stats.kpi.taux_recouvrement }}%
           </div>
@@ -815,8 +815,8 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
         <div class="card h-full">
           <div class="flex items-center justify-between mb-4">
             <span class="text-muted-color font-medium">Missions actives</span>
-            <div class="flex items-center justify-center bg-orange-100 dark:bg-orange-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
-              <i class="pi pi-briefcase text-orange-500 text-xl!"></i>
+            <div class="flex items-center justify-center bg-blue-100 dark:bg-blue-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
+              <i class="pi pi-briefcase text-blue-500 text-xl!"></i>
             </div>
           </div>
           <div class="text-surface-900 dark:text-surface-0 font-bold text-3xl">{{ stats.missions.en_cours }}</div>
@@ -1078,7 +1078,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
 }
 
 .fill-warn {
-  background: var(--p-orange-500, #f97316);
+  background: var(--p-amber-500, #f59e0b);
 }
 
 /* ── Hero Banner ──────────────────────────────────────────────────────── */
@@ -1090,7 +1090,8 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
   flex-wrap: wrap;
   gap: 1.5rem;
   padding: 1.5rem 1.75rem;
-  border-radius: var(--ledge-radius-md, 6px);
+  border-radius: var(--ledge-radius-card);
+  box-shadow: var(--ledge-shadow-card);
   background: var(--p-surface-0);
   border: 1px solid var(--p-surface-200);
   border-top: 3px solid var(--ledge-accent);
@@ -1099,7 +1100,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
 }
 
 .app-dark .hero-banner {
-  background: var(--p-surface-900);
+  background: var(--p-surface-800);
   border-color: var(--p-surface-700);
 }
 
@@ -1238,14 +1239,14 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 3px;
-  border-radius: 12px 12px 0 0;
+  border-radius: var(--ledge-radius-card) var(--ledge-radius-card) 0 0;
 }
 .kpi-card:hover {
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--ledge-shadow-card-hover);
   transform: translateY(-2px);
 }
 .kpi-card--blue::before   { background: #3b82f6; }
-.kpi-card--orange::before { background: #f97316; }
+.kpi-card--orange::before { background: #f59e0b; }
 .kpi-card--green::before  { background: #22c55e; }
 .kpi-card--red::before    { background: #ef4444; }
 
@@ -1272,7 +1273,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
   flex-shrink: 0;
 }
 .kpi-card--blue .kpi-card__icon   { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
-.kpi-card--orange .kpi-card__icon { background: rgba(249, 115, 22, 0.12); color: #f97316; }
+.kpi-card--orange .kpi-card__icon { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
 .kpi-card--green .kpi-card__icon  { background: rgba(34, 197, 94, 0.12);  color: #22c55e; }
 .kpi-card--red .kpi-card__icon    { background: rgba(239, 68, 68, 0.12);  color: #ef4444; }
 
@@ -1303,7 +1304,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
 }
 .kpi-pill--blue   { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
 .kpi-pill--green  { background: rgba(34, 197, 94, 0.12);  color: #22c55e; }
-.kpi-pill--orange { background: rgba(249, 115, 22, 0.12); color: #f97316; }
+.kpi-pill--orange { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
 .kpi-pill--muted  { background: var(--p-surface-border);  color: var(--p-text-muted-color); }
 
 /* KPI progress bar */
@@ -1320,7 +1321,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
   transition: width 0.5s ease;
 }
 .kpi-progress-fill--green  { background: #22c55e; }
-.kpi-progress-fill--orange { background: #f97316; }
+.kpi-progress-fill--orange { background: #f59e0b; }
 
 /* ── Panel header ─────────────────────────────────────────────────────── */
 .panel-header {
@@ -1667,7 +1668,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
 .timeline-item + .timeline-item { border-top: 1px solid var(--p-surface-border); }
 .timeline-item:hover { background: rgba(128, 128, 128, 0.06); }
 .timeline-item--retard { border-left-color: #ef4444; }
-.timeline-item--urgent { border-left-color: #f97316; }
+.timeline-item--urgent { border-left-color: #f59e0b; }
 
 .timeline-icon {
   width: 1.75rem;
@@ -1683,7 +1684,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
   margin-top: 1px;
 }
 .timeline-item--retard .timeline-icon { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
-.timeline-item--urgent .timeline-icon { background: rgba(249, 115, 22, 0.1); color: #f97316; }
+.timeline-item--urgent .timeline-icon { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
 
 .timeline-body {
   flex: 1;
@@ -1725,7 +1726,7 @@ a.timeline-title:focus-visible { outline: 2px solid var(--p-primary-color); outl
   border-radius: 999px;
 }
 .timeline-badge--retard { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
-.timeline-badge--urgent { background: rgba(249, 115, 22, 0.15); color: #f97316; }
+.timeline-badge--urgent { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
 .timeline-badge--ok     { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
 .timeline-dt {
   font-size: 0.6875rem;

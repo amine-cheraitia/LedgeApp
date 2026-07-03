@@ -17,15 +17,19 @@ body {
   font-feature-settings: 'cv11' 1, 'ss03' 1;
   line-height: 1.5;
   color: var(--p-text-color);
-  background-color: var(--p-surface-ground);
+  background-color: var(--p-surface-100);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Focus visible pour accessibilité RGAA */
+.app-dark body {
+  background-color: var(--p-surface-900);
+}
+
+/* Focus visible pour accessibilité RGAA (bleu accent, visible light + dark) */
 :focus-visible {
-  outline: 3px solid var(--p-primary-color);
+  outline: 2px solid var(--ledge-accent);
   outline-offset: 2px;
 }
 
@@ -34,7 +38,7 @@ body {
   position: absolute;
   top: -40px;
   left: 0;
-  background: var(--p-primary-color);
+  background: var(--ledge-brand-strong);
   color: white;
   padding: 0.5rem 1rem;
   z-index: 9999;

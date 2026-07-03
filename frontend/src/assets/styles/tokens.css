@@ -4,14 +4,17 @@
    ================================================================ */
 
 :root {
-  /* ---------- Brand ---------- */
+  /* ---------- Brand — identite navy / slate ---------- */
   --ledge-primary:        #0F172A;  /* Navy autorite */
   --ledge-primary-soft:   #1E293B;
-  --ledge-accent:         #C2410C;  /* Orange "encre" */
-  --ledge-accent-soft:    #FED7AA;
-  --ledge-success:        #065F46;
-  --ledge-warning:        #B45309;
-  --ledge-danger:         #B91C1C;
+  --ledge-brand:          #1E293B;  /* boutons / CTA / avatar (slate) */
+  --ledge-brand-strong:   #0F172A;
+  --ledge-accent:         #2563EB;  /* bleu interactif : focus, liens, highlights */
+  --ledge-accent-soft:    #DBEAFE;
+  --ledge-success:        #16A34A;
+  --ledge-warning:        #B45309;  /* ambre (texte) */
+  --ledge-warning-bright: #F59E0B;  /* ambre vif (icones) */
+  --ledge-danger:         #DC2626;
 
   /* ---------- Typography ---------- */
   --ledge-ff-display: 'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
@@ -25,6 +28,11 @@
   --ledge-radius-md: 6px;
   --ledge-radius-lg: 12px;
   --ledge-radius-pill: 8px;  /* items de la sidebar (look pastille arrondie) */
+  --ledge-radius-card: 14px; /* cartes arrondies (dashboard, login) */
+
+  /* ---------- Ombres — cartes douces ---------- */
+  --ledge-shadow-card: 0 1px 2px rgba(2, 6, 23, 0.05), 0 8px 22px rgba(2, 6, 23, 0.06);
+  --ledge-shadow-card-hover: 0 2px 6px rgba(2, 6, 23, 0.07), 0 16px 34px rgba(2, 6, 23, 0.10);
 
   /* ---------- Sidebar ---------- */
   --ledge-sidebar-width: 18rem;
@@ -35,8 +43,17 @@
 .app-dark {
   --ledge-primary:        #F8FAFC;
   --ledge-primary-soft:   #E2E8F0;
-  --ledge-accent:         #FB923C;
-  --ledge-accent-soft:    #7C2D12;
+  --ledge-brand:          #334155;  /* slate-700 CTA en dark */
+  --ledge-brand-strong:   #475569;
+  --ledge-accent:         #60A5FA;  /* bleu clair en dark */
+  --ledge-accent-soft:    #1E3A8A;
+  --ledge-success:        #22C55E;
+  --ledge-warning:        #FBBF24;
+  --ledge-warning-bright: #FBBF24;
+  --ledge-danger:         #F87171;
+
+  --ledge-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --ledge-shadow-card-hover: 0 2px 10px rgba(0, 0, 0, 0.5);
 }
 
 /* ---------- Utility classes ---------- */

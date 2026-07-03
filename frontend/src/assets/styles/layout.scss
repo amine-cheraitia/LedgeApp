@@ -2,9 +2,9 @@
    Ledge — Layout (Trust & Authority — Ledger Edition)
    ================================================================ */
 
-/* Focus visible — RGAA */
+/* Focus visible — RGAA (bleu accent : visible en light ET dark) */
 :focus-visible {
-  outline: 3px solid var(--p-primary-color);
+  outline: 2px solid var(--ledge-accent);
   outline-offset: 2px;
 }
 
@@ -13,7 +13,7 @@
   position: absolute;
   top: -40px;
   left: 0;
-  background: var(--p-primary-color);
+  background: var(--ledge-brand-strong);
   color: white;
   padding: 0.5rem 1rem;
   z-index: 9999;
@@ -61,8 +61,8 @@
   transition: left 0.2s;
 
   .app-dark & {
-    background-color: var(--p-surface-900);
-    border-bottom-color: var(--p-surface-700);
+    background-color: #0b1220;
+    border-bottom-color: var(--p-surface-800);
   }
 }
 
@@ -72,10 +72,18 @@
   gap: 0.5rem;
 }
 
+/* Logo topbar : visible uniquement quand la sidebar est masquee (< 992px).
+   Sur desktop (>= 992px) la sidebar affiche deja son logo -> on evite le doublon. */
 .layout-topbar-logo {
   display: flex;
   align-items: center;
   text-decoration: none;
+}
+
+@media screen and (min-width: 992px) {
+  .layout-topbar-logo {
+    display: none;
+  }
 }
 
 .layout-menu-button {
@@ -127,13 +135,9 @@
   }
 }
 
-.layout-topbar-action-highlight {
-  background-color: var(--p-primary-100);
-  color: var(--p-primary-color);
-
-  .app-dark & {
-    background-color: color-mix(in srgb, var(--p-primary-color), transparent 84%);
-  }
+/* Toggle clair/sombre — accent ambre (soleil / lune) */
+.layout-topbar-theme-toggle i {
+  color: var(--ledge-warning-bright);
 }
 
 /* ================================================================
@@ -154,8 +158,8 @@
   border-right: 1px solid var(--p-surface-200);
 
   .app-dark & {
-    background-color: var(--p-surface-900);
-    border-right-color: var(--p-surface-700);
+    background-color: #0b1220;
+    border-right-color: var(--p-surface-800);
   }
 }
 
@@ -193,51 +197,6 @@
   color: var(--p-text-muted-color);
 }
 
-.layout-sidebar-collapse {
-  display: none; /* mobile: pas de collapse */
-  position: absolute;
-  top: 1rem;
-  right: 0.75rem;
-  width: 1.85rem;
-  height: 1.85rem;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--p-surface-200);
-  background: var(--p-surface-0);
-  color: var(--p-text-muted-color);
-  border-radius: var(--ledge-radius-sm);
-  cursor: pointer;
-  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
-
-  &:hover {
-    background: var(--p-surface-100);
-    color: var(--ledge-accent);
-    border-color: var(--ledge-accent);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--ledge-accent);
-    outline-offset: 2px;
-  }
-
-  i {
-    font-size: 0.85rem;
-  }
-
-  .app-dark & {
-    background: var(--p-surface-900);
-    border-color: var(--p-surface-700);
-
-    &:hover {
-      background: var(--p-surface-800);
-    }
-  }
-
-  @media screen and (min-width: 992px) {
-    display: inline-flex;
-  }
-}
-
 /* ---------- Nav scrollable ---------- */
 .layout-sidebar-nav {
   flex: 1;
@@ -273,7 +232,7 @@
 
   .app-dark & {
     border-top-color: var(--p-surface-800);
-    background-color: var(--p-surface-950);
+    background-color: transparent;
   }
 }
 
@@ -285,18 +244,13 @@
   width: 2.25rem;
   height: 2.25rem;
   border-radius: 50%;
-  background: var(--ledge-accent);
+  background: var(--ledge-brand);
   color: #fff;
   font-family: var(--ledge-ff-mono);
   font-weight: 600;
   font-size: 0.78rem;
   letter-spacing: 0;
   user-select: none;
-
-  .app-dark & {
-    background: var(--ledge-accent);
-    color: #1A1613;
-  }
 }
 
 .layout-sidebar-user-meta {
@@ -422,16 +376,16 @@
 
   &.active-route {
     font-weight: 600;
-    color: var(--ledge-accent);
-    background-color: color-mix(in srgb, var(--ledge-accent), transparent 88%);
+    color: var(--p-text-color);
+    background-color: var(--p-surface-200);
 
     .app-dark & {
-      color: var(--ledge-accent);
-      background-color: color-mix(in srgb, var(--ledge-accent), transparent 82%);
+      color: #ffffff;
+      background-color: var(--p-surface-700);
     }
 
     .layout-menuitem-icon {
-      color: var(--ledge-accent);
+      color: var(--p-text-color);
     }
   }
 }
@@ -502,10 +456,10 @@
 
   &:hover {
     background: var(--p-surface-200);
-    color: var(--ledge-accent);
+    color: var(--p-text-color);
 
     .layout-menuitem-icon {
-      color: var(--ledge-accent);
+      color: var(--p-text-color);
     }
   }
 
@@ -536,6 +490,11 @@
   min-height: 100vh;
   padding: 3.5rem 0 0 0;
   transition: margin-left 0.2s;
+  background-color: var(--p-surface-100);
+
+  .app-dark & {
+    background-color: var(--p-surface-900);
+  }
 }
 
 .layout-main {
@@ -577,30 +536,35 @@
 }
 
 /* ================================================================
-   Static layout (desktop default)
+   Static layout — DESKTOP UNIQUEMENT (>= 992px)
+   Scoper au desktop evite que `.layout-static-inactive` (sidebar fermee
+   en desktop) n'ecrase la regle mobile `.layout-mobile-active` par
+   specificite : en mobile, seule `.layout-mobile-active` pilote la sidebar.
    ================================================================ */
-.layout-static {
-  .layout-main-container {
-    margin-left: var(--ledge-sidebar-width);
-  }
-
-  .layout-topbar {
-    left: var(--ledge-sidebar-width);
-    width: calc(100% - var(--ledge-sidebar-width));
-  }
-
-  &.layout-static-inactive {
-    .layout-sidebar {
-      transform: translateX(-100%);
-    }
-
+@media screen and (min-width: 992px) {
+  .layout-static {
     .layout-main-container {
-      margin-left: 0;
+      margin-left: var(--ledge-sidebar-width);
     }
 
     .layout-topbar {
-      left: 0;
-      width: 100%;
+      left: var(--ledge-sidebar-width);
+      width: calc(100% - var(--ledge-sidebar-width));
+    }
+
+    &.layout-static-inactive {
+      .layout-sidebar {
+        transform: translateX(-100%);
+      }
+
+      .layout-main-container {
+        margin-left: 0;
+      }
+
+      .layout-topbar {
+        left: 0;
+        width: 100%;
+      }
     }
   }
 }
@@ -629,113 +593,21 @@
 }
 
 /* ================================================================
-   Static layout — collapsed (desktop rail)
-   ================================================================ */
-@media screen and (min-width: 992px) {
-  .layout-static.layout-static-collapsed {
-    --ledge-sidebar-width: 4.5rem;
-
-    .layout-sidebar {
-      overflow: visible; /* permet aux tooltips natifs de sortir */
-    }
-
-    /* Brand : centrer le logo, masquer wordmark + tagline */
-    .layout-sidebar-brand {
-      padding: 1.25rem 0.5rem 1rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .layout-sidebar-brand-link :deep(.ledge-logo-wordmark),
-    .layout-sidebar-brand-link .ledge-logo-wordmark,
-    .ledge-logo-wordmark {
-      display: none;
-    }
-
-    .layout-sidebar-tagline {
-      display: none;
-    }
-
-    .layout-sidebar-collapse {
-      position: static;
-      margin-top: 0.25rem;
-    }
-
-    /* Nav : centrer les icônes, cacher textes */
-    .layout-sidebar-nav {
-      padding: 1rem 0.5rem;
-    }
-
-    .layout-menuitem-root-text {
-      justify-content: center;
-      padding: 0.4rem 0;
-      font-size: 0;
-      gap: 0;
-
-      &::before {
-        width: 16px;
-      }
-    }
-
-    .layout-menu a,
-    .layout-menu .router-link-active {
-      justify-content: center;
-      padding: 0.65rem 0.5rem;
-      gap: 0;
-      border-left-width: 0;
-      border-radius: var(--ledge-radius-md);
-    }
-
-    .layout-menuitem-text,
-    .layout-submenu-toggler {
-      display: none;
-    }
-
-    .layout-menuitem-icon {
-      font-size: 1.05rem;
-      width: auto;
-    }
-
-    .layout-menu a.active-route {
-      background-color: color-mix(in srgb, var(--ledge-accent), transparent 86%);
-      color: var(--ledge-accent);
-      box-shadow: inset 2px 0 0 var(--ledge-accent);
-    }
-
-    /* Footer user : avatar seul */
-    .layout-sidebar-user {
-      flex-direction: column;
-      gap: 0.5rem;
-      padding: 0.75rem 0.5rem;
-    }
-
-    .layout-sidebar-user-meta {
-      display: none;
-    }
-
-    .layout-sidebar-user-logout {
-      width: 1.85rem;
-      height: 1.85rem;
-    }
-
-    /* Topbar + main shift sur la nouvelle largeur */
-    .layout-topbar {
-      left: var(--ledge-sidebar-width);
-      width: calc(100% - var(--ledge-sidebar-width));
-    }
-
-    .layout-main-container {
-      margin-left: var(--ledge-sidebar-width);
-    }
-  }
-}
-
-/* ================================================================
    Mobile
    ================================================================ */
 @media screen and (max-width: 991px) {
+  /* Drawer mobile : la sidebar descend SOUS la topbar (qui conserve le
+     hamburger + le logo). On masque le brand interne de la sidebar pour
+     eviter un logo en double / masque par la topbar. */
+  .layout-sidebar {
+    top: 3.5rem;
+    height: calc(100dvh - 3.5rem);
+  }
+
+  .layout-sidebar-brand {
+    display: none;
+  }
+
   .layout-static,
   .layout-overlay {
     .layout-main-container {
@@ -769,11 +641,12 @@
 .card {
   background-color: var(--p-surface-0);
   border: 1px solid var(--p-surface-200);
-  border-radius: var(--ledge-radius-md);
+  border-radius: var(--ledge-radius-card);
+  box-shadow: var(--ledge-shadow-card);
   padding: 1.5rem;
 
   .app-dark & {
-    background-color: var(--p-surface-900);
+    background-color: var(--p-surface-800);
     border-color: var(--p-surface-700);
   }
 }
