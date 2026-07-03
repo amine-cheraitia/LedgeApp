@@ -72,10 +72,18 @@
   gap: 0.5rem;
 }
 
+/* Logo topbar : visible uniquement quand la sidebar est masquee (< 992px).
+   Sur desktop (>= 992px) la sidebar affiche deja son logo -> on evite le doublon. */
 .layout-topbar-logo {
   display: flex;
   align-items: center;
   text-decoration: none;
+}
+
+@media screen and (min-width: 992px) {
+  .layout-topbar-logo {
+    display: none;
+  }
 }
 
 .layout-menu-button {
@@ -187,51 +195,6 @@
   text-transform: uppercase;
   letter-spacing: 0.14em;
   color: var(--p-text-muted-color);
-}
-
-.layout-sidebar-collapse {
-  display: none; /* mobile: pas de collapse */
-  position: absolute;
-  top: 1rem;
-  right: 0.75rem;
-  width: 1.85rem;
-  height: 1.85rem;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--p-surface-200);
-  background: var(--p-surface-0);
-  color: var(--p-text-muted-color);
-  border-radius: var(--ledge-radius-sm);
-  cursor: pointer;
-  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
-
-  &:hover {
-    background: var(--p-surface-100);
-    color: var(--ledge-accent);
-    border-color: var(--ledge-accent);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--ledge-accent);
-    outline-offset: 2px;
-  }
-
-  i {
-    font-size: 0.85rem;
-  }
-
-  .app-dark & {
-    background: var(--p-surface-900);
-    border-color: var(--p-surface-700);
-
-    &:hover {
-      background: var(--p-surface-800);
-    }
-  }
-
-  @media screen and (min-width: 992px) {
-    display: inline-flex;
-  }
 }
 
 /* ---------- Nav scrollable ---------- */
@@ -573,30 +536,35 @@
 }
 
 /* ================================================================
-   Static layout (desktop default)
+   Static layout — DESKTOP UNIQUEMENT (>= 992px)
+   Scoper au desktop evite que `.layout-static-inactive` (sidebar fermee
+   en desktop) n'ecrase la regle mobile `.layout-mobile-active` par
+   specificite : en mobile, seule `.layout-mobile-active` pilote la sidebar.
    ================================================================ */
-.layout-static {
-  .layout-main-container {
-    margin-left: var(--ledge-sidebar-width);
-  }
-
-  .layout-topbar {
-    left: var(--ledge-sidebar-width);
-    width: calc(100% - var(--ledge-sidebar-width));
-  }
-
-  &.layout-static-inactive {
-    .layout-sidebar {
-      transform: translateX(-100%);
-    }
-
+@media screen and (min-width: 992px) {
+  .layout-static {
     .layout-main-container {
-      margin-left: 0;
+      margin-left: var(--ledge-sidebar-width);
     }
 
     .layout-topbar {
-      left: 0;
-      width: 100%;
+      left: var(--ledge-sidebar-width);
+      width: calc(100% - var(--ledge-sidebar-width));
+    }
+
+    &.layout-static-inactive {
+      .layout-sidebar {
+        transform: translateX(-100%);
+      }
+
+      .layout-main-container {
+        margin-left: 0;
+      }
+
+      .layout-topbar {
+        left: 0;
+        width: 100%;
+      }
     }
   }
 }
@@ -620,110 +588,6 @@
 
     .layout-mask {
       display: block;
-    }
-  }
-}
-
-/* ================================================================
-   Static layout — collapsed (desktop rail)
-   ================================================================ */
-@media screen and (min-width: 992px) {
-  .layout-static.layout-static-collapsed {
-    --ledge-sidebar-width: 4.5rem;
-
-    .layout-sidebar {
-      overflow: visible; /* permet aux tooltips natifs de sortir */
-    }
-
-    /* Brand : centrer le logo, masquer wordmark + tagline */
-    .layout-sidebar-brand {
-      padding: 1.25rem 0.5rem 1rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .layout-sidebar-brand-link :deep(.ledge-logo-wordmark),
-    .layout-sidebar-brand-link .ledge-logo-wordmark,
-    .ledge-logo-wordmark {
-      display: none;
-    }
-
-    .layout-sidebar-tagline {
-      display: none;
-    }
-
-    .layout-sidebar-collapse {
-      position: static;
-      margin-top: 0.25rem;
-    }
-
-    /* Nav : centrer les icônes, cacher textes */
-    .layout-sidebar-nav {
-      padding: 1rem 0.5rem;
-    }
-
-    .layout-menuitem-root-text {
-      justify-content: center;
-      padding: 0.4rem 0;
-      font-size: 0;
-      gap: 0;
-
-      &::before {
-        width: 16px;
-      }
-    }
-
-    .layout-menu a,
-    .layout-menu .router-link-active {
-      justify-content: center;
-      padding: 0.65rem 0.5rem;
-      gap: 0;
-      border-left-width: 0;
-      border-radius: var(--ledge-radius-md);
-    }
-
-    .layout-menuitem-text,
-    .layout-submenu-toggler {
-      display: none;
-    }
-
-    .layout-menuitem-icon {
-      font-size: 1.05rem;
-      width: auto;
-    }
-
-    .layout-menu a.active-route {
-      background-color: color-mix(in srgb, var(--ledge-accent), transparent 88%);
-      color: var(--p-text-color);
-      box-shadow: inset 2px 0 0 var(--ledge-accent);
-    }
-
-    /* Footer user : avatar seul */
-    .layout-sidebar-user {
-      flex-direction: column;
-      gap: 0.5rem;
-      padding: 0.75rem 0.5rem;
-    }
-
-    .layout-sidebar-user-meta {
-      display: none;
-    }
-
-    .layout-sidebar-user-logout {
-      width: 1.85rem;
-      height: 1.85rem;
-    }
-
-    /* Topbar + main shift sur la nouvelle largeur */
-    .layout-topbar {
-      left: var(--ledge-sidebar-width);
-      width: calc(100% - var(--ledge-sidebar-width));
-    }
-
-    .layout-main-container {
-      margin-left: var(--ledge-sidebar-width);
     }
   }
 }

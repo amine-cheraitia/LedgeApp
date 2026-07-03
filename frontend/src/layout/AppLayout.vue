@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { useLayout } from '@/layout/composables/layout'
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted } from 'vue'
 import AppFooter from './AppFooter.vue'
 import AppSidebar from './AppSidebar.vue'
 import AppTopbar from './AppTopbar.vue'
 
-const { layoutConfig, layoutState, hideMobileMenu } = useLayout()
+const { layoutConfig, layoutState, hideMobileMenu, isDesktop } = useLayout()
 
 const containerClass = computed(() => ({
   'layout-overlay': layoutConfig.menuMode === 'overlay',
@@ -13,8 +13,27 @@ const containerClass = computed(() => ({
   'layout-overlay-active': layoutState.overlayMenuActive,
   'layout-mobile-active': layoutState.mobileMenuActive,
   'layout-static-inactive': layoutState.staticMenuInactive,
-  'layout-static-collapsed': layoutState.staticMenuCollapsed,
 }))
+
+// Reset de la sidebar au FRANCHISSEMENT du breakpoint 992px (pas a chaque pixel) :
+// - mobile -> desktop : sidebar apparente
+// - desktop -> mobile : sidebar fermee
+let wasDesktop = isDesktop()
+function handleBreakpointChange(): void {
+  const nowDesktop = isDesktop()
+  if (nowDesktop === wasDesktop) return
+  wasDesktop = nowDesktop
+  if (nowDesktop) {
+    layoutState.staticMenuInactive = false
+    layoutState.mobileMenuActive = false
+  } else {
+    layoutState.mobileMenuActive = false
+    layoutState.overlayMenuActive = false
+  }
+}
+
+onMounted(() => window.addEventListener('resize', handleBreakpointChange))
+onBeforeUnmount(() => window.removeEventListener('resize', handleBreakpointChange))
 </script>
 
 <template>

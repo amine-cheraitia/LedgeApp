@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/auth'
 import LedgeLogo from '@/components/LedgeLogo.vue'
 import AppMenu from './AppMenu.vue'
 
-const { layoutState, isDesktop, hasOpenOverlay, toggleMenuCollapse } = useLayout()
+const { layoutState, isDesktop, hasOpenOverlay } = useLayout()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
@@ -96,16 +96,6 @@ onBeforeUnmount(() => {
         <LedgeLogo :size="36" with-wordmark />
       </router-link>
       <p class="layout-sidebar-tagline">Cabinet · Gestion intégrée</p>
-      <button
-        type="button"
-        class="layout-sidebar-collapse"
-        :aria-label="layoutState.staticMenuCollapsed ? 'Déployer la barre latérale' : 'Réduire la barre latérale'"
-        :aria-pressed="layoutState.staticMenuCollapsed"
-        :title="layoutState.staticMenuCollapsed ? 'Déployer' : 'Réduire'"
-        @click="toggleMenuCollapse"
-      >
-        <i :class="['pi', layoutState.staticMenuCollapsed ? 'pi-angle-double-right' : 'pi-angle-double-left']" aria-hidden="true"></i>
-      </button>
     </div>
 
     <!-- Menu -->
