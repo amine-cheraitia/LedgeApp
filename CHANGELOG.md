@@ -9,6 +9,14 @@
 
 ## [Unreleased]
 
+### Sécurité — restriction de rôle sur le journal d'audit (front) — fix/audit-logs-restriction-role-admin
+
+Correctif d'un **trou d'autorisation en profondeur** côté front : la route Vue Router `/audit-logs` était la seule route back-office sans `meta.roles`. Un membre du staff non-admin (`collaborateur` / `secrétaire`) pouvait donc **charger la page** en tapant l'URL directement (le menu la masquait déjà, mais la garde ne la bloquait pas).
+- **Impact réel limité** : l'API `GET /api/v1/audit-logs` est déjà protégée par le middleware `role:admin` → un non-admin recevait un `403` et **aucune donnée d'audit ne fuyait**. Le défaut était une incohérence de défense en profondeur + une UX dégradée (écran en erreur au lieu d'une redirection propre).
+- **Correctif** : ajout de `meta: { roles: ROLES.adminOnly }` sur la route `audit-logs` ([router/index.ts](frontend/src/router/index.ts)) → un non-admin est désormais redirigé vers `/acces-refuse`, comme toutes les autres pages admin. Cohérence rétablie sur les **3 couches** (backend `role:admin`, menu `isAdmin`, garde router `meta.roles`).
+- **Test** : ajout d'un test de non-régression (`src/__tests__/router.test.ts`) verrouillant `roles = ['admin']` sur cette route.
+- Contrôles : `vue-tsc` ✓, `vite build` ✓, **125 tests Vitest ✓** (+3).
+
 ### Accessibilité (contraste RGAA), CLS & SEO — feature/accessibilite-contraste-cls-seo
 
 Correctifs qualité front mesurés sur le **build de production** (Lighthouse desktop) : **Performance 45→85, Accessibilité 97→100, Best Practices 100, SEO 82→100** (le 45 initial provenait d'un audit sur le serveur de dev Vite, non représentatif — non minifié/non bundlé).
