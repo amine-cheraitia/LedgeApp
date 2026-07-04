@@ -9,6 +9,15 @@
 
 ## [Unreleased]
 
+### Couverture de tests — outillage + montée à 81.5 % (back) — fix/redirection-login-deja-connecte
+
+- **Outillage de couverture** :
+  - Backend : `composer test:coverage` (résumé terminal + **gate `--min=80`**, via `@putenv XDEBUG_MODE=coverage` pour propager le mode aux sous-processus) et `composer test:coverage-html` (rapport HTML dans `backend/coverage-html/`).
+  - Frontend : provider `@vitest/coverage-v8` + config `test.coverage` ([vite.config.ts](frontend/vite.config.ts)) + script `npm run test:coverage` (rapport dans `frontend/coverage/`). Dossiers de rapport ignorés par Git.
+- **+16 tests feature backend** sur les endpoints de lecture non couverts — un seul test d'endpoint exerce Controller + FormRequest + Service + Model + Resource + Policy à la fois : `PrestationApiTest`, `ExerciceApiTest`, `SettingApiTest`, `ContactApiTest`, `EnvoyerRelancesJobTest`.
+- **Couverture backend : 75.9 % → 81.5 %** (302 tests). Fichiers remontés : `RelanceService` 73 → 94 %, et les Resources/Policies/Service Contacts · Prestations · Exercices · Settings passés de **0 %** à couverts.
+- Couverture frontend désormais mesurable (**~9 %** aujourd'hui : les tests portent sur composables/stores/router, pas encore les composants/pages `.vue` — la monter est un chantier distinct, tests de composants).
+
 ### Redirection login pour session déjà active + nettoyage branding — fix/redirection-login-deja-connecte
 
 Deux correctifs sur la page de connexion :

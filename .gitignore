@@ -36,6 +36,10 @@ frontend/dist
 frontend/.env.local
 frontend/.env.*.local
 
+# Rapports de couverture de tests (generes a la demande)
+backend/coverage-html
+frontend/coverage
+
 # Claude
 .claude/settings.local.json
 
