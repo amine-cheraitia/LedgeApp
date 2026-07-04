@@ -17,6 +17,16 @@ Correctif d'un **trou d'autorisation en profondeur** côté front : la route Vue
 - **Test** : ajout d'un test de non-régression (`src/__tests__/router.test.ts`) verrouillant `roles = ['admin']` sur cette route.
 - Contrôles : `vue-tsc` ✓, `vite build` ✓, **125 tests Vitest ✓** (+3).
 
+### Robustesse navigation — rechargement auto sur échec de chunk de route — fix/navigation-echec-chargement-chunks
+
+Correctif d'un bug de navigation intermittent : après un déploiement, un onglet resté ouvert référence d'anciens hash de chunks JS. Au clic dans la sidebar, l'`import()` dynamique de la route échoue (404), vue-router **annule la navigation en silence** → le clic « ne fait rien », et seul un rafraîchissement manuel réparait.
+- **`router.onError`** : détecte l'échec d'import dynamique (Chrome/Firefox/Safari) et **recharge automatiquement** la page à l'URL cible pour récupérer les chunks à jour.
+- **Écouteur `vite:preloadError`** : filet de sécurité sur l'échec de préchargement d'un module (rechargement unique).
+- **Anti-boucle** : gardes `sessionStorage` réinitialisées par `afterEach` à chaque navigation aboutie — au plus **un** rechargement par cible, jamais de boucle.
+- **Durcissement de la garde `beforeEach`** : `try/catch` autour du corps → une erreur inattendue ne bloque plus la navigation en silence (route protégée → `/login`, sinon on laisse passer).
+- Aucun changement de comportement en navigation normale (chunks présents) : chargement instantané inchangé.
+- Contrôles : `vue-tsc` ✓, `vite build` ✓, 122 tests Vitest ✓.
+
 ### Accessibilité (contraste RGAA), CLS & SEO — feature/accessibilite-contraste-cls-seo
 
 Correctifs qualité front mesurés sur le **build de production** (Lighthouse desktop) : **Performance 45→85, Accessibilité 97→100, Best Practices 100, SEO 82→100** (le 45 initial provenait d'un audit sur le serveur de dev Vite, non représentatif — non minifié/non bundlé).

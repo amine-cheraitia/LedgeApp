@@ -182,37 +182,76 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
 
-  if (!auth.isAuthenticated && !to.meta.guest) {
-    await auth.fetchUser()
-  }
-
-  if (to.meta.guest && auth.isAuthenticated) {
-    return auth.isClient ? '/portail' : '/'
-  }
-
-  if (to.meta.requiresAuth && !auth.isAuthenticated) {
-    return '/login'
-  }
-
-  if (to.meta.backoffice && auth.isClient) {
-    return '/portail'
-  }
-
-  if (to.meta.portail && auth.isBackoffice) {
-    return '/'
-  }
-
-  if (to.meta.roles && auth.user?.roles) {
-    const allowed = to.meta.roles as string[]
-    if (!auth.hasAnyRole(allowed)) {
-      return { name: 'acces-refuse', query: { redirect: to.fullPath } }
+  try {
+    if (!auth.isAuthenticated && !to.meta.guest) {
+      await auth.fetchUser()
     }
+
+    if (to.meta.guest && auth.isAuthenticated) {
+      return auth.isClient ? '/portail' : '/'
+    }
+
+    if (to.meta.requiresAuth && !auth.isAuthenticated) {
+      return '/login'
+    }
+
+    if (to.meta.backoffice && auth.isClient) {
+      return '/portail'
+    }
+
+    if (to.meta.portail && auth.isBackoffice) {
+      return '/'
+    }
+
+    if (to.meta.roles && auth.user?.roles) {
+      const allowed = to.meta.roles as string[]
+      if (!auth.hasAnyRole(allowed)) {
+        return { name: 'acces-refuse', query: { redirect: to.fullPath } }
+      }
+    }
+  } catch {
+    // Durcissement : une erreur inattendue dans la garde ne doit pas bloquer la
+    // navigation en silence. Route protegee -> login, sinon on laisse passer.
+    return to.meta.requiresAuth ? '/login' : undefined
   }
 })
 
+// ── Robustesse au chargement des chunks de route ────────────────────────────
+// Les routes sont chargees en import dynamique. Apres un deploiement, un onglet
+// deja ouvert reference d'anciens hash de chunks : le fetch fait 404, l'import()
+// rejette et vue-router annule la navigation en silence (le clic "ne fait rien").
+// On recharge alors la page a la bonne URL pour recuperer les chunks a jour.
+const NAV_RELOAD_KEY = 'ledge:nav-reload'
+const PRELOAD_RELOAD_KEY = 'ledge:preload-reload'
+
+function isDynamicImportError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return /dynamically imported module|Importing a module script failed|Failed to fetch/i.test(message)
+}
+
 router.afterEach((to) => {
+  // Navigation aboutie : on reinitialise les gardes anti-boucle de rechargement.
+  sessionStorage.removeItem(NAV_RELOAD_KEY)
+  sessionStorage.removeItem(PRELOAD_RELOAD_KEY)
+
   const title = (to.name as string)?.replace(/-/g, ' ') ?? 'Page'
   document.title = `${title.charAt(0).toUpperCase() + title.slice(1)} — Ledge`
+})
+
+// Echec au moment de la navigation (clic -> chunk 404) : on recharge une fois.
+router.onError((error, to) => {
+  if (!isDynamicImportError(error)) return
+  if (sessionStorage.getItem(NAV_RELOAD_KEY) === to.fullPath) return // anti-boucle
+  sessionStorage.setItem(NAV_RELOAD_KEY, to.fullPath)
+  window.location.assign(to.fullPath)
+})
+
+// Filet Vite : echec de preload d'un module (emis par le helper d'import).
+window.addEventListener('vite:preloadError', (event) => {
+  event.preventDefault()
+  if (sessionStorage.getItem(PRELOAD_RELOAD_KEY)) return // anti-boucle
+  sessionStorage.setItem(PRELOAD_RELOAD_KEY, '1')
+  window.location.reload()
 })
 
 export default router
