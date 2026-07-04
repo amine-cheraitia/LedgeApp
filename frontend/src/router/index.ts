@@ -176,6 +176,13 @@ const router = createRouter({
         },
       ],
     },
+    {
+      // Catch-all 404 : toute URL non reconnue (toutes zones). Pas de meta -> visible
+      // pour visiteur, client et staff ; la garde beforeEach la laisse passer.
+      path: '/:pathMatch(.*)*',
+      name: 'page-introuvable',
+      component: () => import('@/pages/errors/NotFoundPage.vue'),
+    },
   ],
 })
 
