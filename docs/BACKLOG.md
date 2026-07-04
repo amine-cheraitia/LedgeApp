@@ -490,6 +490,7 @@
 - `aria-label` sur boutons sans texte · `role="alert"` + `aria-live="polite"` sur erreurs
 - Skip link "Aller au contenu principal" · `:focus-visible` outline · labels sur tous les inputs
 - Audit documente dans le cahier de recettes
+- 🔄 **Renforcement RGAA + qualite front (feature/accessibilite-contraste-cls-seo)** : contraste des liens en couleur primaire corrige en **mode sombre** (slate-300, RGAA 3.2.1), **CLS** dashboard ramene de 0.138 a 0.037, **nom accessible du logo** (WCAG 2.5.3), + **SEO** (meta description, robots.txt). Scores Lighthouse **prod** : Perf **85**, Accessibilite **100**, Best Practices **100**, SEO **100** (critere « Lighthouse accessibilite >= 85 » depasse).
 - Depend de : tout le frontend
 
 ---
