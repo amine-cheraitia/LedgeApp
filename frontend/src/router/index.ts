@@ -145,6 +145,7 @@ const router = createRouter({
           path: 'audit-logs',
           name: 'audit-logs',
           component: () => import('@/pages/audit/AuditLogPage.vue'),
+          meta: { roles: ROLES.adminOnly },
         },
       ],
     },
