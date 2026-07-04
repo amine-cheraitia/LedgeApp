@@ -9,6 +9,12 @@
 
 ## [Unreleased]
 
+### Redirection login pour session déjà active + nettoyage branding — fix/redirection-login-deja-connecte
+
+Deux correctifs sur la page de connexion :
+- **Redirection de l'utilisateur déjà authentifié hors de `/login`** : une garde `router.beforeEach` redirigeait déjà les routes `guest` (`to.meta.guest && auth.isAuthenticated` → `/` ou `/portail`), mais ne se déclenchait pas au **chargement à froid** (refresh / URL tapée) : la session n'était résolue (`fetchUser`) que pour les routes protégées, donc sur `/login` le store Pinia restait vide et l'utilisateur voyait le formulaire malgré un cookie de session valide. Correctif : résolution de session **une seule fois au démarrage** quelle que soit la route, via un flag `initialized` dans le store auth ([auth.ts](frontend/src/stores/auth.ts)) piloté par `fetchUser`/`login`, et condition de garde `if (!auth.initialized)` ([router/index.ts](frontend/src/router/index.ts)). En navigation SPA « chaude » le comportement était déjà correct ; le bug ne concernait que le refresh/URL directe.
+- **Retrait de la mention de version « Ledge v2 · RNCP 39583 »** de la page de connexion (panneau desktop + footer mobile) et du CSS associé ([LoginPage.vue](frontend/src/pages/auth/LoginPage.vue)).
+
 ### Sécurité — restriction de rôle sur le journal d'audit (front) — fix/audit-logs-restriction-role-admin
 
 Correctif d'un **trou d'autorisation en profondeur** côté front : la route Vue Router `/audit-logs` était la seule route back-office sans `meta.roles`. Un membre du staff non-admin (`collaborateur` / `secrétaire`) pouvait donc **charger la page** en tapant l'URL directement (le menu la masquait déjà, mais la garde ne la bloquait pas).

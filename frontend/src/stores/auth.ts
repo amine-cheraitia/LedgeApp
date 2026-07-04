@@ -6,6 +6,9 @@ import type { User } from '@/types'
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const loading = ref(false)
+  // Passe a true des la premiere resolution de session (succes ou echec).
+  // Permet a la garde du router de ne tenter fetchUser qu'une seule fois au demarrage.
+  const initialized = ref(false)
 
   const isAuthenticated = computed(() => !!user.value)
   const isAdmin = computed(() => user.value?.roles?.includes('admin') ?? false)
@@ -35,6 +38,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const { data } = await api.post('/login', { email, password })
       user.value = normalizeUser(data.user)
+      initialized.value = true
       return user.value
     } finally {
       loading.value = false
@@ -53,8 +57,10 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = normalizeUser(data.user)
     } catch {
       user.value = null
+    } finally {
+      initialized.value = true
     }
   }
 
-  return { user, loading, isAuthenticated, isAdmin, isClient, isSecretaire, isCollaborateur, isBackoffice, hasAnyRole, login, logout, fetchUser }
+  return { user, loading, initialized, isAuthenticated, isAdmin, isClient, isSecretaire, isCollaborateur, isBackoffice, hasAnyRole, login, logout, fetchUser }
 })

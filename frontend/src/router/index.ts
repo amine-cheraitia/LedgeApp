@@ -183,7 +183,10 @@ router.beforeEach(async (to) => {
   const auth = useAuthStore()
 
   try {
-    if (!auth.isAuthenticated && !to.meta.guest) {
+    // Resolution de session une seule fois au demarrage, y compris sur les routes
+    // guest (/login...) : sinon un utilisateur deja connecte qui recharge /login
+    // n'est pas redirige (store vide au cold-load). Voir la garde meta.guest ci-dessous.
+    if (!auth.initialized) {
       await auth.fetchUser()
     }
 

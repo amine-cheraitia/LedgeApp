@@ -27,6 +27,7 @@
 
 - Sanctum SPA cookie-based · session persistante · CSRF · logout
 - Guards Vue Router : `meta.zone = 'backoffice'` → bloque clients · `meta.zone = 'portail'` → bloque staff
+- 🔄 **Redirection session active (fix/redirection-login-deja-connecte)** : un utilisateur deja connecte qui recharge `/login` (ou tape l'URL) est desormais redirige vers `/` (ou `/portail`) — resolution de session une seule fois au demarrage via le flag `initialized` du store auth, y compris sur les routes `guest`
 - Depend de : —
 
 ---
