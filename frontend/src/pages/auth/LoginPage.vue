@@ -79,10 +79,6 @@ async function handleLogin() {
             <span class="login-brand-dot" aria-hidden="true">·</span>
             <span>KPI</span>
           </p>
-
-          <p class="login-brand-meta">
-            Ledge v2 · RNCP 39583
-          </p>
         </div>
       </aside>
 
@@ -186,7 +182,6 @@ async function handleLogin() {
 
           <footer class="login-foot">
             <p class="login-foot-line">Accès réservé au personnel du cabinet</p>
-            <p class="login-foot-version">Ledge v2 · RNCP 39583</p>
           </footer>
         </div>
 
@@ -328,22 +323,6 @@ async function handleLogin() {
 .login-brand-dot {
   color: #94a3b8;
   user-select: none;
-}
-
-.login-brand-meta {
-  display: none;
-  margin: 2rem 0 0;
-  font-family: var(--ledge-ff-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #94a3b8;
-}
-
-@media (min-width: 768px) {
-  .login-brand-meta {
-    display: block;
-  }
 }
 
 /* ── Colonne formulaire ─────────────────────────────────────────────── */
@@ -599,25 +578,6 @@ async function handleLogin() {
 
 .app-dark .login-foot-line {
   color: #94a3b8;
-}
-
-/* #475569 sur fond clair = 5.8:1 ✅ (vs #64748b = 4.3:1 fail WCAG petit texte) */
-.login-foot-version {
-  margin: 0;
-  font-family: var(--ledge-ff-mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.04em;
-  color: #475569;
-}
-
-.app-dark .login-foot-version {
-  color: #94a3b8;
-}
-
-@media (min-width: 768px) {
-  .login-foot-version {
-    display: none;
-  }
 }
 
 /* FAB aide — 44×44 mini, focus visible */
