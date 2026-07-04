@@ -7,12 +7,16 @@ defineProps<{
 
 <template>
   <span class="ledge-logo" :class="{ 'ledge-logo-with-wordmark': withWordmark }">
+    <!-- Quand le wordmark "Ledge" est affiche, le SVG est purement decoratif
+         (aria-hidden) : le texte visible sert de nom accessible. Sans wordmark
+         (ex. login / PDF), le SVG porte le nom accessible "Ledge". -->
     <svg
       :width="size ?? 32"
       :height="size ?? 32"
       viewBox="0 0 40 40"
-      role="img"
-      aria-label="Ledge"
+      :role="withWordmark ? undefined : 'img'"
+      :aria-label="withWordmark ? undefined : 'Ledge'"
+      :aria-hidden="withWordmark ? 'true' : undefined"
       class="ledge-logo-mark"
     >
       <!-- Damier 2x2 — marque Ledge (coherent login + PDF) -->

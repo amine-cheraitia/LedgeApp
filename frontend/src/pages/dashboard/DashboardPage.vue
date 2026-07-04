@@ -268,7 +268,9 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="col-span-12 flex justify-center py-20">
+    <!-- min-height : reserve l'espace pendant le fetch pour que le footer reste
+         hors ecran -> evite le layout shift (CLS) au remplacement spinner->contenu. -->
+    <div v-if="loading" class="col-span-12 flex items-center justify-center py-20" style="min-height: 80vh">
       <ProgressSpinner aria-label="Chargement du tableau de bord" />
     </div>
 
@@ -1346,6 +1348,23 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
 }
 .panel-link:hover { text-decoration: underline; }
 .panel-link:focus-visible { outline: 2px solid var(--p-primary-color); outline-offset: 2px; }
+
+/* RGAA 3.2.1 — en mode sombre, --p-primary-color (slate-600 #475569)
+   contraste trop faiblement (2.4:1) sur les surfaces slate. Les liens en
+   couleur primaire passent en slate-300 (#cbd5e1, ~10:1). Les barres/fonds
+   qui utilisent --p-primary-color ne sont pas concernes. */
+.app-dark .panel-link,
+.app-dark .mission-ref,
+.app-dark .task-mission-link,
+.app-dark a.timeline-title {
+  color: #cbd5e1;
+}
+.app-dark .panel-link:focus-visible,
+.app-dark .mission-ref:focus-visible,
+.app-dark .task-mission-link:focus-visible,
+.app-dark a.timeline-title:focus-visible {
+  outline-color: #cbd5e1;
+}
 
 /* ── Empty state ──────────────────────────────────────────────────────── */
 .empty-state {

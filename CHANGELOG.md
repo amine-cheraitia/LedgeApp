@@ -9,6 +9,16 @@
 
 ## [Unreleased]
 
+### Accessibilité (contraste RGAA), CLS & SEO — feature/accessibilite-contraste-cls-seo
+
+Correctifs qualité front mesurés sur le **build de production** (Lighthouse desktop) : **Performance 45→85, Accessibilité 97→100, Best Practices 100, SEO 82→100** (le 45 initial provenait d'un audit sur le serveur de dev Vite, non représentatif — non minifié/non bundlé).
+- **Contraste RGAA (WCAG 1.4.3 / RGAA 3.2.1)** : en mode sombre, les liens en couleur primaire (`.text-primary`, `.mission-ref`, `.panel-link`, `.task-mission-link`, `a.timeline-title`) contrastaient à ~2.4:1 sur les surfaces slate — désormais en slate-300 (`#cbd5e1`, ~10:1). Les boutons (primaire en fond + texte blanc) ne sont pas concernés.
+- **CLS** : décalage de mise en page du dashboard ramené de **0.138 à 0.037** — hauteur réservée pendant le chargement (le footer ne remonte plus dans le viewport avant l'injection du contenu).
+- **Nom accessible du logo (WCAG 2.5.3)** : le SVG de `LedgeLogo` devient décoratif (`aria-hidden`) quand le wordmark « Ledge » est affiché, tout en conservant son nom accessible sans wordmark (login/PDF) — corrige `label-content-name-mismatch`.
+- **SEO** : ajout d'une `<meta name="description">` et d'un `public/robots.txt` valide.
+- **Build** : `vite.config.ts` — `vite preview` reprend le port 5173 et le proxy `/api` + `/sanctum` (constante `apiProxy` partagée avec le serveur de dev) afin d'auditer le build de prod en conditions réelles (auth Sanctum stateful sur `localhost:5173`).
+- Contrôles : `vue-tsc` ✓, `vite build` ✓, 122 tests Vitest ✓.
+
 ### Refonte UI Dashboard + Login (identité navy/slate, light + dark) — feature/refonte-ui-dashboard-login
 
 Refonte visuelle d'après maquettes, appliquée globalement via les tokens partagés (cohérente sur toute l'app), sur les deux modes clair/sombre :
