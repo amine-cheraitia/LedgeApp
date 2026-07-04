@@ -731,7 +731,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
               <i class="pi pi-chart-line text-cyan-500 text-xl!" aria-hidden="true"></i>
             </div>
           </div>
-          <div class="text-surface-900 dark:text-surface-0 font-bold text-2xl">{{ formatDA(stats.kpi.ca_mois) }}</div>
+          <div class="text-surface-900 dark:text-surface-0 font-bold text-2xl dash-figure">{{ formatDA(stats.kpi.ca_mois) }}</div>
           <div class="mt-4">
             <span class="text-muted-color text-sm">Factures émises ce mois</span>
           </div>
@@ -746,7 +746,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
               <i class="pi pi-percentage text-purple-500 text-xl!" aria-hidden="true"></i>
             </div>
           </div>
-          <div class="text-surface-900 dark:text-surface-0 font-bold text-2xl">{{ formatDA(stats.kpi.tva_collectee) }}</div>
+          <div class="text-surface-900 dark:text-surface-0 font-bold text-2xl dash-figure">{{ formatDA(stats.kpi.tva_collectee) }}</div>
           <div class="mt-4">
             <span class="text-muted-color text-sm">Cumul sur la période</span>
           </div>
@@ -770,7 +770,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
             </div>
           </div>
           <div
-            class="font-bold text-2xl"
+            class="font-bold text-2xl dash-figure"
             :class="stats.kpi.taux_recouvrement >= stats.kpi.seuil_recouvrement ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'"
           >
             {{ stats.kpi.taux_recouvrement }}%
@@ -804,7 +804,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
               <i class="pi pi-building text-blue-500 text-xl!"></i>
             </div>
           </div>
-          <div class="text-surface-900 dark:text-surface-0 font-bold text-3xl">{{ stats.entreprises.clients }}</div>
+          <div class="text-surface-900 dark:text-surface-0 font-bold text-3xl dash-figure">{{ stats.entreprises.clients }}</div>
           <div class="flex items-center mt-4">
             <span class="text-muted-color">{{ stats.entreprises.prospects }} prospects</span>
             <span class="text-muted-color mx-2">&bull;</span>
@@ -821,7 +821,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
               <i class="pi pi-briefcase text-blue-500 text-xl!"></i>
             </div>
           </div>
-          <div class="text-surface-900 dark:text-surface-0 font-bold text-3xl">{{ stats.missions.en_cours }}</div>
+          <div class="text-surface-900 dark:text-surface-0 font-bold text-3xl dash-figure">{{ stats.missions.en_cours }}</div>
           <div class="flex items-center mt-4">
             <span class="text-green-500 font-medium">{{ stats.missions.terminees }} terminées</span>
             <span class="text-muted-color mx-2">&bull;</span>
@@ -838,7 +838,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
               <i class="pi pi-dollar text-cyan-500 text-xl!"></i>
             </div>
           </div>
-          <div class="text-surface-900 dark:text-surface-0 font-bold text-3xl">{{ formatDA(stats.factures.ca_ttc) }}</div>
+          <div class="text-surface-900 dark:text-surface-0 font-bold text-3xl dash-figure">{{ formatDA(stats.factures.ca_ttc) }}</div>
           <div class="flex items-center mt-4">
             <span class="text-green-500 font-medium">{{ formatDA(stats.factures.total_paye) }}</span>
             <span class="text-muted-color ml-1">encaissé</span>
@@ -854,7 +854,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
               <i class="pi pi-exclamation-triangle text-xl!" :class="stats.factures.en_retard > 0 ? 'text-red-500' : 'text-green-500'"></i>
             </div>
           </div>
-          <div class="text-surface-900 dark:text-surface-0 font-bold text-3xl">{{ formatDA(stats.factures.total_impaye) }}</div>
+          <div class="text-surface-900 dark:text-surface-0 font-bold text-3xl dash-figure">{{ formatDA(stats.factures.total_impaye) }}</div>
           <div class="flex items-center mt-4">
             <span v-if="stats.factures.en_retard > 0" class="text-red-500 font-medium">{{ stats.factures.en_retard }} en retard</span>
             <span v-else class="text-green-500 font-medium">Aucun retard</span>
@@ -1285,6 +1285,15 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
   color: var(--p-text-color);
   line-height: 1;
   margin: 0 0 1rem;
+}
+
+/* Chiffres du tableau de bord en JetBrains Mono (var(--ledge-ff-mono)) — rendu
+   tabulaire, coherent avec le grand « 404 ». `.dash-figure` marque les chiffres KPI
+   admin (classes Tailwind inline) ; les cartes collaborateur ont deja leurs classes. */
+.kpi-card__value,
+.donut-total,
+.dash-figure {
+  font-family: var(--ledge-ff-mono);
 }
 .kpi-card__sub {
   font-size: 0.8125rem;
