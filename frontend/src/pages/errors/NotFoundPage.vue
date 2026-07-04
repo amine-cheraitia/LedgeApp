@@ -48,15 +48,24 @@ function retourAccueil() {
 </template>
 
 <style scoped>
+/* Page standalone (hors AppLayout) : on pose explicitement le fond clair/sombre,
+   comme la page de login. `.app-dark` est porte par <html> (global). */
 .notfound-page {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  min-height: 100dvh;
   padding: 1.5rem;
-  background: var(--surface-ground);
+  background: var(--p-surface-50);
 }
 
+.app-dark .notfound-page {
+  background: #111827;
+}
+
+/* La carte s'appuie sur la classe globale `.card` (theme-aware :
+   --p-surface-0 en clair, --p-surface-800 en sombre). */
 .notfound-card {
   max-width: 28rem;
   width: 100%;
@@ -71,7 +80,7 @@ function retourAccueil() {
   line-height: 1;
   letter-spacing: 0.05em;
   margin: 0 0 0.5rem;
-  color: var(--text-color-secondary);
+  color: var(--p-text-muted-color);
 }
 
 .notfound-icon {
@@ -82,20 +91,24 @@ function retourAccueil() {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: var(--surface-100, #f1f5f9);
-  color: var(--text-color-secondary);
+  background: var(--p-surface-100);
+  color: var(--p-text-muted-color);
   font-size: 1.75rem;
+}
+
+.app-dark .notfound-icon {
+  background: var(--p-surface-700);
 }
 
 .notfound-title {
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0 0 0.75rem;
-  color: var(--text-color);
+  color: var(--p-text-color);
 }
 
 .notfound-message {
-  color: var(--text-color-secondary);
+  color: var(--p-text-muted-color);
   margin: 0 0 1.5rem;
   line-height: 1.5;
 }
