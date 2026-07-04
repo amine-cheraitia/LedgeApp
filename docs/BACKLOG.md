@@ -661,6 +661,15 @@
 
 ---
 
+## Ameliorations futures · non planifie
+
+> Pistes identifiees mais non encore priorisees dans un sprint.
+
+- **Cache applicatif (a evaluer)** : l'infra est en place (`CACHE_STORE=database` en dev, `redis` en Docker) mais aucun `Cache::remember()` n'est utilise dans le code metier. A introduire **uniquement sur un point chaud mesure** (candidats : `Setting`, referentiels `TvaTaux`, agregations KPI dashboard), avec invalidation explicite + tests. Ne pas cacher de maniere speculative (cf. regle anti sur-ingenierie).
+- **Page 404 (route catch-all)** : le router n'a pas de route `:pathMatch(.*)*` → une URL inconnue affiche un `<router-view>` vide (ni page, ni redirection). Ajouter une page `NotFound` + route attrape-tout, pendant de la page `/acces-refuse` deja existante (US-49) pour les acces non autorises.
+
+---
+
 ## Resume
 
 ### Par sprint
