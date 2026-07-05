@@ -46,6 +46,19 @@ class ExerciceController extends Controller
         return new ExerciceResource($exercice);
     }
 
+    public function destroy(Exercice $exercice): JsonResponse
+    {
+        if ($exercice->missions()->exists() || $exercice->factures()->exists() || $exercice->devis()->exists()) {
+            return response()->json([
+                'message' => 'Impossible de supprimer un exercice ayant des missions, devis ou factures associes.',
+            ], 409);
+        }
+
+        $exercice->delete();
+
+        return response()->json(['message' => 'Exercice supprime.']);
+    }
+
     public function current(): ExerciceResource
     {
         return new ExerciceResource(Exercice::current());

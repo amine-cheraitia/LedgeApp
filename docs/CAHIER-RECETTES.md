@@ -242,7 +242,7 @@ Back = PHPUnit (`backend/tests/`), Front = Vitest (`frontend/src/__tests__/`).
 | DSH-04 | `Feature/Api/DashboardKpiTest`, `CalendarApiTest` |
 | AUD-01 / 02 / 03 | `Feature/Api/AuditLogTest` |
 | STR-01 | `vendor/bin/pint --test` (CI) |
-| STR-02 | `php artisan test` — **414 tests back / 95 % couverture** |
+| STR-02 | `php artisan test` — **415 tests back / 95 % couverture** |
 | STR-03 | `npm test` — **557 tests front / 83 % couverture** |
 | STR-04 | `npm run build` (vue-tsc + vite build) |
 | SEC-04 | `Feature/Api/ApiExceptionRendererTest` (pas de fuite d'erreur) |

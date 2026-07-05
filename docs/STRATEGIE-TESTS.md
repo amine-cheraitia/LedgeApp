@@ -13,7 +13,7 @@ et comment mesurer la couverture. Il accompagne le [cahier de recettes](CAHIER-R
 
 | Couche | Outil | Tests | Fichiers | Couverture lignes |
 |---|---|---|---|---|
-| **Backend** (Laravel API) | PHPUnit 11 | **414** | 40 | **95 %** |
+| **Backend** (Laravel API) | PHPUnit 11 | **415** | 40 | **95 %** |
 | **Frontend** (Vue 3 SPA) | Vitest 4 + @vue/test-utils | **557** | 48 | **83 %** |
 | **Total** | | **971** | | |
 

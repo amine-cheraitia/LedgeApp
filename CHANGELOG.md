@@ -17,7 +17,8 @@
 - **Chiffres du dashboard en JetBrains Mono** ([DashboardPage.vue](frontend/src/pages/dashboard/DashboardPage.vue)).
 
 **Suite de tests calibrée** (proportionnée — RNCP C2.2.2 : un harnais couvrant les fonctionnalités —, ≥ 80 % de couverture des deux côtés) :
-- **Backend : 414 tests / 95 %** de lignes. Couverture des endpoints (auth, prestations, exercices, entreprises, facturation, devis, avoirs, relances, portail), des services (`DashboardService` 62→100 %, `PdfService`, `EntrepriseService`), des mails, policies et génération PDF.
+- **Backend : 415 tests / 95 %** de lignes. Couverture des endpoints (auth, prestations, exercices, entreprises, facturation, devis, avoirs, relances, portail), des services (`DashboardService` 62→100 %, `PdfService`, `EntrepriseService`), des mails, policies et génération PDF.
+- **Correctifs révélés par les tests** : `ExerciceController::destroy` ajouté (la route `DELETE /exercices/{id}` existait sans méthode → désormais 409 si documents liés) ; validation d'**unicité NIF/NIS** dans les FormRequests entreprise (au lieu d'une `QueryException` 500) ; enum `statut` aligné sur `prospect`/`client` ; suppression du **code mort** `DevisLigne` + `DevisLigneResource` (aucune table ni endpoint).
 - **Frontend : 557 tests / 83 %** de lignes (harnais de montage partagé `mountPage`, tests de pages/composables/API/layout/garde router).
 - **Outillage** : `composer test:coverage` (gate `--min=80`), `npm run test:coverage` (seuils 80), `@vitest/coverage-v8`.
 

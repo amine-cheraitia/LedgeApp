@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Api;
 
-use App\Http\Resources\Facturation\DevisLigneResource;
 use App\Mail\DevisMail;
 use App\Mail\FactureMail;
 use App\Mail\RelanceClientMail;
@@ -12,7 +11,6 @@ use App\Models\Avoir;
 use App\Models\CategorieEntreprise;
 use App\Models\Contact;
 use App\Models\Devis;
-use App\Models\DevisLigne;
 use App\Models\Entreprise;
 use App\Models\Exercice;
 use App\Models\Facture;
@@ -199,31 +197,6 @@ class FacturationLifecycleTest extends TestCase
             ->assertJsonPath('data.prestation.id', $this->prestation->id);
     }
 
-    public function test_devis_ligne_resource_expose_les_champs(): void
-    {
-        // DevisLigne n'est persistee/exposee par aucun endpoint (pas de table dediee) :
-        // on rend la Resource sur un modele en memoire pour couvrir DevisLigneResource.
-        $ligne = new DevisLigne([
-            'devis_id' => 42,
-            'prestation_id' => $this->prestation->id,
-            'designation' => 'Ligne de devis test',
-            'quantite' => 2,
-            'prix_unitaire_ht' => 5000,
-            'total_ht' => 10000,
-            'ordre' => 1,
-        ]);
-        $ligne->id = 99;
-
-        $array = (new DevisLigneResource($ligne))->toArray(request());
-
-        $this->assertSame(99, $array['id']);
-        $this->assertSame(42, $array['devis_id']);
-        $this->assertSame('Ligne de devis test', $array['designation']);
-        $this->assertArrayHasKey('quantite', $array);
-        $this->assertArrayHasKey('prix_unitaire_ht', $array);
-        $this->assertArrayHasKey('total_ht', $array);
-        $this->assertSame(1, $array['ordre']);
-    }
 
     public function test_accepter_un_devis_envoye(): void
     {
