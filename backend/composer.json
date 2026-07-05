@@ -95,9 +95,6 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
-        },
-        "audit": {
-            "ignore": ["PKSA-21fb-n1x5-5nf7"]
         }
     },
     "minimum-stability": "stable",

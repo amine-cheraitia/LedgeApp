@@ -47,6 +47,19 @@ La CI exécutait les tests sans **aucun seuil de couverture** (le gate 80% n'exi
 - **Backend** : `coverage: pcov` activé sur setup-php, tests lancés via `composer test:coverage` (`artisan test --coverage --min=80`).
 - **Frontend** : tests lancés via `npm run test:coverage` (seuils configurés dans `vite.config.ts` : lignes/statements 80, branches 75, fonctions 65).
 - **Audits** : étapes `composer audit` et `npm audit --omit=dev` ajoutées, **volontairement non bloquantes** (`continue-on-error`) — visibles dans les logs CI sans casser le pipeline tant que les CVE connues restent documentées dans `docs/SECURITY.md`.
+### Sécurité — remédiation des CVE de dépendances + SECURITY.md à jour — chore/securite-cve
+
+`composer audit` remontait 19 advisories (dont un *high* sur `laravel/framework`) et
+`npm audit` 7 (dont axios en production). Après remédiation, **les deux audits sont vierges**.
+- **Backend** : `composer update` (dans les contraintes `^7.x`/`^12.0`, sans bump majeur) tire
+  les correctifs Symfony 7.4.x, Laravel 12.55.x, Guzzle 7.10.x → **0 advisory**. Suppression de
+  l'entrée `config.audit.ignore` orpheline (`PKSA-21fb-n1x5-5nf7`) de `composer.json`.
+- **Frontend** : `axios` `^1.13.6` → `^1.18.1` (corrige les CVE prod SSRF / prototype pollution) ;
+  outillage build/dev (`vite`, `postcss`, `picomatch`, `brace-expansion`, `form-data`) patché via
+  `npm audit fix` → **0 vulnérabilité**.
+- **Doc** : `docs/SECURITY.md` réécrit — état vierge, remédiation détaillée, impact évalué,
+  surveillance CI (règle projet « ne jamais silencer une CVE, documenter + évaluer »).
+- Vérifié : backend 415 tests verts (post-update), frontend 557 tests + `vue-tsc` + `vite build` OK.
 
 ### Correctif flaky CI — stub PrimeVue TabList dans le harnais de tests — fix/flaky-vitest-tablist-timer
 
