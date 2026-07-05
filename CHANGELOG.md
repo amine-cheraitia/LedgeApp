@@ -29,6 +29,12 @@ La bascule **prospect → client** doit être exclusivement automatique (via `Mi
 ### Sécurité — endpoints de santé détaillés réservés à l'admin — fix/health-endpoint-auth
 
 Les routes `GET /health` (JSON) et `GET /health/dashboard` (HTML) de Spatie Health étaient **publiques** (`routes/web.php`, hors de tout middleware) : n'importe quel visiteur non authentifié pouvait consulter l'état BDD/cache/disque/queue et le statut `APP_DEBUG` — une fuite d'information de reconnaissance (OWASP A05). Elles sont désormais protégées par `role:admin`. Le monitoring externe (UptimeRobot) continue d'utiliser l'endpoint public **simple** `/up` (configuré dans `bootstrap/app.php`), qui ne divulgue aucun détail. Test dédié `HealthEndpointAccessTest` (guest/non-admin → 403, admin → 200, `/up` toujours public).
+### Sécurité — annuaire utilisateurs restreint et scopé par rôle — fix/users-index-restriction
+
+`GET /users` et `GET /users/{user}` étaient accessibles à **tout le staff** (admin, secrétaire, collaborateur) sans filtrage : un collaborateur — censé ne voir que ses missions/tâches — pouvait énumérer **tous** les comptes, y compris les clients (avec `email`, `entreprise_id`, `portail_actif`) et les admins (OWASP A01, sur-exposition contraire au moindre privilège).
+- **`GET /users`** : seul l'admin obtient l'annuaire complet. Les autres rôles (pour les selects d'assignation missions/tâches/devis) ne reçoivent que **le personnel** (jamais les clients) en **vue minimale** `StaffSelectResource` — uniquement `id`/`name`/`roles`, aucune donnée sensible. Ajout de `UserPolicy::viewAny` + `authorize()`.
+- **`GET /users/{user}`** (fiche complète) : déplacé dans le groupe `role:admin` + `UserPolicy::view` (admin uniquement).
+- Aucun changement frontend nécessaire (les consommateurs n'utilisaient que `id`/`name`/`roles`). Test dédié `UserApiTest` (admin = complet, collaborateur/secrétaire = personnel minimal sans clients, show réservé admin, client bloqué).
 
 ### Correctif flaky CI — stub PrimeVue TabList dans le harnais de tests — fix/flaky-vitest-tablist-timer
 
