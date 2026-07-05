@@ -9,6 +9,14 @@
 
 ## [Unreleased]
 
+### Couverture de tests frontend — 8 % → 95 % — fix/redirection-login-deja-connecte
+
+Montée de la couverture front par des tests de composants/pages (Vitest + @vue/test-utils + happy-dom).
+- **Harnais de montage partagé** `src/__tests__/helpers/mount.ts` : `mountPage()` (installe PrimeVue + services Toast/Confirm + Pinia + router mémoire, stubbe Chart.js / FullCalendar / teleport, gère rôle et route params), `makeUser()`, `findButton()`. Toute page se teste ainsi sans réécrire le setup.
+- **Couverture lignes : 8.1 % → 94.92 %** (branches 94.6 %, fonctions 87.1 %). Couverts : les 30+ pages (dashboard, entreprises, factures, devis, missions, planning, portail, relances, users, settings…), les composables, tous les modules `api/`, le `client.ts` (normalizeApiError, intercepteurs CSRF), la garde `router.beforeEach` et les composants de layout.
+- **751 tests Vitest** (49 fichiers, +624) ; `vue-tsc -b` + `vite build` ✓.
+- **Gate de couverture** : seuils **85 %** (lignes/stmts/branches/fonctions) dans [vite.config.ts](frontend/vite.config.ts) → `npm run test:coverage` échoue sous 85 % (équivalent front du `--min=80` backend).
+
 ### Couverture de tests — outillage + montée à 81.5 % (back) — fix/redirection-login-deja-connecte
 
 - **Outillage de couverture** :

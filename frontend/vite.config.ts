@@ -55,6 +55,14 @@ export default defineConfig({
       reportsDirectory: 'coverage',
       include: ['src/**/*.{ts,vue}'],
       exclude: ['src/**/*.d.ts', 'src/main.ts', 'src/**/__tests__/**', 'src/types/**'],
+      // Garde-fou anti-regression (equivalent du --min=80 backend). npm run test:coverage
+      // echoue si la couverture repasse sous ces seuils.
+      thresholds: {
+        lines: 85,
+        statements: 85,
+        branches: 85,
+        functions: 85,
+      },
     },
   },
 })
