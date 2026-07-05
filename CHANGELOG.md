@@ -9,6 +9,22 @@
 
 ## [Unreleased]
 
+### Suite de tests calibrée + finitions UI + cahier de recettes — test/couverture-et-doc
+
+**Finitions UI** (compléments aux correctifs login déjà mergés) :
+- **Page 404** (route catch-all `/:pathMatch(.*)*`) → [NotFoundPage.vue](frontend/src/pages/errors/NotFoundPage.vue) au lieu d'un `<router-view>` vide ; standalone, RGAA, bouton retour adapté au rôle.
+- **Thème clair/sombre appliqué dès le bootstrap** ([main.ts](frontend/src/main.ts) + `applyStoredTheme` dans [layout.ts](frontend/src/layout/composables/layout.ts)) : les pages standalone (login, 404) respectent le dark mode au chargement à froid.
+- **Chiffres du dashboard en JetBrains Mono** ([DashboardPage.vue](frontend/src/pages/dashboard/DashboardPage.vue)).
+
+**Suite de tests calibrée** (proportionnée — RNCP C2.2.2 : un harnais couvrant les fonctionnalités —, ≥ 80 % de couverture des deux côtés) :
+- **Backend : 300 tests / 81,5 %** de lignes. +16 tests feature (`LoginTest` throttle, `Prestation/Exercice/Setting/Contact ApiTest`, `EnvoyerRelancesJobTest`).
+- **Frontend : 557 tests / 83 %** de lignes (harnais de montage partagé `mountPage`, tests de pages/composables/API/layout/garde router).
+- **Outillage** : `composer test:coverage` (gate `--min=80`), `npm run test:coverage` (seuils 80), `@vitest/coverage-v8`.
+
+**Documentation (bloc 2)** :
+- [docs/STRATEGIE-TESTS.md](docs/STRATEGIE-TESTS.md) : pyramide de tests, chiffres par couche, commandes, gate.
+- [docs/CAHIER-RECETTES.md](docs/CAHIER-RECETTES.md) : **matrice de traçabilité scénario ↔ test automatisé** (compétence C2.3.1).
+
 ### Redirection login pour session déjà active + nettoyage branding — fix/redirection-login-deja-connecte
 
 Deux correctifs sur la page de connexion :

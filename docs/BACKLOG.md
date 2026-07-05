@@ -627,6 +627,7 @@
 - `meta.roles` sur les routes Vue Router (admin / admin+secrétaire / tous staff)
 - Page `/acces-refuse` avec message clair et retour dashboard
 - Menu aligné sur les routes (config relances admin only)
+- 🔄 **Page 404 (fix/redirection-login-deja-connecte)** : route catch-all `/:pathMatch(.*)*` → `NotFoundPage.vue` (standalone, toutes zones, RGAA, retour accueil adapté à la session) au lieu d'un `<router-view>` vide sur URL inconnue. Pendant de `/acces-refuse`.
 - 🔄 **Robustesse navigation (fix/navigation-echec-chargement-chunks)** : les routes étant en import dynamique, un chunk devenu introuvable après déploiement (onglet ouvert sur d'anciens hash) faisait échouer l'`import()` → vue-router annulait la navigation **en silence** (clic sidebar « mort », réparé seulement par un refresh manuel). Ajout de `router.onError` + écouteur `vite:preloadError` qui **rechargent automatiquement** la page à l'URL cible (garde `sessionStorage` anti-boucle réinitialisée à chaque navigation aboutie), et **`try/catch`** sur `beforeEach` pour qu'aucune erreur inattendue de garde ne bloque plus la navigation silencieusement.
 - 🔄 **Restriction du journal d'audit (fix/audit-logs-restriction-role-admin)** : la route `/audit-logs` était la seule route back-office sans `meta.roles` → un staff non-admin pouvait charger la page par URL directe (le menu la masquait déjà via `isAdmin`, et l'API renvoyait `403` — pas de fuite de données, mais défense en profondeur incomplète). Ajout de `meta: { roles: ROLES.adminOnly }` → redirection propre vers `/acces-refuse`. Cohérence rétablie sur les 3 couches (backend `role:admin`, menu, garde router). Test de non-régression ajouté (`src/__tests__/router.test.ts`).
 - Depend de : **US-45**
@@ -658,6 +659,14 @@
 - Transmission facture autorisee a la secretaire (`FacturePolicy::transmettre`)
 - Fournisseur configurable par `.env` (Mailpit en dev, Brevo en demo)
 - Depend de : **US-11, US-12** (PDF devis obligatoire)
+
+---
+
+## Ameliorations futures · non planifie
+
+> Pistes identifiees mais non encore priorisees dans un sprint.
+
+- **Cache applicatif (a evaluer)** : l'infra est en place (`CACHE_STORE=database` en dev, `redis` en Docker) mais aucun `Cache::remember()` n'est utilise dans le code metier. A introduire **uniquement sur un point chaud mesure** (candidats : `Setting`, referentiels `TvaTaux`, agregations KPI dashboard), avec invalidation explicite + tests. Ne pas cacher de maniere speculative (cf. regle anti sur-ingenierie).
 
 ---
 
