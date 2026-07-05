@@ -115,7 +115,7 @@ onMounted(fetchExercices)
 <template>
   <div>
     <div class="page-header">
-      <h2>Exercices fiscaux</h2>
+      <h1>Exercices fiscaux</h1>
       <Button label="Nouvel exercice" icon="pi pi-plus" @click="openCreate" />
     </div>
 

@@ -249,7 +249,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
     <div class="col-span-12">
       <div class="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h2 id="dashboard-title" class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">Tableau de bord</h2>
+          <h1 id="dashboard-title" class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">Tableau de bord</h1>
           <p class="text-muted-color mt-1">Bienvenue, {{ auth.user?.name }}.</p>
         </div>
         <div v-if="auth.isAdmin && stats">

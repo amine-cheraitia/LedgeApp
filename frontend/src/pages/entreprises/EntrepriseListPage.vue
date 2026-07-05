@@ -352,7 +352,7 @@ onMounted(() => {
 <template>
   <div>
     <div class="page-header">
-      <h2>Entreprises</h2>
+      <h1>Entreprises</h1>
       <Button label="Nouvelle entreprise" icon="pi pi-plus" @click="openCreate" />
     </div>
 
