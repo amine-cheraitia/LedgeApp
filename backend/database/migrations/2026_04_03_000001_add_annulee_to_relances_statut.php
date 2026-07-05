@@ -1,21 +1,26 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        if (DB::getDriverName() !== 'sqlite') {
-            DB::statement("ALTER TABLE relances MODIFY COLUMN statut ENUM('en_attente', 'envoyee', 'echec', 'annulee') NOT NULL DEFAULT 'en_attente'");
-        }
+        Schema::table('relances', function (Blueprint $table) {
+            $table->enum('statut', ['en_attente', 'envoyee', 'echec', 'annulee'])
+                ->default('en_attente')
+                ->change();
+        });
     }
 
     public function down(): void
     {
-        if (DB::getDriverName() !== 'sqlite') {
-            DB::statement("ALTER TABLE relances MODIFY COLUMN statut ENUM('en_attente', 'envoyee', 'echec') NOT NULL DEFAULT 'en_attente'");
-        }
+        Schema::table('relances', function (Blueprint $table) {
+            $table->enum('statut', ['en_attente', 'envoyee', 'echec'])
+                ->default('en_attente')
+                ->change();
+        });
     }
 };

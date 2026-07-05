@@ -9,6 +9,16 @@
 
 ## [Unreleased]
 
+### Correctif métier — statut de paiement des factures tenant compte des avoirs — fix/recalcul-statut-avoirs
+
+Une facture annulée (totalement ou partiellement) par un **avoir** ne mettait jamais à jour son `statut_paiement` : `FacturationService::recalculerStatutPaiement()` ne sommait que les paiements, et `AvoirController::store/destroy` ne le rappelait pas. Conséquence : une facture soldée par avoir restait `en_attente`/`partiel`, apparaissait encore dans les créances et pouvait déclencher une **relance automatique** (cron quotidien) — voire une mise en demeure — sur une facture déjà réglée.
+
+- **`recalculerStatutPaiement()`** ([FacturationService.php](backend/app/Services/FacturationService.php)) prend désormais en compte les avoirs pour le passage à `solde` (`total réglé = paiements + avoirs ≥ montant_ttc`). Le statut `partiel` reste attaché à un paiement réel (un avoir n'est pas un paiement).
+- **`creerAvoir()`** recalcule le statut à la création et, si la facture devient `solde`, émet `InvoicePaid` → annulation des relances en cours (même effet qu'un paiement soldant). Nouvelle méthode **`supprimerAvoir()`** : réévalue le statut à la suppression (le dû remonte).
+- **`AvoirController::destroy`** délègue à `supprimerAvoir()` (retrait de la logique du contrôleur).
+- **Migration** `add_annulee_to_relances_statut` rendue **cross-SGBD** (via `Schema::change()` au lieu d'un `ALTER … MODIFY` MySQL ignoré sous SQLite) : l'état `annulee` des relances était absent du schéma de test, ce qui rendait l'annulation des relances non testable.
+- Tests : 5 nouveaux cas (avoir soldant, paiement partiel + avoir, annulation des relances, suppression d'avoir réévaluant le statut) — suite backend **419 verts**.
+
 ### Correctif flaky CI — stub PrimeVue TabList dans le harnais de tests — fix/flaky-vitest-tablist-timer
 
 Le job Vitest de la CI échouait par intermittence (tous les tests verts, mais **1 erreur non gérée**) : `PrimeVue TabList` programme un `setTimeout` (`updateInkBar`) qui, sous happy-dom, pouvait se déclencher **après** le démontage du test → `ReferenceError: HTMLElement is not defined` → Vitest fait échouer le run. Stub de `TabList` ajouté aux stubs par défaut du harnais [mount.ts](frontend/src/__tests__/helpers/mount.ts) (`Tabs`/`Tab`/`TabPanel` restent réels) — supprime le timer, aucun test impacté (557 verts, exit 0).
