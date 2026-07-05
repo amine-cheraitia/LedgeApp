@@ -78,6 +78,12 @@ const DEFAULT_STUBS: Record<string, Component | boolean> = {
   Chart: { template: '<div class="chart-stub" aria-hidden="true" />', props: ['data', 'options', 'type'] },
   // FullCalendar manipule intensivement le DOM reel
   FullCalendar: { template: '<div class="fullcalendar-stub" />', props: ['options'] },
+  // PrimeVue TabList programme un setTimeout (updateInkBar) qui touche le DOM reel
+  // (HTMLElement) ; sous happy-dom il peut se declencher APRES le teardown du test
+  // -> "ReferenceError: HTMLElement is not defined" (erreur non geree, flaky en CI).
+  // On stubbe uniquement TabList (barre d'onglets) ; Tabs/Tab/TabPanel restent reels,
+  // donc le changement d'onglet et role="tab" continuent de fonctionner.
+  TabList: { template: '<div class="p-tablist-stub"><slot /></div>' },
   // Les Dialog/Drawer teleportes restent dans le wrapper
   teleport: true,
 }
