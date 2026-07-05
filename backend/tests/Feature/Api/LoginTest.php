@@ -57,6 +57,14 @@ class LoginTest extends TestCase
             ->assertJsonValidationErrors('email');
     }
 
+    public function test_login_exige_email_et_mot_de_passe(): void
+    {
+        // Valide le FormRequest LoginRequest (champs requis) desormais branche sur le controller.
+        $this->postJson('/api/v1/login', [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['email', 'password']);
+    }
+
     public function test_login_est_limite_par_throttle(): void
     {
         // throttle:5,1 -> les 5 premieres tentatives passent (422 identifiants incorrects),

@@ -12,15 +12,16 @@ use App\Models\Facture;
 use App\Models\Paiement;
 use App\Services\FacturationService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class PaiementController extends Controller
 {
-    public function __construct(private FacturationService $facturationService) {}
+    public function __construct(private readonly FacturationService $facturationService) {}
 
     public function index(Facture $facture): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Paiement::class);
+
         return PaiementResource::collection(
             $facture->paiements()->with('recordedBy')->latest('date_paiement')->get()
         );
@@ -28,6 +29,8 @@ class PaiementController extends Controller
 
     public function store(StorePaiementRequest $request, Facture $facture): JsonResponse
     {
+        $this->authorize('create', Paiement::class);
+
         if ($facture->estSolde()) {
             return response()->json([
                 'message' => 'Cette facture est déjà soldée.',
@@ -66,13 +69,10 @@ class PaiementController extends Controller
             ->setStatusCode(201);
     }
 
-    public function destroy(Request $request, Facture $facture, Paiement $paiement): JsonResponse
+    public function destroy(Facture $facture, Paiement $paiement): JsonResponse
     {
-        $user = $request->user();
-
-        if (! $user->hasRole('admin') && $paiement->recorded_by !== $user->id) {
-            return response()->json(['message' => 'Vous ne pouvez supprimer que vos propres saisies.'], 403);
-        }
+        // PaiementPolicy::delete : admin (tout) ou secretaire (ses propres saisies).
+        $this->authorize('delete', $paiement);
 
         $paiement->delete();
         $this->facturationService->recalculerStatutPaiement($facture);
