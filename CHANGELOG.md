@@ -26,6 +26,9 @@ La bascule **prospect → client** doit être exclusivement automatique (via `Mi
 - **Backend** : retrait de `statut` des règles de [UpdateEntrepriseRequest](backend/app/Http/Requests/Entreprises/UpdateEntrepriseRequest.php). Le champ est désormais silencieusement ignoré par l'API d'édition ; seule la création (`StoreEntrepriseRequest`) le fixe à l'état initial, et l'Observer opère la bascule.
 - **Frontend** : dans le dialog d'édition d'entreprise ([EntrepriseListPage.vue](frontend/src/pages/entreprises/EntrepriseListPage.vue)), le sélecteur de statut est remplacé par un affichage **lecture seule** (Tag + note explicative) ; il reste éditable uniquement à la création.
 - Tests : `test_update_ignore_le_statut` (EntrepriseApiTest) + `test_modification_ignore_le_statut` (EntrepriseCoverageTest, ex-`bascule_statut_vers_client` qui validait l'ancien comportement vulnérable).
+### Sécurité — endpoints de santé détaillés réservés à l'admin — fix/health-endpoint-auth
+
+Les routes `GET /health` (JSON) et `GET /health/dashboard` (HTML) de Spatie Health étaient **publiques** (`routes/web.php`, hors de tout middleware) : n'importe quel visiteur non authentifié pouvait consulter l'état BDD/cache/disque/queue et le statut `APP_DEBUG` — une fuite d'information de reconnaissance (OWASP A05). Elles sont désormais protégées par `role:admin`. Le monitoring externe (UptimeRobot) continue d'utiliser l'endpoint public **simple** `/up` (configuré dans `bootstrap/app.php`), qui ne divulgue aucun détail. Test dédié `HealthEndpointAccessTest` (guest/non-admin → 403, admin → 200, `/up` toujours public).
 
 ### Correctif flaky CI — stub PrimeVue TabList dans le harnais de tests — fix/flaky-vitest-tablist-timer
 
