@@ -69,6 +69,26 @@ class EntrepriseApiTest extends TestCase
             ->assertJsonPath('data.raison_sociale', 'Apres');
     }
 
+    public function test_update_ignore_le_statut(): void
+    {
+        // La bascule prospect -> client est reservee a l'Observer (MissionCreated).
+        // L'API d'edition ne doit jamais permettre de forcer ce statut a la main.
+        $entreprise = Entreprise::factory()->create(['statut' => 'prospect']);
+
+        $response = $this->actingAs($this->admin)
+            ->putJson("/api/v1/entreprises/{$entreprise->id}", [
+                'raison_sociale' => 'Toujours prospect',
+                'statut' => 'client',
+            ]);
+
+        $response->assertOk();
+        $this->assertSame('prospect', $entreprise->fresh()->statut);
+        $this->assertDatabaseHas('entreprises', [
+            'id' => $entreprise->id,
+            'statut' => 'prospect',
+        ]);
+    }
+
     public function test_cannot_delete_entreprise_with_missions(): void
     {
         $exercice = Exercice::create([
