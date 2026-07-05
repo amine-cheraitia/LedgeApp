@@ -9,6 +9,13 @@
 
 ## [Unreleased]
 
+### CI — gate de couverture 80% + audits de dépendances — ci/gates-couverture-audit
+
+La CI exécutait les tests sans **aucun seuil de couverture** (le gate 80% n'existait qu'en commande locale) et ne lançait jamais d'audit de dépendances.
+- **Backend** : `coverage: pcov` activé sur setup-php, tests lancés via `composer test:coverage` (`artisan test --coverage --min=80`).
+- **Frontend** : tests lancés via `npm run test:coverage` (seuils configurés dans `vite.config.ts` : lignes/statements 80, branches 75, fonctions 65).
+- **Audits** : étapes `composer audit` et `npm audit --omit=dev` ajoutées, **volontairement non bloquantes** (`continue-on-error`) — visibles dans les logs CI sans casser le pipeline tant que les CVE connues restent documentées dans `docs/SECURITY.md`.
+
 ### Correctif flaky CI — stub PrimeVue TabList dans le harnais de tests — fix/flaky-vitest-tablist-timer
 
 Le job Vitest de la CI échouait par intermittence (tous les tests verts, mais **1 erreur non gérée**) : `PrimeVue TabList` programme un `setTimeout` (`updateInkBar`) qui, sous happy-dom, pouvait se déclencher **après** le démontage du test → `ReferenceError: HTMLElement is not defined` → Vitest fait échouer le run. Stub de `TabList` ajouté aux stubs par défaut du harnais [mount.ts](frontend/src/__tests__/helpers/mount.ts) (`Tabs`/`Tab`/`TabPanel` restent réels) — supprime le timer, aucun test impacté (557 verts, exit 0).
