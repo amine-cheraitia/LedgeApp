@@ -16,6 +16,7 @@ Montée de la couverture front par des tests de composants/pages (Vitest + @vue/
 - **Couverture lignes : 8.1 % → 94.92 %** (branches 94.6 %, fonctions 87.1 %). Couverts : les 30+ pages (dashboard, entreprises, factures, devis, missions, planning, portail, relances, users, settings…), les composables, tous les modules `api/`, le `client.ts` (normalizeApiError, intercepteurs CSRF), la garde `router.beforeEach` et les composants de layout.
 - **751 tests Vitest** (49 fichiers, +624) ; `vue-tsc -b` + `vite build` ✓.
 - **Gate de couverture** : seuils **85 %** (lignes/stmts/branches/fonctions) dans [vite.config.ts](frontend/vite.config.ts) → `npm run test:coverage` échoue sous 85 % (équivalent front du `--min=80` backend).
+- **Documentation** : [docs/STRATEGIE-TESTS.md](docs/STRATEGIE-TESTS.md) — pyramide de tests, chiffres par couche (302 back / 751 front), extraits commentés des règles métier critiques, commandes et gate de couverture (support mémoire/soutenance).
 
 ### Couverture de tests — outillage + montée à 81.5 % (back) — fix/redirection-login-deja-connecte
 
