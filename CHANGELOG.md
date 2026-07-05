@@ -9,6 +9,20 @@
 
 ## [Unreleased]
 
+### Sécurité — remédiation des CVE de dépendances + SECURITY.md à jour — chore/securite-cve
+
+`composer audit` remontait 19 advisories (dont un *high* sur `laravel/framework`) et
+`npm audit` 7 (dont axios en production). Après remédiation, **les deux audits sont vierges**.
+- **Backend** : `composer update` (dans les contraintes `^7.x`/`^12.0`, sans bump majeur) tire
+  les correctifs Symfony 7.4.x, Laravel 12.55.x, Guzzle 7.10.x → **0 advisory**. Suppression de
+  l'entrée `config.audit.ignore` orpheline (`PKSA-21fb-n1x5-5nf7`) de `composer.json`.
+- **Frontend** : `axios` `^1.13.6` → `^1.18.1` (corrige les CVE prod SSRF / prototype pollution) ;
+  outillage build/dev (`vite`, `postcss`, `picomatch`, `brace-expansion`, `form-data`) patché via
+  `npm audit fix` → **0 vulnérabilité**.
+- **Doc** : `docs/SECURITY.md` réécrit — état vierge, remédiation détaillée, impact évalué,
+  surveillance CI (règle projet « ne jamais silencer une CVE, documenter + évaluer »).
+- Vérifié : backend 415 tests verts (post-update), frontend 557 tests + `vue-tsc` + `vite build` OK.
+
 ### Correctif flaky CI — stub PrimeVue TabList dans le harnais de tests — fix/flaky-vitest-tablist-timer
 
 Le job Vitest de la CI échouait par intermittence (tous les tests verts, mais **1 erreur non gérée**) : `PrimeVue TabList` programme un `setTimeout` (`updateInkBar`) qui, sous happy-dom, pouvait se déclencher **après** le démontage du test → `ReferenceError: HTMLElement is not defined` → Vitest fait échouer le run. Stub de `TabList` ajouté aux stubs par défaut du harnais [mount.ts](frontend/src/__tests__/helpers/mount.ts) (`Tabs`/`Tab`/`TabPanel` restent réels) — supprime le timer, aucun test impacté (557 verts, exit 0).
