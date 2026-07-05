@@ -63,12 +63,7 @@ class EntrepriseService
             ->when($filters['wilaya'] ?? null, fn ($q, $w) => $q->where('wilaya', $w))
             ->orderBy('raison_sociale');
 
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="entreprises.csv"',
-        ];
-
-        return response()->streamDownload(function () use ($query) {
+        $callback = function () use ($query) {
             $handle = fopen('php://output', 'w');
             fwrite($handle, "\xEF\xBB\xBF");
             fputcsv($handle, ['Raison sociale', 'NIF', 'NIS', 'Statut', 'Regime fiscal', 'Categorie', 'Wilaya', 'Ville', 'Email', 'Telephone'], ';');
@@ -91,6 +86,14 @@ class EntrepriseService
             });
 
             fclose($handle);
-        }, 'entreprises.csv', $headers);
+        };
+
+        // StreamedResponse construit directement : `streamDownload()` regenere le
+        // Content-Disposition depuis le nom de fichier (sans guillemets). Ici on
+        // maitrise l'en-tete -> nom de fichier entre guillemets (RFC 6266).
+        return new StreamedResponse($callback, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="entreprises.csv"',
+        ]);
     }
 }

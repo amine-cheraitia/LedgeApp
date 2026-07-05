@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Entreprises;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateEntrepriseRequest extends FormRequest
 {
@@ -15,8 +16,8 @@ class UpdateEntrepriseRequest extends FormRequest
     {
         return [
             'raison_sociale' => ['sometimes', 'string', 'max:255'],
-            'nif' => ['nullable', 'string', 'max:50'],
-            'nis' => ['nullable', 'string', 'max:50'],
+            'nif' => ['nullable', 'string', 'max:50', Rule::unique('entreprises', 'nif')->ignore($this->route('entreprise'))->whereNull('deleted_at')],
+            'nis' => ['nullable', 'string', 'max:50', Rule::unique('entreprises', 'nis')->ignore($this->route('entreprise'))->whereNull('deleted_at')],
             'num_rc' => ['nullable', 'string', 'max:50'],
             'article_imposition' => ['nullable', 'string', 'max:50'],
             'regime_fiscal' => ['sometimes', 'string', 'max:50'],
@@ -28,7 +29,7 @@ class UpdateEntrepriseRequest extends FormRequest
             'telephone' => ['nullable', 'string', 'max:20'],
             'email' => ['nullable', 'email', 'max:255'],
             'contact_principal' => ['nullable', 'string', 'max:255'],
-            'statut' => ['sometimes', 'in:prospect,client,ancien_client'],
+            'statut' => ['sometimes', 'in:prospect,client'],
             'notes' => ['nullable', 'string'],
         ];
     }

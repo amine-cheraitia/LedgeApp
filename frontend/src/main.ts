@@ -15,6 +15,7 @@ import '@/assets/styles/editorial.scss'
 
 import App from './App.vue'
 import router from './router'
+import { applyStoredTheme } from '@/layout/composables/layout'
 
 /**
  * Identite Ledge — navy / slate monochrome (aucun orange).
@@ -79,5 +80,9 @@ app.use(PrimeVue, {
 app.use(ToastService)
 app.use(ConfirmationService)
 app.directive('styleclass', StyleClass)
+
+// Applique le theme clair/sombre des le bootstrap, pour TOUTES les routes — dont les
+// pages standalone (login, 404) chargees a froid, qui ne montent pas l'AppLayout.
+applyStoredTheme()
 
 app.mount('#app')

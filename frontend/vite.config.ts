@@ -49,5 +49,20 @@ export default defineConfig({
   test: {
     environment: 'happy-dom',
     globals: true,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      reportsDirectory: 'coverage',
+      include: ['src/**/*.{ts,vue}'],
+      exclude: ['src/**/*.d.ts', 'src/main.ts', 'src/**/__tests__/**', 'src/types/**'],
+      // Garde-fou anti-regression (equivalent du --min=80 backend). npm run test:coverage
+      // echoue si la couverture repasse sous ces seuils.
+      thresholds: {
+        lines: 80,
+        statements: 80,
+        branches: 75,
+        functions: 65,
+      },
+    },
   },
 })

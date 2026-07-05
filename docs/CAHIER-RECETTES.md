@@ -197,3 +197,57 @@
 - **Tests de sécurité** : couverture OWASP Top 10 (CSRF, accès, throttle, fuite d'erreur, en-têtes, CORS, XSS).
 - **Plan de correction des bogues** (C2.3.2) : chaque scénario en échec est consigné (étapes de reproduction,
   cause, correctif) et traité via une branche `fix/*` → PR → CI, conformément au gitflow du projet.
+
+---
+
+## Matrice de traçabilité — scénario ↔ test automatisé
+
+Chaque scénario marqué 🔁 ci-dessus est adossé à un test automatisé. Le tableau relie l'identifiant
+de recette à la classe (et, pour les règles métier critiques, à la méthode) qui le couvre.
+Back = PHPUnit (`backend/tests/`), Front = Vitest (`frontend/src/__tests__/`).
+
+| ID recette | Test automatisé |
+|---|---|
+| AUTH-01 | `Feature/Api/LoginTest::test_login_reussit_avec_identifiants_valides` |
+| AUTH-02 | `Feature/Api/LoginTest::test_login_echoue_avec_mauvais_identifiants` |
+| AUTH-03 / SEC-03 | `Feature/Api/LoginTest::test_login_est_limite_par_throttle` |
+| AUTH-05 / AUTH-06 | Front `router-guard.test.ts`, `router.test.ts` (gardes par rôle) |
+| AUTH-07 | `Feature/Api/SecretairePermissionsTest`, `DashboardSecretaireTest` |
+| REF-01 | `Feature/Api/PrestationApiTest::test_admin_cree_une_prestation` |
+| REF-03 | `Unit/Models/PrestationTest` (`calculerPrixHt`) |
+| REF-04 | `Feature/Api/ExerciceApiTest`, `Unit/Models/ExerciceTest` |
+| REF-06 / 07 / 08 | `Feature/Api/TvaTauxApiTest` |
+| REF-09 → 15 | `Feature/Api/TvaTauxApiTest`, `FactureApiTest` (catégorie/historisation TVA) |
+| ENT-01 / 02 / 04 | `Feature/Api/EntrepriseApiTest` |
+| ENT-05 | `Feature/Api/ContactApiTest::test_un_nouveau_contact_principal_retire_le_precedent` |
+| ENT-06 | `Feature/Api/SecretairePermissionsTest` |
+| DEV-01 / 04 / 05 / 06 / 07 | `Feature/Api/DevisApiTest` |
+| MIS-01 | `Feature/Api/MissionApiTest` |
+| MIS-02 / DEV-04 | `Unit/Listeners/ConvertProspectToClientTest` (bascule prospect→client) |
+| TAC-01 / 02 / 03 / 04 | `Feature/Api/TacheApiTest` |
+| FAC-01 | `Feature/Api/FactureApiTest` |
+| **FAC-02** (tranches 30/30/40) | `Unit/Services/FacturationServiceTest::test_somme_des_trois_tranches_egale_le_prix_ht_avec_centimes` (+ `test_tranche_1/2/3_est_…`) |
+| **FAC-03** (TVA historisée) | `Unit/Services/FacturationServiceTest::test_tva_snapshot_2026_retourne_19_pourcent_meme_appele_apres`, `Unit/Models/TvaTauxTest::test_returns_correct_rate_for_date` |
+| FAC-04 (numérotation) | `Unit/Services/FacturationServiceTest::test_numerotation_reset_par_exercice` |
+| FAC-06 | `Feature/Api/FactureApiTest` (transmission), `FacturePolicy` |
+| PAI-01 | `Feature/Api/PaiementApiTest`, `FacturationServiceTest::test_statut_passe_a_partiel_apres_paiement_partiel` |
+| PAI-02 | `FacturationServiceTest::test_statut_passe_a_solde_apres_paiement_complet` |
+| PAI-03 | `Feature/Api/RelanceApiTest` (event `InvoicePaid` → annulation relances) |
+| AVO-01 / 04 | `Feature/Api/AvoirApiTest` |
+| REL-02 → 07 | `Feature/Api/RelanceApiTest`, `Feature/Jobs/EnvoyerRelancesJobTest` |
+| REL-06 (contact principal) | `Feature/Jobs/EnvoyerRelancesJobTest::test_envoie_une_relance_niveau_1_pour_une_facture_echue` |
+| POR-01 / 02 | `Feature/Api/PortailFactureTest`, `PortailAccessTest` (isolation `entreprise_id`) |
+| POR-03 / 04 | `Feature/Api/PortailFactureTest`, `PortailMissionTest`, `PortailDocumentTest` |
+| DSH-03 | `Feature/Api/DashboardSecretaireTest` |
+| DSH-04 | `Feature/Api/DashboardKpiTest`, `CalendarApiTest` |
+| AUD-01 / 02 / 03 | `Feature/Api/AuditLogTest` |
+| STR-01 | `vendor/bin/pint --test` (CI) |
+| STR-02 | `php artisan test` — **415 tests back / 95 % couverture** |
+| STR-03 | `npm test` — **557 tests front / 83 % couverture** |
+| STR-04 | `npm run build` (vue-tsc + vite build) |
+| SEC-04 | `Feature/Api/ApiExceptionRendererTest` (pas de fuite d'erreur) |
+| SEC-09 | `PasswordResetTest::test_forgot_password_est_throttle`, `RelanceApiTest::test_envoi_relances_est_limite_par_throttle` |
+
+> Les noms de méthodes sont donnés pour les scénarios les plus critiques ; pour les autres, la classe
+> de test référencée contient le(s) cas correspondant(s). Couverture mesurée : `composer test:coverage`
+> (back) et `npm run test:coverage` (front), avec un **gate à 80 %** en garde-fou anti-régression.
