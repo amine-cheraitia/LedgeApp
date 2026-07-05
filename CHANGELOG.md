@@ -9,6 +9,10 @@
 
 ## [Unreleased]
 
+### Sécurité — endpoints de santé détaillés réservés à l'admin — fix/health-endpoint-auth
+
+Les routes `GET /health` (JSON) et `GET /health/dashboard` (HTML) de Spatie Health étaient **publiques** (`routes/web.php`, hors de tout middleware) : n'importe quel visiteur non authentifié pouvait consulter l'état BDD/cache/disque/queue et le statut `APP_DEBUG` — une fuite d'information de reconnaissance (OWASP A05). Elles sont désormais protégées par `role:admin`. Le monitoring externe (UptimeRobot) continue d'utiliser l'endpoint public **simple** `/up` (configuré dans `bootstrap/app.php`), qui ne divulgue aucun détail. Test dédié `HealthEndpointAccessTest` (guest/non-admin → 403, admin → 200, `/up` toujours public).
+
 ### Correctif flaky CI — stub PrimeVue TabList dans le harnais de tests — fix/flaky-vitest-tablist-timer
 
 Le job Vitest de la CI échouait par intermittence (tous les tests verts, mais **1 erreur non gérée**) : `PrimeVue TabList` programme un `setTimeout` (`updateInkBar`) qui, sous happy-dom, pouvait se déclencher **après** le démontage du test → `ReferenceError: HTMLElement is not defined` → Vitest fait échouer le run. Stub de `TabList` ajouté aux stubs par défaut du harnais [mount.ts](frontend/src/__tests__/helpers/mount.ts) (`Tabs`/`Tab`/`TabPanel` restent réels) — supprime le timer, aucun test impacté (557 verts, exit 0).
