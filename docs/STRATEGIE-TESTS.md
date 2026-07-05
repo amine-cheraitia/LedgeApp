@@ -13,9 +13,9 @@ et comment mesurer la couverture. Il accompagne le [cahier de recettes](CAHIER-R
 
 | Couche | Outil | Tests | Fichiers | Couverture lignes |
 |---|---|---|---|---|
-| **Backend** (Laravel API) | PHPUnit 11 | **300** | 35 | **81.5 %** |
+| **Backend** (Laravel API) | PHPUnit 11 | **414** | 40 | **95 %** |
 | **Frontend** (Vue 3 SPA) | Vitest 4 + @vue/test-utils | **557** | 48 | **83 %** |
-| **Total** | | **857** | | |
+| **Total** | | **971** | | |
 
 > Suite **calibrée** pour rester proportionnée (RNCP C2.2.2 : un harnais couvrant les fonctionnalités,
 > pas une inflation de tests) tout en dépassant 80 % de couverture de lignes des deux côtés. Un
@@ -35,7 +35,7 @@ et comment mesurer la couverture. Il accompagne le [cahier de recettes](CAHIER-R
                  │   Recette manuelle (E2E)     │   CAHIER-RECETTES.md
                  │   scénarios utilisateur      │   (hors périmètre auto)
                  ├─────────────────────────────┤
-        Feature  │  269 tests API backend       │   HTTP réel -> BDD SQLite mémoire
+        Feature  │  383 tests API backend       │   HTTP réel -> BDD SQLite mémoire
         + pages  │  ~430 tests composants front │   montage réel des composants
                  ├─────────────────────────────┤
         Unit     │   31 tests Services/Modèles  │   logique métier isolée
@@ -55,7 +55,7 @@ et comment mesurer la couverture. Il accompagne le [cahier de recettes](CAHIER-R
 
 ## 3. Stratégie backend (PHPUnit)
 
-**Répartition** : 31 tests unitaires (`tests/Unit`) + 269 tests de fonctionnalité (`tests/Feature`).
+**Répartition** : 31 tests unitaires (`tests/Unit`) + 383 tests de fonctionnalité (`tests/Feature`).
 Environnement de test isolé : SQLite `:memory:`, cache `array`, mail `array`, queue `sync`
 (voir `backend/phpunit.xml`).
 
@@ -174,7 +174,7 @@ et `frontend/coverage/index.html`.
 
 ```bash
 # Backend (depuis backend/)
-php artisan test                       # 300 tests
+php artisan test                       # 414 tests
 php artisan test --filter=LoginTest    # une classe
 composer test:coverage                 # couverture + gate 80 %
 composer test:coverage-html            # rapport HTML
