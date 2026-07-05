@@ -41,6 +41,12 @@ Renforcement de l'autorisation (Policy) et de la validation (FormRequest) au niv
 - **5 Policies ajoutées** (auto-découvertes) reflétant exactement les rôles des routes : `PaiementPolicy` (create/viewAny admin+secrétaire ; delete admin **ou** propriétaire de la saisie), `RelancePolicy` (admin+secrétaire), `ExercicePolicy` (lecture admin+secrétaire, écriture admin), `KpiObjectifPolicy` (lecture admin+secrétaire, écriture admin), `ContactPolicy` (admin+secrétaire). Appels `authorize()` ajoutés dans `PaiementController`, `RelanceController`, `ExerciceController`, `KpiController`, `ContactController`. La logique d'appartenance de `PaiementController::destroy` (câblée en dur) est déplacée dans `PaiementPolicy`.
 - **4 FormRequests** : `AuthController::login` branché sur le `LoginRequest` existant (jusque-là code mort) ; nouveaux `StoreKpiObjectifRequest` (KPI), `UpdateSettingRequest` (paramètres), `ActiverPortailRequest` (activation portail) — remplacent les `$request->validate()` inline.
 - Divers : `PaiementController` passe en `private readonly`. Test `LoginTest::test_login_exige_email_et_mot_de_passe` ajouté. Suite backend verte (les tests d'appartenance de paiement passent désormais via la Policy).
+### CI — gate de couverture 80% + audits de dépendances — ci/gates-couverture-audit
+
+La CI exécutait les tests sans **aucun seuil de couverture** (le gate 80% n'existait qu'en commande locale) et ne lançait jamais d'audit de dépendances.
+- **Backend** : `coverage: pcov` activé sur setup-php, tests lancés via `composer test:coverage` (`artisan test --coverage --min=80`).
+- **Frontend** : tests lancés via `npm run test:coverage` (seuils configurés dans `vite.config.ts` : lignes/statements 80, branches 75, fonctions 65).
+- **Audits** : étapes `composer audit` et `npm audit --omit=dev` ajoutées, **volontairement non bloquantes** (`continue-on-error`) — visibles dans les logs CI sans casser le pipeline tant que les CVE connues restent documentées dans `docs/SECURITY.md`.
 
 ### Correctif flaky CI — stub PrimeVue TabList dans le harnais de tests — fix/flaky-vitest-tablist-timer
 
