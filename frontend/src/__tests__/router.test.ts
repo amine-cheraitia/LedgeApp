@@ -22,3 +22,19 @@ describe('router — garde de role sur /audit-logs', () => {
     expect(roles).not.toContain('collaborateur')
   })
 })
+
+// Garde de non-regression pour la page 404 : toute URL inconnue doit resoudre
+// vers la route catch-all `page-introuvable` (et non un ecran vide).
+describe('router — page 404 (catch-all)', () => {
+  it('resout une URL inconnue vers la route page-introuvable', () => {
+    const resolved = router.resolve('/une-url-qui-nexiste-pas-123')
+    expect(resolved.name).toBe('page-introuvable')
+  })
+
+  it('n\'impose aucune restriction d\'auth (accessible a tous)', () => {
+    const resolved = router.resolve('/autre-url-inconnue')
+    expect(resolved.meta?.requiresAuth).toBeFalsy()
+    expect(resolved.meta?.guest).toBeFalsy()
+    expect(resolved.meta?.roles).toBeUndefined()
+  })
+})

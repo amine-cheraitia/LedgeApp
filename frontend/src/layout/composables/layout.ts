@@ -6,10 +6,19 @@ function loadDarkPreference(): boolean {
   return window.matchMedia('(prefers-color-scheme: dark)').matches
 }
 
-const initialDark = loadDarkPreference()
-if (initialDark) {
-  document.documentElement.classList.add('app-dark')
+/**
+ * Applique la preference de theme (clair/sombre) sur <html>. A appeler au bootstrap
+ * (main.ts) pour couvrir TOUTES les routes — y compris les pages standalone
+ * (login, 404) chargees a froid, qui ne passent pas par l'AppLayout (seul importeur
+ * historique de ce module, d'ou le theme non applique sur ces pages avant ce correctif).
+ */
+export function applyStoredTheme(): boolean {
+  const dark = loadDarkPreference()
+  document.documentElement.classList.toggle('app-dark', dark)
+  return dark
 }
+
+const initialDark = applyStoredTheme()
 
 const layoutConfig = reactive({
   preset: 'Aura',
