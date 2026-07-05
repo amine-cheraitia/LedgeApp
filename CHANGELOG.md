@@ -9,6 +9,13 @@
 
 ## [Unreleased]
 
+### Sécurité — annuaire utilisateurs restreint et scopé par rôle — fix/users-index-restriction
+
+`GET /users` et `GET /users/{user}` étaient accessibles à **tout le staff** (admin, secrétaire, collaborateur) sans filtrage : un collaborateur — censé ne voir que ses missions/tâches — pouvait énumérer **tous** les comptes, y compris les clients (avec `email`, `entreprise_id`, `portail_actif`) et les admins (OWASP A01, sur-exposition contraire au moindre privilège).
+- **`GET /users`** : seul l'admin obtient l'annuaire complet. Les autres rôles (pour les selects d'assignation missions/tâches/devis) ne reçoivent que **le personnel** (jamais les clients) en **vue minimale** `StaffSelectResource` — uniquement `id`/`name`/`roles`, aucune donnée sensible. Ajout de `UserPolicy::viewAny` + `authorize()`.
+- **`GET /users/{user}`** (fiche complète) : déplacé dans le groupe `role:admin` + `UserPolicy::view` (admin uniquement).
+- Aucun changement frontend nécessaire (les consommateurs n'utilisaient que `id`/`name`/`roles`). Test dédié `UserApiTest` (admin = complet, collaborateur/secrétaire = personnel minimal sans clients, show réservé admin, client bloqué).
+
 ### Correctif flaky CI — stub PrimeVue TabList dans le harnais de tests — fix/flaky-vitest-tablist-timer
 
 Le job Vitest de la CI échouait par intermittence (tous les tests verts, mais **1 erreur non gérée**) : `PrimeVue TabList` programme un `setTimeout` (`updateInkBar`) qui, sous happy-dom, pouvait se déclencher **après** le démontage du test → `ReferenceError: HTMLElement is not defined` → Vitest fait échouer le run. Stub de `TabList` ajouté aux stubs par défaut du harnais [mount.ts](frontend/src/__tests__/helpers/mount.ts) (`Tabs`/`Tab`/`TabPanel` restent réels) — supprime le timer, aucun test impacté (557 verts, exit 0).

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\StoreUserRequest;
 use App\Http\Requests\Auth\UpdateUserRequest;
+use App\Http\Resources\Auth\StaffSelectResource;
 use App\Http\Resources\Auth\UserResource;
 use App\Models\User;
 use App\Services\InvitationService;
@@ -20,13 +21,23 @@ class UserController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $users = User::with('roles')
+        $this->authorize('viewAny', User::class);
+
+        $query = User::with('roles')
             ->when($request->search, fn ($q, $s) => $q->where('name', 'like', "%{$s}%")->orWhere('email', 'like', "%{$s}%"))
             ->when($request->role, fn ($q, $r) => $q->role($r))
-            ->latest()
-            ->paginate($request->per_page ?? 15);
+            ->latest();
 
-        return UserResource::collection($users);
+        // Seul l'admin obtient l'annuaire complet (donnees sensibles incluses).
+        // Les autres roles (collaborateur/secretaire, pour les selects d'assignation)
+        // ne recoivent que le personnel (jamais les clients) en version minimale.
+        if (! $request->user()->hasRole('admin')) {
+            $query->role(['admin', 'collaborateur', 'secretaire']);
+
+            return StaffSelectResource::collection($query->paginate($request->per_page ?? 15));
+        }
+
+        return UserResource::collection($query->paginate($request->per_page ?? 15));
     }
 
     public function store(StoreUserRequest $request): JsonResponse
@@ -58,6 +69,8 @@ class UserController extends Controller
 
     public function show(User $user): UserResource
     {
+        $this->authorize('view', $user);
+
         $user->load('roles', 'entreprise');
 
         return new UserResource($user);
