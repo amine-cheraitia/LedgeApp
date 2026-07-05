@@ -197,7 +197,6 @@ class FacturationLifecycleTest extends TestCase
             ->assertJsonPath('data.prestation.id', $this->prestation->id);
     }
 
-
     public function test_accepter_un_devis_envoye(): void
     {
         Mail::fake();
