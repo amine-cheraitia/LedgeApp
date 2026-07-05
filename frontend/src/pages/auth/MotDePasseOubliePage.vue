@@ -32,7 +32,11 @@ async function onSubmit() {
 
 <template>
   <div class="auth-page">
-    <main class="auth-card" role="main" lang="fr">
+    <a href="#forgot-main" class="skip-link">
+      Aller au contenu principal
+    </a>
+
+    <main id="forgot-main" class="auth-card" role="main" tabindex="-1" lang="fr">
       <header class="auth-head">
         <h1 class="auth-h1">Mot de passe oublie</h1>
         <p class="auth-sub">

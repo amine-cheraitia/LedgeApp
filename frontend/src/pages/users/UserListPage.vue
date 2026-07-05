@@ -146,7 +146,7 @@ onMounted(fetchUsers)
 <template>
   <div>
     <div class="page-header">
-      <h2>Utilisateurs</h2>
+      <h1>Utilisateurs</h1>
       <Button label="Nouvel utilisateur" icon="pi pi-plus" @click="openCreate" />
     </div>
 

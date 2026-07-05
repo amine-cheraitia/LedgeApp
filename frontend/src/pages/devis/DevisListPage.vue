@@ -251,7 +251,7 @@ onMounted(async () => {
 <template>
   <div>
     <div class="page-header">
-      <h2>Devis</h2>
+      <h1>Devis</h1>
       <Button v-if="auth.isAdmin" label="Nouveau devis" icon="pi pi-plus" @click="openCreate" />
     </div>
 
