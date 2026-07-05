@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Entreprises;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Entreprises\ActiverPortailRequest;
 use App\Http\Requests\Entreprises\StoreEntrepriseRequest;
 use App\Http\Requests\Entreprises\UpdateEntrepriseRequest;
 use App\Http\Resources\Auth\UserResource;
@@ -92,12 +93,9 @@ class EntrepriseController extends Controller
         return response()->json(['message' => 'Entreprise supprimee.']);
     }
 
-    public function activerPortail(Request $request, Entreprise $entreprise, PortailService $service): JsonResponse
+    public function activerPortail(ActiverPortailRequest $request, Entreprise $entreprise, PortailService $service): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email'],
-        ]);
+        $validated = $request->validated();
 
         $result = $service->activerPortail($entreprise, $validated['name'], $validated['email']);
 

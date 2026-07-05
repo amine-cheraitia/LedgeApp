@@ -35,6 +35,12 @@ Les routes `GET /health` (JSON) et `GET /health/dashboard` (HTML) de Spatie Heal
 - **`GET /users`** : seul l'admin obtient l'annuaire complet. Les autres rôles (pour les selects d'assignation missions/tâches/devis) ne reçoivent que **le personnel** (jamais les clients) en **vue minimale** `StaffSelectResource` — uniquement `id`/`name`/`roles`, aucune donnée sensible. Ajout de `UserPolicy::viewAny` + `authorize()`.
 - **`GET /users/{user}`** (fiche complète) : déplacé dans le groupe `role:admin` + `UserPolicy::view` (admin uniquement).
 - Aucun changement frontend nécessaire (les consommateurs n'utilisaient que `id`/`name`/`roles`). Test dédié `UserApiTest` (admin = complet, collaborateur/secrétaire = personnel minimal sans clients, show réservé admin, client bloqué).
+### Sécurité — défense en profondeur : Policies + FormRequests manquants — fix/backend-defense-en-profondeur
+
+Renforcement de l'autorisation (Policy) et de la validation (FormRequest) au niveau contrôleur, en complément des middlewares de route (règles CLAUDE.md « Policy sur chaque ressource » + « FormRequest sur tout store/update »).
+- **5 Policies ajoutées** (auto-découvertes) reflétant exactement les rôles des routes : `PaiementPolicy` (create/viewAny admin+secrétaire ; delete admin **ou** propriétaire de la saisie), `RelancePolicy` (admin+secrétaire), `ExercicePolicy` (lecture admin+secrétaire, écriture admin), `KpiObjectifPolicy` (lecture admin+secrétaire, écriture admin), `ContactPolicy` (admin+secrétaire). Appels `authorize()` ajoutés dans `PaiementController`, `RelanceController`, `ExerciceController`, `KpiController`, `ContactController`. La logique d'appartenance de `PaiementController::destroy` (câblée en dur) est déplacée dans `PaiementPolicy`.
+- **4 FormRequests** : `AuthController::login` branché sur le `LoginRequest` existant (jusque-là code mort) ; nouveaux `StoreKpiObjectifRequest` (KPI), `UpdateSettingRequest` (paramètres), `ActiverPortailRequest` (activation portail) — remplacent les `$request->validate()` inline.
+- Divers : `PaiementController` passe en `private readonly`. Test `LoginTest::test_login_exige_email_et_mot_de_passe` ajouté. Suite backend verte (les tests d'appartenance de paiement passent désormais via la Policy).
 
 ### Correctif flaky CI — stub PrimeVue TabList dans le harnais de tests — fix/flaky-vitest-tablist-timer
 

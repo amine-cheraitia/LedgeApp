@@ -20,6 +20,8 @@ class ExerciceController extends Controller
 
     public function index(): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Exercice::class);
+
         $exercices = Exercice::latest('annee')->get();
 
         return ExerciceResource::collection($exercices);
@@ -27,6 +29,8 @@ class ExerciceController extends Controller
 
     public function store(StoreExerciceRequest $request): JsonResponse
     {
+        $this->authorize('create', Exercice::class);
+
         $exercice = Exercice::create($request->validated());
 
         return (new ExerciceResource($exercice))
@@ -36,11 +40,15 @@ class ExerciceController extends Controller
 
     public function show(Exercice $exercice): ExerciceResource
     {
+        $this->authorize('view', $exercice);
+
         return new ExerciceResource($exercice);
     }
 
     public function update(UpdateExerciceRequest $request, Exercice $exercice): ExerciceResource
     {
+        $this->authorize('update', $exercice);
+
         $exercice->update($request->validated());
 
         return new ExerciceResource($exercice);
@@ -48,6 +56,8 @@ class ExerciceController extends Controller
 
     public function destroy(Exercice $exercice): JsonResponse
     {
+        $this->authorize('delete', $exercice);
+
         if ($exercice->missions()->exists() || $exercice->factures()->exists() || $exercice->devis()->exists()) {
             return response()->json([
                 'message' => 'Impossible de supprimer un exercice ayant des missions, devis ou factures associes.',
@@ -61,11 +71,15 @@ class ExerciceController extends Controller
 
     public function current(): ExerciceResource
     {
+        $this->authorize('viewAny', Exercice::class);
+
         return new ExerciceResource(Exercice::current());
     }
 
     public function rapportCloturePdf(Exercice $exercice): StreamedResponse
     {
+        $this->authorize('view', $exercice);
+
         $pdf = $this->pdfService->genererRapportCloture($exercice);
         $filename = 'rapport-cloture-'.$exercice->annee.'.pdf';
 

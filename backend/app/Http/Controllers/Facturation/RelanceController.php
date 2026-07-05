@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Facturation\StoreRelanceRequest;
 use App\Http\Resources\Facturation\RelanceResource;
 use App\Models\Facture;
+use App\Models\Relance;
 use App\Services\RelanceService;
 use DomainException;
 use Illuminate\Http\JsonResponse;
@@ -19,6 +20,8 @@ class RelanceController extends Controller
 
     public function index(Facture $facture): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Relance::class);
+
         $relances = $facture->relances()
             ->with('sentBy')
             ->orderBy('created_at', 'desc')
@@ -29,6 +32,8 @@ class RelanceController extends Controller
 
     public function store(StoreRelanceRequest $request, Facture $facture): JsonResponse
     {
+        $this->authorize('create', Relance::class);
+
         try {
             $relance = $this->relanceService->envoyerManuelle(
                 $facture,
