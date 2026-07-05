@@ -29,7 +29,9 @@ class UpdateEntrepriseRequest extends FormRequest
             'telephone' => ['nullable', 'string', 'max:20'],
             'email' => ['nullable', 'email', 'max:255'],
             'contact_principal' => ['nullable', 'string', 'max:255'],
-            'statut' => ['sometimes', 'in:prospect,client'],
+            // 'statut' n'est volontairement pas modifiable ici : la bascule
+            // prospect -> client est automatique via MissionObserver (MissionCreated).
+            // Toute modification manuelle contournerait ce garde-fou metier.
             'notes' => ['nullable', 'string'],
         ];
     }

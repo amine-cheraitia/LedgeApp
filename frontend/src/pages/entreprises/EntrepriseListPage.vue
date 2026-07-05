@@ -565,8 +565,12 @@ onMounted(() => {
         </div>
 
         <div class="form-field">
-          <label for="ent-statut">Statut *</label>
-          <Select id="ent-statut" v-model="form.statut" :options="statutOptions" optionLabel="label" optionValue="value" fluid />
+          <label for="ent-statut">Statut{{ editMode ? '' : ' *' }}</label>
+          <Select v-if="!editMode" id="ent-statut" v-model="form.statut" :options="statutOptions" optionLabel="label" optionValue="value" fluid />
+          <template v-else>
+            <Tag :value="form.statut ?? 'prospect'" :severity="statutColor(form.statut ?? 'prospect')" />
+            <small class="statut-hint">Le passage en « client » est automatique a la creation de la premiere mission.</small>
+          </template>
         </div>
 
         <div class="form-row">
@@ -824,6 +828,7 @@ onMounted(() => {
 }
 .credentials-box p { margin: 0 0 0.5rem; line-height: 1.5; }
 .invitation-note { font-size: 0.8125rem; color: var(--p-text-muted-color, #64748b); }
+.statut-hint { display: block; margin-top: 0.375rem; font-size: 0.8125rem; color: var(--p-text-muted-color, #64748b); }
 .invitation-link {
   display: block;
   background: rgba(128,128,128,0.15);

@@ -19,6 +19,14 @@ Une facture annulée (totalement ou partiellement) par un **avoir** ne mettait j
 - **Migration** `add_annulee_to_relances_statut` rendue **cross-SGBD** (via `Schema::change()` au lieu d'un `ALTER … MODIFY` MySQL ignoré sous SQLite) : l'état `annulee` des relances était absent du schéma de test, ce qui rendait l'annulation des relances non testable.
 - Tests : 5 nouveaux cas (avoir soldant, paiement partiel + avoir, annulation des relances, suppression d'avoir réévaluant le statut) — suite backend **419 verts**.
 
+### Sécurité métier — statut d'entreprise non modifiable manuellement — fix/statut-entreprise-observer
+
+La bascule **prospect → client** doit être exclusivement automatique (via `MissionObserver` sur `MissionCreated`). Or `UpdateEntrepriseRequest` exposait `statut` : un admin/secrétaire pouvait, via `PUT /entreprises/{id}`, forcer une entreprise en `client` **sans aucune mission** (puis lui activer un accès portail, `activerPortail` ne vérifiant que `statut === 'client'`) ou repasser un client en `prospect` — contournant le garde-fou métier et faussant les statistiques.
+
+- **Backend** : retrait de `statut` des règles de [UpdateEntrepriseRequest](backend/app/Http/Requests/Entreprises/UpdateEntrepriseRequest.php). Le champ est désormais silencieusement ignoré par l'API d'édition ; seule la création (`StoreEntrepriseRequest`) le fixe à l'état initial, et l'Observer opère la bascule.
+- **Frontend** : dans le dialog d'édition d'entreprise ([EntrepriseListPage.vue](frontend/src/pages/entreprises/EntrepriseListPage.vue)), le sélecteur de statut est remplacé par un affichage **lecture seule** (Tag + note explicative) ; il reste éditable uniquement à la création.
+- Tests : `test_update_ignore_le_statut` (EntrepriseApiTest) + `test_modification_ignore_le_statut` (EntrepriseCoverageTest, ex-`bascule_statut_vers_client` qui validait l'ancien comportement vulnérable).
+
 ### Correctif flaky CI — stub PrimeVue TabList dans le harnais de tests — fix/flaky-vitest-tablist-timer
 
 Le job Vitest de la CI échouait par intermittence (tous les tests verts, mais **1 erreur non gérée**) : `PrimeVue TabList` programme un `setTimeout` (`updateInkBar`) qui, sous happy-dom, pouvait se déclencher **après** le démontage du test → `ReferenceError: HTMLElement is not defined` → Vitest fait échouer le run. Stub de `TabList` ajouté aux stubs par défaut du harnais [mount.ts](frontend/src/__tests__/helpers/mount.ts) (`Tabs`/`Tab`/`TabPanel` restent réels) — supprime le timer, aucun test impacté (557 verts, exit 0).
