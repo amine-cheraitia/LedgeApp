@@ -49,7 +49,7 @@ class AvoirController extends Controller
     {
         $this->authorize('delete', $avoir);
 
-        $avoir->delete();
+        $this->facturationService->supprimerAvoir($avoir);
 
         return response()->noContent();
     }

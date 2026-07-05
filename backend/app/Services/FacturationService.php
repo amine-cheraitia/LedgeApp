@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Events\InvoicePaid;
 use App\Mail\DevisMail;
 use App\Mail\FactureMail;
 use App\Mail\MailMessages;
@@ -376,7 +377,7 @@ class FacturationService
      */
     public function creerAvoir(Facture $facture, array $data, int $userId): Avoir
     {
-        return DB::transaction(function () use ($facture, $data, $userId) {
+        $avoir = DB::transaction(function () use ($facture, $data, $userId) {
             $montantHt = (float) $data['montant_ht'];
             $tauxTva = (float) $facture->taux_tva;
             $montantTva = round($montantHt * $tauxTva / 100, 2);
@@ -390,7 +391,7 @@ class FacturationService
             $exercice = Exercice::current();
             $prefixe = Setting::get('avoir_prefixe', 'FA');
 
-            return Avoir::create([
+            $avoir = Avoir::create([
                 'facture_origine_id' => $facture->id,
                 'exercice_id' => $exercice->id,
                 'created_by' => $userId,
@@ -402,6 +403,34 @@ class FacturationService
                 'montant_ttc' => $montantTtc,
                 'motif' => $data['motif'],
             ]);
+
+            // L'avoir reduit le du : on reevalue le statut de paiement de la facture.
+            $this->recalculerStatutPaiement($facture);
+
+            return $avoir;
+        });
+
+        // Facture soldee par avoir : on annule les relances en cours (meme effet qu'un paiement solde).
+        if ($facture->estSolde()) {
+            InvoicePaid::dispatch($facture);
+        }
+
+        return $avoir;
+    }
+
+    /**
+     * Supprime un avoir et reevalue le statut de paiement de la facture d'origine
+     * (le du remonte : une facture soldee par cet avoir redevient impayee).
+     */
+    public function supprimerAvoir(Avoir $avoir): void
+    {
+        DB::transaction(function () use ($avoir) {
+            $facture = $avoir->factureOrigine;
+            $avoir->delete();
+
+            if ($facture !== null) {
+                $this->recalculerStatutPaiement($facture);
+            }
         });
     }
 
@@ -444,14 +473,21 @@ class FacturationService
     }
 
     /**
-     * Recalcule le statut de paiement d'une facture apres un paiement.
+     * Recalcule le statut de paiement d'une facture apres un paiement ou un avoir.
+     *
+     * Le statut "solde" tient compte des avoirs : une facture annulee (totalement
+     * ou partiellement) par un avoir est reglee d'autant. Sans cela, une facture
+     * soldee par avoir resterait "impayee" et declencherait des relances a tort.
+     * Le statut "partiel" reste attache a un paiement reel (un avoir n'est pas un paiement).
      */
     public function recalculerStatutPaiement(Facture $facture): void
     {
-        $totalPaye = $facture->paiements()->sum('montant');
+        $totalPaye = (float) $facture->paiements()->sum('montant');
         $facture->montant_paye = $totalPaye;
 
-        if ($totalPaye >= (float) $facture->montant_ttc) {
+        $totalRegle = $totalPaye + (float) $facture->avoirs()->sum('montant_ttc');
+
+        if ($totalRegle >= (float) $facture->montant_ttc) {
             $facture->statut_paiement = 'solde';
         } elseif ($totalPaye > 0) {
             $facture->statut_paiement = 'partiel';
