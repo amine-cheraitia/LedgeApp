@@ -221,7 +221,7 @@ function confirmDelete(devis: Devis) {
     icon: 'pi pi-exclamation-triangle',
     acceptLabel: 'Supprimer',
     rejectLabel: 'Annuler',
-    accept: () => deleteDevis(devis.id),
+    accept: () => { void deleteDevis(devis.id).catch(() => {}) },
   })
 }
 

@@ -273,8 +273,19 @@ class FacturationService
 
     public function supprimerDevis(Devis $devis): void
     {
+        // Un devis rattache a une mission ou a des factures est la trace commerciale
+        // d'origine : on interdit sa suppression pour ne pas rompre le lien. Un
+        // eventuel trou dans la numerotation des devis est sans consequence.
+        if ($devis->mission()->exists()) {
+            throw new DomainException('Ce devis a servi à générer une mission : il ne peut pas être supprimé.');
+        }
+
+        if ($devis->factures()->exists()) {
+            throw new DomainException('Ce devis est rattaché à des factures : il ne peut pas être supprimé.');
+        }
+
         if ($devis->statut !== 'brouillon') {
-            throw new DomainException('Seuls les devis en brouillon peuvent etre supprimes.');
+            throw new DomainException('Seuls les devis en brouillon peuvent être supprimés.');
         }
 
         $devis->delete();

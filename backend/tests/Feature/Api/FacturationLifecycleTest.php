@@ -287,6 +287,7 @@ class FacturationLifecycleTest extends TestCase
         ]);
 
         $devisId = $this->creerDevisId($prospect->id);
+        Devis::whereKey($devisId)->update(['statut' => 'accepte']);
 
         $response = $this->actingAs($this->admin)
             ->postJson("/api/v1/devis/{$devisId}/convertir-en-mission", [
@@ -312,6 +313,7 @@ class FacturationLifecycleTest extends TestCase
     public function test_convertir_devis_en_mission_attache_les_collaborateurs(): void
     {
         $devisId = $this->creerDevisId();
+        Devis::whereKey($devisId)->update(['statut' => 'accepte']);
 
         $response = $this->actingAs($this->admin)
             ->postJson("/api/v1/devis/{$devisId}/convertir-en-mission", [
@@ -334,6 +336,68 @@ class FacturationLifecycleTest extends TestCase
             ->postJson("/api/v1/devis/{$devisId}/convertir-en-mission", [])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['date_debut']);
+    }
+
+    public function test_convertir_devis_non_accepte_est_refuse(): void
+    {
+        // Un devis en brouillon (non accepte) ne doit pas pouvoir etre converti.
+        $devisId = $this->creerDevisId();
+
+        $response = $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId}/convertir-en-mission", [
+                'date_debut' => date('Y').'-06-01',
+                'date_fin' => date('Y').'-09-30',
+            ]);
+
+        $response->assertStatus(409)
+            ->assertJsonPath('message', 'Seul un devis accepté peut être converti en mission.');
+
+        $this->assertDatabaseMissing('missions', ['devis_id' => $devisId]);
+    }
+
+    public function test_convertir_devis_deja_converti_est_refuse(): void
+    {
+        // Anti-doublon : un devis deja converti ne peut pas generer une 2e mission.
+        $devisId = $this->creerDevisId();
+        Devis::whereKey($devisId)->update(['statut' => 'accepte']);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId}/convertir-en-mission", [
+                'date_debut' => date('Y').'-06-01',
+                'date_fin' => date('Y').'-09-30',
+            ])->assertSuccessful();
+
+        $response = $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId}/convertir-en-mission", [
+                'date_debut' => date('Y').'-06-01',
+                'date_fin' => date('Y').'-09-30',
+            ]);
+
+        $response->assertStatus(409)
+            ->assertJsonPath('message', 'Ce devis a déjà été converti en mission.');
+
+        $this->assertSame(1, Mission::where('devis_id', $devisId)->count());
+    }
+
+    public function test_supprimer_devis_converti_en_mission_est_bloque(): void
+    {
+        // Le lien devis -> mission doit etre preserve : suppression interdite.
+        $devisId = $this->creerDevisId();
+        Devis::whereKey($devisId)->update(['statut' => 'accepte']);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId}/convertir-en-mission", [
+                'date_debut' => date('Y').'-06-01',
+                'date_fin' => date('Y').'-09-30',
+            ])->assertSuccessful();
+
+        $response = $this->actingAs($this->admin)
+            ->deleteJson("/api/v1/devis/{$devisId}");
+
+        $response->assertStatus(409)
+            ->assertJsonPath('message', 'Ce devis a servi à générer une mission : il ne peut pas être supprimé.');
+
+        $this->assertDatabaseHas('devis', ['id' => $devisId]);
     }
 
     // -------------------------------------------------------------------------

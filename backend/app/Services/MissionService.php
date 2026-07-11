@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Devis;
 use App\Models\Entreprise;
 use App\Models\Exercice;
 use App\Models\Mission;
@@ -111,6 +112,26 @@ class MissionService
     public function creerMission(array $data): Mission
     {
         return DB::transaction(function () use ($data) {
+            // Conversion depuis un devis : il doit etre accepte et ne pas avoir
+            // deja genere une mission (anti-doublon, verrou pour la concurrence).
+            if (! empty($data['devis_id'])) {
+                $query = Devis::whereKey($data['devis_id']);
+                if (DB::getDriverName() !== 'sqlite') {
+                    $query->lockForUpdate();
+                }
+                $devis = $query->first();
+
+                if ($devis !== null) {
+                    if ($devis->statut !== 'accepte') {
+                        throw new DomainException('Seul un devis accepté peut être converti en mission.');
+                    }
+
+                    if ($devis->mission()->exists()) {
+                        throw new DomainException('Ce devis a déjà été converti en mission.');
+                    }
+                }
+            }
+
             $exercice = isset($data['exercice_id'])
                 ? Exercice::findOrFail($data['exercice_id'])
                 : Exercice::current();
