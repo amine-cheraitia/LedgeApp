@@ -137,6 +137,11 @@ class FacturationService
             $exercice = isset($data['exercice_id'])
                 ? Exercice::findOrFail($data['exercice_id'])
                 : Exercice::current();
+
+            if ($exercice === null) {
+                throw new DomainException('Aucun exercice ouvert : ouvrez l\'exercice de l\'année avant de créer un devis.');
+            }
+
             $prefixe = Setting::get('devis_prefixe', 'DV');
 
             $entreprise = Entreprise::findOrFail($data['entreprise_id']);
@@ -344,6 +349,11 @@ class FacturationService
             $exercice = isset($data['exercice_id'])
                 ? Exercice::findOrFail($data['exercice_id'])
                 : Exercice::current();
+
+            if ($exercice === null) {
+                throw new DomainException('Aucun exercice ouvert : ouvrez l\'exercice de l\'année avant de créer une facture.');
+            }
+
             $prefixe = Setting::get('facture_prefixe', 'FF');
             $designation = $mission->prestation->designation.' — '.($tranche['taux'] * 100).'%';
 
@@ -388,7 +398,11 @@ class FacturationService
      */
     public function creerAvoir(Facture $facture, array $data, int $userId): Avoir
     {
-        $avoir = DB::transaction(function () use ($facture, $data, $userId) {
+        $avoir = DB::transaction(function () use (&$facture, $data, $userId) {
+            // Verrou sur la facture d'origine : le controle du restant du et l'emission
+            // de l'avoir sont atomiques (evite un sur-credit concurrent, TOCTOU).
+            $facture = Facture::whereKey($facture->getKey())->lockForUpdate()->first();
+
             $montantHt = (float) $data['montant_ht'];
             $tauxTva = (float) $facture->taux_tva;
             $montantTva = round($montantHt * $tauxTva / 100, 2);
@@ -400,6 +414,11 @@ class FacturationService
             }
 
             $exercice = Exercice::current();
+
+            if ($exercice === null) {
+                throw new DomainException('Aucun exercice ouvert : ouvrez l\'exercice de l\'année avant d\'émettre un avoir.');
+            }
+
             $prefixe = Setting::get('avoir_prefixe', 'FA');
 
             $avoir = Avoir::create([

@@ -344,4 +344,40 @@ class PaiementApiTest extends TestCase
         $this->assertEquals('en_attente', $this->facture->statut_paiement);
         $this->assertEquals(0, (float) $this->facture->montant_paye);
     }
+
+    public function test_supprimer_un_paiement_via_une_autre_facture_renvoie_404(): void
+    {
+        // Le paiement appartient a la facture A ; le supprimer via l'URL d'une
+        // facture B doit renvoyer 404 (sinon on recalculerait le statut de B a tort).
+        $paiement = Paiement::create([
+            'facture_id' => $this->facture->id,
+            'recorded_by' => $this->admin->id,
+            'montant' => 5000,
+            'date_paiement' => date('Y').'-04-10',
+            'mode_paiement' => 'virement',
+        ]);
+
+        $missionA = $this->facture->mission;
+        $missionB = Mission::create([
+            'entreprise_id' => $missionA->entreprise_id,
+            'prestation_id' => $missionA->prestation_id,
+            'exercice_id' => $missionA->exercice_id,
+            'reference' => 'M'.date('Y').'-002',
+            'prix_ht' => 315000,
+            'date_debut' => date('Y').'-01-01',
+            'date_fin' => date('Y').'-12-31',
+            'statut' => 'en_cours',
+        ]);
+        $factureB = Facture::findOrFail(
+            $this->actingAs($this->admin)
+                ->postJson('/api/v1/factures', ['mission_id' => $missionB->id, 'date_facture' => date('Y').'-04-01'])
+                ->json('data.id')
+        );
+
+        $this->actingAs($this->admin)
+            ->deleteJson("/api/v1/factures/{$factureB->id}/paiements/{$paiement->id}")
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('paiements', ['id' => $paiement->id]);
+    }
 }

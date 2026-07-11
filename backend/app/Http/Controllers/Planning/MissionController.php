@@ -40,7 +40,11 @@ class MissionController extends Controller
     {
         $this->authorize('create', Mission::class);
 
-        $mission = $this->missionService->creerMission($request->validated());
+        try {
+            $mission = $this->missionService->creerMission($request->validated());
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
+        }
 
         return (new MissionResource($mission))
             ->response()

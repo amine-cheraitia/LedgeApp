@@ -135,6 +135,11 @@ class MissionService
             $exercice = isset($data['exercice_id'])
                 ? Exercice::findOrFail($data['exercice_id'])
                 : Exercice::current();
+
+            if ($exercice === null) {
+                throw new DomainException('Aucun exercice ouvert : ouvrez l\'exercice de l\'année avant de créer une mission.');
+            }
+
             $entreprise = Entreprise::findOrFail($data['entreprise_id']);
             $prestation = Prestation::findOrFail($data['prestation_id']);
 

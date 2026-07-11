@@ -69,11 +69,18 @@ class ExerciceController extends Controller
         return response()->json(['message' => 'Exercice supprime.']);
     }
 
-    public function current(): ExerciceResource
+    public function current(): ExerciceResource|JsonResponse
     {
         $this->authorize('viewAny', Exercice::class);
 
-        return new ExerciceResource(Exercice::current());
+        $exercice = Exercice::current();
+
+        // Aucun exercice ouvert : reponse vide exploitable par le front (pas de 500).
+        if ($exercice === null) {
+            return response()->json(['data' => null]);
+        }
+
+        return new ExerciceResource($exercice);
     }
 
     public function rapportCloturePdf(Exercice $exercice): StreamedResponse

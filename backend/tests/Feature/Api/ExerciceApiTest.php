@@ -53,6 +53,15 @@ class ExerciceApiTest extends TestCase
             ->assertJsonPath('data.statut', 'ouvert');
     }
 
+    public function test_exercice_courant_sans_exercice_ouvert_renvoie_data_null(): void
+    {
+        // Aucun exercice ouvert pour l'annee : reponse vide exploitable (pas de 500).
+        $this->actingAs($this->admin)
+            ->getJson('/api/v1/exercices/current')
+            ->assertOk()
+            ->assertJsonPath('data', null);
+    }
+
     public function test_admin_supprime_un_exercice_sans_documents(): void
     {
         $exercice = Exercice::factory()->create(['annee' => 2019, 'statut' => 'cloture']);

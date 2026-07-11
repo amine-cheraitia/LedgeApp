@@ -103,6 +103,22 @@ class MissionApiTest extends TestCase
         $this->assertEquals('client', $this->entreprise->statut);
     }
 
+    public function test_creer_mission_sans_exercice_ouvert_renvoie_une_erreur_metier(): void
+    {
+        // Aucun exercice ouvert : erreur metier claire (409) au lieu d'un 500.
+        Exercice::query()->update(['statut' => 'cloture']);
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/v1/missions', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_debut' => date('Y').'-04-01',
+                'date_fin' => date('Y').'-12-31',
+            ])
+            ->assertStatus(409)
+            ->assertJsonPath('message', 'Aucun exercice ouvert : ouvrez l\'exercice de l\'année avant de créer une mission.');
+    }
+
     public function test_can_list_missions(): void
     {
         $this->actingAs($this->admin)

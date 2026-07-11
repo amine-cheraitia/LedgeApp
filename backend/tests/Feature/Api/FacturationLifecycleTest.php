@@ -400,6 +400,36 @@ class FacturationLifecycleTest extends TestCase
         $this->assertDatabaseHas('devis', ['id' => $devisId]);
     }
 
+    public function test_creer_devis_sans_exercice_ouvert_renvoie_une_erreur_metier(): void
+    {
+        // Aucun exercice ouvert : erreur metier claire (409) au lieu d'un 500.
+        $this->exercice->update(['statut' => 'cloture']);
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/v1/devis', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_devis' => date('Y').'-06-01',
+                'date_validite' => date('Y').'-07-01',
+            ])
+            ->assertStatus(409)
+            ->assertJsonPath('message', 'Aucun exercice ouvert : ouvrez l\'exercice de l\'année avant de créer un devis.');
+    }
+
+    public function test_creer_facture_sans_exercice_ouvert_renvoie_une_erreur_metier(): void
+    {
+        // Aucun exercice ouvert : erreur metier claire (409) au lieu d'un 500.
+        $this->exercice->update(['statut' => 'cloture']);
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/v1/factures', [
+                'mission_id' => $this->mission->id,
+                'date_facture' => date('Y').'-04-01',
+            ])
+            ->assertStatus(409)
+            ->assertJsonPath('message', 'Aucun exercice ouvert : ouvrez l\'exercice de l\'année avant de créer une facture.');
+    }
+
     // -------------------------------------------------------------------------
     // Factures — show (lignes) + transmission
     // -------------------------------------------------------------------------

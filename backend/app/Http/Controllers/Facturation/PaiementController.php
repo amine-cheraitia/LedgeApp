@@ -13,6 +13,7 @@ use App\Models\Paiement;
 use App\Services\FacturationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
 
 class PaiementController extends Controller
 {
@@ -31,46 +32,56 @@ class PaiementController extends Controller
     {
         $this->authorize('create', Paiement::class);
 
-        if ($facture->estSolde()) {
-            return response()->json([
-                'message' => 'Cette facture est déjà soldée.',
-            ], 409);
-        }
+        return DB::transaction(function () use ($request, $facture) {
+            // Verrou sur la facture : le controle du restant du et l'insertion sont
+            // atomiques, ce qui evite un sur-credit en cas de paiements concurrents (TOCTOU).
+            $facture = Facture::whereKey($facture->getKey())->lockForUpdate()->first();
 
-        $montantRestant = $facture->montantRestant();
-        if ((float) $request->validated('montant') > $montantRestant) {
-            return response()->json([
-                'message' => "Le montant saisi dépasse le restant dû ({$montantRestant} DA).",
-                'errors' => ['montant' => ["Le montant ne peut pas dépasser {$montantRestant} DA."]],
-            ], 422);
-        }
+            if ($facture->estSolde()) {
+                return response()->json([
+                    'message' => 'Cette facture est déjà soldée.',
+                ], 409);
+            }
 
-        $paiement = Paiement::create([
-            'facture_id' => $facture->id,
-            'recorded_by' => $request->user()->id,
-            'montant' => $request->validated('montant'),
-            'date_paiement' => $request->validated('date_paiement'),
-            'mode_paiement' => $request->validated('mode_paiement'),
-            'reference' => $request->validated('reference'),
-            'notes' => $request->validated('notes'),
-        ]);
+            $montantRestant = $facture->montantRestant();
+            if ((float) $request->validated('montant') > $montantRestant) {
+                return response()->json([
+                    'message' => "Le montant saisi dépasse le restant dû ({$montantRestant} DA).",
+                    'errors' => ['montant' => ["Le montant ne peut pas dépasser {$montantRestant} DA."]],
+                ], 422);
+            }
 
-        // Mettre a jour le mode de paiement sur la facture
-        $facture->update(['mode_paiement' => $request->validated('mode_paiement')]);
+            $paiement = Paiement::create([
+                'facture_id' => $facture->id,
+                'recorded_by' => $request->user()->id,
+                'montant' => $request->validated('montant'),
+                'date_paiement' => $request->validated('date_paiement'),
+                'mode_paiement' => $request->validated('mode_paiement'),
+                'reference' => $request->validated('reference'),
+                'notes' => $request->validated('notes'),
+            ]);
 
-        $this->facturationService->recalculerStatutPaiement($facture);
+            // Mettre a jour le mode de paiement sur la facture
+            $facture->update(['mode_paiement' => $request->validated('mode_paiement')]);
 
-        if ($facture->estSolde()) {
-            InvoicePaid::dispatch($facture);
-        }
+            $this->facturationService->recalculerStatutPaiement($facture);
 
-        return (new PaiementResource($paiement))
-            ->response()
-            ->setStatusCode(201);
+            if ($facture->estSolde()) {
+                InvoicePaid::dispatch($facture);
+            }
+
+            return (new PaiementResource($paiement))
+                ->response()
+                ->setStatusCode(201);
+        });
     }
 
     public function destroy(Facture $facture, Paiement $paiement): JsonResponse
     {
+        // Le paiement doit appartenir a la facture de l'URL : sinon la suppression
+        // recalculerait le statut d'une facture qui n'est pas la sienne (integrite).
+        abort_if($paiement->facture_id !== $facture->id, 404, 'Paiement introuvable pour cette facture.');
+
         // PaiementPolicy::delete : admin (tout) ou secretaire (ses propres saisies).
         $this->authorize('delete', $paiement);
 
