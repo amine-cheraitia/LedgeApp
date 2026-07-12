@@ -131,14 +131,12 @@ const categorieOptions = [
 const statutOptions = [
   { label: 'Prospect', value: 'prospect' },
   { label: 'Client', value: 'client' },
-  { label: 'Ancien client', value: 'ancien_client' },
 ]
 
 function statutColor(statut: string) {
   const colors: Record<string, string> = {
     prospect: 'warn',
     client: 'success',
-    ancien_client: 'secondary',
   }
   return (colors[statut] ?? 'secondary') as 'warn' | 'success' | 'secondary'
 }

@@ -36,7 +36,6 @@ describe('TypeScript interfaces', () => {
       mission_id: null,
       devis_id: null,
       created_by: 1,
-      tva_rate_id: 1,
       numero: 'FF2026-001',
       type: 'FF',
       facture_origine_id: null,
@@ -50,7 +49,6 @@ describe('TypeScript interfaces', () => {
       statut_paiement: 'en_attente',
       mode_paiement: 'non_defini',
       montant_restant: 119000,
-      pdf_path: null,
       created_at: '2026-03-25',
       updated_at: '2026-03-25',
     }
@@ -62,8 +60,8 @@ describe('TypeScript interfaces', () => {
   })
 
   it('Paiement modes match enum', () => {
-    const modes: Paiement['mode_paiement'][] = ['virement', 'cheque', 'espece', 'autre']
-    expect(modes).toHaveLength(4)
+    const modes: Paiement['mode_paiement'][] = ['virement', 'cheque', 'autre']
+    expect(modes).toHaveLength(3)
   })
 
   it('PaginatedResponse has meta', () => {

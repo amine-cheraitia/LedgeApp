@@ -197,7 +197,7 @@ function statutFactureColor(s: string): TagSeverity {
 }
 
 function statutEntrepriseColor(s: string): TagSeverity {
-  const map: Record<string, TagSeverity> = { prospect: 'warn', client: 'success', ancien_client: 'secondary' }
+  const map: Record<string, TagSeverity> = { prospect: 'warn', client: 'success' }
   return map[s] ?? 'secondary'
 }
 

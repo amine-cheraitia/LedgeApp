@@ -227,7 +227,7 @@ function statutLabel(statut: string): string {
 }
 
 function modeLabel(mode: string): string {
-  const map: Record<string, string> = { virement: 'Virement', cheque: 'Chèque', autre: 'Autre', espece: 'Espèces' }
+  const map: Record<string, string> = { virement: 'Virement', cheque: 'Chèque', autre: 'Autre' }
   return map[mode] ?? mode
 }
 </script>
