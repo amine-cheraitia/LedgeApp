@@ -6,7 +6,7 @@ import { planningApi, type CalendarMission, type CalendarTache } from '@/api/mod
 import { missionsApi } from '@/api/modules/missions'
 import { tachesApi } from '@/api/modules/taches'
 import { usersApi } from '@/api/modules/users'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import type { User } from '@/types'
 import { prioriteColor } from '@/utils/priorite'
 

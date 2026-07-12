@@ -22,7 +22,7 @@ import { useFactures } from '@/composables/useFactures'
 import { useMissions } from '@/composables/useMissions'
 import { useExercices } from '@/composables/useExercices'
 import { useTvaTaux } from '@/composables/useTvaTaux'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import { avoirsApi } from '@/api/modules/avoirs'
 import type { Facture, Avoir, Exercice } from '@/types'
 

@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\DB;
 class MissionService
 {
     public function __construct(
-        private FacturationService $facturationService,
+        private readonly NumerotationService $numerotation,
     ) {}
 
     /**
@@ -86,7 +86,7 @@ class MissionService
 
         $exercice = $mission->exercice ?? Exercice::find($mission->exercice_id);
         $prefixe = Setting::get('convention_prefixe', 'CV');
-        $numero = $this->facturationService->genererNumero($prefixe, 'missions', $exercice, 'convention_numero');
+        $numero = $this->numerotation->genererNumero($prefixe, 'missions', $exercice, 'convention_numero');
         $mission->update(['convention_numero' => $numero]);
 
         return $numero;
@@ -103,7 +103,7 @@ class MissionService
 
         $exercice = $mission->exercice ?? Exercice::find($mission->exercice_id);
         $prefixe = Setting::get('mandat_prefixe', 'MD');
-        $numero = $this->facturationService->genererNumero($prefixe, 'missions', $exercice, 'mandat_numero');
+        $numero = $this->numerotation->genererNumero($prefixe, 'missions', $exercice, 'mandat_numero');
         $mission->update(['mandat_numero' => $numero]);
 
         return $numero;
@@ -149,7 +149,7 @@ class MissionService
             );
 
             $prefixe = Setting::get('mission_prefixe', 'M');
-            $reference = $this->facturationService->genererNumero($prefixe, 'missions', $exercice, 'reference');
+            $reference = $this->numerotation->genererNumero($prefixe, 'missions', $exercice, 'reference');
 
             $mission = Mission::create([
                 'entreprise_id' => $entreprise->id,

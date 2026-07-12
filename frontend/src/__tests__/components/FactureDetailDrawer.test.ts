@@ -39,7 +39,7 @@ vi.mock('primevue/useconfirm', () => ({ useConfirm: () => ({ require: mockConfir
 // ── Import du composant après les mocks ──────────────────────────────────────
 
 import FactureDetailDrawer from '@/components/facturation/FactureDetailDrawer.vue'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 
 // ── Stubs PrimeVue ───────────────────────────────────────────────────────────
 

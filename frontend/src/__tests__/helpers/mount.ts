@@ -32,7 +32,7 @@ import StyleClass from 'primevue/styleclass'
 import Ripple from 'primevue/ripple'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import type { Router } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import type { User } from '@/types'
 
 export function makeUser(role: string = 'admin', overrides: Partial<User> = {}): User {

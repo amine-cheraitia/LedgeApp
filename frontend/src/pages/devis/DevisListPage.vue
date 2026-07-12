@@ -16,7 +16,7 @@ import { usePrestations } from '@/composables/usePrestations'
 import { useUsers } from '@/composables/useUsers'
 import { useExercices } from '@/composables/useExercices'
 import { useTvaTaux } from '@/composables/useTvaTaux'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import type { Devis } from '@/types'
 
 const confirm = useConfirm()

@@ -17,7 +17,7 @@ import { useEntreprises } from '@/composables/useEntreprises'
 import { usePrestations } from '@/composables/usePrestations'
 import { useUsers } from '@/composables/useUsers'
 import { useExercices } from '@/composables/useExercices'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import type { Mission } from '@/types'
 import type { MissionPayload } from '@/api/modules/missions'
 

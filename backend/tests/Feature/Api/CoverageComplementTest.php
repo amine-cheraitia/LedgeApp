@@ -354,7 +354,8 @@ class CoverageComplementTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('user.email', $this->admin->email);
 
-        $this->assertContains('admin', array_column($response->json('user.roles'), 'name'));
+        // UserResource expose les roles comme un tableau de noms (strings).
+        $this->assertContains('admin', $response->json('user.roles'));
     }
 
     // -------------------------------------------------------------------------

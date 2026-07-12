@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Dialog from 'primevue/dialog'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import { getApiError } from '@/composables/useApiError'
 
 const auth = useAuthStore()

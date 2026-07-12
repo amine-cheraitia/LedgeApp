@@ -10,7 +10,7 @@ import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import DatePicker from 'primevue/datepicker'
 import { facturesApi, type PaiementPayload } from '@/api/modules/factures'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import type { Facture, Paiement } from '@/types'
 
 const props = defineProps<{

@@ -29,35 +29,7 @@ use Illuminate\Validation\ValidationException;
 
 class FacturationService
 {
-    /**
-     * Genere le prochain numero sequentiel pour un type de document.
-     * Utilise lockForUpdate pour eviter les doublons en concurrence.
-     */
-    public function genererNumero(string $prefixe, string $table, Exercice $exercice, string $colonne = 'numero'): string
-    {
-        return DB::transaction(function () use ($prefixe, $table, $exercice, $colonne) {
-            $annee = $exercice->annee;
-            $pattern = "{$prefixe}{$annee}-%";
-
-            $query = DB::table($table)
-                ->where($colonne, 'like', $pattern);
-
-            if (DB::getDriverName() !== 'sqlite') {
-                $query->lockForUpdate();
-            }
-
-            $dernierNumero = $query->max($colonne);
-
-            if ($dernierNumero) {
-                $sequence = (int) substr($dernierNumero, strrpos($dernierNumero, '-') + 1);
-                $sequence++;
-            } else {
-                $sequence = 1;
-            }
-
-            return sprintf('%s%d-%03d', $prefixe, $annee, $sequence);
-        });
-    }
+    public function __construct(private readonly NumerotationService $numerotation) {}
 
     private const DEVIS_SORT_FIELDS = ['numero', 'date_devis', 'date_validite', 'statut', 'prix_ht'];
 
@@ -130,10 +102,6 @@ class FacturationService
     }
 
     /**
-     * Cree un devis pour une seule prestation.
-     * Le prix HT est calcule automatiquement via la grille tarifaire (immuable).
-     */
-    /**
      * Liste paginee des avoirs (tous exercices), avec filtres exercice + recherche.
      *
      * @param  array<string, mixed>  $filters
@@ -182,7 +150,7 @@ class FacturationService
                 'exercice_id' => $exercice->id,
                 'created_by' => $userId,
                 'tva_taux_id' => $tvaTaux?->id,
-                'numero' => $this->genererNumero($prefixe, 'devis', $exercice),
+                'numero' => $this->numerotation->genererNumero($prefixe, 'devis', $exercice),
                 'date_devis' => $data['date_devis'],
                 'date_validite' => $data['date_validite'],
                 'prix_ht' => $prixHt,
@@ -383,7 +351,7 @@ class FacturationService
                 'devis_id' => $mission->devis_id ?? null,
                 'created_by' => $userId,
                 'tva_taux_id' => $tvaTaux?->id,
-                'numero' => $this->genererNumero($prefixe, 'factures', $exercice),
+                'numero' => $this->numerotation->genererNumero($prefixe, 'factures', $exercice),
                 'type' => 'FF',
                 'date_facture' => $dateFacture,
                 'date_echeance' => $dateEcheance,
@@ -444,7 +412,7 @@ class FacturationService
                 'facture_origine_id' => $facture->id,
                 'exercice_id' => $exercice->id,
                 'created_by' => $userId,
-                'numero' => $this->genererNumero($prefixe, 'avoirs', $exercice),
+                'numero' => $this->numerotation->genererNumero($prefixe, 'avoirs', $exercice),
                 'date_avoir' => $data['date_avoir'],
                 'montant_ht' => $montantHt,
                 'taux_tva_snapshot' => $tauxTva,

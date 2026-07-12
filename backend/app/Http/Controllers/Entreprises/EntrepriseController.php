@@ -13,6 +13,7 @@ use App\Http\Resources\Entreprises\EntrepriseResource;
 use App\Models\Entreprise;
 use App\Services\EntrepriseService;
 use App\Services\PortailService;
+use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -20,7 +21,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class EntrepriseController extends Controller
 {
-    public function __construct(private readonly EntrepriseService $entrepriseService) {}
+    public function __construct(
+        private readonly EntrepriseService $entrepriseService,
+        private readonly PortailService $portailService,
+    ) {}
 
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -82,22 +86,21 @@ class EntrepriseController extends Controller
     public function destroy(Entreprise $entreprise): JsonResponse
     {
         $this->authorize('delete', $entreprise);
-        if ($entreprise->missions()->exists() || $entreprise->devis()->exists()) {
-            return response()->json([
-                'message' => 'Impossible de supprimer cette entreprise : des missions ou devis y sont associes.',
-            ], 409);
-        }
 
-        $entreprise->delete();
+        try {
+            $this->entrepriseService->supprimer($entreprise);
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
+        }
 
         return response()->json(['message' => 'Entreprise supprimee.']);
     }
 
-    public function activerPortail(ActiverPortailRequest $request, Entreprise $entreprise, PortailService $service): JsonResponse
+    public function activerPortail(ActiverPortailRequest $request, Entreprise $entreprise): JsonResponse
     {
         $validated = $request->validated();
 
-        $result = $service->activerPortail($entreprise, $validated['name'], $validated['email']);
+        $result = $this->portailService->activerPortail($entreprise, $validated['name'], $validated['email']);
 
         return response()->json([
             'message' => 'Acces portail active. Une invitation a ete envoyee a '.$validated['email'].'.',
@@ -106,9 +109,9 @@ class EntrepriseController extends Controller
         ], 201);
     }
 
-    public function renvoyerInvitation(Entreprise $entreprise, PortailService $service): JsonResponse
+    public function renvoyerInvitation(Entreprise $entreprise): JsonResponse
     {
-        $result = $service->renvoyerInvitation($entreprise);
+        $result = $this->portailService->renvoyerInvitation($entreprise);
 
         return response()->json([
             'message' => 'Invitation renvoyee a '.$result['user']->email.'.',
@@ -116,9 +119,9 @@ class EntrepriseController extends Controller
         ]);
     }
 
-    public function togglePortail(Entreprise $entreprise, PortailService $service): JsonResponse
+    public function togglePortail(Entreprise $entreprise): JsonResponse
     {
-        $user = $service->togglePortail($entreprise);
+        $user = $this->portailService->togglePortail($entreprise);
 
         return response()->json([
             'message' => $user->portail_actif ? 'Acces portail reactive.' : 'Acces portail desactive.',

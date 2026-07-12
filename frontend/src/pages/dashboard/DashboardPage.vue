@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useDashboardStats } from '@/composables/useDashboardStats'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import { useCountUp } from '@/composables/useCountUp'
 import { useLayout } from '@/layout/composables/layout'
 import SecretaireDashboardSection from '@/pages/dashboard/SecretaireDashboardSection.vue'

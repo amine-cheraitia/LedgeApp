@@ -16,7 +16,7 @@ import { missionsApi } from '@/api/modules/missions'
 import { devisApi } from '@/api/modules/devis'
 import { facturesApi } from '@/api/modules/factures'
 import { useExercices } from '@/composables/useExercices'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import type { Entreprise, Mission, Devis, Facture } from '@/types'
 
 type TagSeverity = 'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast'

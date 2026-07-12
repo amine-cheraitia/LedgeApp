@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Resources\Auth\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +28,7 @@ class AuthController extends Controller
         $user->load('roles', 'entreprise');
 
         return response()->json([
-            'user' => $user,
+            'user' => new UserResource($user),
         ]);
     }
 
@@ -45,7 +48,7 @@ class AuthController extends Controller
         $user->load('roles', 'entreprise');
 
         return response()->json([
-            'user' => $user,
+            'user' => new UserResource($user),
         ]);
     }
 }

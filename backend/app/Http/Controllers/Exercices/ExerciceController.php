@@ -9,14 +9,19 @@ use App\Http\Requests\Exercices\StoreExerciceRequest;
 use App\Http\Requests\Exercices\UpdateExerciceRequest;
 use App\Http\Resources\Exercices\ExerciceResource;
 use App\Models\Exercice;
+use App\Services\ExerciceService;
 use App\Services\PdfService;
+use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ExerciceController extends Controller
 {
-    public function __construct(private readonly PdfService $pdfService) {}
+    public function __construct(
+        private readonly PdfService $pdfService,
+        private readonly ExerciceService $exerciceService,
+    ) {}
 
     public function index(): AnonymousResourceCollection
     {
@@ -49,19 +54,11 @@ class ExerciceController extends Controller
     {
         $this->authorize('update', $exercice);
 
-        $validated = $request->validated();
-
-        // On ne rouvre pas un exercice cloture qui porte deja des documents : cela
-        // contournerait la separation stricte par annee (on pourrait y rattacher de
-        // nouveaux documents apres coup).
-        $reouverture = ($validated['statut'] ?? null) === 'ouvert' && $exercice->statut === 'cloture';
-        if ($reouverture && ($exercice->missions()->exists() || $exercice->devis()->exists() || $exercice->factures()->exists())) {
-            return response()->json([
-                'message' => 'Impossible de rouvrir un exercice clôturé qui porte des missions, devis ou factures.',
-            ], 409);
+        try {
+            $exercice = $this->exerciceService->mettreAJour($exercice, $request->validated());
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
         }
-
-        $exercice->update($validated);
 
         return new ExerciceResource($exercice);
     }
@@ -70,13 +67,11 @@ class ExerciceController extends Controller
     {
         $this->authorize('delete', $exercice);
 
-        if ($exercice->missions()->exists() || $exercice->factures()->exists() || $exercice->devis()->exists()) {
-            return response()->json([
-                'message' => 'Impossible de supprimer un exercice ayant des missions, devis ou factures associes.',
-            ], 409);
+        try {
+            $this->exerciceService->supprimer($exercice);
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
         }
-
-        $exercice->delete();
 
         return response()->json(['message' => 'Exercice supprime.']);
     }
