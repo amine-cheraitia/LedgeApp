@@ -57,10 +57,22 @@ par la mise à jour vers les versions correctives publiées dans les plages `^7.
 
 ---
 
-## Contrôles transversaux
+## Cartographie OWASP Top 10 (2021)
 
-Voir **US-36 (OWASP Top 10)** du `docs/BACKLOG.md` pour le détail des contrôles en place :
-CSRF (Sanctum), Eloquent uniquement, FormRequests, throttling login, en-têtes HTTP de
-sécurité (CSP…), Policies par ressource, `ApiExceptionRenderer` (A05 — aucune fuite
-d'infos serveur), logging structuré + Sentry (A09), et **journal d'audit métier**
-(`spatie/laravel-activitylog`, US-47) traçant les actions sur les entités sensibles.
+Contrôles en place dans Ledge, catégorie par catégorie.
+
+| # | Catégorie | Contrôles dans Ledge |
+|---|---|---|
+| **A01** | Broken Access Control | Rôles Spatie + **Policy par ressource** ; middlewares `EnsureBackofficeAccess` / `EnsurePortailAccess` ; **isolation portail** stricte (`where('entreprise_id', …)` + `abort_if(403)`) ; guards Vue Router (`meta.zone`) |
+| **A02** | Cryptographic Failures | Mots de passe **bcrypt** (`BCRYPT_ROUNDS=12`) ; chiffrement applicatif via `APP_KEY` ; en prod `SESSION_SECURE_COOKIE=true` + `SESSION_SAME_SITE=strict` (HTTPS) ; jetons d'invitation/reset **à usage unique et hachés** ; aucun secret versionné |
+| **A03** | Injection | **Eloquent / Query Builder avec bindings** uniquement, jamais `DB::raw()` sur entrée utilisateur ; **FormRequest** sur chaque `store`/`update` ; pas de `v-html` sur données utilisateur (XSS) ; en-têtes CSP |
+| **A04** | Insecure Design | Invariants métier : **snapshots immuables** (TVA/TTC), **TVA historisée** par date, numérotation concurrente sûre (`lockForUpdate` + contrainte UNIQUE) ; **protection de suppression** (entités liées) ; découplage via Events/Observers |
+| **A05** | Security Misconfiguration | `APP_DEBUG=false` en prod ; **`ApiExceptionRenderer`** (aucune fuite d'info serveur) ; **Telescope désactivé** en prod ; **CORS** limité à `FRONTEND_URL` ; en-têtes HTTP de sécurité |
+| **A06** | Vulnerable Components | `composer audit` + `npm audit` **en CI** ; remédiation documentée ci-dessus ; `composer.lock` / `package-lock.json` épinglés |
+| **A07** | Identification & Auth Failures | Auth **Sanctum SPA** (cookies) ; **throttling** login + reset (6/min) ; **réponses génériques** (pas d'énumération de comptes) ; **invitation** obligatoire (l'admin ne fixe jamais de mot de passe) ; règles de robustesse mot de passe |
+| **A08** | Software & Data Integrity | Dépendances **verrouillées** (`*.lock`) et vérifiées en CI ; jetons signés / à usage unique ; aucune désérialisation de données non fiables |
+| **A09** | Logging & Monitoring Failures | Logging structuré + **Sentry** ; **journal d'audit métier** (`spatie/laravel-activitylog`) sur les entités sensibles ; **Laravel Health** (`/health`, admin) ; sonde publique `/up` (UptimeRobot) |
+| **A10** | SSRF | Aucune requête sortante pilotée par l'utilisateur ; advisory SSRF d'`axios` **corrigée** (bump `^1.18.1`) ; génération PDF/mail sur entrées de confiance |
+
+> Détail complémentaire et suivi : **US-36 (OWASP Top 10)** et **US-47 (audit)** du
+> `docs/BACKLOG.md`.
