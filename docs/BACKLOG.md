@@ -479,6 +479,7 @@
 - ✅ A05 Security Misconfiguration : `ApiExceptionRenderer` — aucune fuite de SQL, host, port, stack, chemin fichier sur les routes API meme en `APP_DEBUG=true` (6 tests)
 - ✅ A09 Logging & Monitoring : toutes les exceptions API loguees avec contexte structure (URL, methode, IP, user_id) — relayees a Sentry ; journal d'audit metier des actions sensibles (US-47)
 - ✅ A06 Composants vulnerables : `composer audit` actif (advisories non silencees) — advisories Symfony 7.x heritees de Laravel 12 documentees et evaluees dans `docs/SECURITY.md` (impact reel faible a nul), remediation suivie
+- 🔄 **Remediation audit interne (integration/audit-fixes-preview)** : defense en profondeur — scoping des routes imbriquees, Policies/FormRequests manquants (Prestation, Setting, Avoir, Audit, Creances), en-tetes de securite sur toutes les reponses + HSTS, `/health` reserve admin, audits `composer`/`npm` rendus bloquants en CI, annuaire (OR de recherche groupe + test de non-regression), anti-IDOR sur les paiements. **Cartographie OWASP A01-A10 complete** dans `docs/SECURITY.md`. Detail complet : `CHANGELOG.md` section `[Unreleased]`.
 - Depend de : tout le code
 
 ---

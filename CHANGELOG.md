@@ -9,6 +9,39 @@
 
 ## [Unreleased]
 
+### Audit interne — remédiation sécurité, architecture, RGAA & qualité — integration/audit-fixes-preview
+
+Correction des écarts relevés par l'audit interne (règles métier, OWASP, RGAA, découpage architectural, code mort), plus l'outillage de démonstration et la documentation. Suites vertes : **445 backend / 551 frontend**, ESLint 0 erreur.
+
+**Règles métier**
+- Suppression de devis **bloquée (409)** s'il est rattaché à une mission/facture ; conversion en mission exigeant un devis « accepté » + garde anti-doublon (`lockForUpdate`).
+- Paiements : vérification d'appartenance paiement↔facture (anti-IDOR, 404), verrou `lockForUpdate` anti sur-crédit concurrent, erreurs métier **409** explicites si aucun exercice n'est ouvert (au lieu de 500).
+- Dates `date_devis` / `date_avoir` bornées à l'exercice de rattachement ; **réouverture d'un exercice clôturé ré-autorisée** (facturation de rattrapage), garde conservée uniquement sur la suppression d'un exercice porteur de documents.
+
+**Sécurité (OWASP)**
+- Défense en profondeur : scoping des routes imbriquées (tâches/commentaires/contacts), Policies + FormRequests manquants (Prestation, Setting, Avoir, Audit, Créances), KPI de production réservés à l'admin, portail durci (`type=FF` sur PDF facture, rapport gaté par `visible_portail`).
+- En-têtes de sécurité sur **toutes** les réponses + HSTS en HTTPS ; `/health` réservé admin ; Telescope désactivé par défaut ; audits `composer`/`npm` **bloquants** en CI.
+- Annuaire utilisateurs : OR de recherche **groupé explicitement** (la restriction de rôle staff s'applique à tout le groupe) + test de non-régression.
+- Cartographie **OWASP Top 10 complète (A01–A10)** dans [docs/SECURITY.md](docs/SECURITY.md).
+
+**Architecture (couche Services)**
+- Extraction de la logique métier hors des contrôleurs : `UserService`, `TacheService`, `NumerotationService` (supprime le couplage Planning→Facturation), `FacturationService::enregistrerPaiement` / `listerAvoirs` ; contrôleurs amincis (valider → déléguer → Resource).
+- `declare(strict_types=1)` généralisé, gardes de suppression centralisées dans les services, rename front `auth.ts` → `authStore.ts` (24 imports).
+
+**Accessibilité (RGAA)**
+- Cible du skip-link `#main-content` rendue focusable, retrait de `role="banner"` des hero, hiérarchie des titres corrigée (h3→h2), `aria-label` sur 24 `DataTable`, icônes décoratives `aria-hidden`. Guide [docs/ACCESSIBILITE-RGAA.md](docs/ACCESSIBILITE-RGAA.md).
+
+**Nettoyage code mort & schéma**
+- Migration `nettoyage_schema_mort` : drop des colonnes/table mortes (`factures.pdf_path`, `factures.facture_origine_id`, `tache_commentaires.visible_portail`, `devis.montant_ht`) et de la table `documents` (GED jamais alimentée) ; modèles/resources alignés, modèle `Document` supprimé.
+- Suppression de composants front vestigiaux (configurateur de thème), du composable mort `useTaches.ts` et de champs TS fantômes ; retrait d'écritures mortes `montant_ht` sur devis.
+
+**Environnement Docker (démo / jury)**
+- Stack full-stack turnkey [docker-compose.yml](docker-compose.yml) (php-fpm, nginx, Vite, MySQL, Redis) avec auto-init (`composer install`, clé, `migrate --seed`) : `docker compose up` suffit. Proxy Vite ciblable (`VITE_PROXY_TARGET`), `.gitattributes` forçant LF sur shell/env/compose.
+
+**Documentation & outillage**
+- README à jour (démarrage Docker, comptes de tests réels, mot de passe admin retiré du clair) ; manuels de **déploiement**, d'**utilisation** (par rôle) et de **mise à jour** ; **plan de correction des bogues** ; stratégie de versionnage **SemVer** ([docs/GITFLOW.md](docs/GITFLOW.md)).
+- **ESLint** (flat config Vue+TS) + étape CI ; alignement du seuil de couverture front documenté (80/75/65).
+
 ### Correctif métier — statut de paiement des factures tenant compte des avoirs — fix/recalcul-statut-avoirs
 
 Une facture annulée (totalement ou partiellement) par un **avoir** ne mettait jamais à jour son `statut_paiement` : `FacturationService::recalculerStatutPaiement()` ne sommait que les paiements, et `AvoirController::store/destroy` ne le rappelait pas. Conséquence : une facture soldée par avoir restait `en_attente`/`partiel`, apparaissait encore dans les créances et pouvait déclencher une **relance automatique** (cron quotidien) — voire une mise en demeure — sur une facture déjà réglée.
