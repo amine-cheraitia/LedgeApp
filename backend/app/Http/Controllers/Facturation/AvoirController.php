@@ -28,16 +28,9 @@ class AvoirController extends Controller
     {
         $this->authorize('viewAny', Avoir::class);
 
-        $avoirs = Avoir::with('factureOrigine.entreprise')
-            ->when($request->exercice_id, fn ($q, $v) => $q->where('exercice_id', $v))
-            ->when($request->search, fn ($q, $s) => $q
-                ->where('numero', 'like', "%{$s}%")
-                ->orWhereHas('factureOrigine.entreprise', fn ($eq) => $eq->where('raison_sociale', 'like', "%{$s}%"))
-            )
-            ->latest()
-            ->paginate((int) ($request->per_page ?? 15));
-
-        return AvoirResource::collection($avoirs);
+        return AvoirResource::collection(
+            $this->facturationService->listerAvoirs($request->only(['exercice_id', 'search', 'per_page']))
+        );
     }
 
     public function index(Facture $facture): AnonymousResourceCollection

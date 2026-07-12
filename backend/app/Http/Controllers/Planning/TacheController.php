@@ -13,13 +13,18 @@ use App\Http\Resources\Planning\TacheResource;
 use App\Models\Mission;
 use App\Models\Tache;
 use App\Services\MissionService;
+use App\Services\TacheService;
+use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class TacheController extends Controller
 {
-    public function __construct(private readonly MissionService $missionService) {}
+    public function __construct(
+        private readonly MissionService $missionService,
+        private readonly TacheService $tacheService,
+    ) {}
 
     /**
      * Liste les tâches du collaborateur qui chevauchent la période visée
@@ -55,9 +60,9 @@ class TacheController extends Controller
     {
         $this->authorize('create', Mission::class);
 
-        $tache = $mission->taches()->create($request->validated());
+        $tache = $this->tacheService->creer($mission, $request->validated());
 
-        return (new TacheResource($tache->load('assignee')))
+        return (new TacheResource($tache))
             ->response()
             ->setStatusCode(201);
     }
@@ -77,15 +82,9 @@ class TacheController extends Controller
 
         $this->authorize('update', $tache);
 
-        // Le Planning est reserve admin + collaborateur (la secretaire n'atteint jamais cette route) :
-        // l'admin edite tous les champs, le collaborateur assigne ne change que le statut.
-        $data = $request->user()->hasRole('admin')
-            ? $request->validated()
-            : $request->only('statut');
+        $tache = $this->tacheService->mettreAJour($tache, $request->validated(), $request->user());
 
-        $tache->update($data);
-
-        return new TacheResource($tache->load('assignee'));
+        return new TacheResource($tache);
     }
 
     public function destroy(Mission $mission, Tache $tache): JsonResponse
@@ -94,13 +93,11 @@ class TacheController extends Controller
 
         $this->authorize('delete', $tache);
 
-        if ($tache->commentaires()->exists()) {
-            return response()->json([
-                'message' => 'Impossible de supprimer une tache avec des commentaires.',
-            ], 409);
+        try {
+            $this->tacheService->supprimer($tache);
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
         }
-
-        $tache->delete();
 
         return response()->json(null, 204);
     }

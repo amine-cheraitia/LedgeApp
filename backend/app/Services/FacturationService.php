@@ -15,6 +15,7 @@ use App\Models\Exercice;
 use App\Models\Facture;
 use App\Models\FactureLigne;
 use App\Models\Mission;
+use App\Models\Paiement;
 use App\Models\Prestation;
 use App\Models\Setting;
 use App\Models\TvaTaux;
@@ -24,6 +25,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 
 class FacturationService
 {
@@ -131,6 +133,23 @@ class FacturationService
      * Cree un devis pour une seule prestation.
      * Le prix HT est calcule automatiquement via la grille tarifaire (immuable).
      */
+    /**
+     * Liste paginee des avoirs (tous exercices), avec filtres exercice + recherche.
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    public function listerAvoirs(array $filters): LengthAwarePaginator
+    {
+        return Avoir::with('factureOrigine.entreprise')
+            ->when($filters['exercice_id'] ?? null, fn ($q, $v) => $q->where('exercice_id', $v))
+            ->when($filters['search'] ?? null, fn ($q, $s) => $q
+                ->where('numero', 'like', "%{$s}%")
+                ->orWhereHas('factureOrigine.entreprise', fn ($eq) => $eq->where('raison_sociale', 'like', "%{$s}%"))
+            )
+            ->latest()
+            ->paginate($filters['per_page'] ?? 15);
+    }
+
     public function creerDevis(array $data, int $userId): Devis
     {
         return DB::transaction(function () use ($data, $userId) {
@@ -500,6 +519,52 @@ class FacturationService
             ->max('numero');
 
         return $facture->numero === $max;
+    }
+
+    /**
+     * Enregistre un paiement sur une facture (verrou pour eviter le sur-credit en
+     * concurrence), met a jour le mode de paiement et recalcule le statut.
+     * Leve DomainException si la facture est deja soldee (409) et ValidationException
+     * si le montant depasse le restant du (422).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function enregistrerPaiement(Facture $facture, array $data, int $userId): Paiement
+    {
+        return DB::transaction(function () use ($facture, $data, $userId) {
+            // Controle du restant du et insertion atomiques (TOCTOU).
+            $facture = Facture::whereKey($facture->getKey())->lockForUpdate()->first();
+
+            if ($facture->estSolde()) {
+                throw new DomainException('Cette facture est déjà soldée.');
+            }
+
+            $montantRestant = $facture->montantRestant();
+            if ((float) $data['montant'] > $montantRestant) {
+                throw ValidationException::withMessages([
+                    'montant' => ["Le montant ne peut pas dépasser {$montantRestant} DA."],
+                ]);
+            }
+
+            $paiement = Paiement::create([
+                'facture_id' => $facture->id,
+                'recorded_by' => $userId,
+                'montant' => $data['montant'],
+                'date_paiement' => $data['date_paiement'],
+                'mode_paiement' => $data['mode_paiement'],
+                'reference' => $data['reference'] ?? null,
+                'notes' => $data['notes'] ?? null,
+            ]);
+
+            $facture->update(['mode_paiement' => $data['mode_paiement']]);
+            $this->recalculerStatutPaiement($facture);
+
+            if ($facture->estSolde()) {
+                InvoicePaid::dispatch($facture);
+            }
+
+            return $paiement;
+        });
     }
 
     /**
