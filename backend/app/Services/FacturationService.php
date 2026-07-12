@@ -154,7 +154,6 @@ class FacturationService
                 'date_devis' => $data['date_devis'],
                 'date_validite' => $data['date_validite'],
                 'prix_ht' => $prixHt,
-                'montant_ht' => $prixHt,
                 'taux_tva' => $tauxTva,
                 'montant_tva' => $montantTva,
                 'montant_ttc' => $montantTtc,
@@ -182,7 +181,6 @@ class FacturationService
             $montantTva = round($prixHt * $tauxTva / 100, 2);
 
             $data['prix_ht'] = $prixHt;
-            $data['montant_ht'] = $prixHt;
             $data['montant_tva'] = $montantTva;
             $data['montant_ttc'] = round($prixHt + $montantTva, 2);
         }
