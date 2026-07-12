@@ -197,7 +197,11 @@ export function usePlanning() {
 
   function toggleStatut(statut: string) {
     const next = new Set(activeStatuts.value)
-    next.has(statut) ? next.delete(statut) : next.add(statut)
+    if (next.has(statut)) {
+      next.delete(statut)
+    } else {
+      next.add(statut)
+    }
     activeStatuts.value = next
   }
 
