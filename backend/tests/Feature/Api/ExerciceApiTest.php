@@ -62,6 +62,33 @@ class ExerciceApiTest extends TestCase
             ->assertJsonPath('data', null);
     }
 
+    public function test_reouverture_d_un_exercice_cloture_avec_documents_est_bloquee(): void
+    {
+        // Separation stricte par annee : un exercice cloture qui porte des documents
+        // ne peut pas etre rouvert (sinon on pourrait y rattacher de nouveaux documents).
+        $exercice = Exercice::factory()->create(['annee' => 2024, 'statut' => 'cloture']);
+
+        Mission::create([
+            'entreprise_id' => Entreprise::factory()->create()->id,
+            'prestation_id' => Prestation::create([
+                'code' => 'ACMPT', 'designation' => 'Assistance', 'tarif_initial' => 120000,
+                'duree_mois' => 12, 'actif' => true,
+            ])->id,
+            'exercice_id' => $exercice->id,
+            'reference' => 'M2024-001',
+            'prix_ht' => 315000,
+            'date_debut' => '2024-01-01',
+            'date_fin' => '2024-12-31',
+            'statut' => 'terminee',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->putJson("/api/v1/exercices/{$exercice->id}", ['statut' => 'ouvert'])
+            ->assertStatus(409);
+
+        $this->assertEquals('cloture', $exercice->fresh()->statut);
+    }
+
     public function test_admin_supprime_un_exercice_sans_documents(): void
     {
         $exercice = Exercice::factory()->create(['annee' => 2019, 'statut' => 'cloture']);

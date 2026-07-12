@@ -416,6 +416,21 @@ class FacturationLifecycleTest extends TestCase
             ->assertJsonPath('message', 'Aucun exercice ouvert : ouvrez l\'exercice de l\'année avant de créer un devis.');
     }
 
+    public function test_creer_devis_hors_exercice_est_refuse(): void
+    {
+        // Une date de devis hors de l'exercice de rattachement est rejetee (coherence numero/annee).
+        $anneePrecedente = (int) date('Y') - 1;
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/v1/devis', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_devis' => "{$anneePrecedente}-06-01",
+                'date_validite' => "{$anneePrecedente}-07-01",
+            ])
+            ->assertJsonValidationErrors(['date_devis']);
+    }
+
     public function test_creer_facture_sans_exercice_ouvert_renvoie_une_erreur_metier(): void
     {
         // Aucun exercice ouvert : erreur metier claire (409) au lieu d'un 500.

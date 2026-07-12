@@ -208,11 +208,21 @@ class DevisApiTest extends TestCase
     public function test_devis_standard_sans_taux_en_vigueur_refuse(): void
     {
         // Le seul taux standard demarre le 2023-01-01 : un devis date avant n'a aucun taux applicable.
-        // On doit refuser (409) au lieu d'appliquer silencieusement 0%.
+        // On doit refuser (409) au lieu d'appliquer silencieusement 0%. On rattache le devis a un
+        // exercice 2022 ouvert pour que la date reste dans son exercice (on teste la resolution du
+        // taux, pas la validation de date §1.5).
+        $exercice2022 = Exercice::create([
+            'annee' => 2022,
+            'date_ouverture' => '2022-01-01',
+            'date_cloture' => '2022-12-31',
+            'statut' => 'ouvert',
+        ]);
+
         $response = $this->actingAs($this->admin)
             ->postJson('/api/v1/devis', [
                 'entreprise_id' => $this->entreprise->id,
                 'prestation_id' => $this->prestation->id,
+                'exercice_id' => $exercice2022->id,
                 'date_devis' => '2022-12-31',
                 'date_validite' => '2023-01-31',
             ]);

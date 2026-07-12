@@ -45,11 +45,23 @@ class ExerciceController extends Controller
         return new ExerciceResource($exercice);
     }
 
-    public function update(UpdateExerciceRequest $request, Exercice $exercice): ExerciceResource
+    public function update(UpdateExerciceRequest $request, Exercice $exercice): ExerciceResource|JsonResponse
     {
         $this->authorize('update', $exercice);
 
-        $exercice->update($request->validated());
+        $validated = $request->validated();
+
+        // On ne rouvre pas un exercice cloture qui porte deja des documents : cela
+        // contournerait la separation stricte par annee (on pourrait y rattacher de
+        // nouveaux documents apres coup).
+        $reouverture = ($validated['statut'] ?? null) === 'ouvert' && $exercice->statut === 'cloture';
+        if ($reouverture && ($exercice->missions()->exists() || $exercice->devis()->exists() || $exercice->factures()->exists())) {
+            return response()->json([
+                'message' => 'Impossible de rouvrir un exercice clôturé qui porte des missions, devis ou factures.',
+            ], 409);
+        }
+
+        $exercice->update($validated);
 
         return new ExerciceResource($exercice);
     }
