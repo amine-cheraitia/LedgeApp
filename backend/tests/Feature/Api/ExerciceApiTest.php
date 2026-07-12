@@ -62,10 +62,11 @@ class ExerciceApiTest extends TestCase
             ->assertJsonPath('data', null);
     }
 
-    public function test_reouverture_d_un_exercice_cloture_avec_documents_est_bloquee(): void
+    public function test_admin_peut_rouvrir_un_exercice_cloture_pour_rattrapage(): void
     {
-        // Separation stricte par annee : un exercice cloture qui porte des documents
-        // ne peut pas etre rouvert (sinon on pourrait y rattacher de nouveaux documents).
+        // Facturation de rattrapage : l'admin doit pouvoir rouvrir un exercice cloture,
+        // meme porteur de documents, pour saisir une facturation oubliee sur une annee
+        // passee (la creation exige un exercice ouvert).
         $exercice = Exercice::factory()->create(['annee' => 2024, 'statut' => 'cloture']);
 
         Mission::create([
@@ -84,9 +85,10 @@ class ExerciceApiTest extends TestCase
 
         $this->actingAs($this->admin)
             ->putJson("/api/v1/exercices/{$exercice->id}", ['statut' => 'ouvert'])
-            ->assertStatus(409);
+            ->assertOk()
+            ->assertJsonPath('data.statut', 'ouvert');
 
-        $this->assertEquals('cloture', $exercice->fresh()->statut);
+        $this->assertEquals('ouvert', $exercice->fresh()->statut);
     }
 
     public function test_admin_supprime_un_exercice_sans_documents(): void

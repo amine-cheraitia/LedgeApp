@@ -50,15 +50,14 @@ class ExerciceController extends Controller
         return new ExerciceResource($exercice);
     }
 
-    public function update(UpdateExerciceRequest $request, Exercice $exercice): ExerciceResource|JsonResponse
+    public function update(UpdateExerciceRequest $request, Exercice $exercice): ExerciceResource
     {
         $this->authorize('update', $exercice);
 
-        try {
-            $exercice = $this->exerciceService->mettreAJour($exercice, $request->validated());
-        } catch (DomainException $e) {
-            return response()->json(['message' => $e->getMessage()], 409);
-        }
+        // La reouverture d'un exercice cloture est volontairement autorisee (admin) :
+        // elle permet la saisie de rattrapage d'une facturation oubliee sur un
+        // exercice passe (facturer exige un exercice ouvert).
+        $exercice->update($request->validated());
 
         return new ExerciceResource($exercice);
     }
