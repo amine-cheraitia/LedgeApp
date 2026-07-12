@@ -61,12 +61,9 @@ class PdfService
         ]);
 
         if ($portailMode) {
-            $mission->taches->each(function ($tache): void {
-                $tache->setRelation(
-                    'commentaires',
-                    $tache->commentaires->where('visible_portail', true)->values()
-                );
-            });
+            // Les commentaires de taches sont des notes de travail internes : jamais
+            // exposees au client dans le rapport de mission cote portail.
+            $mission->taches->each(fn ($tache) => $tache->setRelation('commentaires', collect()));
         }
 
         $cabinet = $this->getCabinetInfo();

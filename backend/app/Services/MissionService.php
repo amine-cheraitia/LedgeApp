@@ -203,11 +203,6 @@ class MissionService
             $tacheIds = $mission->taches()->pluck('id');
             TacheCommentaire::whereIn('tache_id', $tacheIds)->delete();
 
-            // Les documents ne sont pas supprimes (ils restent rattaches a l'entreprise) :
-            // on les detache de la mission, comme le ferait le nullOnDelete de la FK
-            // (inactif ici puisque la mission est seulement soft-deletee).
-            $mission->documents()->update(['mission_id' => null]);
-
             $mission->taches()->delete();
             $mission->collaborateurs()->detach();
             $mission->delete();

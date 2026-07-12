@@ -97,7 +97,7 @@ class DevisApiTest extends TestCase
         $data = $response->json('data');
         // Prix HT = 120 000 x 1.5 x 1.75 = 315 000 DA
         $this->assertEquals(315000, (float) $data['prix_ht']);
-        $this->assertEquals(315000, (float) $data['montant_ht']);
+        $this->assertEquals(315000, (float) $data['prix_ht']);
         $this->assertStringStartsWith('DV', $data['numero']);
     }
 
@@ -139,7 +139,7 @@ class DevisApiTest extends TestCase
         $data = $response->json('data');
 
         // HT = 315 000
-        $this->assertEquals(315000, (float) $data['montant_ht']);
+        $this->assertEquals(315000, (float) $data['prix_ht']);
         // Taux snapshot persiste sur le devis (parite avec la facture)
         $this->assertEquals(19, (float) $data['taux_tva']);
         // TVA = 315 000 * 19% = 59 850
@@ -199,7 +199,7 @@ class DevisApiTest extends TestCase
         $response->assertCreated();
         $data = $response->json('data');
         // Exonere : taux et TVA = 0, TTC = HT
-        $this->assertEquals(315000, (float) $data['montant_ht']);
+        $this->assertEquals(315000, (float) $data['prix_ht']);
         $this->assertEquals(0, (float) $data['taux_tva']);
         $this->assertEquals(0, (float) $data['montant_tva']);
         $this->assertEquals(315000, (float) $data['montant_ttc']);
@@ -255,7 +255,7 @@ class DevisApiTest extends TestCase
         $response->assertOk();
         $data = $response->json('data');
         // Totaux recalcules de facon coherente, taux snapshot conserve (19%)
-        $this->assertEquals(262500, (float) $data['montant_ht']);
+        $this->assertEquals(262500, (float) $data['prix_ht']);
         $this->assertEquals(19, (float) $data['taux_tva']);
         $this->assertEquals(49875, (float) $data['montant_tva']); // 262 500 * 19%
         $this->assertEquals(312375, (float) $data['montant_ttc']);

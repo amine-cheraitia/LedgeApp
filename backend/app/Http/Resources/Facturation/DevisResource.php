@@ -24,7 +24,6 @@ class DevisResource extends JsonResource
             'date_devis' => $this->date_devis?->toDateString(),
             'date_validite' => $this->date_validite?->toDateString(),
             'prix_ht' => $this->prix_ht,
-            'montant_ht' => $this->montant_ht,
             'taux_tva' => $this->taux_tva,
             'montant_tva' => $this->montant_tva,
             'montant_ttc' => $this->montant_ttc,

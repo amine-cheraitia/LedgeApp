@@ -107,7 +107,6 @@ const mockFacture: Facture = {
   created_by: 1,
   numero: 'FF2026-002',
   type: 'FF',
-  facture_origine_id: null,
   date_facture: '2026-06-01',
   date_echeance: '2026-07-16',
   montant_ht: 35000,

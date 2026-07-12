@@ -84,7 +84,7 @@ function makeFacture(overrides: Partial<Facture> = {}): Facture {
   return {
     id: 1, entreprise_id: 1, exercice_id: 1, mission_id: 5, devis_id: null,
     created_by: 1, numero: 'FF2026-001', type: 'FF',
-    facture_origine_id: null, date_facture: '2026-03-15', date_echeance: '2026-04-29',
+    date_facture: '2026-03-15', date_echeance: '2026-04-29',
     montant_ht: 100000, taux_tva: 19, montant_tva: 19000, montant_ttc: 119000,
     montant_paye: 0, statut_paiement: 'en_attente', mode_paiement: 'virement',
     montant_restant: 119000,

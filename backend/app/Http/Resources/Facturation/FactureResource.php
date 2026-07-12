@@ -23,7 +23,6 @@ class FactureResource extends JsonResource
             'created_by' => $this->created_by,
             'numero' => $this->numero,
             'type' => $this->type,
-            'facture_origine_id' => $this->facture_origine_id,
             'date_facture' => $this->date_facture?->toDateString(),
             'date_echeance' => $this->date_echeance?->toDateString(),
             'montant_ht' => $this->montant_ht,

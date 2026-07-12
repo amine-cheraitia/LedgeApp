@@ -29,7 +29,6 @@ class DevisFactory extends Factory
             'date_devis' => now()->toDateString(),
             'date_validite' => now()->addDays(30)->toDateString(),
             'prix_ht' => $prixHt,
-            'montant_ht' => $prixHt,
             'taux_tva' => 19,
             'montant_tva' => round($prixHt * 0.19, 2),
             'montant_ttc' => round($prixHt * 1.19, 2),

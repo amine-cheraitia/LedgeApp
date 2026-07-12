@@ -14,7 +14,7 @@ class TacheCommentaire extends Model
 
     protected $table = 'tache_commentaires';
 
-    protected $fillable = ['tache_id', 'user_id', 'contenu', 'visible_portail'];
+    protected $fillable = ['tache_id', 'user_id', 'contenu'];
 
     public function tache(): BelongsTo
     {

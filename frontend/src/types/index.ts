@@ -189,7 +189,6 @@ export interface Facture {
   created_by: number
   numero: string
   type: 'FF' | 'FA'
-  facture_origine_id: number | null
   date_facture: string
   date_echeance: string
   montant_ht: number

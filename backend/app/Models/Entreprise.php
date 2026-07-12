@@ -66,11 +66,6 @@ class Entreprise extends Model
         return $this->hasMany(Facture::class);
     }
 
-    public function documents(): HasMany
-    {
-        return $this->hasMany(Document::class);
-    }
-
     public function isClient(): bool
     {
         return $this->statut === 'client';

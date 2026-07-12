@@ -178,7 +178,7 @@ class FacturationLifecycleTest extends TestCase
             ->assertJsonPath('data.prestation_id', $this->prestation->id);
 
         $data = $response->json('data');
-        $this->assertEquals(315000, (float) $data['montant_ht']);
+        $this->assertEquals(315000, (float) $data['prix_ht']);
         $this->assertEquals(19, (float) $data['taux_tva']);
         $this->assertEquals(59850, (float) $data['montant_tva']);
         $this->assertEquals(374850, (float) $data['montant_ttc']);

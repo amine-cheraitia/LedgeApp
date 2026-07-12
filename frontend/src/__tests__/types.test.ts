@@ -38,7 +38,6 @@ describe('TypeScript interfaces', () => {
       created_by: 1,
       numero: 'FF2026-001',
       type: 'FF',
-      facture_origine_id: null,
       date_facture: '2026-03-25',
       date_echeance: '2026-04-25',
       montant_ht: 100000,

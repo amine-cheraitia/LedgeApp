@@ -26,10 +26,10 @@ class Facture extends Model
 
     protected $fillable = [
         'entreprise_id', 'exercice_id', 'mission_id', 'devis_id', 'created_by',
-        'tva_taux_id', 'numero', 'type', 'facture_origine_id',
+        'tva_taux_id', 'numero', 'type',
         'date_facture', 'date_echeance', 'montant_ht', 'taux_tva', 'montant_tva',
         'montant_ttc', 'montant_paye', 'statut_paiement',
-        'mode_paiement', 'pdf_path',
+        'mode_paiement',
     ];
 
     protected $casts = [

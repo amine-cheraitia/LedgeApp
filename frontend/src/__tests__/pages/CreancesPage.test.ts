@@ -39,7 +39,6 @@ function makeFacture(overrides: Partial<Facture> = {}): Facture {
     created_by: 1,
     numero: 'FF2026-001',
     type: 'FF',
-    facture_origine_id: null,
     date_facture: '2026-01-10',
     date_echeance: echeanceIlYa(10),
     montant_ht: 100000,
