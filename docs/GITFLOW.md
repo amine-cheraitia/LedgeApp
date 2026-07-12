@@ -103,6 +103,32 @@ docs(changelog): v1.1.0 — portail client + planning
 
 **Competences :** C4.1.1, C4.3.2
 
+## Versioning et tags (SemVer)
+
+Le projet suit le **versionnage semantique** `MAJEUR.MINEUR.CORRECTIF` :
+
+| Increment | Quand |
+|---|---|
+| **MAJEUR** | Rupture de compatibilite (API, schema de donnees) |
+| **MINEUR** | Nouvelle fonctionnalite retro-compatible |
+| **CORRECTIF** | Correction de bogue retro-compatible |
+
+Le **registre des versions** est [`CHANGELOG.md`](../CHANGELOG.md) (format
+*Keep a Changelog*). L'historique va de `0.1.0` (mise en place initiale) a la
+section `[Unreleased]` en cours, close a la prochaine release.
+
+**Un tag est pose a chaque release vers `main`** (jamais sur une branche
+d'integration non fusionnee) :
+
+```bash
+git checkout main && git pull
+git tag -a vX.Y.Z -m "Version X.Y.Z"
+git push origin vX.Y.Z
+```
+
+Le tag pointe le commit de merge sur `main` ; les notes de la GitHub Release
+reprennent la section correspondante du CHANGELOG.
+
 ## Regle d'or
 
 > **JAMAIS de push direct sur main.** Tout passe par une PR.
