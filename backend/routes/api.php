@@ -56,6 +56,7 @@ Route::prefix('v1')->group(function () {
             Route::middleware('role:admin')->group(function () {
                 // Gestion utilisateurs
                 Route::post('users', [UserController::class, 'store']);
+                Route::get('users/{user}', [UserController::class, 'show']);
                 Route::put('users/{user}', [UserController::class, 'update']);
                 Route::delete('users/{user}', [UserController::class, 'destroy']);
                 Route::post('users/{user}/renvoyer-invitation', [UserController::class, 'renvoyerInvitation'])->middleware('throttle:6,1');
@@ -86,7 +87,8 @@ Route::prefix('v1')->group(function () {
                 Route::put('referentiels/tva-taux/{tvaTaux}', [ReferentielTvaController::class, 'update']);
                 Route::delete('referentiels/tva-taux/{tvaTaux}', [ReferentielTvaController::class, 'destroy']);
 
-                // KPI objectifs (ecriture)
+                // KPI objectifs (lecture + ecriture) — donnees internes reservees a l'admin
+                Route::get('/kpi/objectifs', [KpiController::class, 'index']);
                 Route::post('/kpi/objectifs', [KpiController::class, 'upsert']);
                 Route::delete('/kpi/objectifs/{objectif}', [KpiController::class, 'destroy']);
 
@@ -123,9 +125,6 @@ Route::prefix('v1')->group(function () {
 
             // ── Admin + Secretaire ───────────────────────────────────────────
             Route::middleware('role:admin|secretaire')->group(function () {
-                // KPI objectifs (lecture)
-                Route::get('/kpi/objectifs', [KpiController::class, 'index']);
-
                 // Entreprises (lecture + creation/modification — suppression reservee admin)
                 Route::post('entreprises', [EntrepriseController::class, 'store']);
                 Route::put('entreprises/{entreprise}', [EntrepriseController::class, 'update']);
@@ -180,9 +179,9 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Tous roles backoffice : utilitaires partages (admin + secretaire + collaborateur) ────
-            // Lecture utilisateurs (pour les selects d'assignation des taches)
+            // Lecture utilisateurs : annuaire complet pour l'admin, personnel minimal
+            // (id/name/roles, sans clients ni donnees sensibles) pour les selects d'assignation.
             Route::get('users', [UserController::class, 'index']);
-            Route::get('users/{user}', [UserController::class, 'show']);
 
             // Parametres cabinet (lecture)
             Route::get('settings', [SettingController::class, 'index']);

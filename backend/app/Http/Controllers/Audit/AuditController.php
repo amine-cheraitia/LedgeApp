@@ -16,6 +16,10 @@ class AuditController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
+        // Le journal d'audit (donnees sensibles) reste reserve a l'admin, meme si
+        // la route est deplacee ou refactorisee (defense en profondeur).
+        abort_unless($request->user()->hasRole('admin'), 403);
+
         $activites = $this->auditService->lister($request->only([
             'event', 'causer_id', 'subject_type', 'date_debut', 'date_fin', 'per_page',
         ]));

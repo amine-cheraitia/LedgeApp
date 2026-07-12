@@ -51,6 +51,8 @@ class TacheCommentaireController extends Controller
 
     public function update(UpdateTacheCommentaireRequest $request, Tache $tache, TacheCommentaire $commentaire): TacheCommentaireResource
     {
+        abort_if($commentaire->tache_id !== $tache->id, 404, 'Commentaire introuvable pour cette tache.');
+
         $this->authorize('update', $commentaire);
 
         $commentaire->update($request->validated());
@@ -60,6 +62,8 @@ class TacheCommentaireController extends Controller
 
     public function destroy(Tache $tache, TacheCommentaire $commentaire): JsonResponse
     {
+        abort_if($commentaire->tache_id !== $tache->id, 404, 'Commentaire introuvable pour cette tache.');
+
         $this->authorize('delete', $commentaire);
 
         $commentaire->delete();

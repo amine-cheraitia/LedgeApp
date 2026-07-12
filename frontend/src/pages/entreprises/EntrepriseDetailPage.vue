@@ -16,7 +16,7 @@ import { missionsApi } from '@/api/modules/missions'
 import { devisApi } from '@/api/modules/devis'
 import { facturesApi } from '@/api/modules/factures'
 import { useExercices } from '@/composables/useExercices'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import type { Entreprise, Mission, Devis, Facture } from '@/types'
 
 type TagSeverity = 'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast'
@@ -197,7 +197,7 @@ function statutFactureColor(s: string): TagSeverity {
 }
 
 function statutEntrepriseColor(s: string): TagSeverity {
-  const map: Record<string, TagSeverity> = { prospect: 'warn', client: 'success', ancien_client: 'secondary' }
+  const map: Record<string, TagSeverity> = { prospect: 'warn', client: 'success' }
   return map[s] ?? 'secondary'
 }
 
@@ -387,7 +387,7 @@ onMounted(async () => {
           <TabPanels>
             <!-- Missions -->
             <TabPanel v-if="peutVoirMissions" value="missions">
-              <DataTable
+              <DataTable aria-label="Missions de l'entreprise"
                 :value="missions"
                 :loading="loadingMissions"
                 dataKey="id"
@@ -427,7 +427,7 @@ onMounted(async () => {
 
             <!-- Devis -->
             <TabPanel value="devis">
-              <DataTable
+              <DataTable aria-label="Devis de l'entreprise"
                 :value="devisList"
                 :loading="loadingDevis"
                 dataKey="id"
@@ -460,7 +460,7 @@ onMounted(async () => {
 
             <!-- Factures -->
             <TabPanel value="factures">
-              <DataTable
+              <DataTable aria-label="Factures de l'entreprise"
                 :value="factures"
                 :loading="loadingFactures"
                 dataKey="id"

@@ -39,7 +39,8 @@ class PasswordResetTest extends TestCase
 
         $response->assertOk();
 
-        Mail::assertSent(
+        // Le mail est mis en file (ShouldQueue) : envoi asynchrone anti-oracle temporel.
+        Mail::assertQueued(
             ReinitialisationMotDePasseMail::class,
             fn (ReinitialisationMotDePasseMail $mail) => $mail->hasTo('forgot@test.dz')
         );
@@ -54,7 +55,7 @@ class PasswordResetTest extends TestCase
 
         $response->assertOk();
 
-        Mail::assertNothingSent();
+        Mail::assertNothingQueued();
     }
 
     public function test_forgot_password_est_throttle(): void

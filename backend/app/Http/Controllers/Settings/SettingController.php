@@ -1,31 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Settings\UpdateSettingRequest;
 use App\Http\Resources\Settings\SettingResource;
 use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Support\Facades\Gate;
 
 class SettingController extends Controller
 {
     public function index(): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Setting::class);
+
         return SettingResource::collection(Setting::all());
     }
 
-    public function update(Request $request): JsonResponse
+    public function update(UpdateSettingRequest $request): JsonResponse
     {
-        Gate::authorize('update', Setting::class);
-
-        $request->validate([
-            'settings' => ['required', 'array'],
-            'settings.*.key' => ['required', 'string'],
-            'settings.*.value' => ['nullable', 'string'],
-        ]);
+        $this->authorize('update', Setting::class);
 
         foreach ($request->settings as $setting) {
             Setting::set($setting['key'], $setting['value']);

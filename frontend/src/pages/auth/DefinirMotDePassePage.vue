@@ -65,7 +65,11 @@ onMounted(() => {
 
 <template>
   <div class="auth-page">
-    <main class="auth-card" role="main" lang="fr">
+    <a href="#reset-main" class="skip-link">
+      Aller au contenu principal
+    </a>
+
+    <main id="reset-main" class="auth-card" role="main" tabindex="-1" lang="fr">
       <header class="auth-head">
         <h1 class="auth-h1">Definir votre mot de passe</h1>
         <p class="auth-sub">Choisissez un mot de passe pour activer votre acces Ledge.</p>

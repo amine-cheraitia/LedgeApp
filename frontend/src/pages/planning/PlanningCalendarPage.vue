@@ -20,7 +20,7 @@ import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
 import { useToast } from 'primevue/usetoast'
 import { usePlanning } from '@/composables/usePlanning'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import type { CalendarMission, CalendarTache } from '@/api/modules/planning'
 import { prioriteLabel, PRIORITE_COLORS } from '@/utils/priorite'
 

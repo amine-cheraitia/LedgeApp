@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useDashboardStats } from '@/composables/useDashboardStats'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import { useCountUp } from '@/composables/useCountUp'
 import { useLayout } from '@/layout/composables/layout'
 import SecretaireDashboardSection from '@/pages/dashboard/SecretaireDashboardSection.vue'
@@ -249,7 +249,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
     <div class="col-span-12">
       <div class="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h2 id="dashboard-title" class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">Tableau de bord</h2>
+          <h1 id="dashboard-title" class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">Tableau de bord</h1>
           <p class="text-muted-color mt-1">Bienvenue, {{ auth.user?.name }}.</p>
         </div>
         <div v-if="auth.isAdmin && stats">
@@ -281,10 +281,10 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
 
       <!-- ── Row 1 : Hero Banner ── -->
       <div class="col-span-12">
-        <div class="hero-banner" role="banner">
+        <div class="hero-banner">
           <div class="hero-banner__left">
             <p class="hero-today">{{ todayLabel }}</p>
-            <h3 class="hero-greeting">Bonjour, {{ auth.user?.name }}</h3>
+            <h2 class="hero-greeting">Bonjour, {{ auth.user?.name }}</h2>
             <div class="hero-summary" aria-label="Résumé de votre activité">
               <span class="hero-chip">
                 <i class="pi pi-briefcase" aria-hidden="true"></i>
@@ -404,7 +404,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
       <div class="col-span-12 lg:col-span-4">
         <div class="card h-full">
           <div class="panel-header">
-            <h3 class="panel-title">Répartition des tâches</h3>
+            <h2 class="panel-title">Répartition des tâches</h2>
             <span class="kpi-pill kpi-pill--muted">{{ collabStats.taches.total }} total</span>
           </div>
           <div v-if="collabStats.taches.total === 0" class="empty-state" role="status">
@@ -463,7 +463,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
       <div class="col-span-12 lg:col-span-4">
         <div class="card h-full">
           <div class="panel-header">
-            <h3 class="panel-title">Progression des missions</h3>
+            <h2 class="panel-title">Progression des missions</h2>
             <span class="kpi-pill kpi-pill--muted">{{ collabStats.missions.total }} missions</span>
           </div>
           <div v-if="collabStats.mes_missions.length === 0" class="empty-state" role="status">
@@ -505,7 +505,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
       <div class="col-span-12 lg:col-span-4">
         <div class="card h-full">
           <div class="panel-header">
-            <h3 class="panel-title">Échéances à venir</h3>
+            <h2 class="panel-title">Échéances à venir</h2>
             <span class="kpi-pill kpi-pill--muted">30 jours</span>
           </div>
           <div v-if="!collabStats.echeances || collabStats.echeances.length === 0" class="empty-state" role="status">
@@ -560,7 +560,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
       <div class="col-span-12 lg:col-span-6">
         <div class="card h-full">
           <div class="panel-header">
-            <h3 class="panel-title">Mes missions</h3>
+            <h2 class="panel-title">Mes missions</h2>
             <router-link to="/missions" class="panel-link" aria-label="Voir toutes mes missions">
               Voir tout <i class="pi pi-arrow-right text-xs ml-1" aria-hidden="true"></i>
             </router-link>
@@ -602,7 +602,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
       <div class="col-span-12 lg:col-span-6">
         <div class="card h-full">
           <div class="panel-header">
-            <h3 class="panel-title">Tâches à traiter</h3>
+            <h2 class="panel-title">Tâches à traiter</h2>
             <router-link to="/missions" class="panel-link" aria-label="Voir toutes mes missions">
               Voir tout <i class="pi pi-arrow-right text-xs ml-1" aria-hidden="true"></i>
             </router-link>
@@ -658,7 +658,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
       <div class="col-span-12">
         <div class="card">
           <div class="panel-header">
-            <h3 class="panel-title">Activité récente</h3>
+            <h2 class="panel-title">Activité récente</h2>
             <span class="kpi-pill kpi-pill--green">Tâches terminées</span>
           </div>
           <div
@@ -869,7 +869,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
       <div class="col-span-12 xl:col-span-8">
         <div class="card h-full">
           <div class="panel-header">
-            <h3 class="panel-title">Chiffre d'affaires mensuel</h3>
+            <h2 class="panel-title">Chiffre d'affaires mensuel</h2>
             <span class="kpi-pill kpi-pill--muted">{{ stats.ca_mensuel.annee }}</span>
           </div>
           <div v-if="caMensuelVide" class="empty-state" role="status">
@@ -898,7 +898,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
       <div class="col-span-12 xl:col-span-4">
         <div class="card h-full">
           <div class="panel-header">
-            <h3 class="panel-title">Missions par statut</h3>
+            <h2 class="panel-title">Missions par statut</h2>
             <span class="kpi-pill kpi-pill--muted">{{ stats.missions.total }} total</span>
           </div>
           <div v-if="missionsVides" class="empty-state" role="status">
@@ -968,7 +968,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
               Voir tout <i class="pi pi-arrow-right text-xs ml-1"></i>
             </router-link>
           </div>
-          <DataTable :value="stats.recentes.factures" :rows="5" responsiveLayout="scroll">
+          <DataTable aria-label="Dernières factures" :value="stats.recentes.factures" :rows="5" responsiveLayout="scroll">
             <Column field="numero" header="N°" style="min-width: 8rem">
               <template #body="{ data }">
                 <span class="font-bold">{{ data.numero }}</span>
@@ -1010,7 +1010,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
               Voir tout <i class="pi pi-arrow-right text-xs ml-1"></i>
             </router-link>
           </div>
-          <DataTable :value="stats.recentes.missions" :rows="5" responsiveLayout="scroll">
+          <DataTable aria-label="Dernières missions" :value="stats.recentes.missions" :rows="5" responsiveLayout="scroll">
             <Column field="reference" header="Référence" style="min-width: 8rem">
               <template #body="{ data }">
                 <router-link :to="`/missions/${data.id}`" class="text-primary font-bold no-underline hover:underline">

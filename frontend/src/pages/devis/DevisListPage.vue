@@ -16,7 +16,7 @@ import { usePrestations } from '@/composables/usePrestations'
 import { useUsers } from '@/composables/useUsers'
 import { useExercices } from '@/composables/useExercices'
 import { useTvaTaux } from '@/composables/useTvaTaux'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import type { Devis } from '@/types'
 
 const confirm = useConfirm()
@@ -221,7 +221,7 @@ function confirmDelete(devis: Devis) {
     icon: 'pi pi-exclamation-triangle',
     acceptLabel: 'Supprimer',
     rejectLabel: 'Annuler',
-    accept: () => deleteDevis(devis.id),
+    accept: () => { void deleteDevis(devis.id).catch(() => {}) },
   })
 }
 
@@ -251,7 +251,7 @@ onMounted(async () => {
 <template>
   <div>
     <div class="page-header">
-      <h2>Devis</h2>
+      <h1>Devis</h1>
       <Button v-if="auth.isAdmin" label="Nouveau devis" icon="pi pi-plus" @click="openCreate" />
     </div>
 
@@ -275,7 +275,7 @@ onMounted(async () => {
       </div>
     </div>
 
-    <DataTable
+    <DataTable aria-label="Liste des devis"
       :value="devisList"
       :loading="loading"
       :paginator="true"

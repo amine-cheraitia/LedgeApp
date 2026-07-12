@@ -14,7 +14,7 @@ import { tachesApi, type TachePayload } from '@/api/modules/taches'
 import { useCommentaires } from '@/composables/useCommentaires'
 import { useTacheConflits } from '@/composables/useTacheConflits'
 import { useUsers } from '@/composables/useUsers'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import type { Tache, TacheCommentaire } from '@/types'
 import { PRIORITE_OPTIONS, prioriteLabel, prioriteSeverity } from '@/utils/priorite'
 import { toIsoDate, parseIsoDate } from '@/utils/date'
@@ -244,9 +244,9 @@ onMounted(async () => {
           @click="router.push({ name: 'mission-detail', params: { id: missionId } })"
         />
         <div class="header-breadcrumb">
-          <span class="breadcrumb-mission" @click="router.push({ name: 'mission-detail', params: { id: missionId } })">
+          <RouterLink :to="{ name: 'mission-detail', params: { id: missionId } }" class="breadcrumb-mission">
             Mission
-          </span>
+          </RouterLink>
           <i class="pi pi-chevron-right breadcrumb-sep" aria-hidden="true"></i>
           <h1 class="header-titre">{{ tache.titre }}</h1>
         </div>
@@ -612,9 +612,9 @@ onMounted(async () => {
 }
 .breadcrumb-mission {
   color: var(--p-primary-color);
-  cursor: pointer;
   font-size: 0.9rem;
   white-space: nowrap;
+  text-decoration: none;
 }
 .breadcrumb-mission:hover { text-decoration: underline; }
 .breadcrumb-sep {

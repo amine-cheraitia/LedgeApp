@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Events\InvoicePaid;
 use App\Mail\DevisMail;
 use App\Mail\FactureMail;
 use App\Mail\MailMessages;
@@ -14,6 +15,7 @@ use App\Models\Exercice;
 use App\Models\Facture;
 use App\Models\FactureLigne;
 use App\Models\Mission;
+use App\Models\Paiement;
 use App\Models\Prestation;
 use App\Models\Setting;
 use App\Models\TvaTaux;
@@ -23,38 +25,11 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 
 class FacturationService
 {
-    /**
-     * Genere le prochain numero sequentiel pour un type de document.
-     * Utilise lockForUpdate pour eviter les doublons en concurrence.
-     */
-    public function genererNumero(string $prefixe, string $table, Exercice $exercice, string $colonne = 'numero'): string
-    {
-        return DB::transaction(function () use ($prefixe, $table, $exercice, $colonne) {
-            $annee = $exercice->annee;
-            $pattern = "{$prefixe}{$annee}-%";
-
-            $query = DB::table($table)
-                ->where($colonne, 'like', $pattern);
-
-            if (DB::getDriverName() !== 'sqlite') {
-                $query->lockForUpdate();
-            }
-
-            $dernierNumero = $query->max($colonne);
-
-            if ($dernierNumero) {
-                $sequence = (int) substr($dernierNumero, strrpos($dernierNumero, '-') + 1);
-                $sequence++;
-            } else {
-                $sequence = 1;
-            }
-
-            return sprintf('%s%d-%03d', $prefixe, $annee, $sequence);
-        });
-    }
+    public function __construct(private readonly NumerotationService $numerotation) {}
 
     private const DEVIS_SORT_FIELDS = ['numero', 'date_devis', 'date_validite', 'statut', 'prix_ht'];
 
@@ -127,15 +102,33 @@ class FacturationService
     }
 
     /**
-     * Cree un devis pour une seule prestation.
-     * Le prix HT est calcule automatiquement via la grille tarifaire (immuable).
+     * Liste paginee des avoirs (tous exercices), avec filtres exercice + recherche.
+     *
+     * @param  array<string, mixed>  $filters
      */
+    public function listerAvoirs(array $filters): LengthAwarePaginator
+    {
+        return Avoir::with('factureOrigine.entreprise')
+            ->when($filters['exercice_id'] ?? null, fn ($q, $v) => $q->where('exercice_id', $v))
+            ->when($filters['search'] ?? null, fn ($q, $s) => $q
+                ->where('numero', 'like', "%{$s}%")
+                ->orWhereHas('factureOrigine.entreprise', fn ($eq) => $eq->where('raison_sociale', 'like', "%{$s}%"))
+            )
+            ->latest()
+            ->paginate($filters['per_page'] ?? 15);
+    }
+
     public function creerDevis(array $data, int $userId): Devis
     {
         return DB::transaction(function () use ($data, $userId) {
             $exercice = isset($data['exercice_id'])
                 ? Exercice::findOrFail($data['exercice_id'])
                 : Exercice::current();
+
+            if ($exercice === null) {
+                throw new DomainException('Aucun exercice ouvert : ouvrez l\'exercice de l\'année avant de créer un devis.');
+            }
+
             $prefixe = Setting::get('devis_prefixe', 'DV');
 
             $entreprise = Entreprise::findOrFail($data['entreprise_id']);
@@ -157,11 +150,10 @@ class FacturationService
                 'exercice_id' => $exercice->id,
                 'created_by' => $userId,
                 'tva_taux_id' => $tvaTaux?->id,
-                'numero' => $this->genererNumero($prefixe, 'devis', $exercice),
+                'numero' => $this->numerotation->genererNumero($prefixe, 'devis', $exercice),
                 'date_devis' => $data['date_devis'],
                 'date_validite' => $data['date_validite'],
                 'prix_ht' => $prixHt,
-                'montant_ht' => $prixHt,
                 'taux_tva' => $tauxTva,
                 'montant_tva' => $montantTva,
                 'montant_ttc' => $montantTtc,
@@ -189,7 +181,6 @@ class FacturationService
             $montantTva = round($prixHt * $tauxTva / 100, 2);
 
             $data['prix_ht'] = $prixHt;
-            $data['montant_ht'] = $prixHt;
             $data['montant_tva'] = $montantTva;
             $data['montant_ttc'] = round($prixHt + $montantTva, 2);
         }
@@ -272,8 +263,19 @@ class FacturationService
 
     public function supprimerDevis(Devis $devis): void
     {
+        // Un devis rattache a une mission ou a des factures est la trace commerciale
+        // d'origine : on interdit sa suppression pour ne pas rompre le lien. Un
+        // eventuel trou dans la numerotation des devis est sans consequence.
+        if ($devis->mission()->exists()) {
+            throw new DomainException('Ce devis a servi à générer une mission : il ne peut pas être supprimé.');
+        }
+
+        if ($devis->factures()->exists()) {
+            throw new DomainException('Ce devis est rattaché à des factures : il ne peut pas être supprimé.');
+        }
+
         if ($devis->statut !== 'brouillon') {
-            throw new DomainException('Seuls les devis en brouillon peuvent etre supprimes.');
+            throw new DomainException('Seuls les devis en brouillon peuvent être supprimés.');
         }
 
         $devis->delete();
@@ -332,6 +334,11 @@ class FacturationService
             $exercice = isset($data['exercice_id'])
                 ? Exercice::findOrFail($data['exercice_id'])
                 : Exercice::current();
+
+            if ($exercice === null) {
+                throw new DomainException('Aucun exercice ouvert : ouvrez l\'exercice de l\'année avant de créer une facture.');
+            }
+
             $prefixe = Setting::get('facture_prefixe', 'FF');
             $designation = $mission->prestation->designation.' — '.($tranche['taux'] * 100).'%';
 
@@ -342,7 +349,7 @@ class FacturationService
                 'devis_id' => $mission->devis_id ?? null,
                 'created_by' => $userId,
                 'tva_taux_id' => $tvaTaux?->id,
-                'numero' => $this->genererNumero($prefixe, 'factures', $exercice),
+                'numero' => $this->numerotation->genererNumero($prefixe, 'factures', $exercice),
                 'type' => 'FF',
                 'date_facture' => $dateFacture,
                 'date_echeance' => $dateEcheance,
@@ -376,7 +383,11 @@ class FacturationService
      */
     public function creerAvoir(Facture $facture, array $data, int $userId): Avoir
     {
-        return DB::transaction(function () use ($facture, $data, $userId) {
+        $avoir = DB::transaction(function () use (&$facture, $data, $userId) {
+            // Verrou sur la facture d'origine : le controle du restant du et l'emission
+            // de l'avoir sont atomiques (evite un sur-credit concurrent, TOCTOU).
+            $facture = Facture::whereKey($facture->getKey())->lockForUpdate()->first();
+
             $montantHt = (float) $data['montant_ht'];
             $tauxTva = (float) $facture->taux_tva;
             $montantTva = round($montantHt * $tauxTva / 100, 2);
@@ -388,13 +399,18 @@ class FacturationService
             }
 
             $exercice = Exercice::current();
+
+            if ($exercice === null) {
+                throw new DomainException('Aucun exercice ouvert : ouvrez l\'exercice de l\'année avant d\'émettre un avoir.');
+            }
+
             $prefixe = Setting::get('avoir_prefixe', 'FA');
 
-            return Avoir::create([
+            $avoir = Avoir::create([
                 'facture_origine_id' => $facture->id,
                 'exercice_id' => $exercice->id,
                 'created_by' => $userId,
-                'numero' => $this->genererNumero($prefixe, 'avoirs', $exercice),
+                'numero' => $this->numerotation->genererNumero($prefixe, 'avoirs', $exercice),
                 'date_avoir' => $data['date_avoir'],
                 'montant_ht' => $montantHt,
                 'taux_tva_snapshot' => $tauxTva,
@@ -402,6 +418,34 @@ class FacturationService
                 'montant_ttc' => $montantTtc,
                 'motif' => $data['motif'],
             ]);
+
+            // L'avoir reduit le du : on reevalue le statut de paiement de la facture.
+            $this->recalculerStatutPaiement($facture);
+
+            return $avoir;
+        });
+
+        // Facture soldee par avoir : on annule les relances en cours (meme effet qu'un paiement solde).
+        if ($facture->estSolde()) {
+            InvoicePaid::dispatch($facture);
+        }
+
+        return $avoir;
+    }
+
+    /**
+     * Supprime un avoir et reevalue le statut de paiement de la facture d'origine
+     * (le du remonte : une facture soldee par cet avoir redevient impayee).
+     */
+    public function supprimerAvoir(Avoir $avoir): void
+    {
+        DB::transaction(function () use ($avoir) {
+            $facture = $avoir->factureOrigine;
+            $avoir->delete();
+
+            if ($facture !== null) {
+                $this->recalculerStatutPaiement($facture);
+            }
         });
     }
 
@@ -444,14 +488,67 @@ class FacturationService
     }
 
     /**
-     * Recalcule le statut de paiement d'une facture apres un paiement.
+     * Enregistre un paiement sur une facture (verrou pour eviter le sur-credit en
+     * concurrence), met a jour le mode de paiement et recalcule le statut.
+     * Leve DomainException si la facture est deja soldee (409) et ValidationException
+     * si le montant depasse le restant du (422).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function enregistrerPaiement(Facture $facture, array $data, int $userId): Paiement
+    {
+        return DB::transaction(function () use ($facture, $data, $userId) {
+            // Controle du restant du et insertion atomiques (TOCTOU).
+            $facture = Facture::whereKey($facture->getKey())->lockForUpdate()->first();
+
+            if ($facture->estSolde()) {
+                throw new DomainException('Cette facture est déjà soldée.');
+            }
+
+            $montantRestant = $facture->montantRestant();
+            if ((float) $data['montant'] > $montantRestant) {
+                throw ValidationException::withMessages([
+                    'montant' => ["Le montant ne peut pas dépasser {$montantRestant} DA."],
+                ]);
+            }
+
+            $paiement = Paiement::create([
+                'facture_id' => $facture->id,
+                'recorded_by' => $userId,
+                'montant' => $data['montant'],
+                'date_paiement' => $data['date_paiement'],
+                'mode_paiement' => $data['mode_paiement'],
+                'reference' => $data['reference'] ?? null,
+                'notes' => $data['notes'] ?? null,
+            ]);
+
+            $facture->update(['mode_paiement' => $data['mode_paiement']]);
+            $this->recalculerStatutPaiement($facture);
+
+            if ($facture->estSolde()) {
+                InvoicePaid::dispatch($facture);
+            }
+
+            return $paiement;
+        });
+    }
+
+    /**
+     * Recalcule le statut de paiement d'une facture apres un paiement ou un avoir.
+     *
+     * Le statut "solde" tient compte des avoirs : une facture annulee (totalement
+     * ou partiellement) par un avoir est reglee d'autant. Sans cela, une facture
+     * soldee par avoir resterait "impayee" et declencherait des relances a tort.
+     * Le statut "partiel" reste attache a un paiement reel (un avoir n'est pas un paiement).
      */
     public function recalculerStatutPaiement(Facture $facture): void
     {
-        $totalPaye = $facture->paiements()->sum('montant');
+        $totalPaye = (float) $facture->paiements()->sum('montant');
         $facture->montant_paye = $totalPaye;
 
-        if ($totalPaye >= (float) $facture->montant_ttc) {
+        $totalRegle = $totalPaye + (float) $facture->avoirs()->sum('montant_ttc');
+
+        if ($totalRegle >= (float) $facture->montant_ttc) {
             $facture->statut_paiement = 'solde';
         } elseif ($totalPaye > 0) {
             $facture->statut_paiement = 'partiel';

@@ -9,7 +9,7 @@ import InputNumber from 'primevue/inputnumber'
 import DatePicker from 'primevue/datepicker'
 import Select from 'primevue/select'
 import { useExercices } from '@/composables/useExercices'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import { exercicesApi } from '@/api/modules/exercices'
 import type { Exercice } from '@/types'
 import type { ExercicePayload } from '@/api/modules/exercices'
@@ -115,11 +115,11 @@ onMounted(fetchExercices)
 <template>
   <div>
     <div class="page-header">
-      <h2>Exercices fiscaux</h2>
+      <h1>Exercices fiscaux</h1>
       <Button label="Nouvel exercice" icon="pi pi-plus" @click="openCreate" />
     </div>
 
-    <DataTable
+    <DataTable aria-label="Liste des exercices fiscaux"
       :value="exercices"
       :loading="loading"
       dataKey="id"

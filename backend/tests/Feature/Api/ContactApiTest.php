@@ -45,6 +45,24 @@ class ContactApiTest extends TestCase
             ->assertJsonFragment(['nom' => 'Benali', 'est_principal' => true]);
     }
 
+    public function test_modifier_un_contact_via_une_autre_entreprise_renvoie_404(): void
+    {
+        // Le contact appartient a l'entreprise A ; le modifier via l'URL d'une entreprise B -> 404.
+        $contact = Contact::create([
+            'entreprise_id' => $this->entreprise->id,
+            'nom' => 'Benali',
+            'est_principal' => true,
+        ]);
+
+        $autreEntreprise = Entreprise::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->putJson("/api/v1/entreprises/{$autreEntreprise->id}/contacts/{$contact->id}", ['nom' => 'Piraté'])
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('contacts', ['id' => $contact->id, 'nom' => 'Benali']);
+    }
+
     public function test_admin_cree_un_contact(): void
     {
         $this->actingAs($this->admin)

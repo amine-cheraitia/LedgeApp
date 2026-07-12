@@ -2,7 +2,7 @@
 import { useLayout } from '@/layout/composables/layout'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import LedgeLogo from '@/components/LedgeLogo.vue'
 import AppMenu from './AppMenu.vue'
 

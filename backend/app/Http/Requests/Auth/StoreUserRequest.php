@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * Creation d'un utilisateur staff par l'admin.
@@ -22,7 +23,9 @@ class StoreUserRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
-            'role' => ['required', 'string', 'exists:roles,name'],
+            // Roles staff uniquement : la creation d'un client passe exclusivement
+            // par l'activation du portail (PortailService::activerPortail).
+            'role' => ['required', 'string', Rule::in(['admin', 'collaborateur', 'secretaire'])],
             'entreprise_id' => ['nullable', 'exists:entreprises,id'],
         ];
     }

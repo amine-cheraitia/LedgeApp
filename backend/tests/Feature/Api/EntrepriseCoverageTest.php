@@ -164,24 +164,18 @@ class EntrepriseCoverageTest extends TestCase
         ]);
     }
 
-    public function test_modification_bascule_statut_vers_client(): void
+    public function test_modification_ignore_le_statut(): void
     {
+        // La bascule prospect -> client est reservee a l'Observer (MissionCreated) :
+        // l'API d'edition ne doit jamais permettre de forcer ce statut a la main.
         $entreprise = Entreprise::factory()->prospect()->create();
 
         $this->actingAs($this->admin)
             ->putJson("/api/v1/entreprises/{$entreprise->id}", ['statut' => 'client'])
             ->assertOk()
-            ->assertJsonPath('data.statut', 'client');
-    }
+            ->assertJsonPath('data.statut', 'prospect');
 
-    public function test_modification_echoue_statut_invalide(): void
-    {
-        $entreprise = Entreprise::factory()->create();
-
-        $this->actingAs($this->admin)
-            ->putJson("/api/v1/entreprises/{$entreprise->id}", ['statut' => 'zzz'])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors('statut');
+        $this->assertSame('prospect', $entreprise->fresh()->statut);
     }
 
     // ─── Suppression (destroy + protection) ──────────────────────────────────

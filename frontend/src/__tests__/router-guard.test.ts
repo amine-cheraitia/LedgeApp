@@ -24,7 +24,7 @@ vi.mock('@/api/client', () => ({
 
 // Import du VRAI router APRES les mocks
 import router from '@/router'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import { makeUser } from './helpers/mount'
 
 /** Prepare un utilisateur connecte avec session deja resolue (pas de fetchUser). */

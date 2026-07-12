@@ -16,7 +16,7 @@ vi.mock('@/api/client', () => ({
   resetCsrf: mockResetCsrf,
 }))
 
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 
 beforeEach(() => {
   setActivePinia(createPinia())

@@ -7,9 +7,12 @@ import { PrimeVueResolver } from '@primevue/auto-import-resolver'
 import { resolve } from 'path'
 
 // Proxy vers l'API Laravel — partage entre le serveur de dev et `vite preview`.
+// Cible configurable (VITE_PROXY_TARGET) : localhost:8000 en dev local,
+// http://nginx:80 dans la stack Docker (le backend n'y est pas sur localhost).
+const proxyTarget = process.env.VITE_PROXY_TARGET || 'http://localhost:8000'
 const apiProxy = {
-  '/api': { target: 'http://localhost:8000', changeOrigin: true },
-  '/sanctum': { target: 'http://localhost:8000', changeOrigin: true },
+  '/api': { target: proxyTarget, changeOrigin: true },
+  '/sanctum': { target: proxyTarget, changeOrigin: true },
 }
 
 export default defineConfig({

@@ -98,7 +98,7 @@ const entreprises: Entreprise[] = [
     id: 4, raison_sociale: 'Delta SNC', statut: 'client', email: 'delta@ledge.dz',
     contact_principal: 'Dalia Delta', portail_user: null,
   }),
-  makeEntreprise({ id: 5, raison_sociale: 'Omega SARL', statut: 'ancien_client' }),
+  makeEntreprise({ id: 5, raison_sociale: 'Omega SARL', statut: 'client' }),
 ]
 
 const contacts: Contact[] = [
@@ -136,7 +136,6 @@ describe('EntrepriseListPage — liste', () => {
     expect(wrapper.text()).toContain('Beta SPA')
     expect(wrapper.text()).toContain('Omega SARL')
     expect(wrapper.text()).toContain('prospect')
-    expect(wrapper.text()).toContain('ancien_client')
   })
 
   it('affiche la colonne Portail pour l admin : actif, desactive, activer, — pour prospect', async () => {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Devis;
 use App\Models\Entreprise;
 use App\Models\Exercice;
 use App\Models\Mission;
@@ -20,7 +21,7 @@ use Illuminate\Support\Facades\DB;
 class MissionService
 {
     public function __construct(
-        private FacturationService $facturationService,
+        private readonly NumerotationService $numerotation,
     ) {}
 
     /**
@@ -85,7 +86,7 @@ class MissionService
 
         $exercice = $mission->exercice ?? Exercice::find($mission->exercice_id);
         $prefixe = Setting::get('convention_prefixe', 'CV');
-        $numero = $this->facturationService->genererNumero($prefixe, 'missions', $exercice, 'convention_numero');
+        $numero = $this->numerotation->genererNumero($prefixe, 'missions', $exercice, 'convention_numero');
         $mission->update(['convention_numero' => $numero]);
 
         return $numero;
@@ -102,7 +103,7 @@ class MissionService
 
         $exercice = $mission->exercice ?? Exercice::find($mission->exercice_id);
         $prefixe = Setting::get('mandat_prefixe', 'MD');
-        $numero = $this->facturationService->genererNumero($prefixe, 'missions', $exercice, 'mandat_numero');
+        $numero = $this->numerotation->genererNumero($prefixe, 'missions', $exercice, 'mandat_numero');
         $mission->update(['mandat_numero' => $numero]);
 
         return $numero;
@@ -111,9 +112,34 @@ class MissionService
     public function creerMission(array $data): Mission
     {
         return DB::transaction(function () use ($data) {
+            // Conversion depuis un devis : il doit etre accepte et ne pas avoir
+            // deja genere une mission (anti-doublon, verrou pour la concurrence).
+            if (! empty($data['devis_id'])) {
+                $query = Devis::whereKey($data['devis_id']);
+                if (DB::getDriverName() !== 'sqlite') {
+                    $query->lockForUpdate();
+                }
+                $devis = $query->first();
+
+                if ($devis !== null) {
+                    if ($devis->statut !== 'accepte') {
+                        throw new DomainException('Seul un devis accepté peut être converti en mission.');
+                    }
+
+                    if ($devis->mission()->exists()) {
+                        throw new DomainException('Ce devis a déjà été converti en mission.');
+                    }
+                }
+            }
+
             $exercice = isset($data['exercice_id'])
                 ? Exercice::findOrFail($data['exercice_id'])
                 : Exercice::current();
+
+            if ($exercice === null) {
+                throw new DomainException('Aucun exercice ouvert : ouvrez l\'exercice de l\'année avant de créer une mission.');
+            }
+
             $entreprise = Entreprise::findOrFail($data['entreprise_id']);
             $prestation = Prestation::findOrFail($data['prestation_id']);
 
@@ -123,7 +149,7 @@ class MissionService
             );
 
             $prefixe = Setting::get('mission_prefixe', 'M');
-            $reference = $this->facturationService->genererNumero($prefixe, 'missions', $exercice, 'reference');
+            $reference = $this->numerotation->genererNumero($prefixe, 'missions', $exercice, 'reference');
 
             $mission = Mission::create([
                 'entreprise_id' => $entreprise->id,
@@ -176,11 +202,6 @@ class MissionService
             // donc explicitement leurs commentaires pour ne pas laisser d'orphelins actifs.
             $tacheIds = $mission->taches()->pluck('id');
             TacheCommentaire::whereIn('tache_id', $tacheIds)->delete();
-
-            // Les documents ne sont pas supprimes (ils restent rattaches a l'entreprise) :
-            // on les detache de la mission, comme le ferait le nullOnDelete de la FK
-            // (inactif ici puisque la mission est seulement soft-deletee).
-            $mission->documents()->update(['mission_id' => null]);
 
             $mission->taches()->delete();
             $mission->collaborateurs()->detach();

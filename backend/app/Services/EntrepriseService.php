@@ -5,12 +5,22 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Entreprise;
+use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class EntrepriseService
 {
+    public function supprimer(Entreprise $entreprise): void
+    {
+        if ($entreprise->missions()->exists() || $entreprise->devis()->exists()) {
+            throw new DomainException('Impossible de supprimer cette entreprise : des missions ou devis y sont associes.');
+        }
+
+        $entreprise->delete();
+    }
+
     public function lister(array $filters): LengthAwarePaginator
     {
         return Entreprise::query()

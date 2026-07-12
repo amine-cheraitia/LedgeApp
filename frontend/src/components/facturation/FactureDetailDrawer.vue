@@ -10,7 +10,7 @@ import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import DatePicker from 'primevue/datepicker'
 import { facturesApi, type PaiementPayload } from '@/api/modules/factures'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import type { Facture, Paiement } from '@/types'
 
 const props = defineProps<{
@@ -227,7 +227,7 @@ function statutLabel(statut: string): string {
 }
 
 function modeLabel(mode: string): string {
-  const map: Record<string, string> = { virement: 'Virement', cheque: 'Chèque', autre: 'Autre', espece: 'Espèces' }
+  const map: Record<string, string> = { virement: 'Virement', cheque: 'Chèque', autre: 'Autre' }
   return map[mode] ?? mode
 }
 </script>

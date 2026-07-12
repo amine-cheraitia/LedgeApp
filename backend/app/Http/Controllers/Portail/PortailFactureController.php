@@ -38,6 +38,10 @@ class PortailFactureController extends Controller
             'Acces non autorise.'
         );
 
+        // L'endpoint ne sert que les factures (FF), pas les avoirs (FA) qui partagent la table :
+        // aligne le PDF sur le filtre type='FF' de la liste du portail.
+        abort_if($facture->type !== 'FF', 404, 'Facture introuvable.');
+
         return $this->pdfService->genererFacture($facture)
             ->download('facture-'.$facture->numero.'.pdf');
     }

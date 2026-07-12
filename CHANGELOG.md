@@ -9,6 +9,91 @@
 
 ## [Unreleased]
 
+### Audit interne — remédiation sécurité, architecture, RGAA & qualité — integration/audit-fixes-preview
+
+Correction des écarts relevés par l'audit interne (règles métier, OWASP, RGAA, découpage architectural, code mort), plus l'outillage de démonstration et la documentation. Suites vertes : **445 backend / 551 frontend**, ESLint 0 erreur.
+
+**Règles métier**
+- Suppression de devis **bloquée (409)** s'il est rattaché à une mission/facture ; conversion en mission exigeant un devis « accepté » + garde anti-doublon (`lockForUpdate`).
+- Paiements : vérification d'appartenance paiement↔facture (anti-IDOR, 404), verrou `lockForUpdate` anti sur-crédit concurrent, erreurs métier **409** explicites si aucun exercice n'est ouvert (au lieu de 500).
+- Dates `date_devis` / `date_avoir` bornées à l'exercice de rattachement ; **réouverture d'un exercice clôturé ré-autorisée** (facturation de rattrapage), garde conservée uniquement sur la suppression d'un exercice porteur de documents.
+
+**Sécurité (OWASP)**
+- Défense en profondeur : scoping des routes imbriquées (tâches/commentaires/contacts), Policies + FormRequests manquants (Prestation, Setting, Avoir, Audit, Créances), KPI de production réservés à l'admin, portail durci (`type=FF` sur PDF facture, rapport gaté par `visible_portail`).
+- En-têtes de sécurité sur **toutes** les réponses + HSTS en HTTPS ; `/health` réservé admin ; Telescope désactivé par défaut ; audits `composer`/`npm` **bloquants** en CI.
+- Annuaire utilisateurs : OR de recherche **groupé explicitement** (la restriction de rôle staff s'applique à tout le groupe) + test de non-régression.
+- Cartographie **OWASP Top 10 complète (A01–A10)** dans [docs/SECURITY.md](docs/SECURITY.md).
+
+**Architecture (couche Services)**
+- Extraction de la logique métier hors des contrôleurs : `UserService`, `TacheService`, `NumerotationService` (supprime le couplage Planning→Facturation), `FacturationService::enregistrerPaiement` / `listerAvoirs` ; contrôleurs amincis (valider → déléguer → Resource).
+- `declare(strict_types=1)` généralisé, gardes de suppression centralisées dans les services, rename front `auth.ts` → `authStore.ts` (24 imports).
+
+**Accessibilité (RGAA)**
+- Cible du skip-link `#main-content` rendue focusable, retrait de `role="banner"` des hero, hiérarchie des titres corrigée (h3→h2), `aria-label` sur 24 `DataTable`, icônes décoratives `aria-hidden`. Guide [docs/ACCESSIBILITE-RGAA.md](docs/ACCESSIBILITE-RGAA.md).
+
+**Nettoyage code mort & schéma**
+- Migration `nettoyage_schema_mort` : drop des colonnes/table mortes (`factures.pdf_path`, `factures.facture_origine_id`, `tache_commentaires.visible_portail`, `devis.montant_ht`) et de la table `documents` (GED jamais alimentée) ; modèles/resources alignés, modèle `Document` supprimé.
+- Suppression de composants front vestigiaux (configurateur de thème), du composable mort `useTaches.ts` et de champs TS fantômes ; retrait d'écritures mortes `montant_ht` sur devis.
+
+**Environnement Docker (démo / jury)**
+- Stack full-stack turnkey [docker-compose.yml](docker-compose.yml) (php-fpm, nginx, Vite, MySQL, Redis) avec auto-init (`composer install`, clé, `migrate --seed`) : `docker compose up` suffit. Proxy Vite ciblable (`VITE_PROXY_TARGET`), `.gitattributes` forçant LF sur shell/env/compose.
+
+**Documentation & outillage**
+- README à jour (démarrage Docker, comptes de tests réels, mot de passe admin retiré du clair) ; manuels de **déploiement**, d'**utilisation** (par rôle) et de **mise à jour** ; **plan de correction des bogues** ; stratégie de versionnage **SemVer** ([docs/GITFLOW.md](docs/GITFLOW.md)).
+- **ESLint** (flat config Vue+TS) + étape CI ; alignement du seuil de couverture front documenté (80/75/65).
+
+### Correctif métier — statut de paiement des factures tenant compte des avoirs — fix/recalcul-statut-avoirs
+
+Une facture annulée (totalement ou partiellement) par un **avoir** ne mettait jamais à jour son `statut_paiement` : `FacturationService::recalculerStatutPaiement()` ne sommait que les paiements, et `AvoirController::store/destroy` ne le rappelait pas. Conséquence : une facture soldée par avoir restait `en_attente`/`partiel`, apparaissait encore dans les créances et pouvait déclencher une **relance automatique** (cron quotidien) — voire une mise en demeure — sur une facture déjà réglée.
+
+- **`recalculerStatutPaiement()`** ([FacturationService.php](backend/app/Services/FacturationService.php)) prend désormais en compte les avoirs pour le passage à `solde` (`total réglé = paiements + avoirs ≥ montant_ttc`). Le statut `partiel` reste attaché à un paiement réel (un avoir n'est pas un paiement).
+- **`creerAvoir()`** recalcule le statut à la création et, si la facture devient `solde`, émet `InvoicePaid` → annulation des relances en cours (même effet qu'un paiement soldant). Nouvelle méthode **`supprimerAvoir()`** : réévalue le statut à la suppression (le dû remonte).
+- **`AvoirController::destroy`** délègue à `supprimerAvoir()` (retrait de la logique du contrôleur).
+- **Migration** `add_annulee_to_relances_statut` rendue **cross-SGBD** (via `Schema::change()` au lieu d'un `ALTER … MODIFY` MySQL ignoré sous SQLite) : l'état `annulee` des relances était absent du schéma de test, ce qui rendait l'annulation des relances non testable.
+- Tests : 5 nouveaux cas (avoir soldant, paiement partiel + avoir, annulation des relances, suppression d'avoir réévaluant le statut) — suite backend **419 verts**.
+
+### Sécurité métier — statut d'entreprise non modifiable manuellement — fix/statut-entreprise-observer
+
+La bascule **prospect → client** doit être exclusivement automatique (via `MissionObserver` sur `MissionCreated`). Or `UpdateEntrepriseRequest` exposait `statut` : un admin/secrétaire pouvait, via `PUT /entreprises/{id}`, forcer une entreprise en `client` **sans aucune mission** (puis lui activer un accès portail, `activerPortail` ne vérifiant que `statut === 'client'`) ou repasser un client en `prospect` — contournant le garde-fou métier et faussant les statistiques.
+
+- **Backend** : retrait de `statut` des règles de [UpdateEntrepriseRequest](backend/app/Http/Requests/Entreprises/UpdateEntrepriseRequest.php). Le champ est désormais silencieusement ignoré par l'API d'édition ; seule la création (`StoreEntrepriseRequest`) le fixe à l'état initial, et l'Observer opère la bascule.
+- **Frontend** : dans le dialog d'édition d'entreprise ([EntrepriseListPage.vue](frontend/src/pages/entreprises/EntrepriseListPage.vue)), le sélecteur de statut est remplacé par un affichage **lecture seule** (Tag + note explicative) ; il reste éditable uniquement à la création.
+- Tests : `test_update_ignore_le_statut` (EntrepriseApiTest) + `test_modification_ignore_le_statut` (EntrepriseCoverageTest, ex-`bascule_statut_vers_client` qui validait l'ancien comportement vulnérable).
+### Sécurité — endpoints de santé détaillés réservés à l'admin — fix/health-endpoint-auth
+
+Les routes `GET /health` (JSON) et `GET /health/dashboard` (HTML) de Spatie Health étaient **publiques** (`routes/web.php`, hors de tout middleware) : n'importe quel visiteur non authentifié pouvait consulter l'état BDD/cache/disque/queue et le statut `APP_DEBUG` — une fuite d'information de reconnaissance (OWASP A05). Elles sont désormais protégées par `role:admin`. Le monitoring externe (UptimeRobot) continue d'utiliser l'endpoint public **simple** `/up` (configuré dans `bootstrap/app.php`), qui ne divulgue aucun détail. Test dédié `HealthEndpointAccessTest` (guest/non-admin → 403, admin → 200, `/up` toujours public).
+### Sécurité — annuaire utilisateurs restreint et scopé par rôle — fix/users-index-restriction
+
+`GET /users` et `GET /users/{user}` étaient accessibles à **tout le staff** (admin, secrétaire, collaborateur) sans filtrage : un collaborateur — censé ne voir que ses missions/tâches — pouvait énumérer **tous** les comptes, y compris les clients (avec `email`, `entreprise_id`, `portail_actif`) et les admins (OWASP A01, sur-exposition contraire au moindre privilège).
+- **`GET /users`** : seul l'admin obtient l'annuaire complet. Les autres rôles (pour les selects d'assignation missions/tâches/devis) ne reçoivent que **le personnel** (jamais les clients) en **vue minimale** `StaffSelectResource` — uniquement `id`/`name`/`roles`, aucune donnée sensible. Ajout de `UserPolicy::viewAny` + `authorize()`.
+- **`GET /users/{user}`** (fiche complète) : déplacé dans le groupe `role:admin` + `UserPolicy::view` (admin uniquement).
+- Aucun changement frontend nécessaire (les consommateurs n'utilisaient que `id`/`name`/`roles`). Test dédié `UserApiTest` (admin = complet, collaborateur/secrétaire = personnel minimal sans clients, show réservé admin, client bloqué).
+### Sécurité — défense en profondeur : Policies + FormRequests manquants — fix/backend-defense-en-profondeur
+
+Renforcement de l'autorisation (Policy) et de la validation (FormRequest) au niveau contrôleur, en complément des middlewares de route (règles CLAUDE.md « Policy sur chaque ressource » + « FormRequest sur tout store/update »).
+- **5 Policies ajoutées** (auto-découvertes) reflétant exactement les rôles des routes : `PaiementPolicy` (create/viewAny admin+secrétaire ; delete admin **ou** propriétaire de la saisie), `RelancePolicy` (admin+secrétaire), `ExercicePolicy` (lecture admin+secrétaire, écriture admin), `KpiObjectifPolicy` (lecture admin+secrétaire, écriture admin), `ContactPolicy` (admin+secrétaire). Appels `authorize()` ajoutés dans `PaiementController`, `RelanceController`, `ExerciceController`, `KpiController`, `ContactController`. La logique d'appartenance de `PaiementController::destroy` (câblée en dur) est déplacée dans `PaiementPolicy`.
+- **4 FormRequests** : `AuthController::login` branché sur le `LoginRequest` existant (jusque-là code mort) ; nouveaux `StoreKpiObjectifRequest` (KPI), `UpdateSettingRequest` (paramètres), `ActiverPortailRequest` (activation portail) — remplacent les `$request->validate()` inline.
+- Divers : `PaiementController` passe en `private readonly`. Test `LoginTest::test_login_exige_email_et_mot_de_passe` ajouté. Suite backend verte (les tests d'appartenance de paiement passent désormais via la Policy).
+### CI — gate de couverture 80% + audits de dépendances — ci/gates-couverture-audit
+
+La CI exécutait les tests sans **aucun seuil de couverture** (le gate 80% n'existait qu'en commande locale) et ne lançait jamais d'audit de dépendances.
+- **Backend** : `coverage: pcov` activé sur setup-php, tests lancés via `composer test:coverage` (`artisan test --coverage --min=80`).
+- **Frontend** : tests lancés via `npm run test:coverage` (seuils configurés dans `vite.config.ts` : lignes/statements 80, branches 75, fonctions 65).
+- **Audits** : étapes `composer audit` et `npm audit --omit=dev` ajoutées, **volontairement non bloquantes** (`continue-on-error`) — visibles dans les logs CI sans casser le pipeline tant que les CVE connues restent documentées dans `docs/SECURITY.md`.
+### Sécurité — remédiation des CVE de dépendances + SECURITY.md à jour — chore/securite-cve
+
+`composer audit` remontait 19 advisories (dont un *high* sur `laravel/framework`) et
+`npm audit` 7 (dont axios en production). Après remédiation, **les deux audits sont vierges**.
+- **Backend** : `composer update` (dans les contraintes `^7.x`/`^12.0`, sans bump majeur) tire
+  les correctifs Symfony 7.4.x, Laravel 12.55.x, Guzzle 7.10.x → **0 advisory**. Suppression de
+  l'entrée `config.audit.ignore` orpheline (`PKSA-21fb-n1x5-5nf7`) de `composer.json`.
+- **Frontend** : `axios` `^1.13.6` → `^1.18.1` (corrige les CVE prod SSRF / prototype pollution) ;
+  outillage build/dev (`vite`, `postcss`, `picomatch`, `brace-expansion`, `form-data`) patché via
+  `npm audit fix` → **0 vulnérabilité**.
+- **Doc** : `docs/SECURITY.md` réécrit — état vierge, remédiation détaillée, impact évalué,
+  surveillance CI (règle projet « ne jamais silencer une CVE, documenter + évaluer »).
+- Vérifié : backend 415 tests verts (post-update), frontend 557 tests + `vue-tsc` + `vite build` OK.
+
 ### Correctif flaky CI — stub PrimeVue TabList dans le harnais de tests — fix/flaky-vitest-tablist-timer
 
 Le job Vitest de la CI échouait par intermittence (tous les tests verts, mais **1 erreur non gérée**) : `PrimeVue TabList` programme un `setTimeout` (`updateInkBar`) qui, sous happy-dom, pouvait se déclencher **après** le démontage du test → `ReferenceError: HTMLElement is not defined` → Vitest fait échouer le run. Stub de `TabList` ajouté aux stubs par défaut du harnais [mount.ts](frontend/src/__tests__/helpers/mount.ts) (`Tabs`/`Tab`/`TabPanel` restent réels) — supprime le timer, aucun test impacté (557 verts, exit 0).

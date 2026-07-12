@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Feature\Api;
 
 use App\Models\CategorieEntreprise;
-use App\Models\Document;
 use App\Models\Entreprise;
 use App\Models\Exercice;
 use App\Models\Mission;
@@ -101,6 +100,39 @@ class MissionApiTest extends TestCase
 
         $this->entreprise->refresh();
         $this->assertEquals('client', $this->entreprise->statut);
+    }
+
+    public function test_creer_mission_sans_exercice_ouvert_renvoie_une_erreur_metier(): void
+    {
+        // Aucun exercice ouvert : erreur metier claire (409) au lieu d'un 500.
+        Exercice::query()->update(['statut' => 'cloture']);
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/v1/missions', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_debut' => date('Y').'-04-01',
+                'date_fin' => date('Y').'-12-31',
+            ])
+            ->assertStatus(409)
+            ->assertJsonPath('message', 'Aucun exercice ouvert : ouvrez l\'exercice de l\'année avant de créer une mission.');
+    }
+
+    public function test_collaborateur_ids_doit_designer_du_staff(): void
+    {
+        // Un utilisateur client ne peut pas etre attache comme collaborateur d'une mission.
+        $client = User::factory()->create(['entreprise_id' => $this->entreprise->id]);
+        $client->assignRole('client');
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/v1/missions', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_debut' => '2026-04-01',
+                'date_fin' => '2027-03-31',
+                'collaborateur_ids' => [$client->id],
+            ])
+            ->assertJsonValidationErrors(['collaborateur_ids']);
     }
 
     public function test_can_list_missions(): void
@@ -260,7 +292,6 @@ class MissionApiTest extends TestCase
             'tache_id' => $tache->id,
             'user_id' => $this->admin->id,
             'contenu' => 'Note de suivi',
-            'visible_portail' => false,
         ]);
 
         $this->actingAs($this->admin)
@@ -272,34 +303,6 @@ class MissionApiTest extends TestCase
         $this->assertSoftDeleted('taches', ['id' => $tache->id]);
         // ...et le commentaire ne reste pas un orphelin actif.
         $this->assertSoftDeleted('tache_commentaires', ['id' => $commentaire->id]);
-    }
-
-    public function test_suppression_mission_detache_les_documents_sans_les_supprimer(): void
-    {
-        $missionId = $this->actingAs($this->admin)
-            ->postJson('/api/v1/missions', [
-                'entreprise_id' => $this->entreprise->id,
-                'prestation_id' => $this->prestation->id,
-                'date_debut' => '2026-04-01',
-                'date_fin' => '2027-03-31',
-            ])
-            ->json('data.id');
-
-        $document = Document::create([
-            'entreprise_id' => $this->entreprise->id,
-            'mission_id' => $missionId,
-            'uploaded_by' => $this->admin->id,
-            'nom' => 'rapport.pdf',
-            'chemin' => 'documents/rapport.pdf',
-        ]);
-
-        $this->actingAs($this->admin)
-            ->deleteJson("/api/v1/missions/{$missionId}")
-            ->assertNoContent();
-
-        // Le document est conserve (il appartient a l'entreprise) mais detache de la mission.
-        $this->assertDatabaseHas('documents', ['id' => $document->id, 'mission_id' => null]);
-        $this->assertNotSoftDeleted('documents', ['id' => $document->id]);
     }
 
     public function test_sequential_reference_numbering(): void

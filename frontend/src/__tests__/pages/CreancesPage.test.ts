@@ -37,10 +37,8 @@ function makeFacture(overrides: Partial<Facture> = {}): Facture {
     mission_id: null,
     devis_id: null,
     created_by: 1,
-    tva_rate_id: 1,
     numero: 'FF2026-001',
     type: 'FF',
-    facture_origine_id: null,
     date_facture: '2026-01-10',
     date_echeance: echeanceIlYa(10),
     montant_ht: 100000,
@@ -51,7 +49,6 @@ function makeFacture(overrides: Partial<Facture> = {}): Facture {
     statut_paiement: 'en_attente',
     mode_paiement: 'non_defini',
     montant_restant: 119000,
-    pdf_path: null,
     entreprise: {
       id: 1,
       raison_sociale: 'SARL Etoile',

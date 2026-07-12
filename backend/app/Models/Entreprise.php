@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -62,11 +64,6 @@ class Entreprise extends Model
     public function factures(): HasMany
     {
         return $this->hasMany(Facture::class);
-    }
-
-    public function documents(): HasMany
-    {
-        return $this->hasMany(Document::class);
     }
 
     public function isClient(): bool

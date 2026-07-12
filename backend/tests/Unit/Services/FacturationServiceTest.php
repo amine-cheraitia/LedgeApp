@@ -14,6 +14,7 @@ use App\Models\RegimeFiscal;
 use App\Models\TvaTaux;
 use App\Models\User;
 use App\Services\FacturationService;
+use App\Services\NumerotationService;
 use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -24,6 +25,8 @@ class FacturationServiceTest extends TestCase
     use RefreshDatabase;
 
     private FacturationService $service;
+
+    private NumerotationService $numerotation;
 
     private Exercice $exercice;
 
@@ -41,6 +44,7 @@ class FacturationServiceTest extends TestCase
         Role::create(['name' => 'client']);
 
         $this->service = app(FacturationService::class);
+        $this->numerotation = app(NumerotationService::class);
 
         $this->exercice = Exercice::factory()->create(['annee' => 2026, 'statut' => 'ouvert']);
 
@@ -82,7 +86,7 @@ class FacturationServiceTest extends TestCase
 
     public function test_generer_numero_premier_document(): void
     {
-        $numero = $this->service->genererNumero('FF', 'factures', $this->exercice);
+        $numero = $this->numerotation->genererNumero('FF', 'factures', $this->exercice);
 
         $this->assertEquals('FF2026-001', $numero);
     }
@@ -102,8 +106,8 @@ class FacturationServiceTest extends TestCase
 
     public function test_numerotation_independante_par_prefixe(): void
     {
-        $this->service->genererNumero('FF', 'factures', $this->exercice);
-        $numero = $this->service->genererNumero('FA', 'avoirs', $this->exercice);
+        $this->numerotation->genererNumero('FF', 'factures', $this->exercice);
+        $numero = $this->numerotation->genererNumero('FA', 'avoirs', $this->exercice);
 
         $this->assertEquals('FA2026-001', $numero);
     }
@@ -113,10 +117,10 @@ class FacturationServiceTest extends TestCase
         $exercice2025 = Exercice::factory()->create(['annee' => 2025, 'statut' => 'cloture']);
         $exercice2026 = $this->exercice;
 
-        $this->service->genererNumero('FF', 'factures', $exercice2025);
-        $this->service->genererNumero('FF', 'factures', $exercice2025);
+        $this->numerotation->genererNumero('FF', 'factures', $exercice2025);
+        $this->numerotation->genererNumero('FF', 'factures', $exercice2025);
 
-        $numero2026 = $this->service->genererNumero('FF', 'factures', $exercice2026);
+        $numero2026 = $this->numerotation->genererNumero('FF', 'factures', $exercice2026);
 
         $this->assertEquals('FF2026-001', $numero2026);
     }
@@ -137,7 +141,7 @@ class FacturationServiceTest extends TestCase
         $this->assertDatabaseMissing('factures', ['id' => $facture3->id]);
 
         // Le numero libere est reutilise, sans trou
-        $this->assertEquals('FF2026-003', $this->service->genererNumero('FF', 'factures', $this->exercice));
+        $this->assertEquals('FF2026-003', $this->numerotation->genererNumero('FF', 'factures', $this->exercice));
     }
 
     public function test_supprimer_une_facture_non_derniere_est_refuse(): void

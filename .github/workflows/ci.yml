@@ -33,7 +33,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: mbstring, pdo_sqlite, xml, ctype, json, bcmath
-          coverage: none
+          coverage: pcov
 
       - name: Get Composer cache dir
         id: composer-cache
@@ -63,9 +63,15 @@ jobs:
         working-directory: backend
         run: vendor/bin/pint --test
 
-      - name: Run PHPUnit tests
+      - name: Run PHPUnit tests avec gate de couverture (>= 80%)
         working-directory: backend
-        run: php artisan test
+        run: composer test:coverage
+
+      # Bloquant : une advisory Composer doit faire echouer le pipeline pour etre
+      # traitee (les dependances sont a jour, cf. docs/SECURITY.md).
+      - name: Audit des dependances Composer
+        working-directory: backend
+        run: composer audit
 
   frontend:
     name: Frontend (Node ${{ matrix.node }})
@@ -88,9 +94,19 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Run Vitest tests
+      - name: Lint (ESLint)
         working-directory: frontend
-        run: npx vitest run
+        run: npm run lint
+
+      - name: Run Vitest tests avec gate de couverture (seuils vitest)
+        working-directory: frontend
+        run: npm run test:coverage
+
+      # Bloquant a partir de high : une vulnerabilite high/critical fait echouer le
+      # pipeline (les advisories low/moderate restent visibles sans bloquer).
+      - name: Audit des dependances npm (high/critical bloquant)
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
 
       - name: TypeScript check
         working-directory: frontend

@@ -21,7 +21,7 @@ vi.mock('primevue/usetoast', () => ({ useToast: () => ({ add: toastAdd }) }))
 
 // ── Imports APRES les mocks ──────────────────────────────────────────────────
 import { usePlanning, prestationColor } from '@/composables/usePlanning'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import { makeUser } from '../helpers/mount'
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +14,7 @@ class TacheCommentaire extends Model
 
     protected $table = 'tache_commentaires';
 
-    protected $fillable = ['tache_id', 'user_id', 'contenu', 'visible_portail'];
+    protected $fillable = ['tache_id', 'user_id', 'contenu'];
 
     public function tache(): BelongsTo
     {

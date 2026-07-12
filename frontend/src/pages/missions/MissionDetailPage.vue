@@ -16,7 +16,7 @@ import { missionsApi } from '@/api/modules/missions'
 import { tachesApi, type TachePayload } from '@/api/modules/taches'
 import { useUsers } from '@/composables/useUsers'
 import { useTacheConflits } from '@/composables/useTacheConflits'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import type { Mission, Tache } from '@/types'
 import { PRIORITE_OPTIONS, prioriteLabel, prioriteSeverity } from '@/utils/priorite'
 import { toIsoDate, parseIsoDate } from '@/utils/date'
@@ -525,7 +525,7 @@ onMounted(() => {
     <!-- Factures liées -->
     <div v-if="!auth.isCollaborateur && mission.factures && mission.factures.length > 0" class="section">
       <h2>Factures liées</h2>
-      <DataTable :value="mission.factures" dataKey="id" stripedRows>
+      <DataTable aria-label="Factures liées à la mission" :value="mission.factures" dataKey="id" stripedRows>
         <Column field="numero" header="Numéro" />
         <Column header="Montant TTC">
           <template #body="{ data }">{{ formatMontant(data.montant_ttc) }}</template>
@@ -555,7 +555,7 @@ onMounted(() => {
         />
       </div>
 
-      <DataTable :value="taches" dataKey="id" stripedRows>
+      <DataTable aria-label="Tâches de la mission" :value="taches" dataKey="id" stripedRows>
         <Column field="titre" header="Titre" />
         <Column header="Assignée à">
           <template #body="{ data }">

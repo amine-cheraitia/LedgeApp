@@ -178,7 +178,7 @@ class FacturationLifecycleTest extends TestCase
             ->assertJsonPath('data.prestation_id', $this->prestation->id);
 
         $data = $response->json('data');
-        $this->assertEquals(315000, (float) $data['montant_ht']);
+        $this->assertEquals(315000, (float) $data['prix_ht']);
         $this->assertEquals(19, (float) $data['taux_tva']);
         $this->assertEquals(59850, (float) $data['montant_tva']);
         $this->assertEquals(374850, (float) $data['montant_ttc']);
@@ -287,6 +287,7 @@ class FacturationLifecycleTest extends TestCase
         ]);
 
         $devisId = $this->creerDevisId($prospect->id);
+        Devis::whereKey($devisId)->update(['statut' => 'accepte']);
 
         $response = $this->actingAs($this->admin)
             ->postJson("/api/v1/devis/{$devisId}/convertir-en-mission", [
@@ -312,6 +313,7 @@ class FacturationLifecycleTest extends TestCase
     public function test_convertir_devis_en_mission_attache_les_collaborateurs(): void
     {
         $devisId = $this->creerDevisId();
+        Devis::whereKey($devisId)->update(['statut' => 'accepte']);
 
         $response = $this->actingAs($this->admin)
             ->postJson("/api/v1/devis/{$devisId}/convertir-en-mission", [
@@ -334,6 +336,113 @@ class FacturationLifecycleTest extends TestCase
             ->postJson("/api/v1/devis/{$devisId}/convertir-en-mission", [])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['date_debut']);
+    }
+
+    public function test_convertir_devis_non_accepte_est_refuse(): void
+    {
+        // Un devis en brouillon (non accepte) ne doit pas pouvoir etre converti.
+        $devisId = $this->creerDevisId();
+
+        $response = $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId}/convertir-en-mission", [
+                'date_debut' => date('Y').'-06-01',
+                'date_fin' => date('Y').'-09-30',
+            ]);
+
+        $response->assertStatus(409)
+            ->assertJsonPath('message', 'Seul un devis accepté peut être converti en mission.');
+
+        $this->assertDatabaseMissing('missions', ['devis_id' => $devisId]);
+    }
+
+    public function test_convertir_devis_deja_converti_est_refuse(): void
+    {
+        // Anti-doublon : un devis deja converti ne peut pas generer une 2e mission.
+        $devisId = $this->creerDevisId();
+        Devis::whereKey($devisId)->update(['statut' => 'accepte']);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId}/convertir-en-mission", [
+                'date_debut' => date('Y').'-06-01',
+                'date_fin' => date('Y').'-09-30',
+            ])->assertSuccessful();
+
+        $response = $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId}/convertir-en-mission", [
+                'date_debut' => date('Y').'-06-01',
+                'date_fin' => date('Y').'-09-30',
+            ]);
+
+        $response->assertStatus(409)
+            ->assertJsonPath('message', 'Ce devis a déjà été converti en mission.');
+
+        $this->assertSame(1, Mission::where('devis_id', $devisId)->count());
+    }
+
+    public function test_supprimer_devis_converti_en_mission_est_bloque(): void
+    {
+        // Le lien devis -> mission doit etre preserve : suppression interdite.
+        $devisId = $this->creerDevisId();
+        Devis::whereKey($devisId)->update(['statut' => 'accepte']);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId}/convertir-en-mission", [
+                'date_debut' => date('Y').'-06-01',
+                'date_fin' => date('Y').'-09-30',
+            ])->assertSuccessful();
+
+        $response = $this->actingAs($this->admin)
+            ->deleteJson("/api/v1/devis/{$devisId}");
+
+        $response->assertStatus(409)
+            ->assertJsonPath('message', 'Ce devis a servi à générer une mission : il ne peut pas être supprimé.');
+
+        $this->assertDatabaseHas('devis', ['id' => $devisId]);
+    }
+
+    public function test_creer_devis_sans_exercice_ouvert_renvoie_une_erreur_metier(): void
+    {
+        // Aucun exercice ouvert : erreur metier claire (409) au lieu d'un 500.
+        $this->exercice->update(['statut' => 'cloture']);
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/v1/devis', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_devis' => date('Y').'-06-01',
+                'date_validite' => date('Y').'-07-01',
+            ])
+            ->assertStatus(409)
+            ->assertJsonPath('message', 'Aucun exercice ouvert : ouvrez l\'exercice de l\'année avant de créer un devis.');
+    }
+
+    public function test_creer_devis_hors_exercice_est_refuse(): void
+    {
+        // Une date de devis hors de l'exercice de rattachement est rejetee (coherence numero/annee).
+        $anneePrecedente = (int) date('Y') - 1;
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/v1/devis', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_devis' => "{$anneePrecedente}-06-01",
+                'date_validite' => "{$anneePrecedente}-07-01",
+            ])
+            ->assertJsonValidationErrors(['date_devis']);
+    }
+
+    public function test_creer_facture_sans_exercice_ouvert_renvoie_une_erreur_metier(): void
+    {
+        // Aucun exercice ouvert : erreur metier claire (409) au lieu d'un 500.
+        $this->exercice->update(['statut' => 'cloture']);
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/v1/factures', [
+                'mission_id' => $this->mission->id,
+                'date_facture' => date('Y').'-04-01',
+            ])
+            ->assertStatus(409)
+            ->assertJsonPath('message', 'Aucun exercice ouvert : ouvrez l\'exercice de l\'année avant de créer une facture.');
     }
 
     // -------------------------------------------------------------------------

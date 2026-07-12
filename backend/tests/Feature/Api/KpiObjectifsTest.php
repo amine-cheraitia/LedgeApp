@@ -61,6 +61,17 @@ class KpiObjectifsTest extends TestCase
             ->assertJsonStructure(['data']);
     }
 
+    public function test_secretaire_ne_peut_pas_lister_les_kpi(): void
+    {
+        // Les KPI de production par collaborateur sont reserves a l'admin (hors perimetre secretaire).
+        $secretaire = User::factory()->create();
+        $secretaire->assignRole('secretaire');
+
+        $this->actingAs($secretaire)
+            ->getJson('/api/v1/kpi/objectifs')
+            ->assertForbidden();
+    }
+
     public function test_upsert_objectif_ca_ht(): void
     {
         $response = $this->actingAs($this->admin)

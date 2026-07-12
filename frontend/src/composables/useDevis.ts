@@ -63,10 +63,15 @@ export function useDevis() {
   }
 
   async function convertirDevisEnMission(id: number, data: ConvertirEnMissionPayload) {
-    const response = await devisApi.convertirEnMission(id, data)
-    toast.add({ severity: 'success', summary: 'Succes', detail: 'Mission creee depuis le devis.', life: 3000 })
-    await fetchDevis()
-    return response.data
+    try {
+      const response = await devisApi.convertirEnMission(id, data)
+      toast.add({ severity: 'success', summary: 'Succes', detail: 'Mission creee depuis le devis.', life: 3000 })
+      await fetchDevis()
+      return response.data
+    } catch (e) {
+      toast.add({ severity: 'error', summary: 'Erreur', detail: getApiErrorMessage(e, 'Conversion impossible.'), life: 4000 })
+      throw e
+    }
   }
 
   async function telechargerPdf(id: number, numero: string) {
@@ -90,9 +95,14 @@ export function useDevis() {
   }
 
   async function deleteDevis(id: number) {
-    await devisApi.delete(id)
-    toast.add({ severity: 'success', summary: 'Succes', detail: 'Devis supprime.', life: 3000 })
-    await fetchDevis()
+    try {
+      await devisApi.delete(id)
+      toast.add({ severity: 'success', summary: 'Succes', detail: 'Devis supprime.', life: 3000 })
+      await fetchDevis()
+    } catch (e) {
+      toast.add({ severity: 'error', summary: 'Erreur', detail: getApiErrorMessage(e, 'Suppression impossible.'), life: 4000 })
+      throw e
+    }
   }
 
   function onPage(event: { page: number }) {

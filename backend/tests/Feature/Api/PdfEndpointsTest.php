@@ -260,7 +260,6 @@ class PdfEndpointsTest extends TestCase
             'tache_id' => $tache->id,
             'user_id' => $this->admin->id,
             'contenu' => 'Cloture de la tache.',
-            'visible_portail' => true,
         ]);
         Paiement::create([
             'facture_id' => $this->facture->id,
@@ -334,13 +333,11 @@ class PdfEndpointsTest extends TestCase
             'tache_id' => $tache->id,
             'user_id' => $this->admin->id,
             'contenu' => 'Note interne confidentielle.',
-            'visible_portail' => false,
         ]);
         TacheCommentaire::create([
             'tache_id' => $tache->id,
             'user_id' => $this->admin->id,
             'contenu' => 'Point d\'avancement partage.',
-            'visible_portail' => true,
         ]);
 
         $this->actingAs($this->client)

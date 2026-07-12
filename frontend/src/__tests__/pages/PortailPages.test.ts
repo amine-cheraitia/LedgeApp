@@ -81,11 +81,11 @@ function makeMission(overrides: Partial<Mission> = {}): Mission {
 function makeFacture(overrides: Partial<Facture> = {}): Facture {
   return {
     id: 1, entreprise_id: 1, exercice_id: 1, mission_id: 1, devis_id: null, created_by: 1,
-    tva_rate_id: 1, numero: 'FF2026-001', type: 'FF', facture_origine_id: null,
+    numero: 'FF2026-001', type: 'FF',
     date_facture: '2026-02-01', date_echeance: '2026-03-01',
     montant_ht: 100000, taux_tva: 19, montant_tva: 19000, montant_ttc: 119000,
     montant_paye: 0, statut_paiement: 'en_attente', mode_paiement: 'non_defini',
-    montant_restant: 119000, pdf_path: null, created_at: '', updated_at: '',
+    montant_restant: 119000, created_at: '', updated_at: '',
     ...overrides,
   }
 }

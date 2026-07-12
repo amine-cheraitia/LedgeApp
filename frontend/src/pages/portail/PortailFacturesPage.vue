@@ -98,7 +98,7 @@ onMounted(fetchFactures)
       />
     </div>
 
-    <DataTable
+    <DataTable aria-label="Mes factures"
       :value="factures"
       :loading="loading"
       :paginator="true"

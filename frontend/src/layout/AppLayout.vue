@@ -42,7 +42,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', handleBreakpointChang
     <AppTopbar />
     <AppSidebar />
     <div class="layout-main-container">
-      <div id="main-content" class="layout-main" role="main">
+      <div id="main-content" class="layout-main" role="main" tabindex="-1">
         <router-view />
       </div>
       <AppFooter />

@@ -14,7 +14,7 @@ import Textarea from 'primevue/textarea'
 import ToggleSwitch from 'primevue/toggleswitch'
 import { useEntreprises } from '@/composables/useEntreprises'
 import { useContacts } from '@/composables/useContacts'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import { entreprisesApi } from '@/api/modules/entreprises'
 import type { Contact, Entreprise } from '@/types'
 import type { ContactPayload } from '@/api/modules/contacts'
@@ -131,14 +131,12 @@ const categorieOptions = [
 const statutOptions = [
   { label: 'Prospect', value: 'prospect' },
   { label: 'Client', value: 'client' },
-  { label: 'Ancien client', value: 'ancien_client' },
 ]
 
 function statutColor(statut: string) {
   const colors: Record<string, string> = {
     prospect: 'warn',
     client: 'success',
-    ancien_client: 'secondary',
   }
   return (colors[statut] ?? 'secondary') as 'warn' | 'success' | 'secondary'
 }
@@ -352,7 +350,7 @@ onMounted(() => {
 <template>
   <div>
     <div class="page-header">
-      <h2>Entreprises</h2>
+      <h1>Entreprises</h1>
       <Button label="Nouvelle entreprise" icon="pi pi-plus" @click="openCreate" />
     </div>
 
@@ -413,7 +411,7 @@ onMounted(() => {
       />
     </div>
 
-    <DataTable
+    <DataTable aria-label="Liste des entreprises"
       :value="entreprises"
       :loading="loading"
       :paginator="true"
@@ -565,8 +563,12 @@ onMounted(() => {
         </div>
 
         <div class="form-field">
-          <label for="ent-statut">Statut *</label>
-          <Select id="ent-statut" v-model="form.statut" :options="statutOptions" optionLabel="label" optionValue="value" fluid />
+          <label for="ent-statut">Statut{{ editMode ? '' : ' *' }}</label>
+          <Select v-if="!editMode" id="ent-statut" v-model="form.statut" :options="statutOptions" optionLabel="label" optionValue="value" fluid />
+          <template v-else>
+            <Tag :value="form.statut ?? 'prospect'" :severity="statutColor(form.statut ?? 'prospect')" />
+            <small class="statut-hint">Le passage en « client » est automatique a la creation de la premiere mission.</small>
+          </template>
         </div>
 
         <div class="form-row">
@@ -658,7 +660,7 @@ onMounted(() => {
         />
       </div>
 
-      <DataTable
+      <DataTable aria-label="Contacts de l'entreprise"
         :value="contacts"
         :loading="contactsLoading"
         dataKey="id"
@@ -824,6 +826,7 @@ onMounted(() => {
 }
 .credentials-box p { margin: 0 0 0.5rem; line-height: 1.5; }
 .invitation-note { font-size: 0.8125rem; color: var(--p-text-muted-color, #64748b); }
+.statut-hint { display: block; margin-top: 0.375rem; font-size: 0.8125rem; color: var(--p-text-muted-color, #64748b); }
 .invitation-link {
   display: block;
   background: rgba(128,128,128,0.15);

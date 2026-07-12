@@ -1,9 +1,10 @@
 <?php
 
 use App\Providers\AppServiceProvider;
-use App\Providers\TelescopeServiceProvider;
 
 return [
     AppServiceProvider::class,
-    TelescopeServiceProvider::class,
+    // TelescopeServiceProvider est enregistre conditionnellement (local uniquement)
+    // dans AppServiceProvider::register() : evite l'enregistrement de donnees
+    // sensibles en prod et le boot casse en --no-dev (classe parente absente).
 ];

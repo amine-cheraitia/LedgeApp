@@ -105,7 +105,7 @@ onMounted(fetchPrestations)
       <Button label="Nouvelle prestation" icon="pi pi-plus" aria-label="Creer une prestation" @click="openCreate" />
     </div>
 
-    <DataTable
+    <DataTable aria-label="Liste des prestations"
       :value="prestations"
       :loading="loading"
       dataKey="id"

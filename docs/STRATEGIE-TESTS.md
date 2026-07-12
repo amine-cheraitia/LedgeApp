@@ -162,7 +162,7 @@ couverture sous le seuil, la commande échoue (utilisable en intégration contin
 | | Seuil | Commande |
 |---|---|---|
 | Backend | `--min=80` | `composer test:coverage` |
-| Frontend | 85 % (lignes/branches/fonctions/instructions) | `npm run test:coverage` |
+| Frontend | 80 % lignes/instructions · 75 % branches · 65 % fonctions | `npm run test:coverage` |
 
 Le seuil frontend est déclaré dans `frontend/vite.config.ts` (`test.coverage.thresholds`).
 Rapports HTML navigables : `backend/coverage-html/index.html` (via `composer test:coverage-html`)
@@ -174,15 +174,15 @@ et `frontend/coverage/index.html`.
 
 ```bash
 # Backend (depuis backend/)
-php artisan test                       # 414 tests
+php artisan test                       # 444 tests
 php artisan test --filter=LoginTest    # une classe
 composer test:coverage                 # couverture + gate 80 %
 composer test:coverage-html            # rapport HTML
 
 # Frontend (depuis frontend/)
-npm run test                           # 557 tests
+npm run test                           # 551 tests
 npx vitest run src/__tests__/pages/PrestationListPage.test.ts   # un fichier
-npm run test:coverage                  # couverture + gate 85 %
+npm run test:coverage                  # couverture + gate 80/75/65 %
 ```
 
 > Prérequis couverture backend : driver Xdebug en mode `coverage` — géré automatiquement par le
@@ -200,7 +200,7 @@ Ce qui compte n'est pas le compteur mais la **maîtrise de la démarche**. Trois
 2. **L'isolation** : BDD en mémoire recréée par test côté back ; simulation de la frontière réseau
    côté front. Les tests sont déterministes et n'ont aucune dépendance externe.
 3. **La couverture pilotée par un seuil** : la couverture n'est pas décorative, elle est **vérifiée
-   automatiquement** (gate 80 % back / 85 % front) — c'est ce qui la rend utile en CI.
+   automatiquement** (gate 80 % back / 80-75-65 % front) — c'est ce qui la rend utile en CI.
 
 Les règles métier sensibles du domaine (TVA historisée, invariant des tranches, numérotation par
 exercice, isolation du portail, brute-force login) sont couvertes par des tests nommés

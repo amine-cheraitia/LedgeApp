@@ -27,7 +27,7 @@ export interface Entreprise {
   telephone: string | null
   email: string | null
   contact_principal: string | null
-  statut: 'prospect' | 'client' | 'ancien_client'
+  statut: 'prospect' | 'client'
   notes: string | null
   missions_count?: number
   factures_count?: number
@@ -187,10 +187,8 @@ export interface Facture {
   mission_id: number | null
   devis_id: number | null
   created_by: number
-  tva_rate_id: number | null
   numero: string
   type: 'FF' | 'FA'
-  facture_origine_id: number | null
   date_facture: string
   date_echeance: string
   montant_ht: number
@@ -201,7 +199,6 @@ export interface Facture {
   statut_paiement: 'en_attente' | 'partiel' | 'solde'
   mode_paiement: 'virement' | 'cheque' | 'autre' | 'non_defini'
   montant_restant: number
-  pdf_path: string | null
   entreprise?: Entreprise
   exercice?: Exercice
   mission?: Mission
@@ -254,7 +251,7 @@ export interface Paiement {
   recorded_by_name?: string
   montant: number
   date_paiement: string
-  mode_paiement: 'virement' | 'cheque' | 'espece' | 'autre'
+  mode_paiement: 'virement' | 'cheque' | 'autre'
   reference: string | null
   notes: string | null
   facture?: Facture

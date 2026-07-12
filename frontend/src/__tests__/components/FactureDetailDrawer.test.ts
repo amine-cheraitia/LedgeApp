@@ -39,7 +39,7 @@ vi.mock('primevue/useconfirm', () => ({ useConfirm: () => ({ require: mockConfir
 // ── Import du composant après les mocks ──────────────────────────────────────
 
 import FactureDetailDrawer from '@/components/facturation/FactureDetailDrawer.vue'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 
 // ── Stubs PrimeVue ───────────────────────────────────────────────────────────
 
@@ -105,10 +105,8 @@ const mockFacture: Facture = {
   mission_id: 1,
   devis_id: null,
   created_by: 1,
-  tva_rate_id: null,
   numero: 'FF2026-002',
   type: 'FF',
-  facture_origine_id: null,
   date_facture: '2026-06-01',
   date_echeance: '2026-07-16',
   montant_ht: 35000,
@@ -119,7 +117,6 @@ const mockFacture: Facture = {
   statut_paiement: 'partiel',
   mode_paiement: 'virement',
   montant_restant: 1650,
-  pdf_path: null,
   entreprise: { id: 1, raison_sociale: 'CCSA Test', nif: null, nis: null, num_rc: null, article_imposition: null, regime_fiscal: 'reel', categorie: 'PME', secteur_activite: null, adresse: null, ville: null, wilaya: null, telephone: null, email: null, contact_principal: null, statut: 'client', notes: null, created_at: '', updated_at: '' },
   created_at: '2026-06-01T00:00:00.000000Z',
   updated_at: '2026-06-23T00:00:00.000000Z',

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import { useRouter } from 'vue-router'
 
 const auth = useAuthStore()
@@ -56,7 +56,7 @@ async function handleLogout() {
       </div>
     </header>
 
-    <main id="main-content" class="portail-main" role="main">
+    <main id="main-content" class="portail-main" role="main" tabindex="-1">
       <router-view />
     </main>
 

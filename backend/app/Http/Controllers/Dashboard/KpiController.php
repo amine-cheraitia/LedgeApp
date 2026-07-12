@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Dashboard\StoreKpiObjectifRequest;
 use App\Models\KpiObjectif;
 use App\Services\KpiService;
 use Illuminate\Http\JsonResponse;
@@ -16,6 +17,8 @@ class KpiController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', KpiObjectif::class);
+
         $request->validate([
             'exercice_id' => ['nullable', 'integer', 'exists:exercices,id'],
         ]);
@@ -25,14 +28,11 @@ class KpiController extends Controller
         return response()->json(['data' => $data]);
     }
 
-    public function upsert(Request $request): JsonResponse
+    public function upsert(StoreKpiObjectifRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'user_id' => ['required', 'integer', 'exists:users,id'],
-            'exercice_id' => ['required', 'integer', 'exists:exercices,id'],
-            'type' => ['required', 'in:ca_ht,missions_cloturees,taches_terminees'],
-            'valeur' => ['required', 'numeric', 'min:0'],
-        ]);
+        $this->authorize('create', KpiObjectif::class);
+
+        $validated = $request->validated();
 
         $objectif = $this->kpiService->upsertObjectif(
             $validated['user_id'],
@@ -46,6 +46,8 @@ class KpiController extends Controller
 
     public function destroy(KpiObjectif $objectif): JsonResponse
     {
+        $this->authorize('delete', $objectif);
+
         $this->kpiService->supprimerObjectif($objectif);
 
         return response()->json(null, 204);

@@ -9,6 +9,16 @@ use App\Models\User;
 
 class PrestationPolicy
 {
+    public function viewAny(User $user): bool
+    {
+        return $user->hasAnyRole(['admin', 'secretaire']);
+    }
+
+    public function view(User $user, Prestation $prestation): bool
+    {
+        return $user->hasAnyRole(['admin', 'secretaire']);
+    }
+
     public function create(User $user): bool
     {
         return $user->hasRole('admin');

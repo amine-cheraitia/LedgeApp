@@ -101,7 +101,7 @@ onMounted(fetchCreances)
     <!-- En-tête -->
     <div class="page-header">
       <div>
-        <h2 class="page-title">Créances impayées</h2>
+        <h1 class="page-title">Créances impayées</h1>
         <p class="page-subtitle">Factures en attente ou partiellement réglées</p>
       </div>
       <Button
@@ -191,7 +191,7 @@ onMounted(fetchCreances)
             label="Relancer"
             size="small"
             severity="warn"
-            aria-label="`Envoyer une relance pour la facture ${data.numero}`"
+            :aria-label="`Envoyer une relance pour la facture ${data.numero}`"
             @click="ouvrirRelance(data)"
           />
         </template>
