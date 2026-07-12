@@ -1,0 +1,9 @@
+# Fins de ligne LF forcees pour les fichiers executes / lus dans des conteneurs
+# Linux. Sans cela, core.autocrlf=true les checkout en CRLF sous Windows, et comme
+# Docker monte directement la copie de travail, l'entrypoint shell echoue
+# (`bad interpreter`) et les valeurs .env tirent un \r parasite (BDD injoignable).
+# Regles CIBLEES uniquement (pas de `* text=auto` global -> evite de renormaliser
+# tout le depot).
+*.sh                  text eol=lf
+/docker-compose.yml   text eol=lf
+/backend/.env.docker  text eol=lf

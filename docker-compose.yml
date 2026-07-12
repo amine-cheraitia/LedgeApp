@@ -1,0 +1,120 @@
+# Ledge — stack complete pour tester en local (jury / demo).
+#
+#   docker compose up --build
+#
+# Puis :
+#   - Application (SPA)  : http://localhost:5173
+#   - API (Laravel)      : http://localhost:8000
+#   - Connexion admin    : admin@ledge.dz  (mot de passe defini au premier lancement,
+#                          voir docs/MANUEL-DEPLOIEMENT.md — jamais en clair dans le repo)
+#
+# Le conteneur backend s'auto-initialise (composer install, cle applicative,
+# migrations + seed) via docker/php/entrypoint.sh : rien a faire a la main.
+
+services:
+  # ─── Backend : PHP-FPM (Laravel) ────────────────────────────────────────────
+  app:
+    build:
+      context: ./backend
+      dockerfile: docker/php/Dockerfile
+    container_name: ledge_app
+    restart: unless-stopped
+    working_dir: /var/www
+    # Auto-initialisation (composer install, cle applicative, migrations + seed)
+    # puis demarrage de PHP-FPM. Idempotent : relancer `up` ne casse rien.
+    entrypoint: ["sh", "/var/www/docker/php/entrypoint.sh"]
+    environment:
+      # Auto-init : le seed cree le compte admin@ledge.dz avec ce mot de passe,
+      # a changer imperativement. Le juré peut le surcharger avant `up`.
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Ledge@Demo2026}
+    volumes:
+      - ./backend:/var/www
+      - ./backend/docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - ledge
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # ─── Serveur web (sert l'API Laravel sur :8000) ─────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: ledge_nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./backend:/var/www
+      - ./backend/docker/nginx/ledge.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - ledge
+    depends_on:
+      - app
+
+  # ─── Frontend : Vue 3 (serveur de dev Vite sur :5173) ───────────────────────
+  frontend:
+    image: node:20-alpine
+    container_name: ledge_frontend
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      # Le proxy Vite (/api, /sanctum) doit joindre le backend par son nom de
+      # service Docker — "localhost" pointerait sur le conteneur frontend.
+      VITE_PROXY_TARGET: http://nginx:80
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+    volumes:
+      - ./frontend:/app
+      - ledge_frontend_node_modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    networks:
+      - ledge
+    depends_on:
+      - nginx
+
+  # ─── Base de donnees MySQL 8 ────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: ledge_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-ledge}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_USER: ${DB_USERNAME:-ledge}
+    ports:
+      - "3307:3306"
+    volumes:
+      - ledge_mysql_data:/var/lib/mysql
+      - ./backend/docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_PASSWORD:-secret}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - ledge
+
+  # ─── Cache / files : Redis 7 ────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: ledge_redis
+    restart: unless-stopped
+    networks:
+      - ledge
+
+  # Note : pas de worker de file dedie en mode demo — QUEUE_CONNECTION=sync
+  # (voir .env.docker) execute les jobs en ligne. En production, activer Redis
+  # et un service `queue` (php artisan queue:work). Voir docs/MANUEL-DEPLOIEMENT.md.
+
+networks:
+  ledge:
+    driver: bridge
+
+volumes:
+  ledge_mysql_data:
+    driver: local
+  ledge_frontend_node_modules:
+    driver: local

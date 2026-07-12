@@ -12,7 +12,8 @@ Thumbs.db
 backend/.env
 backend/.env.backup
 backend/.env.production
-backend/.env.docker
+# backend/.env.docker : versionne volontairement — template de demo Docker,
+# sans secret reel (mot de passe admin injecte via docker-compose).
 backend/.phpactor.json
 backend/.phpunit.result.cache
 backend/.phpunit.cache
