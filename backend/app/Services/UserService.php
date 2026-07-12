@@ -25,7 +25,11 @@ class UserService
     public function listerAnnuaire(bool $complet, ?string $search, ?string $role, int $perPage): LengthAwarePaginator
     {
         $query = User::with('roles')
-            ->when($search, fn ($q, $s) => $q->where('name', 'like', "%{$s}%")->orWhere('email', 'like', "%{$s}%"))
+            // OR groupe explicitement : la restriction de role (plus bas) doit
+            // s'appliquer a tout le groupe de recherche, jamais au seul email.
+            ->when($search, fn ($q, $s) => $q->where(
+                fn ($sub) => $sub->where('name', 'like', "%{$s}%")->orWhere('email', 'like', "%{$s}%")
+            ))
             ->when($role, fn ($q, $r) => $q->role($r))
             ->latest();
 

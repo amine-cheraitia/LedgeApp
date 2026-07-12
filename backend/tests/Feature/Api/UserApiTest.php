@@ -74,6 +74,18 @@ class UserApiTest extends TestCase
             ->assertJsonMissing(['name' => 'Client Test']);
     }
 
+    public function test_recherche_par_nom_ne_fuit_pas_les_clients_au_personnel(): void
+    {
+        // Regression : la recherche par nom ne doit pas contourner la restriction de
+        // role. Sans groupement du OR, "name LIKE ? OR email LIKE ? AND role(staff)"
+        // laissait remonter un client dont le nom matche pour un non-admin.
+        $response = $this->actingAs($this->collaborateur)
+            ->getJson('/api/v1/users?search=Client');
+
+        $response->assertOk()
+            ->assertJsonMissing(['name' => 'Client Test']); // le client reste exclu
+    }
+
     public function test_show_utilisateur_reserve_a_l_admin(): void
     {
         $this->actingAs($this->admin)
