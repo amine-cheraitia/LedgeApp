@@ -84,6 +84,29 @@ class TacheApiTest extends TestCase
         $this->assertEquals('a_faire', $response->json('data.statut'));
     }
 
+    public function test_acceder_a_une_tache_via_une_autre_mission_renvoie_404(): void
+    {
+        // La tache appartient a la mission de setUp ; y acceder via l'URL d'une autre mission -> 404.
+        $tacheId = $this->actingAs($this->admin)
+            ->postJson("/api/v1/missions/{$this->missionId}/taches", ['titre' => 'Tache A', 'priorite' => 2])
+            ->json('data.id');
+
+        $autreEntreprise = Entreprise::factory()->create([
+            'regime_fiscal' => 'forfait', 'categorie' => 'TPE', 'statut' => 'prospect',
+        ]);
+        $autreMissionId = $this->actingAs($this->admin)
+            ->postJson('/api/v1/missions', [
+                'entreprise_id' => $autreEntreprise->id,
+                'prestation_id' => Prestation::where('code', 'ACMPT')->value('id'),
+                'date_debut' => '2026-04-01',
+                'date_fin' => '2027-03-31',
+            ])->json('data.id');
+
+        $this->actingAs($this->admin)
+            ->getJson("/api/v1/missions/{$autreMissionId}/taches/{$tacheId}")
+            ->assertNotFound();
+    }
+
     public function test_can_list_taches(): void
     {
         $this->actingAs($this->admin)

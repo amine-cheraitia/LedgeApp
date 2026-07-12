@@ -26,6 +26,8 @@ class AvoirController extends Controller
 
     public function indexAll(Request $request): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Avoir::class);
+
         $avoirs = Avoir::with('factureOrigine.entreprise')
             ->when($request->exercice_id, fn ($q, $v) => $q->where('exercice_id', $v))
             ->when($request->search, fn ($q, $s) => $q
@@ -40,6 +42,8 @@ class AvoirController extends Controller
 
     public function index(Facture $facture): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Avoir::class);
+
         $avoirs = $facture->avoirs()->latest()->get();
 
         return AvoirResource::collection($avoirs);

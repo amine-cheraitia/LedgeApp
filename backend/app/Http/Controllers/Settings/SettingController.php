@@ -14,6 +14,8 @@ class SettingController extends Controller
 {
     public function index(): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Setting::class);
+
         return SettingResource::collection(Setting::all());
     }
 

@@ -67,12 +67,10 @@ jobs:
         working-directory: backend
         run: composer test:coverage
 
-      # Non bloquant volontairement : les CVE connues sont documentees et
-      # evaluees dans docs/SECURITY.md. On garde l'audit visible dans les logs
-      # CI sans faire echouer le pipeline tant qu'elles ne sont pas corrigees.
-      - name: Audit des dependances Composer (non bloquant)
+      # Bloquant : une advisory Composer doit faire echouer le pipeline pour etre
+      # traitee (les dependances sont a jour, cf. docs/SECURITY.md).
+      - name: Audit des dependances Composer
         working-directory: backend
-        continue-on-error: true
         run: composer audit
 
   frontend:
@@ -100,13 +98,11 @@ jobs:
         working-directory: frontend
         run: npm run test:coverage
 
-      # Non bloquant volontairement : les CVE connues sont documentees et
-      # evaluees dans docs/SECURITY.md. On garde l'audit visible dans les logs
-      # CI sans faire echouer le pipeline tant qu'elles ne sont pas corrigees.
-      - name: Audit des dependances npm (non bloquant)
+      # Bloquant a partir de high : une vulnerabilite high/critical fait echouer le
+      # pipeline (les advisories low/moderate restent visibles sans bloquer).
+      - name: Audit des dependances npm (high/critical bloquant)
         working-directory: frontend
-        continue-on-error: true
-        run: npm audit --omit=dev
+        run: npm audit --omit=dev --audit-level=high
 
       - name: TypeScript check
         working-directory: frontend

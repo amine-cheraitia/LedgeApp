@@ -64,6 +64,8 @@ class TacheController extends Controller
 
     public function show(Mission $mission, Tache $tache): TacheResource
     {
+        abort_if($tache->mission_id !== $mission->id, 404, 'Tache introuvable pour cette mission.');
+
         $this->authorize('view', $tache);
 
         return new TacheResource($tache->load('assignee'));
@@ -71,9 +73,13 @@ class TacheController extends Controller
 
     public function update(UpdateTacheRequest $request, Mission $mission, Tache $tache): TacheResource
     {
+        abort_if($tache->mission_id !== $mission->id, 404, 'Tache introuvable pour cette mission.');
+
         $this->authorize('update', $tache);
 
-        $data = $request->user()->hasAnyRole(['admin', 'secretaire'])
+        // Le Planning est reserve admin + collaborateur (la secretaire n'atteint jamais cette route) :
+        // l'admin edite tous les champs, le collaborateur assigne ne change que le statut.
+        $data = $request->user()->hasRole('admin')
             ? $request->validated()
             : $request->only('statut');
 
@@ -84,6 +90,8 @@ class TacheController extends Controller
 
     public function destroy(Mission $mission, Tache $tache): JsonResponse
     {
+        abort_if($tache->mission_id !== $mission->id, 404, 'Tache introuvable pour cette mission.');
+
         $this->authorize('delete', $tache);
 
         if ($tache->commentaires()->exists()) {

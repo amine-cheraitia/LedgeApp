@@ -87,7 +87,8 @@ Route::prefix('v1')->group(function () {
                 Route::put('referentiels/tva-taux/{tvaTaux}', [ReferentielTvaController::class, 'update']);
                 Route::delete('referentiels/tva-taux/{tvaTaux}', [ReferentielTvaController::class, 'destroy']);
 
-                // KPI objectifs (ecriture)
+                // KPI objectifs (lecture + ecriture) — donnees internes reservees a l'admin
+                Route::get('/kpi/objectifs', [KpiController::class, 'index']);
                 Route::post('/kpi/objectifs', [KpiController::class, 'upsert']);
                 Route::delete('/kpi/objectifs/{objectif}', [KpiController::class, 'destroy']);
 
@@ -124,9 +125,6 @@ Route::prefix('v1')->group(function () {
 
             // ── Admin + Secretaire ───────────────────────────────────────────
             Route::middleware('role:admin|secretaire')->group(function () {
-                // KPI objectifs (lecture)
-                Route::get('/kpi/objectifs', [KpiController::class, 'index']);
-
                 // Entreprises (lecture + creation/modification — suppression reservee admin)
                 Route::post('entreprises', [EntrepriseController::class, 'store']);
                 Route::put('entreprises/{entreprise}', [EntrepriseController::class, 'update']);

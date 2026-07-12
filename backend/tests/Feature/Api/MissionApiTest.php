@@ -119,6 +119,23 @@ class MissionApiTest extends TestCase
             ->assertJsonPath('message', 'Aucun exercice ouvert : ouvrez l\'exercice de l\'année avant de créer une mission.');
     }
 
+    public function test_collaborateur_ids_doit_designer_du_staff(): void
+    {
+        // Un utilisateur client ne peut pas etre attache comme collaborateur d'une mission.
+        $client = User::factory()->create(['entreprise_id' => $this->entreprise->id]);
+        $client->assignRole('client');
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/v1/missions', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_debut' => '2026-04-01',
+                'date_fin' => '2027-03-31',
+                'collaborateur_ids' => [$client->id],
+            ])
+            ->assertJsonValidationErrors(['collaborateur_ids']);
+    }
+
     public function test_can_list_missions(): void
     {
         $this->actingAs($this->admin)

@@ -51,6 +51,10 @@ class PortailMissionController extends Controller
             'Acces non autorise.'
         );
 
+        // Le rapport de fin de mission n'est partage que si le cabinet a rendu la mission
+        // visible au portail (meme regle que les documents convention/mandat).
+        abort_if(! $mission->visible_portail, 404, 'Rapport indisponible.');
+
         return $this->pdfService
             ->genererRapportMission($mission, true)
             ->stream('rapport-mission-'.$mission->reference.'.pdf');

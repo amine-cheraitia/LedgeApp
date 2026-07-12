@@ -17,11 +17,15 @@ class PrestationController extends Controller
 {
     public function index(): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Prestation::class);
+
         return PrestationResource::collection(Prestation::all());
     }
 
     public function show(Prestation $prestation): PrestationResource
     {
+        $this->authorize('view', $prestation);
+
         return new PrestationResource($prestation);
     }
 
@@ -60,6 +64,8 @@ class PrestationController extends Controller
 
     public function calculerPrix(Request $request, Prestation $prestation): JsonResponse
     {
+        $this->authorize('viewAny', Prestation::class);
+
         $request->validate([
             'regime_fiscal' => ['required', 'string'],
             'categorie' => ['required', 'string'],

@@ -23,8 +23,10 @@ class UpdateUserRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'email', Rule::unique('users', 'email')->ignore($this->route('user'))],
-            'role' => ['sometimes', 'string', 'exists:roles,name'],
-            'entreprise_id' => ['nullable', 'exists:entreprises,id'],
+            // Roles staff uniquement ; entreprise_id n'est pas modifiable ici :
+            // le rattachement d'un client a son entreprise se fait a l'activation du
+            // portail et ne doit jamais etre reaffecte a un autre tenant par edition.
+            'role' => ['sometimes', 'string', Rule::in(['admin', 'collaborateur', 'secretaire'])],
         ];
     }
 }

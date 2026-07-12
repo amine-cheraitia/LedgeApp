@@ -40,6 +40,8 @@ class ContactController extends Controller
 
     public function update(UpdateContactRequest $request, Entreprise $entreprise, Contact $contact): ContactResource
     {
+        abort_if($contact->entreprise_id !== $entreprise->id, 404, 'Contact introuvable pour cette entreprise.');
+
         $this->authorize('update', $contact);
 
         $contact = $this->contactService->mettreAJour($contact, $request->validated());
@@ -49,6 +51,8 @@ class ContactController extends Controller
 
     public function destroy(Entreprise $entreprise, Contact $contact): JsonResponse
     {
+        abort_if($contact->entreprise_id !== $entreprise->id, 404, 'Contact introuvable pour cette entreprise.');
+
         $this->authorize('delete', $contact);
 
         $this->contactService->supprimer($contact);

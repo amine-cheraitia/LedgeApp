@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Planning;
 
+use App\Http\Requests\Planning\Concerns\ValidatesCollaborateursStaff;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreMissionRequest extends FormRequest
 {
+    use ValidatesCollaborateursStaff;
+
     public function authorize(): bool
     {
         return true;

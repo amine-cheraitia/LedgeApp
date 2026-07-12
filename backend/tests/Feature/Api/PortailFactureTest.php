@@ -71,6 +71,16 @@ class PortailFactureTest extends TestCase
         ], $overrides));
     }
 
+    public function test_pdf_via_endpoint_facture_refuse_un_document_non_ff(): void
+    {
+        // L'endpoint facture ne sert que les factures (FF), pas les avoirs (FA) : 404.
+        $avoirCommeFacture = $this->creerFacture($this->entreprise, ['type' => 'FA']);
+
+        $this->actingAs($this->client)
+            ->getJson("/api/v1/portail/factures/{$avoirCommeFacture->id}/pdf")
+            ->assertNotFound();
+    }
+
     public function test_client_voit_ses_factures(): void
     {
         $this->creerFacture($this->entreprise, ['numero' => 'FF2026-001']);

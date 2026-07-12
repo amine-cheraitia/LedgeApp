@@ -11,7 +11,9 @@ class KpiObjectifPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(['admin', 'secretaire']);
+        // Les KPI de production par collaborateur (CA HT, missions cloturees) sont
+        // des donnees internes reservees a l'admin : hors perimetre de la secretaire.
+        return $user->hasRole('admin');
     }
 
     public function create(User $user): bool

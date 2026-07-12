@@ -62,6 +62,18 @@ class UserInvitationTest extends TestCase
         );
     }
 
+    public function test_creation_user_refuse_le_role_client(): void
+    {
+        // Un client se cree uniquement via l'activation du portail, jamais via POST /users.
+        $this->actingAs($this->admin)->postJson('/api/v1/users', [
+            'name' => 'Faux Client',
+            'email' => 'faux.client@test.dz',
+            'role' => 'client',
+        ])->assertJsonValidationErrors(['role']);
+
+        $this->assertDatabaseMissing('users', ['email' => 'faux.client@test.dz']);
+    }
+
     public function test_creation_user_n_accepte_plus_de_champ_password(): void
     {
         Mail::fake();
