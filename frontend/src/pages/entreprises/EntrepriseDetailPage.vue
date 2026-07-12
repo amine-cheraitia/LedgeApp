@@ -387,7 +387,7 @@ onMounted(async () => {
           <TabPanels>
             <!-- Missions -->
             <TabPanel v-if="peutVoirMissions" value="missions">
-              <DataTable
+              <DataTable aria-label="Missions de l'entreprise"
                 :value="missions"
                 :loading="loadingMissions"
                 dataKey="id"
@@ -427,7 +427,7 @@ onMounted(async () => {
 
             <!-- Devis -->
             <TabPanel value="devis">
-              <DataTable
+              <DataTable aria-label="Devis de l'entreprise"
                 :value="devisList"
                 :loading="loadingDevis"
                 dataKey="id"
@@ -460,7 +460,7 @@ onMounted(async () => {
 
             <!-- Factures -->
             <TabPanel value="factures">
-              <DataTable
+              <DataTable aria-label="Factures de l'entreprise"
                 :value="factures"
                 :loading="loadingFactures"
                 dataKey="id"

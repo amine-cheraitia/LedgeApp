@@ -275,7 +275,7 @@ onMounted(async () => {
       </div>
     </div>
 
-    <DataTable
+    <DataTable aria-label="Liste des devis"
       :value="devisList"
       :loading="loading"
       :paginator="true"

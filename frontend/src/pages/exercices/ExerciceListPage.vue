@@ -119,7 +119,7 @@ onMounted(fetchExercices)
       <Button label="Nouvel exercice" icon="pi pi-plus" @click="openCreate" />
     </div>
 
-    <DataTable
+    <DataTable aria-label="Liste des exercices fiscaux"
       :value="exercices"
       :loading="loading"
       dataKey="id"

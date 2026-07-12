@@ -129,7 +129,7 @@ onMounted(fetchMissions)
       />
     </div>
 
-    <DataTable
+    <DataTable aria-label="Mes missions"
       :value="missions"
       :loading="loading"
       :paginator="true"

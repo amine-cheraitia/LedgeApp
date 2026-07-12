@@ -150,7 +150,7 @@ onMounted(fetchTaux)
       avec sa date de debut et cloturez l'ancien (date de fin).
     </p>
 
-    <DataTable :value="taux" :loading="loading" dataKey="id" stripedRows>
+    <DataTable aria-label="Taux de TVA" :value="taux" :loading="loading" dataKey="id" stripedRows>
       <Column header="Categorie" style="width: 11rem">
         <template #body="{ data }">
           <Tag :value="data.type === 'exonere' ? 'Exonere' : 'Standard'" :severity="data.type === 'exonere' ? 'info' : 'success'" />

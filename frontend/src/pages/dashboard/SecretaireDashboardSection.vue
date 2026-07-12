@@ -145,7 +145,7 @@ const relancesAriaLabel = computed(() =>
 
     <!-- ── Row 1 : Bandeau ── -->
     <div class="col-span-12">
-      <div class="reco-hero" role="banner">
+      <div class="reco-hero">
         <div class="reco-hero__left">
           <p class="reco-today">{{ todayLabel }}</p>
           <h2 class="reco-greeting">Facturation &amp; recouvrement</h2>

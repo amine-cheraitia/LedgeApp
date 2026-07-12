@@ -13,7 +13,7 @@ const { toggleMenu, toggleDarkMode, isDarkTheme } = useLayout()
         aria-label="Ouvrir le menu"
         @click="toggleMenu"
       >
-        <i class="pi pi-bars"></i>
+        <i class="pi pi-bars" aria-hidden="true"></i>
       </button>
       <router-link to="/" class="layout-topbar-logo" aria-label="Ledge — accueil">
         <LedgeLogo :size="28" with-wordmark />
@@ -28,7 +28,7 @@ const { toggleMenu, toggleDarkMode, isDarkTheme } = useLayout()
           :aria-label="isDarkTheme ? 'Passer en mode clair' : 'Passer en mode sombre'"
           @click="toggleDarkMode"
         >
-          <i :class="['pi', isDarkTheme ? 'pi-moon' : 'pi-sun']"></i>
+          <i :class="['pi', isDarkTheme ? 'pi-moon' : 'pi-sun']" aria-hidden="true"></i>
         </button>
       </div>
     </div>

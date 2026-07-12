@@ -56,7 +56,7 @@ async function handleLogout() {
       </div>
     </header>
 
-    <main id="main-content" class="portail-main" role="main">
+    <main id="main-content" class="portail-main" role="main" tabindex="-1">
       <router-view />
     </main>
 

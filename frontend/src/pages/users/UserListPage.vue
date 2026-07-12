@@ -162,7 +162,7 @@ onMounted(fetchUsers)
       </form>
     </div>
 
-    <DataTable
+    <DataTable aria-label="Liste des utilisateurs"
       :value="users"
       :loading="loading"
       :paginator="true"

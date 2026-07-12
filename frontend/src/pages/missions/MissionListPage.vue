@@ -210,7 +210,7 @@ onMounted(async () => {
       </div>
     </div>
 
-    <DataTable
+    <DataTable aria-label="Liste des missions"
       :value="missions"
       :loading="loading"
       :paginator="true"

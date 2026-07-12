@@ -177,7 +177,7 @@ onMounted(fetchActivites)
       </div>
     </div>
 
-    <DataTable
+    <DataTable aria-label="Journal d'audit"
       :value="activites"
       :loading="loading"
       :paginator="true"
@@ -254,7 +254,7 @@ onMounted(fetchActivites)
         </div>
 
         <h2 class="detail-subtitle">Champs modifies</h2>
-        <DataTable v-if="detailRows.length" :value="detailRows" dataKey="champ" stripedRows class="detail-table">
+        <DataTable aria-label="Champs modifiés" v-if="detailRows.length" :value="detailRows" dataKey="champ" stripedRows class="detail-table">
           <Column field="champ" header="Champ" />
           <Column header="Avant">
             <template #body="{ data }"><span class="val-avant">{{ formatValeur(data.avant) }}</span></template>

@@ -413,7 +413,7 @@ onMounted(() => {
       />
     </div>
 
-    <DataTable
+    <DataTable aria-label="Liste des entreprises"
       :value="entreprises"
       :loading="loading"
       :paginator="true"
@@ -662,7 +662,7 @@ onMounted(() => {
         />
       </div>
 
-      <DataTable
+      <DataTable aria-label="Contacts de l'entreprise"
         :value="contacts"
         :loading="contactsLoading"
         dataKey="id"
