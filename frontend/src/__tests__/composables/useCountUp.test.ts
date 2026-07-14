@@ -44,3 +44,28 @@ describe('useCountUp', () => {
     expect(displayed.value).toBe(120)
   })
 })
+
+// RGAA — prefers-reduced-motion : la valeur cible s'affiche sans defilement.
+describe('useCountUp — prefers-reduced-motion', () => {
+  beforeEach(() => {
+    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: true }))
+    // rAF volontairement inerte : si l'animation etait lancee, displayed resterait a 0.
+    vi.stubGlobal('requestAnimationFrame', vi.fn())
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('saute directement a la valeur cible sans animation', async () => {
+    const target = ref(340)
+    const displayed = useCountUp(target, 800)
+
+    expect(displayed.value).toBe(340)
+
+    target.value = 512
+    await nextTick()
+    expect(displayed.value).toBe(512)
+    expect(requestAnimationFrame).not.toHaveBeenCalled()
+  })
+})

@@ -4,7 +4,9 @@ export interface DashboardStats {
   exercices: { id: number; annee: number; statut: string }[]
   exercice_courant: number | null
   kpi: {
-    ca_mois: number
+    // null quand l'exercice filtre n'est pas celui de l'annee en cours :
+    // le « CA du mois » (mois calendaire courant) n'a alors aucun sens.
+    ca_mois: number | null
     tva_collectee: number
     taux_recouvrement: number
     seuil_recouvrement: number
@@ -160,9 +162,15 @@ export interface CollaborateurStats {
 
 export type KpiObjectifType = 'ca_ht' | 'missions_cloturees' | 'taches_terminees'
 
+export interface KpiObjectifValeur {
+  id: number
+  valeur: number
+}
+
 export interface KpiCollaborateur {
   user: { id: number; name: string; email: string }
-  objectifs: Partial<Record<KpiObjectifType, number>>
+  // id expose pour permettre la suppression d'un objectif depuis l'IHM
+  objectifs: Partial<Record<KpiObjectifType, KpiObjectifValeur>>
   realise: Record<KpiObjectifType | 'taches_en_retard' | 'delai_moyen_tache', number>
 }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Api;
 
+use App\Models\Avoir;
 use App\Models\Entreprise;
 use App\Models\Exercice;
 use App\Models\Facture;
@@ -138,6 +139,67 @@ class DashboardKpiTest extends TestCase
             ->assertOk();
 
         $this->assertEquals(80000.0, $res->json('data.factures.ca_ttc'));
+    }
+
+    public function test_total_impaye_deduit_avoirs(): void
+    {
+        $facture = $this->creerFacture([
+            'montant_ttc' => 100000,
+            'montant_paye' => 0,
+            'statut_paiement' => 'en_attente',
+        ]);
+
+        Avoir::create([
+            'facture_origine_id' => $facture->id,
+            'entreprise_id' => $facture->entreprise_id,
+            'exercice_id' => $this->exercice->id,
+            'created_by' => $this->admin->id,
+            'numero' => 'FA2026-001',
+            'type' => 'FA',
+            'date_avoir' => now()->toDateString(),
+            'montant_ht' => 10000,
+            'montant_ttc' => 11900,
+            'motif' => 'Test',
+        ]);
+
+        $res = $this->actingAs($this->admin)
+            ->getJson('/api/v1/stats')
+            ->assertOk();
+
+        $this->assertEquals(88100.0, $res->json('data.factures.total_impaye'));
+    }
+
+    public function test_ca_mois_correct_quand_exercice_filtre_est_annee_courante(): void
+    {
+        // $this->exercice est l'annee 2026, egale a l'annee courante dans ce contexte de test
+        $this->creerFacture(['montant_ttc' => 75000]);
+
+        $res = $this->actingAs($this->admin)
+            ->getJson('/api/v1/stats?exercice_id='.$this->exercice->id)
+            ->assertOk();
+
+        $this->assertEquals(75000.0, $res->json('data.kpi.ca_mois'));
+    }
+
+    public function test_ca_mois_null_quand_exercice_filtre_annee_differente(): void
+    {
+        $anneeDifferente = (int) now()->year - 5;
+        $exercicePasse = Exercice::firstOrCreate(
+            ['annee' => $anneeDifferente],
+            ['date_ouverture' => $anneeDifferente.'-01-01', 'statut' => 'cloture']
+        );
+
+        $this->creerFacture([
+            'exercice_id' => $exercicePasse->id,
+            'montant_ttc' => 50000,
+            'date_facture' => $anneeDifferente.'-06-15',
+        ]);
+
+        $res = $this->actingAs($this->admin)
+            ->getJson('/api/v1/stats?exercice_id='.$exercicePasse->id)
+            ->assertOk();
+
+        $this->assertNull($res->json('data.kpi.ca_mois'));
     }
 
     public function test_alerte_factures_en_retard(): void

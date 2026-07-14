@@ -22,17 +22,19 @@ class DashboardService
     public function getStats(?int $exerciceId): array
     {
         $now = Carbon::now();
+        // Lookup unique de l'exercice filtre, partage entre calculerCaMois et calculerCaMensuel
+        $exercice = $exerciceId ? Exercice::find($exerciceId) : null;
 
         $caTtc = (float) $this->factureQuery($exerciceId)->sum('montant_ttc');
         $totalPaye = (float) $this->factureQuery($exerciceId)->sum('montant_paye');
 
         $tvaCollectee = (float) $this->factureQuery($exerciceId)->sum('montant_tva');
         $tauxRecouvrement = $this->calculerTauxRecouvrement($caTtc, $totalPaye);
-        $caMois = $this->calculerCaMois($exerciceId, $now);
+        $caMois = $this->calculerCaMois($exerciceId, $now, $exercice);
         $enRetard = $this->compterFacturesEnRetard($exerciceId, $now);
         $totalImpaye = $this->calculerTotalImpaye($exerciceId);
         $seuilRecouvrement = $this->seuilRecouvrement();
-        $caMensuel = $this->calculerCaMensuel($exerciceId);
+        $caMensuel = $this->calculerCaMensuel($exerciceId, $exercice);
 
         return [
             'exercices' => Exercice::orderByDesc('annee')->get(['id', 'annee', 'statut']),
@@ -69,10 +71,16 @@ class DashboardService
                 'en_retard' => $enRetard,
             ],
             'devis' => [
-                'total' => Devis::count(),
-                'en_attente' => Devis::whereIn('statut', ['brouillon', 'envoye'])->count(),
-                'acceptes' => Devis::where('statut', 'accepte')->count(),
-                'ca_potentiel' => (float) Devis::whereIn('statut', ['brouillon', 'envoye'])->sum('montant_ttc'),
+                'total' => Devis::when($exerciceId, fn ($q) => $q->where('exercice_id', $exerciceId))->count(),
+                'en_attente' => Devis::whereIn('statut', ['brouillon', 'envoye'])
+                    ->when($exerciceId, fn ($q) => $q->where('exercice_id', $exerciceId))
+                    ->count(),
+                'acceptes' => Devis::where('statut', 'accepte')
+                    ->when($exerciceId, fn ($q) => $q->where('exercice_id', $exerciceId))
+                    ->count(),
+                'ca_potentiel' => (float) Devis::whereIn('statut', ['brouillon', 'envoye'])
+                    ->when($exerciceId, fn ($q) => $q->where('exercice_id', $exerciceId))
+                    ->sum('montant_ttc'),
             ],
             'recentes' => [
                 'factures' => Facture::with('entreprise')
@@ -110,8 +118,17 @@ class DashboardService
         return round(($totalPaye / $caTtc) * 100, 1);
     }
 
-    private function calculerCaMois(?int $exerciceId, Carbon $now): float
+    /**
+     * CA TTC facture du mois calendaire courant. Un exercice filtre dont l'annee
+     * ne correspond pas a l'annee en cours rend la notion de « mois courant » incoherente
+     * (on ne facture pas en avance sur un exercice passe/futur) -> null dans ce cas.
+     */
+    private function calculerCaMois(?int $exerciceId, Carbon $now, ?Exercice $exercice): ?float
     {
+        if ($exercice && (int) $exercice->annee !== $now->year) {
+            return null;
+        }
+
         return (float) $this->factureQuery($exerciceId)
             ->whereYear('date_facture', $now->year)
             ->whereMonth('date_facture', $now->month)
@@ -124,11 +141,9 @@ class DashboardService
      *
      * @return array{annee: int, data: list<float>}
      */
-    private function calculerCaMensuel(?int $exerciceId): array
+    private function calculerCaMensuel(?int $exerciceId, ?Exercice $exercice): array
     {
-        $annee = $exerciceId
-            ? (int) (Exercice::find($exerciceId)?->annee ?? Carbon::now()->year)
-            : Carbon::now()->year;
+        $annee = $exercice ? (int) $exercice->annee : Carbon::now()->year;
 
         // Regroupement en PHP (portable SQLite/MySQL, pas de fonction SQL specifique)
         $data = array_fill(0, 12, 0.0);
@@ -155,12 +170,23 @@ class DashboardService
             ->count();
     }
 
+    /**
+     * Total impaye, avoirs deduits par facture (max(0, ttc - paye - avoirs)), aligne
+     * sur la semantique de Facture::montantRestant() utilisee par le dashboard secretaire.
+     * withSum evite le N+1 (une seule requete, agregat correle en sous-requete).
+     */
     private function calculerTotalImpaye(?int $exerciceId): float
     {
-        return (float) $this->factureQuery($exerciceId)
+        $total = $this->factureQuery($exerciceId)
             ->whereIn('statut_paiement', ['en_attente', 'partiel'])
-            ->selectRaw('COALESCE(SUM(montant_ttc - montant_paye), 0) as total')
-            ->value('total');
+            ->withSum('avoirs as avoirs_sum', 'montant_ttc')
+            ->get()
+            ->sum(fn (Facture $facture) => max(
+                0.0,
+                (float) $facture->montant_ttc - (float) $facture->montant_paye - (float) ($facture->avoirs_sum ?? 0)
+            ));
+
+        return round((float) $total, 2);
     }
 
     private function seuilRecouvrement(): float

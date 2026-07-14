@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
@@ -8,6 +7,7 @@ import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import { useCountUp } from '@/composables/useCountUp'
+import { formatDA, formatDACompact, formatDAKpi } from '@/utils/currency'
 import type { SecretaireStats } from '@/api/modules/stats'
 
 const props = defineProps<{
@@ -15,14 +15,6 @@ const props = defineProps<{
 }>()
 
 // ── Helpers ──────────────────────────────────────────────────────────────
-function formatDA(montant: number): string {
-  return new Intl.NumberFormat('fr-DZ', { style: 'decimal', minimumFractionDigits: 2 }).format(montant) + ' DA'
-}
-
-function formatDAcompact(montant: number): string {
-  return new Intl.NumberFormat('fr-DZ', { notation: 'compact', maximumFractionDigits: 1 }).format(montant) + ' DA'
-}
-
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '—'
   return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -48,24 +40,15 @@ function urgentRowClass(data: { en_retard: boolean }): string {
 
 const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
-// ── Count-up (respecte prefers-reduced-motion) ─────────────────────────────
-const prefersReduced = typeof window !== 'undefined'
-  && typeof window.matchMedia === 'function'
-  && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
-function counted(src: Ref<number>) {
-  const anim = useCountUp(src)
-  return computed(() => (prefersReduced ? src.value : anim.value))
-}
-
+// ── Count-up (useCountUp respecte deja prefers-reduced-motion) ──────────────
 const totalRelancesDues = computed(() =>
   props.stats.relances_dues.niveau_1 + props.stats.relances_dues.niveau_2 + props.stats.relances_dues.niveau_3,
 )
 
-const animCreances = counted(computed(() => Math.round(props.stats.creances.total_impaye)))
-const animRetard = counted(computed(() => props.stats.creances.en_retard))
-const animRelances = counted(totalRelancesDues)
-const animEncaissements = counted(computed(() => Math.round(props.stats.encaissements_mois.montant)))
+const animCreances = useCountUp(computed(() => Math.round(props.stats.creances.total_impaye)))
+const animRetard = useCountUp(computed(() => props.stats.creances.en_retard))
+const animRelances = useCountUp(totalRelancesDues)
+const animEncaissements = useCountUp(computed(() => Math.round(props.stats.encaissements_mois.montant)))
 
 // ── Chart : aging (barres horizontales) ────────────────────────────────────
 const agingTotal = computed(() =>
@@ -217,8 +200,12 @@ const relancesAriaLabel = computed(() =>
           <p id="kpi-impaye" class="reco-kpi__label">Créances totales</p>
           <span class="reco-kpi__icon" aria-hidden="true"><i class="pi pi-exclamation-circle"></i></span>
         </div>
-        <p class="reco-kpi__value" :aria-label="`Créances totales : ${formatDA(stats.creances.total_impaye)}`">
-          {{ formatDA(animCreances) }}
+        <p
+          class="reco-kpi__value"
+          :title="formatDA(stats.creances.total_impaye)"
+          :aria-label="`Créances totales : ${formatDA(stats.creances.total_impaye)}`"
+        >
+          {{ formatDAKpi(animCreances) }}
         </p>
         <p class="reco-kpi__sub">
           {{ stats.creances.clients_debiteurs }} débiteur{{ stats.creances.clients_debiteurs !== 1 ? 's' : '' }} · {{ animRetard }} en retard
@@ -245,8 +232,12 @@ const relancesAriaLabel = computed(() =>
           <p id="kpi-encaisse" class="reco-kpi__label">Encaissé ce mois</p>
           <span class="reco-kpi__icon" aria-hidden="true"><i class="pi pi-wallet"></i></span>
         </div>
-        <p class="reco-kpi__value" :aria-label="`Encaissé ce mois : ${formatDA(stats.encaissements_mois.montant)}`">
-          {{ formatDA(animEncaissements) }}
+        <p
+          class="reco-kpi__value"
+          :title="formatDA(stats.encaissements_mois.montant)"
+          :aria-label="`Encaissé ce mois : ${formatDA(stats.encaissements_mois.montant)}`"
+        >
+          {{ formatDAKpi(animEncaissements) }}
         </p>
         <p class="reco-kpi__sub">
           {{ stats.encaissements_mois.count }} paiement{{ stats.encaissements_mois.count !== 1 ? 's' : '' }}
@@ -259,7 +250,7 @@ const relancesAriaLabel = computed(() =>
       <section class="card h-full" aria-labelledby="aging-title">
         <div class="panel-header">
           <h3 id="aging-title" class="panel-title">Aging des créances</h3>
-          <span class="reco-pill">{{ formatDAcompact(agingTotal) }}</span>
+          <span class="reco-pill">{{ formatDACompact(agingTotal) }}</span>
         </div>
         <div v-if="agingTotal === 0" class="reco-empty" role="status">
           <i class="pi pi-check-circle text-3xl" aria-hidden="true"></i>
@@ -596,6 +587,7 @@ const relancesAriaLabel = computed(() =>
 .reco-kpi--info .reco-kpi__icon    { background: rgba(37, 99, 235, 0.12); color: #2563eb; }
 .reco-kpi--success .reco-kpi__icon { background: color-mix(in srgb, var(--ledge-success), transparent 88%); color: var(--ledge-success); }
 .reco-kpi__value {
+  font-family: var(--ledge-ff-mono);
   font-size: 1.7rem;
   font-weight: 700;
   color: var(--p-text-color);
@@ -604,13 +596,6 @@ const relancesAriaLabel = computed(() =>
   font-variant-numeric: tabular-nums;
 }
 .reco-kpi__sub { font-size: 0.8125rem; color: var(--p-text-muted-color); margin: 0.6rem 0 0; }
-.reco-delta { display: inline-flex; align-items: center; gap: 0.2rem; font-weight: 600; font-size: 0.75rem; font-family: var(--ledge-ff-mono); }
-.reco-delta--up { color: var(--ledge-success); }
-.reco-delta--down { color: var(--ledge-danger); }
-.app-dark .reco-delta--up { color: #34d399; }
-.app-dark .reco-delta--down { color: #f87171; }
-.reco-delta--inline { padding: 0.2rem 0.5rem; border-radius: 999px; background: var(--p-surface-100); }
-.app-dark .reco-delta--inline { background: var(--p-surface-800); }
 
 /* ════════════ Panel header partagé ════════════ */
 .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
@@ -669,17 +654,6 @@ const relancesAriaLabel = computed(() =>
 .reco-legend__label { color: var(--p-text-color); }
 .reco-legend__val { margin-left: auto; font-weight: 700; font-family: var(--ledge-ff-mono); color: var(--p-text-color); }
 
-/* ════════════ Chart : factures N vs N-1 ════════════ */
-.reco-compare { display: flex; align-items: flex-end; justify-content: center; gap: 2.5rem; height: 200px; padding-top: 0.5rem; }
-.reco-vbar { display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; gap: 0.4rem; }
-.reco-vbar__count { font-size: 1.1rem; font-weight: 700; color: var(--p-text-color); font-variant-numeric: tabular-nums; }
-.reco-vbar__track { width: 2.75rem; flex: 1; display: flex; align-items: flex-end; background: var(--p-surface-border); border-radius: 6px 6px 0 0; overflow: hidden; max-height: 120px; }
-.reco-vbar__fill { width: 100%; border-radius: 6px 6px 0 0; transition: height 0.5s ease; min-height: 4px; }
-.reco-vbar__fill--accent { background: var(--ledge-accent); }
-.reco-vbar__fill--muted { background: var(--p-surface-400); }
-.reco-vbar__label { font-size: 0.75rem; color: var(--p-text-muted-color); font-weight: 500; }
-.reco-vbar__amount { font-size: 0.7rem; color: var(--p-text-muted-color); font-family: var(--ledge-ff-mono); }
-
 /* ════════════ Ranking : top débiteurs ════════════ */
 .reco-rank { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 1rem; }
 .reco-rank__item { display: flex; align-items: center; gap: 0.85rem; }
@@ -726,7 +700,6 @@ const relancesAriaLabel = computed(() =>
 /* ════════════ Responsive ════════════ */
 @media (max-width: 640px) {
   .reco-greeting { font-size: 1.5rem; }
-  .reco-compare { gap: 1.5rem; }
   .reco-todo-list { grid-template-columns: 1fr; }
 }
 
@@ -736,7 +709,6 @@ const relancesAriaLabel = computed(() =>
   .reco-todo,
   .reco-bar__fill,
   .reco-donut__seg,
-  .reco-vbar__fill,
   .reco-rank__fill { transition: none !important; }
 }
 </style>

@@ -19,7 +19,7 @@ vi.mock('@/api/modules/stats', () => ({
 
 // ── Import de la page APRES les mocks ────────────────────────────────────────
 import DashboardPage from '@/pages/dashboard/DashboardPage.vue'
-import { mountPage } from '../helpers/mount'
+import { mountPage, findButton } from '../helpers/mount'
 import { useLayout } from '@/layout/composables/layout'
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
@@ -149,6 +149,40 @@ describe('DashboardPage — chargement', () => {
   })
 })
 
+describe('DashboardPage — erreur de chargement', () => {
+  it('affiche un etat d\'erreur accessible et relance le fetch au clic sur Réessayer', async () => {
+    mockGetDashboard.mockRejectedValueOnce(new Error('network down'))
+    const { wrapper } = await mountPage(DashboardPage)
+
+    const alert = wrapper.find('[role="alert"]')
+    expect(alert.exists()).toBe(true)
+    expect(wrapper.text()).toContain('Impossible de charger le tableau de bord.')
+    expect(wrapper.text()).not.toContain('CA du mois')
+
+    const retry = findButton(wrapper, 'Réessayer')
+    expect(retry).toBeTruthy()
+    await retry!.trigger('click')
+    await flushPromises()
+
+    expect(mockGetDashboard).toHaveBeenCalledTimes(2)
+    expect(wrapper.find('.dashboard-error').exists()).toBe(false)
+    expect(wrapper.text()).toContain('CA du mois')
+  })
+})
+
+describe('DashboardPage — CA du mois indisponible', () => {
+  it('affiche "—" et un message explicatif quand ca_mois est null (exercice hors annee courante)', async () => {
+    mockGetDashboard.mockResolvedValue({
+      data: { ...adminStatsFull, kpi: { ...adminStatsFull.kpi, ca_mois: null } },
+    })
+    const { wrapper } = await mountPage(DashboardPage)
+
+    expect(wrapper.text()).toContain("Mois courant hors de l'exercice sélectionné")
+    const figures = wrapper.findAll('.dash-figure').map((el) => el.text())
+    expect(figures).toContain('—')
+  })
+})
+
 describe('DashboardPage — admin', () => {
   it('charge les stats admin et affiche KPI, alertes et tables recentes', async () => {
     const { wrapper } = await mountPage(DashboardPage)
@@ -173,11 +207,22 @@ describe('DashboardPage — admin', () => {
     expect(wrapper.text()).toContain('Seuil : 70%')
     expect(wrapper.text()).toContain('DA')
 
+    // Formats montants : entier sous 1M (formatDAKpi), compact au-dela
+    // (Intl.NumberFormat fr-DZ utilise des espaces insecables entre groupes -> \s)
+    expect(wrapper.text()).toMatch(/450\s*000\s*DA/) // ca_mois = 450000
+    expect(wrapper.text()).toMatch(/85\s*500\s*DA/) // tva_collectee = 85500
+    expect(wrapper.text()).toMatch(/500\s*000\s*DA/) // total_impaye = 500000
+    expect(wrapper.text()).toMatch(/2,4\s*M DA/) // ca_ttc = 2400000 (compact)
+
     // Stat cards
     expect(wrapper.text()).toContain('22')
     expect(wrapper.text()).toContain('8 prospects')
     expect(wrapper.text()).toContain('5 terminées')
     expect(wrapper.text()).toContain('2 en retard')
+
+    // Sous-lignes de scope exercice (aucun exercice selectionne par defaut)
+    expect(wrapper.text()).toContain('Tous exercices') // carte Clients (globale)
+    expect(wrapper.text()).toContain('Toutes années') // CA / Impayés / Devis (scopes)
 
     // Devis
     expect(wrapper.text()).toContain('CA potentiel')
@@ -227,15 +272,46 @@ describe('DashboardPage — admin', () => {
     expect(wrapper.text()).toContain('Chiffre d\'affaires TTC par mois')
   })
 
-  it('refetch les stats avec l\'exercice selectionne', async () => {
+  it('refetch les stats avec l\'exercice selectionne et met a jour le libelle d\'exercice', async () => {
     const { wrapper } = await mountPage(DashboardPage)
     const vm = wrapper.vm as any
 
+    expect(wrapper.text()).toContain('Toutes années')
+
     vm.exerciceId = 2
     await vm.fetchStats()
+    await nextTick()
 
     expect(mockGetDashboard).toHaveBeenLastCalledWith(2)
     expect(mockGetDashboard).toHaveBeenCalledTimes(2)
+    expect(wrapper.text()).toContain('Exercice 2025')
+  })
+
+  it('rend les cartes KPI cliquables (drill-down) vers les bonnes pages', async () => {
+    const { wrapper } = await mountPage(DashboardPage)
+
+    const links = wrapper.findAll('a')
+    const findByLabel = (needle: string) =>
+      links.find((a) => a.attributes('aria-label')?.includes(needle))
+
+    const impayes = findByLabel('Voir les créances — impayés')
+    expect(impayes?.attributes('href')).toBe('/creances')
+    expect(impayes?.attributes('aria-label')).toMatch(/500\s*000,00\s*DA/)
+
+    const missions = findByLabel('Voir les missions — missions actives')
+    expect(missions?.attributes('href')).toBe('/missions')
+
+    const clients = findByLabel('Voir les entreprises — clients')
+    expect(clients?.attributes('href')).toBe('/entreprises')
+
+    const ca = findByLabel('Voir les factures — chiffre d\'affaires')
+    expect(ca?.attributes('href')).toBe('/factures')
+
+    const caMois = findByLabel('Voir les factures — CA du mois')
+    expect(caMois?.attributes('href')).toBe('/factures')
+
+    const recouvrement = findByLabel('Voir les créances — taux de recouvrement')
+    expect(recouvrement?.attributes('href')).toBe('/creances')
   })
 
   it('affiche les etats vides (CA nul, aucune mission, aucun retard)', async () => {

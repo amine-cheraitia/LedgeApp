@@ -1,6 +1,16 @@
 import { ref, watch } from 'vue'
 import type { Ref } from 'vue'
 
+// RGAA / WCAG 2.3.3 — si l'utilisateur a demande a reduire les animations au
+// niveau de l'OS, on affiche directement la valeur cible (pas de defilement).
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
+}
+
 export function useCountUp(target: Ref<number>, duration = 800) {
   const displayed = ref(0)
 
@@ -15,7 +25,17 @@ export function useCountUp(target: Ref<number>, duration = 800) {
     requestAnimationFrame(step)
   }
 
-  watch(target, (newVal, oldVal) => animate(oldVal ?? 0, newVal), { immediate: true })
+  watch(
+    target,
+    (newVal, oldVal) => {
+      if (prefersReducedMotion()) {
+        displayed.value = newVal
+        return
+      }
+      animate(oldVal ?? 0, newVal)
+    },
+    { immediate: true },
+  )
 
   return displayed
 }
