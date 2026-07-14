@@ -30,7 +30,7 @@ Lot de correctifs issu de la revue du module KPI (logique + UI/UX) sur les 3 das
 - **Objectif fixé à 0 distingué de « pas d'objectif »** (test d'existence `!= null` au lieu de truthy) ; **dépassement valorisé** : le pourcentage n'est plus plafonné à 100 % (Tag « 163 % », barre bornée visuellement).
 
 **Formatage & typographie des chiffres**
-- **Utilitaire partagé [utils/currency.ts](frontend/src/utils/currency.ts)** (`formatDA`, `formatDAEntier`, `formatDACompact`, `formatDAKpi`) : supprime 4 définitions locales divergentes. Cartes KPI : montants **compacts au-delà d'un million** (« 1,25 M DA ») avec montant exact en tooltip/`aria-label`, sans centimes sous le million ; tables inchangées (montant exact).
+- **Utilitaire partagé [utils/currency.ts](frontend/src/utils/currency.ts)** (`formatDA`, `formatDACompact`, `formatDAKpi`) : supprime 4 définitions locales divergentes. Cartes KPI : montants **compacts au-delà d'un million** (« 1,25 M DA ») avec montant exact en tooltip/`aria-label` ; sous le million et dans les tables, montant exact **avec centimes (,00) — règle projet**.
 - Chiffres des cartes en **`--ledge-ff-mono`** partout (classe manquante ajoutée) et taille ramenée de `text-3xl` à **`text-2xl`**.
 - `useCountUp` respecte désormais `prefers-reduced-motion` nativement (les compteurs du dashboard collaborateur l'ignoraient) ; suppression du CSS mort d'une comparaison N‑1 jamais branchée (`.reco-delta*`, `.reco-compare`, `.reco-vbar*`).
 

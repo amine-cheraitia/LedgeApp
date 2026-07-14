@@ -134,9 +134,9 @@ describe('SecretaireDashboardSection — cartes KPI', () => {
     expect(label.exists()).toBe(true)
     expect(label.attributes('aria-label')).toContain('DA')
 
-    // Cartes KPI en formatDAKpi : compact >= 1M (creances 1 250 000), entier sinon (encaisse 300 000)
+    // Cartes KPI en formatDAKpi : compact >= 1M (creances 1 250 000), exact avec centimes sinon (encaisse 300 000)
     expect(text).toMatch(/1,25\s*M DA/)
-    expect(text).toMatch(/300\s*000\s*DA/)
+    expect(text).toMatch(/300\s*000,00\s*DA/)
     expect(label.attributes('title')).toMatch(/1\s*250\s*000,00\s*DA/)
   })
 })

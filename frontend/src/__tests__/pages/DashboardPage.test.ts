@@ -207,11 +207,11 @@ describe('DashboardPage — admin', () => {
     expect(wrapper.text()).toContain('Seuil : 70%')
     expect(wrapper.text()).toContain('DA')
 
-    // Formats montants : entier sous 1M (formatDAKpi), compact au-dela
+    // Formats montants : exact avec centimes sous 1M (formatDAKpi), compact au-dela
     // (Intl.NumberFormat fr-DZ utilise des espaces insecables entre groupes -> \s)
-    expect(wrapper.text()).toMatch(/450\s*000\s*DA/) // ca_mois = 450000
-    expect(wrapper.text()).toMatch(/85\s*500\s*DA/) // tva_collectee = 85500
-    expect(wrapper.text()).toMatch(/500\s*000\s*DA/) // total_impaye = 500000
+    expect(wrapper.text()).toMatch(/450\s*000,00\s*DA/) // ca_mois = 450000
+    expect(wrapper.text()).toMatch(/85\s*500,00\s*DA/) // tva_collectee = 85500
+    expect(wrapper.text()).toMatch(/500\s*000,00\s*DA/) // total_impaye = 500000
     expect(wrapper.text()).toMatch(/2,4\s*M DA/) // ca_ttc = 2400000 (compact)
 
     // Stat cards
