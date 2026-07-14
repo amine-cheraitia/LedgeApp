@@ -9,6 +9,7 @@ import { usersApi } from '@/api/modules/users'
 import { useAuthStore } from '@/stores/authStore'
 import type { User } from '@/types'
 import { prioriteColor } from '@/utils/priorite'
+import { toIsoDate } from '@/utils/date'
 
 // ── Palettes ──────────────────────────────────────────────────────────────────
 
@@ -269,7 +270,8 @@ export function usePlanning() {
   function initWeek() {
     const d = new Date()
     d.setDate(d.getDate() - ((d.getDay() + 6) % 7)) // ramener au lundi
-    teamWeekStart.value = d.toISOString().slice(0, 10)
+    // Date LOCALE (pas toISOString/UTC) : entre minuit et 1h, l'ISO UTC donnerait dimanche
+    teamWeekStart.value = toIsoDate(d) ?? ''
   }
 
   function shiftWeek(days: number) {

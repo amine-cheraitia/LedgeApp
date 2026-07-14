@@ -9,6 +9,16 @@
 
 ## [Unreleased]
 
+### Correctif — décalage J-1 des dates saisies (conversion UTC) — fix/dates-decalage-utc
+
+Le PrimeVue DatePicker émet une `Date` à minuit **local** ; plusieurs pages la sérialisaient encore via `toISOString()` (UTC) — en Algérie (UTC+1), minuit local = 23h **la veille** en UTC → toute date saisie était enregistrée au jour précédent. Bug signalé sur la création d'exercice (01/01/2025 → 31/12/2024, 31/12/2025 → 30/12/2025). Devis/Factures avaient déjà été corrigés (`fix/correctifs-planning`) mais pas les autres pages : correctif généralisé via l'utilitaire partagé `utils/date.ts` (`toIsoDate`/`parseIsoDate` en composants locaux), suppression des 3 clones locaux bugués.
+
+- **Exercices** ([ExerciceListPage.vue](frontend/src/pages/exercices/ExerciceListPage.vue)) : dates d'ouverture/clôture décalées de J-1 à la création **et** à la modification — le bug signalé.
+- **Missions** ([MissionListPage.vue](frontend/src/pages/missions/MissionListPage.vue)) : dates de début/fin décalées de J-1 à la création et à l'édition.
+- **Journal d'audit** ([AuditLogPage.vue](frontend/src/pages/audit/AuditLogPage.vue)) : filtres de période décalés de J-1.
+- **Planning** ([PlanningCalendarPage.vue](frontend/src/pages/planning/PlanningCalendarPage.vue), [usePlanning.ts](frontend/src/composables/usePlanning.ts)) : plage rechargée au changement de filtre collaborateur décalée de J-1 (risque d'exclure le dernier jour affiché) ; « aujourd'hui » et le lundi de la semaine Équipe faux entre minuit et 1h.
+- Tests de non-régression sur minuit **local** (les tests existants utilisaient des dates UTC ou une simple regex de format, ce qui masquait le bug) ; assertion de date exacte rétablie sur la création de mission.
+
 ### Audit interne — remédiation sécurité, architecture, RGAA & qualité — integration/audit-fixes-preview
 
 Correction des écarts relevés par l'audit interne (règles métier, OWASP, RGAA, découpage architectural, code mort), plus l'outillage de démonstration et la documentation. Suites vertes : **445 backend / 551 frontend**, ESLint 0 erreur.

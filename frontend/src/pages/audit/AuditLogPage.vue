@@ -9,6 +9,7 @@ import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import { auditApi } from '@/api/modules/audit'
+import { toIsoDate } from '@/utils/date'
 import type { Activity, AuditEvent } from '@/types'
 
 const toast = useToast()
@@ -42,10 +43,6 @@ const eventOptions: { label: string; value: AuditEvent }[] = [
   { label: 'Suppression', value: 'deleted' },
 ]
 
-function toIsoDate(d: Date | null): string | undefined {
-  return d ? d.toISOString().split('T')[0] : undefined
-}
-
 async function fetchActivites() {
   loading.value = true
   try {
@@ -54,8 +51,9 @@ async function fetchActivites() {
       per_page: perPage,
       subject_type: filtres.subject_type,
       event: filtres.event,
-      date_debut: toIsoDate(filtres.date_debut),
-      date_fin: toIsoDate(filtres.date_fin),
+      // toIsoDate (utils/date) formate en LOCAL : pas de bascule J-1 via UTC
+      date_debut: toIsoDate(filtres.date_debut) ?? undefined,
+      date_fin: toIsoDate(filtres.date_fin) ?? undefined,
     })
     activites.value = res.data
     totalRecords.value = res.meta?.total ?? res.data.length

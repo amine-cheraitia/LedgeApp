@@ -11,6 +11,7 @@ import Select from 'primevue/select'
 import { useExercices } from '@/composables/useExercices'
 import { useAuthStore } from '@/stores/authStore'
 import { exercicesApi } from '@/api/modules/exercices'
+import { toIsoDate, parseIsoDate } from '@/utils/date'
 import type { Exercice } from '@/types'
 import type { ExercicePayload } from '@/api/modules/exercices'
 
@@ -43,11 +44,6 @@ function formatDate(d: string) {
   return new Date(d).toLocaleDateString('fr-FR')
 }
 
-function toIsoDate(d: Date | null): string {
-  if (!d) return ''
-  return d.toISOString().split('T')[0]
-}
-
 function openCreate() {
   form.value = emptyForm()
   dateOuverture.value = null
@@ -64,8 +60,8 @@ function openEdit(exercice: Exercice) {
     date_cloture: exercice.date_cloture,
     statut: exercice.statut,
   }
-  dateOuverture.value = new Date(exercice.date_ouverture)
-  dateCloture.value = new Date(exercice.date_cloture)
+  dateOuverture.value = parseIsoDate(exercice.date_ouverture)
+  dateCloture.value = parseIsoDate(exercice.date_cloture)
   editId.value = exercice.id
   editMode.value = true
   dialogVisible.value = true
@@ -74,10 +70,11 @@ function openEdit(exercice: Exercice) {
 async function onSubmit() {
   saving.value = true
   try {
+    // toIsoDate (utils/date) formate en LOCAL : pas de bascule J-1 via UTC
     const payload: ExercicePayload = {
       ...form.value,
-      date_ouverture: toIsoDate(dateOuverture.value),
-      date_cloture: toIsoDate(dateCloture.value),
+      date_ouverture: toIsoDate(dateOuverture.value) ?? '',
+      date_cloture: toIsoDate(dateCloture.value) ?? '',
     }
     if (editMode.value && editId.value) {
       await updateExercice(editId.value, payload)

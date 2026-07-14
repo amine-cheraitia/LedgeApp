@@ -194,7 +194,9 @@ describe('MissionListPage — creation', () => {
     expect(payload).toEqual(expect.objectContaining({
       entreprise_id: 1, prestation_id: 3, exercice_id: 10, date_fin: '',
     }))
-    expect(payload.date_debut).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    // Regression J-1 : minuit LOCAL (emis par le DatePicker) doit rester le meme
+    // jour — l'ancien toISOString (UTC) donnait 2026-01-14 en UTC+1.
+    expect(payload.date_debut).toBe('2026-01-15')
 
     // Toast succes + fermeture du dialog + refetch de la liste
     expect(toastAdd).toHaveBeenCalledWith(expect.objectContaining({ severity: 'success', detail: 'Mission creee.' }))
