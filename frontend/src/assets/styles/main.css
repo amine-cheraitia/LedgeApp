@@ -1,11 +1,10 @@
-/* Reset + base mobile-first */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/* Base mobile-first.
+   NOTE : pas de reset universel ici — le preflight Tailwind v4 (@layer base)
+   fait deja `* { box-sizing: border-box; margin: 0; padding: 0 }`.
+   Un reset hors layer ecraserait TOUTES les utilities de spacing
+   (@layer utilities : ml-*, mt-*, p-*...) car en cascade CSS les styles
+   non-layerises priment sur les styles layerises. Symptome corrige :
+   libelles colles aux montants (ml-1 sans effet) sur les cartes KPI. */
 
 html {
   font-size: 100%;
