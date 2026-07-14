@@ -774,7 +774,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
             :aria-label="`TVA collectée : ${formatDA(stats.kpi.tva_collectee)}`"
           >{{ formatDAKpi(stats.kpi.tva_collectee) }}</div>
           <div class="mt-4">
-            <span class="text-muted-color text-sm">Cumul sur la période</span>
+            <span class="text-muted-color text-sm">Cumul — {{ exerciceLabel.toLowerCase() }}</span>
           </div>
         </div>
       </div>
@@ -866,6 +866,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
             <span class="text-muted-color mx-2">&bull;</span>
             <span class="text-muted-color">{{ stats.missions.total }} total</span>
           </div>
+          <p class="text-muted-color text-xs mt-2 mb-0">{{ exerciceLabel }}</p>
         </router-link>
       </div>
 
@@ -886,7 +887,7 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
             :title="formatDA(stats.factures.ca_ttc)"
           >{{ formatDAKpi(stats.factures.ca_ttc) }}</div>
           <div class="flex items-center mt-4">
-            <span class="text-green-500 font-medium">{{ formatDA(stats.factures.total_paye) }}</span>
+            <span class="text-green-500 font-medium" :title="formatDA(stats.factures.total_paye)">{{ formatDAKpi(stats.factures.total_paye) }}</span>
             <span class="text-muted-color ml-1">encaissé</span>
           </div>
           <p class="text-muted-color text-xs mt-2 mb-0">{{ exerciceLabel }}</p>
