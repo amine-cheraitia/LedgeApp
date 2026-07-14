@@ -230,6 +230,22 @@ describe('DevisListPage — roles', () => {
     expect(findButton(wrapper, 'Refuser')).toBeUndefined()
     expect(findButton(wrapper, 'Convertir en mission')).toBeUndefined()
   })
+
+  // Regression : /referentiels/tva-taux (role:admin) renvoyait 403 en secretaire
+  // -> toast d'erreur a CHAQUE visite de la page, pour alimenter le select TVA
+  // du dialog « Nouveau devis » qu'elle ne voit pas.
+  it('secretaire : ne charge pas les taux TVA (aucun toast d erreur)', async () => {
+    await mountPage(DevisListPage, { role: 'secretaire' })
+
+    expect(mockTvaGetAll).not.toHaveBeenCalled()
+    expect(toastAdd).not.toHaveBeenCalledWith(expect.objectContaining({ severity: 'error' }))
+  })
+
+  it('admin : precharge les taux TVA pour le dialog de creation', async () => {
+    await mountPage(DevisListPage)
+
+    expect(mockTvaGetAll).toHaveBeenCalled()
+  })
 })
 
 describe('DevisListPage — creation (admin)', () => {

@@ -244,7 +244,9 @@ onMounted(async () => {
   fetchEntreprises()
   fetchPrestations()
   fetchUsers()
-  fetchTvaTaux()
+  // Select TVA du dialog « Nouveau devis » (admin uniquement) : le referentiel
+  // est interdit a la secretaire cote API (403) -> charge pour l'admin seul.
+  if (auth.isAdmin) fetchTvaTaux()
 })
 </script>
 
