@@ -888,7 +888,8 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
           >{{ formatDAKpi(stats.factures.ca_ttc) }}</div>
           <div class="flex items-center mt-4">
             <span class="text-green-500 font-medium" :title="formatDA(stats.factures.total_paye)">{{ formatDAKpi(stats.factures.total_paye) }}</span>
-            <span class="text-muted-color ml-1">encaissé</span>
+            <span class="text-muted-color mx-2">&bull;</span>
+            <span class="text-muted-color">encaissé</span>
           </div>
           <p class="text-muted-color text-xs mt-2 mb-0">{{ exerciceLabel }}</p>
         </router-link>
