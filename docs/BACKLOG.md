@@ -449,9 +449,9 @@
 **En tant qu'administrateur**, je veux definir des objectifs KPI par collaborateur et suivre le realise vs la cible **afin de** piloter la performance individuelle.
 
 - Objectif : CA / missions cloturees / delai moyen facturation
-- Comparaison realise vs cible · export PDF
+- Comparaison realise vs cible · export PDF **annule** (decision produit 2026-07-15 — jamais implemente, retire du perimetre)
 - 🔄 **Finitions IHM (fix/kpi-coherence-et-ux)** : suppression d'objectif depuis l'IHM (vider le champ + sauvegarder, l'API DELETE existait sans chemin d'acces) ; sauvegarde par diff avec **ConfirmDialog** recapitulatif avant ecrasement/suppression ; « Aucune modification a enregistrer » quand rien n'a change (fini le faux toast de succes) ; objectif fixe a **0** distinct de « pas d'objectif » ; **depassement affiche reellement** (« 163 % », plus de plafond a 100) ; panne API distincte de l'etat vide (bloc erreur + Reessayer) ; suffixe « DA » sur la saisie CA HT
-- ⚠️ L'« export PDF » annonce ci-dessus n'est **pas implemente** (aucune route/vue backend) — a decider : implementer ou retirer du perimetre
+- 🔄 **Refonte (feature/page-statistiques)** : la page « KPI Objectifs » est absorbee par la page **Statistiques** (voir US-52), onglet Collaborateurs — dropdown de selection (secretaire exclue du perimetre KPI), 5 cartes KPI, charts CA HT realise mensuel + taches par statut, jauges realise vs cible non plafonnees, editeur d'objectifs migre a l'identique (`ObjectifsEditor.vue`). Nouvel endpoint `GET /kpi/collaborateurs/{id}/stats` (Policy admin **ou soi-meme** — prepare la phase 2 « Mes objectifs » sur le dashboard collaborateur). Ancienne URL `/kpi/objectifs` redirigee.
 - Depend de : **US-33, US-02**
 
 ---
@@ -663,6 +663,20 @@
 - Transmission facture autorisee a la secretaire (`FacturePolicy::transmettre`)
 - Fournisseur configurable par `.env` (Mailpit en dev, Brevo en demo)
 - Depend de : **US-11, US-12** (PDF devis obligatoire)
+
+---
+
+### US-52 · Page Statistiques — analytique cabinet & pilotage collaborateurs · S · 5 pts · Apres Sprint 3 ✅
+
+**En tant qu'administrateur**, je veux une page Statistiques a deux onglets **afin d'** analyser l'activite du cabinet et piloter les collaborateurs au meme endroit.
+
+- Remplace la page « KPI Objectifs » (menu Administration renomme, `/kpi/objectifs` redirige vers `/statistiques`) · filtre **exercice global** partage par les onglets
+- **Onglet Cabinet** : top 8 entreprises contributrices au CA facture **HT net d'avoirs** (barres horizontales) · repartition des missions par prestation (doughnut) · missions par etat (barres) · creances (total impaye avoirs deduits + aging 15-30/30-60/60+ + top 5 debiteurs cliquables)
+- **Onglet Collaborateurs** : dropdown (admin + collaborateurs, **secretaire exclue**) → 5 cartes KPI (mention « missions cloturees uniquement »), CA HT realise mensuel (barres), taches par statut (doughnut), jauges realise vs cible, editeur d'objectifs integre (voir US-34)
+- Backend : `StatistiqueService` dedie (SOLID, controllers minces) · `GET /stats/cabinet` (role:admin) · `GET /kpi/collaborateurs/{id}/stats` (role:admin|collaborateur + Policy admin-ou-soi-meme, phase 2 prete) · logique creances **mutualisee** avec le dashboard secretaire (fix d'un N+1 au passage) · validation `exercice_id` (exists) · tests de roles complets (29 nouveaux tests backend)
+- RGAA : chaque chart double d'un tableau `sr-only` avec caption, `role="img"` + aria-label dynamiques, etats erreur `role="alert"` + Reessayer, `prefers-reduced-motion` respecte
+- Dashboard admin **inchange** (photo operationnelle) — Statistiques = analyse
+- Depend de : **US-13, US-16, US-18, US-27, US-33, US-34**
 
 ---
 
