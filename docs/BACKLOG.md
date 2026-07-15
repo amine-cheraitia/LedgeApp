@@ -416,6 +416,7 @@
 - CA du mois · TVA collectee · taux recouvrement · missions actives
 - Widgets dynamiques · filtrable par exercice · alertes si seuil depasse
 - **Graphiques (Chart.js / PrimeVue)** : CA mensuel en barres (12 mois de l'exercice) + repartition des missions par statut en camembert — dark mode + RGAA (table alternative `.sr-only`)
+- 🔄 **Coherence & UX (fix/kpi-coherence-et-ux)** : impaye admin **deduit desormais les avoirs** (aligne sur le dashboard secretaire) ; « CA du mois » affiche « — » quand l'exercice filtre n'est pas l'annee en cours (plus de 0 DA trompeur) ; bloc Devis **scope par exercice** ; etat d'erreur visible + bouton « Reessayer » sur les 3 dashboards ; cartes KPI cliquables (drill-down `/creances`, `/missions`, `/factures`, `/entreprises`) ; sous-lignes de periode (« Exercice N / Toutes annees ») ; montants compacts au-dela d'un million (« 1,25 M DA », exact en tooltip) via `utils/currency.ts` partage ; chiffres en `--ledge-ff-mono` et `text-2xl`
 - Depend de : **US-13, US-15, US-18**
 
 ---
@@ -449,6 +450,8 @@
 
 - Objectif : CA / missions cloturees / delai moyen facturation
 - Comparaison realise vs cible · export PDF
+- 🔄 **Finitions IHM (fix/kpi-coherence-et-ux)** : suppression d'objectif depuis l'IHM (vider le champ + sauvegarder, l'API DELETE existait sans chemin d'acces) ; sauvegarde par diff avec **ConfirmDialog** recapitulatif avant ecrasement/suppression ; « Aucune modification a enregistrer » quand rien n'a change (fini le faux toast de succes) ; objectif fixe a **0** distinct de « pas d'objectif » ; **depassement affiche reellement** (« 163 % », plus de plafond a 100) ; panne API distincte de l'etat vide (bloc erreur + Reessayer) ; suffixe « DA » sur la saisie CA HT
+- ⚠️ L'« export PDF » annonce ci-dessus n'est **pas implemente** (aucune route/vue backend) — a decider : implementer ou retirer du perimetre
 - Depend de : **US-33, US-02**
 
 ---
@@ -518,7 +521,7 @@
 - [ ] **Tests de composants front** (Vue + `@vue/test-utils`) — **apres la refonte design**, sur elements stables (poser des `data-testid` au prealable)
 - [ ] **Tests E2E / parcours** (Playwright) — login → devis → facture → paiement, ancres sur `data-testid`
 - [ ] **Mesure de couverture** — ajouter `@vitest/coverage-v8` + script `test:coverage`, viser **>= 80%** (la « majorite du code developpe » — ref. C2.2.2)
-- [ ] **Extraire les formatters** (`formatDA` inline dans les pages → util partage `src/utils/`) puis les tester unitairement
+- [x] **Extraire les formatters** — fait (fix/kpi-coherence-et-ux) : `src/utils/currency.ts` (`formatDA`, `formatDAEntier`, `formatDACompact`, `formatDAKpi`) + tests unitaires dedies, 4 definitions locales supprimees
 - [ ] **Executer le cahier de recettes** — valider les scenarios ⏳, dont **RGA-05** (Lighthouse accessibilite >= 85)
 
 ---

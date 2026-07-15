@@ -316,9 +316,14 @@ onMounted(async () => {
   await fetchExercices()
   exerciceSelectionne.value = exerciceCourant.value?.id
   fetchFactures()
-  fetchMissions()
   fetchAvoirs()
-  fetchTvaTaux()
+  // Selects du dialog « Nouvelle facture » (admin uniquement) : /missions et
+  // /referentiels/tva-taux sont interdits a la secretaire cote API (403).
+  // On ne les charge que pour l'admin — sinon toast d'erreur a chaque visite.
+  if (auth.isAdmin) {
+    fetchMissions()
+    fetchTvaTaux()
+  }
 })
 </script>
 

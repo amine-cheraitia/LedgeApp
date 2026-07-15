@@ -30,7 +30,7 @@ class KpiService
                 'name' => $user->name,
                 'email' => $user->email,
             ],
-            'objectifs' => $user->kpiObjectifs->keyBy('type')->map(fn ($o) => (float) $o->valeur),
+            'objectifs' => $user->kpiObjectifs->keyBy('type')->map(fn ($o) => ['id' => $o->id, 'valeur' => (float) $o->valeur]),
             'realise' => $this->calculerRealise($user, $exerciceId),
         ]);
     }
