@@ -160,6 +160,28 @@ export interface CollaborateurStats {
   }[]
 }
 
+// ── Page Statistiques (admin) ────────────────────────────────────────────────
+
+export interface CabinetStats {
+  top_entreprises: { entreprise_id: number; raison_sociale: string; ca_ht_net: number }[]
+  missions_par_prestation: { prestation_id: number; designation: string; total: number }[]
+  missions_par_etat: { en_cours: number; terminee: number; suspendue: number; annulee: number }
+  creances: {
+    total_impaye: number
+    aging: { retard_15_30: number; retard_30_60: number; retard_60_plus: number }
+    top_debiteurs: { entreprise_id: number; raison_sociale: string; montant_impaye: number }[]
+  }
+}
+
+export interface CollaborateurKpiStats {
+  user: { id: number; name: string; email: string }
+  objectifs: Partial<Record<KpiObjectifType, KpiObjectifValeur>>
+  realise: Record<KpiObjectifType | 'taches_en_retard' | 'delai_moyen_tache', number>
+  // CA HT des missions terminees par mois (12 valeurs, annee de l'exercice filtre)
+  realise_mensuel: { annee: number; data: number[] }
+  taches_par_statut: { a_faire: number; en_cours: number; terminee: number; bloquee: number }
+}
+
 export type KpiObjectifType = 'ca_ht' | 'missions_cloturees' | 'taches_terminees'
 
 export interface KpiObjectifValeur {
@@ -204,5 +226,18 @@ export const statsApi = {
 
   deleteKpiObjectif(id: number): Promise<void> {
     return api.delete(`/kpi/objectifs/${id}`)
+  },
+
+  getCabinetStats(exerciceId?: number | null): Promise<{ data: CabinetStats }> {
+    const params = exerciceId ? { exercice_id: exerciceId } : {}
+    return api.get('/stats/cabinet', { params }).then((r) => r.data)
+  },
+
+  getCollaborateurKpiStats(
+    userId: number,
+    exerciceId?: number | null,
+  ): Promise<{ data: CollaborateurKpiStats }> {
+    const params = exerciceId ? { exercice_id: exerciceId } : {}
+    return api.get(`/kpi/collaborateurs/${userId}/stats`, { params }).then((r) => r.data)
   },
 }
