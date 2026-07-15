@@ -9,6 +9,16 @@
 
 ## [Unreleased]
 
+### Tests E2E Playwright — parcours critiques contre le vrai backend — feature/tests-e2e-playwright
+
+Harnais **E2E Playwright** complétant la pyramide de tests (unitaires backend SQLite + composants front mockés) : **15 tests / 4 parcours** exécutés dans Chromium contre la **vraie stack** (Laravel + MySQL + Vite). Comble le trou structurel révélé par les bugs récents (`role[]` 500, toasts 403 secrétaire) : tout ce qui traverse la frontière front↔back est désormais couvert.
+
+- **Environnement isolé** : base MySQL dédiée `ledge_e2e` (jamais la base de dev), [backend/.env.e2e](backend/.env.e2e) versionné (clé de test, mail en mémoire), serveurs backend :8001 / frontend :5174 démarrés et arrêtés par Playwright, `migrate:fresh --seed` + `E2eSeeder` (comptes secrétaire/collaborateur de test) à chaque run.
+- **Parcours** : authentification par rôle (admin/secrétaire, échec de mot de passe) · **flux métier complet** entreprise → devis → accepté → converti en mission → facture (tranche 1) → paiement → statut soldé · navigation secrétaire avec assertion « **zéro toast d'erreur** » sur chaque page (non-régression des 403 en série) + Statistiques refusée · page Statistiques (onglets Cabinet/Collaborateurs, saisie d'objectif).
+- **Locators 100 % accessibles** (`getByRole`/`getByLabel` — aucun `data-testid` nécessaire, dividende direct du travail RGAA) ; `workers: 1` (base partagée), storageState par rôle, scripts `npm run test:e2e` / `test:e2e:ui`.
+- **Job CI dédié** (après les gates unitaires) : service MySQL + Chromium, rapport Playwright uploadé en artefact en cas d'échec.
+- **Bug de schéma trouvé par le harnais dès son premier run** : `missions.date_fin` était `NOT NULL` en base alors que la validation, le formulaire de conversion et tous les services la traitent comme nullable → toute conversion devis→mission sans date de fin provoquait un 500 SQL. Migration corrective réversible (`nullable()->change()`).
+
 ### Page Statistiques — analytique cabinet & pilotage collaborateurs — feature/page-statistiques
 
 Nouvelle page **Statistiques** (admin) à deux onglets, qui **remplace la page « KPI Objectifs »** (menu renommé, ancienne URL `/kpi/objectifs` redirigée). Filtre exercice global partagé. Suites vertes : **479 backend / 593 frontend**, `vue-tsc` 0 erreur. L'export PDF des objectifs (US-34), annoncé mais jamais implémenté, est **annulé** (décision produit).
