@@ -19,6 +19,32 @@ Le PrimeVue DatePicker émet une `Date` à minuit **local** ; plusieurs pages la
 - **Planning** ([PlanningCalendarPage.vue](frontend/src/pages/planning/PlanningCalendarPage.vue), [usePlanning.ts](frontend/src/composables/usePlanning.ts)) : plage rechargée au changement de filtre collaborateur décalée de J-1 (risque d'exclure le dernier jour affiché) ; « aujourd'hui » et le lundi de la semaine Équipe faux entre minuit et 1h.
 - Tests de non-régression sur minuit **local** (les tests existants utilisaient des dates UTC ou une simple regex de format, ce qui masquait le bug) ; assertion de date exacte rétablie sur la création de mission.
 
+### KPI — cohérence métier & UX des tableaux de bord — fix/kpi-coherence-et-ux
+
+Lot de correctifs issu de la revue du module KPI (logique + UI/UX) sur les 3 dashboards (admin, secrétaire, collaborateur) et la page Objectifs collaborateurs. Suites vertes : **450 backend / 571 frontend**, `vue-tsc` 0 erreur.
+
+**Cohérence métier (backend)**
+- **Impayé unifié avoirs déduits** : `DashboardService::calculerTotalImpaye` (dashboard admin) déduit désormais les avoirs par facture (`max(0, ttc − payé − avoirs)`, via `withSum`, sans N+1) — aligné sur `Facture::montantRestant()` utilisé par le dashboard secrétaire. Une facture de 100 000 DA avec avoir de 11 900 DA affichait 100 000 DA d'impayé côté admin et 88 100 DA côté secrétaire.
+- **« CA du mois » cohérent avec le filtre exercice** : renvoie `null` (affiché « — » avec explication) quand l'exercice filtré n'est pas celui de l'année en cours, au lieu d'un 0 DA trompeur (mois calendaire courant croisé avec un exercice passé). Lookup d'exercice factorisé (une seule requête).
+- **Bloc Devis scopé par exercice** (total, en attente, acceptés, CA potentiel) — il agrégeait tous les exercices quel que soit le filtre ; la carte Clients, volontairement globale, l'assume désormais visuellement (« Tous exercices »).
+- `KpiService::getCollaborateurs` expose l'`id` de chaque objectif (`{id, valeur}`) pour permettre la suppression depuis l'IHM.
+
+**UX des dashboards**
+- **Fin des toasts d'erreur en série pour la secrétaire** : `/factures` et `/devis` préchargeaient au montage `GET /missions` (réservé `admin|collaborateur`) et `GET /referentiels/tva-taux` (réservé `admin`) pour alimenter des dialogs de création qu'elle ne voit pas (`v-if="auth.isAdmin"`) → 403 + 2 toasts rouges sur Factures et 1 sur Devis **à chaque navigation** (décalage front/back hérité du recadrage de son périmètre). Fetchs désormais gardés par le rôle, sur le pattern d'`EntrepriseDetailPage` (`peutVoirMissions`). Tests de non-régression (secrétaire : aucun appel ni toast ; admin : préchargement conservé).
+- **État d'erreur visible sur les 3 dashboards** : un échec API affichait une page quasi vide sans message ; désormais bloc `role="alert"` + bouton « Réessayer » (nouvel état `error` de `useDashboardStats`). Sur la page Objectifs, une panne de chargement se déguisait en « Aucun collaborateur trouvé ».
+- **Drill-down sur les cartes KPI admin** : Impayés/Taux de recouvrement → `/creances`, Missions actives → `/missions`, Clients → `/entreprises`, CA/CA du mois → `/factures` — liens accessibles clavier (`:focus-visible`, `aria-label` portant le montant exact), à parité avec les dashboards secrétaire/collaborateur.
+- **Libellés de période** : sous-ligne « Exercice {année} / Toutes années » sur les cartes CA, Impayés et le panneau Devis — lève l'ambiguïté « CA du mois » (mensuel calendaire) vs « Chiffre d'affaires » (exercice filtré).
+
+**Page Objectifs collaborateurs (US-34) — finitions**
+- **Suppression d'objectif enfin possible depuis l'IHM** (l'API `DELETE` existait sans aucun chemin d'accès) : vider un champ puis Sauvegarder supprime l'objectif, avec texte d'aide dédié.
+- **Sauvegarde par diff + confirmation** : écrasements et suppressions passent par un `ConfirmDialog` récapitulatif ; aucune modification → toast « Aucune modification à enregistrer » (fini le clic sans effet et le faux toast de succès quand un champ vidé était silencieusement ignoré) ; échecs partiels nommant les objectifs concernés (`Promise.allSettled`).
+- **Objectif fixé à 0 distingué de « pas d'objectif »** (test d'existence `!= null` au lieu de truthy) ; **dépassement valorisé** : le pourcentage n'est plus plafonné à 100 % (Tag « 163 % », barre bornée visuellement).
+
+**Formatage & typographie des chiffres**
+- **Utilitaire partagé [utils/currency.ts](frontend/src/utils/currency.ts)** (`formatDA`, `formatDACompact`, `formatDAKpi`) : supprime 4 définitions locales divergentes. Cartes KPI : montants **compacts au-delà d'un million** (« 1,25 M DA ») avec montant exact en tooltip/`aria-label` ; sous le million et dans les tables, montant exact **avec centimes (,00) — règle projet**.
+- Chiffres des cartes en **`--ledge-ff-mono`** partout (classe manquante ajoutée) et taille ramenée de `text-3xl` à **`text-2xl`**.
+- `useCountUp` respecte désormais `prefers-reduced-motion` nativement (les compteurs du dashboard collaborateur l'ignoraient) ; suppression du CSS mort d'une comparaison N‑1 jamais branchée (`.reco-delta*`, `.reco-compare`, `.reco-vbar*`).
+
 ### Audit interne — remédiation sécurité, architecture, RGAA & qualité — integration/audit-fixes-preview
 
 Correction des écarts relevés par l'audit interne (règles métier, OWASP, RGAA, découpage architectural, code mort), plus l'outillage de démonstration et la documentation. Suites vertes : **445 backend / 551 frontend**, ESLint 0 erreur.

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useToast } from 'primevue/usetoast'
+import { useConfirm } from 'primevue/useconfirm'
 import Select from 'primevue/select'
 import InputNumber from 'primevue/inputnumber'
 import Button from 'primevue/button'
@@ -8,15 +9,18 @@ import ProgressBar from 'primevue/progressbar'
 import Tag from 'primevue/tag'
 import { statsApi, type KpiCollaborateur, type KpiObjectifType } from '@/api/modules/stats'
 import { exercicesApi } from '@/api/modules/exercices'
+import { formatDA, formatDAKpi } from '@/utils/currency'
 import type { Exercice } from '@/types'
 
 const toast = useToast()
+const confirm = useConfirm()
 
 const exercices = ref<Exercice[]>([])
 const exerciceId = ref<number | null>(null)
 const collaborateurs = ref<KpiCollaborateur[]>([])
 const loading = ref(false)
 const saving = ref<number | null>(null)
+const error = ref(false)
 
 // Valeurs en cours d'édition : clé = `${userId}-${type}`
 const editing = ref<Record<string, number | null>>({})
@@ -35,71 +39,156 @@ async function fetchExercices() {
   if (courant) exerciceId.value = courant.id
 }
 
+function remplirEditing(data: KpiCollaborateur[]) {
+  editing.value = {}
+  for (const collab of data) {
+    for (const t of typesObjectif) {
+      editing.value[`${collab.user.id}-${t.key}`] = collab.objectifs[t.key]?.valeur ?? null
+    }
+  }
+}
+
 async function fetchKpi() {
   loading.value = true
   try {
     const res = await statsApi.getKpiObjectifs(exerciceId.value)
     collaborateurs.value = res.data
-    editing.value = {}
-    for (const collab of res.data) {
-      for (const t of typesObjectif) {
-        editing.value[`${collab.user.id}-${t.key}`] = collab.objectifs[t.key] ?? null
-      }
-    }
+    remplirEditing(res.data)
+    error.value = false
   } catch {
+    error.value = true
     toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de charger les KPI.', life: 3000 })
   } finally {
     loading.value = false
   }
 }
 
-async function sauvegarder(collab: KpiCollaborateur) {
-  if (!exerciceId.value) return
+async function init() {
+  error.value = false
+  loading.value = true
+  try {
+    await fetchExercices()
+    await fetchKpi()
+  } catch {
+    error.value = true
+    loading.value = false
+  }
+}
 
-  const appels = typesObjectif
-    .map((t) => ({ type: t.key, valeur: editing.value[`${collab.user.id}-${t.key}`] }))
-    .filter((e): e is { type: KpiObjectifType; valeur: number } => e.valeur !== null && e.valeur !== undefined)
+interface DiffOperation {
+  type: KpiObjectifType
+  action: 'upsert' | 'delete'
+  valeur?: number
+  id?: number
+  ecrase: boolean
+}
 
-  if (appels.length === 0) return
+// Diff par type entre la saisie en cours et les objectifs existants du collaborateur
+function calculerDiff(collab: KpiCollaborateur): DiffOperation[] {
+  const diffs: DiffOperation[] = []
+  for (const t of typesObjectif) {
+    const existant = collab.objectifs[t.key]
+    const saisie = editing.value[`${collab.user.id}-${t.key}`]
 
+    if (saisie !== null && saisie !== undefined) {
+      if (!existant) {
+        diffs.push({ type: t.key, action: 'upsert', valeur: saisie, ecrase: false })
+      } else if (existant.valeur !== saisie) {
+        diffs.push({ type: t.key, action: 'upsert', valeur: saisie, ecrase: true })
+      }
+      // sinon : valeur identique -> aucune operation
+    } else if (existant) {
+      // champ vide alors qu'un objectif existe -> suppression
+      diffs.push({ type: t.key, action: 'delete', id: existant.id, ecrase: false })
+    }
+  }
+  return diffs
+}
+
+async function executerDiff(collab: KpiCollaborateur, diffs: DiffOperation[]) {
   saving.value = collab.user.id
   try {
-    await Promise.all(
-      appels.map((e) =>
-        statsApi.upsertKpiObjectif({
-          user_id: collab.user.id,
-          exercice_id: exerciceId.value!,
-          type: e.type,
-          valeur: e.valeur,
-        }),
+    const resultats = await Promise.allSettled(
+      diffs.map((d) =>
+        d.action === 'delete'
+          ? statsApi.deleteKpiObjectif(d.id!)
+          : statsApi.upsertKpiObjectif({
+              user_id: collab.user.id,
+              exercice_id: exerciceId.value!,
+              type: d.type,
+              valeur: d.valeur!,
+            }),
       ),
     )
-    toast.add({ severity: 'success', summary: 'Sauvegardé', detail: 'Objectifs mis à jour.', life: 2000 })
-    await fetchKpiSilent()
-  } catch {
-    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de sauvegarder.', life: 3000 })
+
+    const echecsTypes: KpiObjectifType[] = []
+    resultats.forEach((r, i) => {
+      if (r.status === 'rejected') echecsTypes.push(diffs[i].type)
+    })
+    const echecs = echecsTypes.map((t) => typesObjectif.find((to) => to.key === t)?.label ?? t)
+
+    if (echecs.length > 0) {
+      toast.add({
+        severity: 'error',
+        summary: 'Erreur',
+        detail: `Échec de la sauvegarde pour : ${echecs.join(', ')}.`,
+        life: 4000,
+      })
+    } else {
+      toast.add({ severity: 'success', summary: 'Sauvegardé', detail: 'Objectifs mis à jour.', life: 2000 })
+    }
   } finally {
     saving.value = null
+    await fetchKpiSilent()
   }
+}
+
+function sauvegarder(collab: KpiCollaborateur): void {
+  if (!exerciceId.value) return
+
+  const diffs = calculerDiff(collab)
+  if (diffs.length === 0) {
+    toast.add({ severity: 'info', summary: 'Information', detail: 'Aucune modification à enregistrer.', life: 2500 })
+    return
+  }
+
+  const suppressions = diffs.filter((d) => d.action === 'delete').length
+  const ecrasements = diffs.filter((d) => d.action === 'upsert' && d.ecrase).length
+  const misAJour = diffs.filter((d) => d.action === 'upsert').length
+
+  if (ecrasements > 0 || suppressions > 0) {
+    const parts: string[] = []
+    if (misAJour > 0) parts.push(`${misAJour} objectif${misAJour > 1 ? 's' : ''} mis à jour`)
+    if (suppressions > 0) parts.push(`${suppressions} supprimé${suppressions > 1 ? 's' : ''}`)
+
+    confirm.require({
+      message: `${parts.join(', ')} pour ${collab.user.name}.`,
+      header: 'Confirmation',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Confirmer',
+      rejectLabel: 'Annuler',
+      accept: () => executerDiff(collab, diffs),
+    })
+    return
+  }
+
+  executerDiff(collab, diffs)
 }
 
 async function fetchKpiSilent() {
   try {
     const res = await statsApi.getKpiObjectifs(exerciceId.value)
     collaborateurs.value = res.data
-    for (const collab of res.data) {
-      for (const t of typesObjectif) {
-        editing.value[`${collab.user.id}-${t.key}`] = collab.objectifs[t.key] ?? null
-      }
-    }
+    remplirEditing(res.data)
   } catch {
     // silencieux — ne pas interrompre l'UI après sauvegarde
   }
 }
 
-function pourcentage(realise: number, objectif: number | undefined): number {
-  if (!objectif || objectif <= 0) return 0
-  return Math.min(Math.round((realise / objectif) * 100), 100)
+function pourcentage(realise: number, objectif: number | null | undefined): number {
+  if (objectif === null || objectif === undefined) return 0
+  if (objectif === 0) return realise >= 0 ? 100 : 0
+  return Math.round((realise / objectif) * 100)
 }
 
 function progressSeverity(pct: number): string {
@@ -110,7 +199,7 @@ function progressSeverity(pct: number): string {
 }
 
 function formatValeur(val: number, unit: string): string {
-  if (unit === 'DA') return new Intl.NumberFormat('fr-DZ').format(val) + ' DA'
+  if (unit === 'DA') return formatDAKpi(val)
   if (unit === 'jours') return val.toFixed(1) + ' j'
   return String(Math.round(val))
 }
@@ -119,10 +208,7 @@ const exerciceOptions = computed(() =>
   exercices.value.map((e) => ({ label: `${e.annee}${e.statut === 'ouvert' ? ' (ouvert)' : ''}`, value: e.id }))
 )
 
-onMounted(async () => {
-  await fetchExercices()
-  await fetchKpi()
-})
+onMounted(init)
 </script>
 
 <template>
@@ -149,6 +235,12 @@ onMounted(async () => {
     <div v-if="loading" class="loading-state" role="status" aria-live="polite">
       <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
       <span>Chargement…</span>
+    </div>
+
+    <div v-else-if="error" class="error-state" role="alert">
+      <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+      <p>Impossible de charger les données. Veuillez réessayer.</p>
+      <Button label="Réessayer" icon="pi pi-refresh" severity="secondary" @click="init" />
     </div>
 
     <div v-else-if="collaborateurs.length === 0" class="empty-state">
@@ -185,7 +277,10 @@ onMounted(async () => {
               <!-- Réalisé -->
               <div class="kpi-realise">
                 <span class="kpi-val-label">Réalisé</span>
-                <strong>{{ formatValeur(collab.realise[type.key], type.unit) }}</strong>
+                <strong
+                  :title="type.unit === 'DA' ? formatDA(collab.realise[type.key]) : undefined"
+                  :aria-label="type.unit === 'DA' ? formatDA(collab.realise[type.key]) : undefined"
+                >{{ formatValeur(collab.realise[type.key], type.unit) }}</strong>
               </div>
 
               <!-- Objectif éditable -->
@@ -196,6 +291,7 @@ onMounted(async () => {
                   v-model="editing[`${collab.user.id}-${type.key}`]"
                   :min="0"
                   :max-fraction-digits="0"
+                  :suffix="type.key === 'ca_ht' ? ' DA' : undefined"
                   :aria-label="`Objectif ${type.label} pour ${collab.user.name}`"
                   class="kpi-input"
                   :disabled="!exerciceId"
@@ -203,17 +299,19 @@ onMounted(async () => {
               </div>
 
               <!-- Progression -->
-              <div v-if="collab.objectifs[type.key]" class="kpi-progress">
+              <div v-if="collab.objectifs[type.key] != null" class="kpi-progress">
                 <div class="kpi-pct-row">
                   <span class="kpi-val-label">Progression</span>
                   <Tag
-                    :value="`${pourcentage(collab.realise[type.key], collab.objectifs[type.key])}%`"
-                    :severity="progressSeverity(pourcentage(collab.realise[type.key], collab.objectifs[type.key]))"
+                    class="kpi-pct-tag"
+                    :value="`${pourcentage(collab.realise[type.key], collab.objectifs[type.key]?.valeur)}%`"
+                    :severity="progressSeverity(pourcentage(collab.realise[type.key], collab.objectifs[type.key]?.valeur))"
+                    :aria-label="`Progression ${type.label} : ${pourcentage(collab.realise[type.key], collab.objectifs[type.key]?.valeur)} pour cent`"
                   />
                 </div>
                 <ProgressBar
-                  :value="pourcentage(collab.realise[type.key], collab.objectifs[type.key])"
-                  :aria-label="`Progression ${type.label} : ${pourcentage(collab.realise[type.key], collab.objectifs[type.key])}%`"
+                  :value="Math.min(pourcentage(collab.realise[type.key], collab.objectifs[type.key]?.valeur), 100)"
+                  :aria-label="`Progression ${type.label} : ${pourcentage(collab.realise[type.key], collab.objectifs[type.key]?.valeur)}%`"
                   style="height: 6px; margin-top: 4px;"
                 />
               </div>
@@ -254,6 +352,7 @@ onMounted(async () => {
 
         <!-- Bouton sauvegarde -->
         <div class="collab-footer">
+          <p class="save-hint">Vider un champ puis sauvegarder supprime l'objectif.</p>
           <Button
             label="Sauvegarder les objectifs"
             icon="pi pi-save"
@@ -298,7 +397,8 @@ onMounted(async () => {
 }
 
 .loading-state,
-.empty-state {
+.empty-state,
+.error-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -308,6 +408,9 @@ onMounted(async () => {
 }
 
 .empty-state i { font-size: 2.5rem; opacity: 0.4; }
+
+.error-state i { font-size: 2.5rem; color: var(--p-red-500); }
+.error-state p { margin: 0; }
 
 .collaborateurs-list {
   display: flex;
@@ -408,6 +511,11 @@ onMounted(async () => {
 .kpi-realise strong {
   font-size: 0.9rem;
   color: var(--p-text-color);
+  font-family: var(--ledge-ff-mono);
+}
+
+.kpi-pct-tag {
+  font-family: var(--ledge-ff-mono);
 }
 
 .kpi-input {
@@ -477,10 +585,19 @@ onMounted(async () => {
 
 .collab-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   padding-top: 1rem;
   margin-top: 0.75rem;
   border-top: 1px solid var(--p-surface-border);
+}
+
+.save-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
 }
 
 @media (max-width: 900px) {

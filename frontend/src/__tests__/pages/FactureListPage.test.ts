@@ -229,6 +229,24 @@ describe('FactureListPage — roles', () => {
     expect(findButton(wrapper, 'Emettre un avoir')).toBeUndefined()
     expect(findButton(wrapper, 'Supprimer')).toBeUndefined()
   })
+
+  // Regression : /missions (role:admin|collaborateur) et /referentiels/tva-taux
+  // (role:admin) renvoyaient 403 en secretaire -> 2 toasts d'erreur a CHAQUE
+  // visite de la page, pour alimenter un dialog de creation qu'elle ne voit pas.
+  it('secretaire : ne charge ni les missions ni les taux TVA (aucun toast d erreur)', async () => {
+    await mountPage(FactureListPage, { role: 'secretaire', stubs: drawerStub })
+
+    expect(mockMissionsGetAll).not.toHaveBeenCalled()
+    expect(mockTvaGetAll).not.toHaveBeenCalled()
+    expect(toastAdd).not.toHaveBeenCalledWith(expect.objectContaining({ severity: 'error' }))
+  })
+
+  it('admin : precharge missions et taux TVA pour le dialog de creation', async () => {
+    await mountPage(FactureListPage, { stubs: drawerStub })
+
+    expect(mockMissionsGetAll).toHaveBeenCalled()
+    expect(mockTvaGetAll).toHaveBeenCalled()
+  })
 })
 
 describe('FactureListPage — creation de facture (admin)', () => {

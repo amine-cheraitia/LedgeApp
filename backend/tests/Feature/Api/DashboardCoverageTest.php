@@ -378,6 +378,34 @@ class DashboardCoverageTest extends TestCase
         $this->assertEquals(100000.0, $res->json('data.devis.ca_potentiel'));
     }
 
+    public function test_stats_devis_scopes_par_exercice(): void
+    {
+        $anneePrec = (int) now()->year - 1;
+        $exercicePrecedent = Exercice::firstOrCreate(
+            ['annee' => $anneePrec],
+            ['date_ouverture' => $anneePrec.'-01-01', 'statut' => 'cloture']
+        );
+
+        $entreprise = Entreprise::factory()->create(['statut' => 'client']);
+
+        // Devis dans l'exercice precedent -> ne doit pas etre compte quand on filtre l'exercice courant
+        $devisPrecedent = $this->creerDevis($entreprise, 'envoye', 70000);
+        $devisPrecedent->update(['exercice_id' => $exercicePrecedent->id]);
+
+        // Devis dans l'exercice courant
+        $this->creerDevis($entreprise, 'brouillon', 60000);
+        $this->creerDevis($entreprise, 'accepte', 90000);
+
+        $res = $this->actingAs($this->admin)
+            ->getJson('/api/v1/stats?exercice_id='.$this->exercice->id)
+            ->assertOk();
+
+        $this->assertSame(2, $res->json('data.devis.total'));
+        $this->assertSame(1, $res->json('data.devis.en_attente'));
+        $this->assertSame(1, $res->json('data.devis.acceptes'));
+        $this->assertEquals(60000.0, $res->json('data.devis.ca_potentiel'));
+    }
+
     public function test_stats_recentes_limitees_a_cinq(): void
     {
         for ($i = 0; $i < 7; $i++) {

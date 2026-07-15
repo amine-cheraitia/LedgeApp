@@ -26,6 +26,7 @@ describe('useDashboardStats — etat initial', () => {
     const c = useDashboardStats()
 
     expect(c.loading.value).toBe(false)
+    expect(c.error.value).toBe(false)
     expect(c.adminStats.value).toBeNull()
     expect(c.collaborateurStats.value).toBeNull()
     expect(c.secretaireStats.value).toBeNull()
@@ -71,6 +72,19 @@ describe('useDashboardStats — fetchAdminStats', () => {
     expect(c.adminStats.value).toBeNull()
     expect(c.loading.value).toBe(false)
   })
+
+  it('signale l erreur via error puis la reinitialise au refetch reussi', async () => {
+    mockGetDashboard.mockRejectedValueOnce(new Error('500'))
+    const c = useDashboardStats()
+
+    await c.fetchAdminStats()
+    expect(c.error.value).toBe(true)
+
+    mockGetDashboard.mockResolvedValueOnce({ data: { kpi: {} } })
+    await c.fetchAdminStats()
+    expect(c.error.value).toBe(false)
+    expect(c.adminStats.value).not.toBeNull()
+  })
 })
 
 describe('useDashboardStats — fetchCollaborateurStats', () => {
@@ -86,13 +100,14 @@ describe('useDashboardStats — fetchCollaborateurStats', () => {
     expect(c.loading.value).toBe(false)
   })
 
-  it('remet collaborateurStats a null en cas d erreur', async () => {
+  it('remet collaborateurStats a null et signale l erreur', async () => {
     mockGetCollab.mockRejectedValue(new Error('403'))
     const c = useDashboardStats()
 
     await expect(c.fetchCollaborateurStats()).resolves.toBeUndefined()
 
     expect(c.collaborateurStats.value).toBeNull()
+    expect(c.error.value).toBe(true)
     expect(c.loading.value).toBe(false)
   })
 })
@@ -110,13 +125,14 @@ describe('useDashboardStats — fetchSecretaireStats', () => {
     expect(c.loading.value).toBe(false)
   })
 
-  it('remet secretaireStats a null en cas d erreur', async () => {
+  it('remet secretaireStats a null et signale l erreur', async () => {
     mockGetSecretaire.mockRejectedValue(new Error('réseau'))
     const c = useDashboardStats()
 
     await expect(c.fetchSecretaireStats()).resolves.toBeUndefined()
 
     expect(c.secretaireStats.value).toBeNull()
+    expect(c.error.value).toBe(true)
     expect(c.loading.value).toBe(false)
   })
 

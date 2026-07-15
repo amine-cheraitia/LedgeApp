@@ -5,10 +5,12 @@ import { useCountUp } from '@/composables/useCountUp'
 import { useLayout } from '@/layout/composables/layout'
 import SecretaireDashboardSection from '@/pages/dashboard/SecretaireDashboardSection.vue'
 import { prioriteLabel, prioriteSeverity } from '@/utils/priorite'
+import { formatDA, formatDACompact, formatDAKpi } from '@/utils/currency'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import Select from 'primevue/select'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
+import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Chart from 'primevue/chart'
@@ -18,6 +20,7 @@ const auth = useAuthStore()
 const { isDarkTheme } = useLayout()
 const {
   loading,
+  error,
   adminStats: stats,
   collaborateurStats: collabStats,
   secretaireStats,
@@ -26,6 +29,14 @@ const {
   fetchSecretaireStats,
 } = useDashboardStats()
 const exerciceId = ref<number | null>(null)
+
+// Libelle d'exercice affiche en sous-ligne des cartes/panneaux scopes par
+// exercice (CA, Impayes, Devis) -> le contexte de filtrage reste visible.
+const exerciceLabel = computed(() => {
+  if (!exerciceId.value) return 'Toutes années'
+  const ex = stats.value?.exercices.find((e) => e.id === exerciceId.value)
+  return ex ? `Exercice ${ex.annee}` : 'Toutes années'
+})
 
 async function fetchStats() {
   if (auth.isCollaborateur) {
@@ -55,10 +66,6 @@ const animBloquees = useCountUp(tachesBloquees)
 // ── Helpers ────────────────────────────────────────────────────────────────
 function alerteSeverity(type: string): 'error' | 'warn' | 'info' | 'success' {
   return type === 'danger' ? 'error' : type === 'warn' ? 'warn' : 'info'
-}
-
-function formatDA(montant: number): string {
-  return new Intl.NumberFormat('fr-DZ', { style: 'decimal', minimumFractionDigits: 2 }).format(montant) + ' DA'
 }
 
 function formatDate(dateStr: string): string {
@@ -137,10 +144,6 @@ const moisLongs = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juill
 const prefersReduced = typeof window !== 'undefined'
   && typeof window.matchMedia === 'function'
   && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
-function formatDACompact(montant: number): string {
-  return new Intl.NumberFormat('fr-DZ', { notation: 'compact', maximumFractionDigits: 1 }).format(montant) + ' DA'
-}
 
 // Couleurs lues sur les tokens PrimeVue (réactives au dark mode)
 const themeColors = ref({ text: '', muted: '', border: '', primary: '' })
@@ -272,6 +275,15 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
          hors ecran -> evite le layout shift (CLS) au remplacement spinner->contenu. -->
     <div v-if="loading" class="col-span-12 flex items-center justify-center py-20" style="min-height: 80vh">
       <ProgressSpinner aria-label="Chargement du tableau de bord" />
+    </div>
+
+    <!-- Erreur de chargement -->
+    <div v-if="!loading && error" class="col-span-12">
+      <div class="card dashboard-error" role="alert" aria-live="assertive">
+        <i class="pi pi-exclamation-triangle dashboard-error__icon" aria-hidden="true"></i>
+        <p class="dashboard-error__msg">Impossible de charger le tableau de bord.</p>
+        <Button label="Réessayer" icon="pi pi-refresh" @click="fetchStats" />
+      </div>
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════ -->
@@ -724,18 +736,28 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
 
       <!-- KPI widgets -->
       <div class="col-span-12 lg:col-span-6 xl:col-span-4">
-        <div class="card h-full">
+        <router-link
+          to="/factures"
+          class="card h-full kpi-drill"
+          :aria-label="`Voir les factures — CA du mois : ${stats.kpi.ca_mois === null ? 'non applicable' : formatDA(stats.kpi.ca_mois)}`"
+        >
           <div class="flex items-center justify-between mb-4">
             <span class="text-muted-color font-medium">CA du mois</span>
             <div class="flex items-center justify-center bg-cyan-100 dark:bg-cyan-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
               <i class="pi pi-chart-line text-cyan-500 text-xl!" aria-hidden="true"></i>
             </div>
           </div>
-          <div class="text-surface-900 dark:text-surface-0 font-bold text-2xl dash-figure">{{ formatDA(stats.kpi.ca_mois) }}</div>
+          <div v-if="stats.kpi.ca_mois === null" class="text-surface-900 dark:text-surface-0 font-bold text-2xl dash-figure">—</div>
+          <div
+            v-else
+            class="text-surface-900 dark:text-surface-0 font-bold text-2xl dash-figure"
+            :title="formatDA(stats.kpi.ca_mois)"
+          >{{ formatDAKpi(stats.kpi.ca_mois) }}</div>
           <div class="mt-4">
-            <span class="text-muted-color text-sm">Factures émises ce mois</span>
+            <span v-if="stats.kpi.ca_mois === null" class="text-muted-color text-sm">Mois courant hors de l'exercice sélectionné</span>
+            <span v-else class="text-muted-color text-sm">Factures émises ce mois</span>
           </div>
-        </div>
+        </router-link>
       </div>
 
       <div class="col-span-12 lg:col-span-6 xl:col-span-4">
@@ -746,15 +768,23 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
               <i class="pi pi-percentage text-purple-500 text-xl!" aria-hidden="true"></i>
             </div>
           </div>
-          <div class="text-surface-900 dark:text-surface-0 font-bold text-2xl dash-figure">{{ formatDA(stats.kpi.tva_collectee) }}</div>
+          <div
+            class="text-surface-900 dark:text-surface-0 font-bold text-2xl dash-figure"
+            :title="formatDA(stats.kpi.tva_collectee)"
+            :aria-label="`TVA collectée : ${formatDA(stats.kpi.tva_collectee)}`"
+          >{{ formatDAKpi(stats.kpi.tva_collectee) }}</div>
           <div class="mt-4">
-            <span class="text-muted-color text-sm">Cumul sur la période</span>
+            <span class="text-muted-color text-sm">Cumul — {{ exerciceLabel.toLowerCase() }}</span>
           </div>
         </div>
       </div>
 
       <div class="col-span-12 lg:col-span-6 xl:col-span-4">
-        <div class="card h-full">
+        <router-link
+          to="/creances"
+          class="card h-full kpi-drill"
+          :aria-label="`Voir les créances — taux de recouvrement : ${stats.kpi.taux_recouvrement}%`"
+        >
           <div class="flex items-center justify-between mb-4">
             <span class="text-muted-color font-medium">Taux de recouvrement</span>
             <div
@@ -792,76 +822,103 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
             </div>
             <span class="text-muted-color text-xs mt-1 block">Seuil : {{ stats.kpi.seuil_recouvrement }}%</span>
           </div>
-        </div>
+        </router-link>
       </div>
 
       <!-- Stat Cards -->
       <div class="col-span-12 lg:col-span-6 xl:col-span-3">
-        <div class="card h-full">
+        <router-link
+          to="/entreprises"
+          class="card h-full kpi-drill"
+          :aria-label="`Voir les entreprises — clients : ${stats.entreprises.clients}`"
+        >
           <div class="flex items-center justify-between mb-4">
             <span class="text-muted-color font-medium">Clients</span>
             <div class="flex items-center justify-center bg-blue-100 dark:bg-blue-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
               <i class="pi pi-building text-blue-500 text-xl!"></i>
             </div>
           </div>
-          <div class="text-surface-900 dark:text-surface-0 font-bold text-3xl dash-figure">{{ stats.entreprises.clients }}</div>
+          <div class="text-surface-900 dark:text-surface-0 font-bold text-2xl dash-figure">{{ stats.entreprises.clients }}</div>
           <div class="flex items-center mt-4">
             <span class="text-muted-color">{{ stats.entreprises.prospects }} prospects</span>
             <span class="text-muted-color mx-2">&bull;</span>
             <span class="font-medium">{{ stats.entreprises.total }} total</span>
           </div>
-        </div>
+          <p class="text-muted-color text-xs mt-2 mb-0">Tous exercices</p>
+        </router-link>
       </div>
 
       <div class="col-span-12 lg:col-span-6 xl:col-span-3">
-        <div class="card h-full">
+        <router-link
+          to="/missions"
+          class="card h-full kpi-drill"
+          :aria-label="`Voir les missions — missions actives : ${stats.missions.en_cours}`"
+        >
           <div class="flex items-center justify-between mb-4">
             <span class="text-muted-color font-medium">Missions actives</span>
             <div class="flex items-center justify-center bg-blue-100 dark:bg-blue-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
               <i class="pi pi-briefcase text-blue-500 text-xl!"></i>
             </div>
           </div>
-          <div class="text-surface-900 dark:text-surface-0 font-bold text-3xl dash-figure">{{ stats.missions.en_cours }}</div>
+          <div class="text-surface-900 dark:text-surface-0 font-bold text-2xl dash-figure">{{ stats.missions.en_cours }}</div>
           <div class="flex items-center mt-4">
             <span class="text-green-500 font-medium">{{ stats.missions.terminees }} terminées</span>
             <span class="text-muted-color mx-2">&bull;</span>
             <span class="text-muted-color">{{ stats.missions.total }} total</span>
           </div>
-        </div>
+          <p class="text-muted-color text-xs mt-2 mb-0">{{ exerciceLabel }}</p>
+        </router-link>
       </div>
 
       <div class="col-span-12 lg:col-span-6 xl:col-span-3">
-        <div class="card h-full">
+        <router-link
+          to="/factures"
+          class="card h-full kpi-drill"
+          :aria-label="`Voir les factures — chiffre d'affaires : ${formatDA(stats.factures.ca_ttc)}`"
+        >
           <div class="flex items-center justify-between mb-4">
             <span class="text-muted-color font-medium">Chiffre d'affaires</span>
             <div class="flex items-center justify-center bg-cyan-100 dark:bg-cyan-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
               <i class="pi pi-dollar text-cyan-500 text-xl!"></i>
             </div>
           </div>
-          <div class="text-surface-900 dark:text-surface-0 font-bold text-3xl dash-figure">{{ formatDA(stats.factures.ca_ttc) }}</div>
+          <div
+            class="text-surface-900 dark:text-surface-0 font-bold text-2xl dash-figure"
+            :title="formatDA(stats.factures.ca_ttc)"
+          >{{ formatDAKpi(stats.factures.ca_ttc) }}</div>
           <div class="flex items-center mt-4">
-            <span class="text-green-500 font-medium">{{ formatDA(stats.factures.total_paye) }}</span>
-            <span class="text-muted-color ml-1">encaissé</span>
+            <span class="text-green-500 font-medium" :title="formatDA(stats.factures.total_paye)">{{ formatDAKpi(stats.factures.total_paye) }}</span>
+            <span class="text-muted-color mx-2">&bull;</span>
+            <span class="text-muted-color">encaissé</span>
           </div>
-        </div>
+          <p class="text-muted-color text-xs mt-2 mb-0">{{ exerciceLabel }}</p>
+        </router-link>
       </div>
 
       <div class="col-span-12 lg:col-span-6 xl:col-span-3">
-        <div class="card h-full">
+        <router-link
+          to="/creances"
+          class="card h-full kpi-drill"
+          :aria-label="`Voir les créances — impayés : ${formatDA(stats.factures.total_impaye)}`"
+        >
           <div class="flex items-center justify-between mb-4">
             <span class="text-muted-color font-medium">Impayés</span>
             <div class="flex items-center justify-center rounded-border" :class="stats.factures.en_retard > 0 ? 'bg-red-100 dark:bg-red-400/10' : 'bg-green-100 dark:bg-green-400/10'" style="width: 2.5rem; height: 2.5rem">
               <i class="pi pi-exclamation-triangle text-xl!" :class="stats.factures.en_retard > 0 ? 'text-red-500' : 'text-green-500'"></i>
             </div>
           </div>
-          <div class="text-surface-900 dark:text-surface-0 font-bold text-3xl dash-figure">{{ formatDA(stats.factures.total_impaye) }}</div>
+          <div
+            class="text-surface-900 dark:text-surface-0 font-bold text-2xl dash-figure"
+            :title="formatDA(stats.factures.total_impaye)"
+          >{{ formatDAKpi(stats.factures.total_impaye) }}</div>
           <div class="flex items-center mt-4">
             <span v-if="stats.factures.en_retard > 0" class="text-red-500 font-medium">{{ stats.factures.en_retard }} en retard</span>
             <span v-else class="text-green-500 font-medium">Aucun retard</span>
             <span class="text-muted-color mx-2">&bull;</span>
             <span class="text-muted-color">{{ stats.factures.en_attente + stats.factures.partielles }} factures</span>
           </div>
-        </div>
+          <p class="text-muted-color text-xs mt-2 mb-0">{{ exerciceLabel }}</p>
+        </router-link>
       </div>
 
       <!-- ── Graphiques ── -->
@@ -926,7 +983,10 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
       <!-- Devis résumé -->
       <div class="col-span-12 xl:col-span-4">
         <div class="card h-full">
-          <div class="text-surface-900 dark:text-surface-0 font-bold text-lg mb-4">Devis</div>
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-surface-900 dark:text-surface-0 font-bold text-lg">Devis</span>
+            <span class="text-muted-color text-xs">{{ exerciceLabel }}</span>
+          </div>
           <ul class="list-none p-0 m-0">
             <li class="flex items-center justify-between py-3 border-b border-surface">
               <div class="flex items-center gap-3">
@@ -1055,6 +1115,43 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
 </template>
 
 <style scoped>
+/* ── Etat d'erreur (echec de chargement des stats) ────────────────────── */
+.dashboard-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  border-top: 3px solid var(--ledge-danger);
+}
+.dashboard-error__icon {
+  font-size: 2.5rem;
+  color: var(--ledge-danger);
+}
+.dashboard-error__msg {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--p-text-color);
+  margin: 0;
+}
+
+/* ── Cartes KPI cliquables (drill-down) ────────────────────────────────── */
+.kpi-drill {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.kpi-drill:hover {
+  box-shadow: var(--ledge-shadow-card-hover);
+  transform: translateY(-2px);
+}
+.kpi-drill:focus-visible {
+  outline: 2px solid var(--p-primary-color);
+  outline-offset: 2px;
+}
+
 /* ── Charts (Chart.js) ────────────────────────────────────────────────── */
 .chart-box {
   position: relative;
@@ -1822,6 +1919,7 @@ a.timeline-title:focus-visible { outline: 2px solid var(--p-primary-color); outl
 /* ── Reduced motion ───────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .kpi-card { transition: none; }
+  .kpi-drill { transition: none; }
   .kpi-ring__fill { transition: none; }
   .donut-seg { transition: none; }
   .bar-fill { transition: none; }
