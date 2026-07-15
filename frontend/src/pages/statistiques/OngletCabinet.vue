@@ -9,6 +9,7 @@ import { useLayout } from '@/layout/composables/layout'
 import { statsApi } from '@/api/modules/stats'
 import type { CabinetStats } from '@/api/modules/stats'
 import { formatDA, formatDACompact, formatDAKpi } from '@/utils/currency'
+import { chartColor } from '@/utils/chartPalette'
 
 const props = defineProps<{ exerciceId: number | null }>()
 
@@ -60,11 +61,6 @@ watch(isDarkTheme, async () => {
   refreshThemeColors()
 })
 
-// Palette categorielle (esprit de la palette missions du dashboard, tons distincts)
-const PALETTE = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#64748b', '#ec4899']
-function paletteColor(i: number): string {
-  return PALETTE[i % PALETTE.length]
-}
 
 // ── Bloc a : Top entreprises contributrices (barres horizontales) ──────────
 const topEntreprises = computed(() => stats.value?.top_entreprises ?? [])
@@ -119,7 +115,7 @@ const missionsPrestationData = computed(() => ({
   labels: missionsPrestation.value.map((p) => p.designation),
   datasets: [{
     data: missionsPrestation.value.map((p) => p.total),
-    backgroundColor: missionsPrestation.value.map((_, i) => paletteColor(i)),
+    backgroundColor: missionsPrestation.value.map((_, i) => chartColor(i)),
     borderWidth: 0,
   }],
 }))

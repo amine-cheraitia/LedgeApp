@@ -74,6 +74,10 @@ function makeStats(overrides: Partial<CollaborateurKpiStats> = {}): Collaborateu
     realise: { ca_ht: 500000, missions_cloturees: 6, taches_terminees: 12, taches_en_retard: 2, delai_moyen_tache: 3.46 },
     realise_mensuel: { annee: 2026, data: [100000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 200000] },
     taches_par_statut: { a_faire: 1, en_cours: 2, terminee: 12, bloquee: 1 },
+    missions_par_prestation: [
+      { prestation_id: 1, designation: 'Audit légal', total: 5 },
+      { prestation_id: 2, designation: 'Assistance comptable', total: 2 },
+    ],
     ...overrides,
   }
 }
@@ -178,7 +182,7 @@ describe('OngletCollaborateurs — chargement des stats', () => {
 })
 
 describe('OngletCollaborateurs — graphiques (RGAA)', () => {
-  it('affiche les tables sr-only des deux graphiques avec caption', async () => {
+  it('affiche les tables sr-only des trois graphiques avec caption', async () => {
     const { wrapper } = await mountPage(OngletCollaborateurs, { props: { exerciceId: 1 } })
     const vm = wrapper.vm as any
 
@@ -188,9 +192,36 @@ describe('OngletCollaborateurs — graphiques (RGAA)', () => {
     const captions = wrapper.findAll('caption').map((c) => c.text())
     expect(captions.some((c) => c.includes('mois'))).toBe(true)
     expect(captions.some((c) => c.includes('statut'))).toBe(true)
+    expect(captions.some((c) => c.includes('prestation'))).toBe(true)
 
-    // 2 graphiques rendus avec role="img" (fallthrough sur le stub Chart)
-    expect(wrapper.findAll('[role="img"]').length).toBe(2)
+    // 3 graphiques rendus avec role="img" (fallthrough sur le stub Chart)
+    expect(wrapper.findAll('[role="img"]').length).toBe(3)
+  })
+
+  it('missions par prestation : table sr-only avec designations et totaux', async () => {
+    const { wrapper } = await mountPage(OngletCollaborateurs, { props: { exerciceId: 1 } })
+    const vm = wrapper.vm as any
+
+    vm.selectedUserId = 2
+    await flushPromises()
+
+    const text = wrapper.text()
+    expect(text).toContain('Missions par prestation')
+    expect(text).toContain('Audit légal')
+    expect(text).toContain('Assistance comptable')
+    // Totaux mockés : 5 et 2
+    expect(vm.missionsPrestation.map((p: { total: number }) => p.total)).toEqual([5, 2])
+  })
+
+  it('missions par prestation : état vide quand aucune mission', async () => {
+    mockGetCollabStats.mockResolvedValue({ data: makeStats({ missions_par_prestation: [] }) })
+    const { wrapper } = await mountPage(OngletCollaborateurs, { props: { exerciceId: 1 } })
+    const vm = wrapper.vm as any
+
+    vm.selectedUserId = 2
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Aucune mission sur cet exercice.')
   })
 })
 

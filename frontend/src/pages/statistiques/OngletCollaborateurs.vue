@@ -11,6 +11,7 @@ import { useUsers } from '@/composables/useUsers'
 import { useLayout } from '@/layout/composables/layout'
 import { statsApi, type CollaborateurKpiStats, type KpiObjectifType } from '@/api/modules/stats'
 import { formatDA, formatDACompact, formatDAKpi } from '@/utils/currency'
+import { chartColor } from '@/utils/chartPalette'
 import ObjectifsEditor from '@/pages/statistiques/ObjectifsEditor.vue'
 
 const props = defineProps<{ exerciceId: number | null }>()
@@ -182,6 +183,44 @@ const tachesAria = computed(() => {
   if (!t) return ''
   return `Répartition des tâches par statut : À faire ${t.a_faire}, En cours ${t.en_cours}, Terminée ${t.terminee}, Bloquée ${t.bloquee}`
 })
+
+// Missions par prestation (participation via ses missions, tous statuts)
+const missionsPrestation = computed(() => stats.value?.missions_par_prestation ?? [])
+const missionsPrestationVide = computed(() => missionsPrestation.value.length === 0)
+
+const missionsPrestationData = computed(() => ({
+  labels: missionsPrestation.value.map((p) => p.designation),
+  datasets: [{
+    data: missionsPrestation.value.map((p) => p.total),
+    backgroundColor: missionsPrestation.value.map((_, i) => chartColor(i)),
+    borderWidth: 0,
+  }],
+}))
+
+const missionsPrestationOptions = computed(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: prefersReduced ? false : undefined,
+  cutout: '60%',
+  plugins: {
+    legend: {
+      position: 'bottom' as const,
+      labels: { color: themeColors.value.text, usePointStyle: true, padding: 16 },
+    },
+    tooltip: {
+      callbacks: {
+        label: (ctx: { label: string; parsed: number }) =>
+          `${ctx.label} : ${ctx.parsed} mission${ctx.parsed !== 1 ? 's' : ''}`,
+      },
+    },
+  },
+}))
+
+const missionsPrestationAria = computed(() => {
+  if (missionsPrestationVide.value) return 'Missions par prestation : aucune donnée'
+  return 'Missions du collaborateur par prestation : '
+    + missionsPrestation.value.map((p) => `${p.designation} ${p.total}`).join(', ')
+})
 </script>
 
 <template>
@@ -290,6 +329,30 @@ const tachesAria = computed(() => {
                 <tr><td>En cours</td><td>{{ stats.taches_par_statut.en_cours }}</td></tr>
                 <tr><td>Terminée</td><td>{{ stats.taches_par_statut.terminee }}</td></tr>
                 <tr><td>Bloquée</td><td>{{ stats.taches_par_statut.bloquee }}</td></tr>
+              </tbody>
+            </table>
+          </template>
+        </div>
+
+        <div class="card oc-chart-panel">
+          <div class="oc-panel-header">
+            <h2 class="oc-panel-title">Missions par prestation</h2>
+          </div>
+          <div v-if="missionsPrestationVide" class="oc-empty-state oc-empty-state--inline" role="status">
+            <p>Aucune mission sur cet exercice.</p>
+          </div>
+          <template v-else>
+            <div class="oc-chart-box">
+              <Chart type="doughnut" :data="missionsPrestationData" :options="missionsPrestationOptions" role="img" :aria-label="missionsPrestationAria" />
+            </div>
+            <table class="sr-only">
+              <caption>Répartition des missions du collaborateur par prestation</caption>
+              <thead><tr><th>Prestation</th><th>Missions</th></tr></thead>
+              <tbody>
+                <tr v-for="p in missionsPrestation" :key="p.prestation_id">
+                  <td>{{ p.designation }}</td>
+                  <td>{{ p.total }}</td>
+                </tr>
               </tbody>
             </table>
           </template>

@@ -195,8 +195,76 @@ class KpiCollaborateurStatsTest extends TestCase
                     'realise' => ['ca_ht', 'missions_cloturees', 'taches_terminees', 'taches_en_retard', 'delai_moyen_tache'],
                     'realise_mensuel' => ['annee', 'data'],
                     'taches_par_statut' => ['a_faire', 'en_cours', 'terminee', 'bloquee'],
+                    'missions_par_prestation',
                 ],
             ]);
+    }
+
+    // -------------------------------------------------------------------------
+    // missions_par_prestation
+    // -------------------------------------------------------------------------
+
+    public function test_missions_par_prestation_compte_la_participation(): void
+    {
+        $audit = Prestation::firstOrCreate(
+            ['code' => 'CAC'],
+            ['designation' => 'Audit legal', 'tarif_initial' => 300000]
+        );
+
+        // 2 missions Comptabilite (terminees) + 1 Audit (en cours) : la
+        // participation compte tous les statuts, pas seulement les cloturees.
+        $this->creerMissionTerminee($this->collaborateur, now()->year.'-02-10', 100000);
+        $this->creerMissionTerminee($this->collaborateur, now()->year.'-04-10', 100000);
+
+        $missionAudit = Mission::factory()->create([
+            'entreprise_id' => Entreprise::factory()->create(['statut' => 'client'])->id,
+            'exercice_id' => $this->exercice->id,
+            'prestation_id' => $audit->id,
+            'statut' => 'en_cours',
+            'prix_ht' => 300000,
+        ]);
+        $missionAudit->collaborateurs()->attach($this->collaborateur->id);
+
+        // Mission d'un autre membre du staff : ne compte pas pour ce collaborateur
+        Mission::factory()->create([
+            'entreprise_id' => Entreprise::factory()->create(['statut' => 'client'])->id,
+            'exercice_id' => $this->exercice->id,
+            'prestation_id' => $audit->id,
+            'statut' => 'en_cours',
+            'prix_ht' => 300000,
+        ])->collaborateurs()->attach($this->admin->id);
+
+        $rows = $this->actingAs($this->admin)
+            ->getJson("/api/v1/kpi/collaborateurs/{$this->collaborateur->id}/stats?exercice_id=".$this->exercice->id)
+            ->assertOk()
+            ->json('data.missions_par_prestation');
+
+        // Tri decroissant : Comptabilite (2) puis Audit legal (1)
+        $this->assertCount(2, $rows);
+        $this->assertSame('Comptabilité', $rows[0]['designation']);
+        $this->assertSame(2, $rows[0]['total']);
+        $this->assertSame('Audit legal', $rows[1]['designation']);
+        $this->assertSame(1, $rows[1]['total']);
+    }
+
+    public function test_missions_par_prestation_scope_exercice(): void
+    {
+        $autreExercice = Exercice::factory()->create(['annee' => now()->year - 1, 'statut' => 'cloture']);
+
+        Mission::factory()->create([
+            'entreprise_id' => Entreprise::factory()->create(['statut' => 'client'])->id,
+            'exercice_id' => $autreExercice->id,
+            'prestation_id' => $this->prestation->id,
+            'statut' => 'en_cours',
+            'prix_ht' => 100000,
+        ])->collaborateurs()->attach($this->collaborateur->id);
+
+        $rows = $this->actingAs($this->admin)
+            ->getJson("/api/v1/kpi/collaborateurs/{$this->collaborateur->id}/stats?exercice_id=".$this->exercice->id)
+            ->assertOk()
+            ->json('data.missions_par_prestation');
+
+        $this->assertSame([], $rows);
     }
 
     // -------------------------------------------------------------------------

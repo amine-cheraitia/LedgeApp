@@ -67,7 +67,33 @@ class KpiService
             'realise' => $this->calculerRealise($collaborateur, $exerciceId),
             'realise_mensuel' => $this->calculerRealiseMensuel($collaborateur, $exerciceId),
             'taches_par_statut' => $this->calculerTachesParStatut($collaborateur, $exerciceId),
+            'missions_par_prestation' => $this->calculerMissionsParPrestation($collaborateur, $exerciceId),
         ];
+    }
+
+    /**
+     * Repartition des missions du collaborateur par prestation (participation
+     * via la pivot mission_user, tous statuts confondus), scopee par exercice.
+     *
+     * @return list<array{prestation_id:int, designation:string, total:int}>
+     */
+    private function calculerMissionsParPrestation(User $collaborateur, ?int $exerciceId): array
+    {
+        return Mission::query()
+            ->join('mission_user', 'mission_user.mission_id', '=', 'missions.id')
+            ->join('prestations', 'prestations.id', '=', 'missions.prestation_id')
+            ->where('mission_user.user_id', $collaborateur->id)
+            ->when($exerciceId, fn ($q) => $q->where('missions.exercice_id', $exerciceId))
+            ->groupBy('missions.prestation_id', 'prestations.designation')
+            ->selectRaw('missions.prestation_id as prestation_id, prestations.designation as designation, COUNT(*) as total')
+            ->orderByDesc('total')
+            ->get()
+            ->map(fn ($row) => [
+                'prestation_id' => (int) $row->prestation_id,
+                'designation' => $row->designation,
+                'total' => (int) $row->total,
+            ])
+            ->all();
     }
 
     /**
