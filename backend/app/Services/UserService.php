@@ -21,8 +21,11 @@ class UserService
     /**
      * Annuaire des utilisateurs. En mode non complet (non-admin), on ne renvoie
      * que le personnel (jamais les clients), pour les selects d'assignation.
+     *
+     * $role accepte un role unique OU un tableau (le front envoie role[]=...
+     * pour les selects multi-roles : affectation mission, page Statistiques).
      */
-    public function listerAnnuaire(bool $complet, ?string $search, ?string $role, int $perPage): LengthAwarePaginator
+    public function listerAnnuaire(bool $complet, ?string $search, array|string|null $role, int $perPage): LengthAwarePaginator
     {
         $query = User::with('roles')
             // OR groupe explicitement : la restriction de role (plus bas) doit

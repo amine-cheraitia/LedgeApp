@@ -74,6 +74,28 @@ class UserApiTest extends TestCase
             ->assertJsonMissing(['name' => 'Client Test']);
     }
 
+    public function test_filtre_par_tableau_de_roles(): void
+    {
+        // Regression : les selects multi-roles du front (affectation mission,
+        // page Statistiques) envoient role[]=admin&role[]=collaborateur — le
+        // parametre arrivait en tableau sur une signature ?string -> TypeError 500.
+        $response = $this->actingAs($this->admin)
+            ->getJson('/api/v1/users?role[]=admin&role[]=collaborateur&per_page=100');
+
+        $response->assertOk()
+            ->assertJsonCount(2, 'data')                        // admin + collaborateur uniquement
+            ->assertJsonMissing(['name' => $this->secretaire->name])
+            ->assertJsonMissing(['name' => 'Client Test']);
+    }
+
+    public function test_filtre_par_role_unique_conserve(): void
+    {
+        $response = $this->actingAs($this->admin)
+            ->getJson('/api/v1/users?role=collaborateur');
+
+        $response->assertOk()->assertJsonCount(1, 'data');
+    }
+
     public function test_recherche_par_nom_ne_fuit_pas_les_clients_au_personnel(): void
     {
         // Regression : la recherche par nom ne doit pas contourner la restriction de

@@ -206,8 +206,9 @@ class KpiService
                 ->when($exerciceId, fn ($q) => $q->where('exercice_id', $exerciceId))
             )
             ->get(['created_at', 'updated_at'])
+            // Carbon 3 : diffInDays renvoie un float (jours decimaux) — ne pas typer int
             ->map(fn (Tache $t) => $t->created_at->diffInDays($t->updated_at))
-            ->filter(fn (int $d) => $d >= 0);
+            ->filter(fn (float $d) => $d >= 0);
 
         if ($delais->isEmpty()) {
             return 0.0;
