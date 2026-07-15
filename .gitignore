@@ -41,6 +41,11 @@ frontend/.env.*.local
 backend/coverage-html
 frontend/coverage
 
+# Playwright E2E (rapports + storageState authentifie, jamais versionnes)
+frontend/playwright-report/
+frontend/test-results/
+frontend/e2e/.auth/
+
 # Claude
 .claude/settings.local.json
 
