@@ -19,6 +19,8 @@ use Illuminate\Support\Collection;
 
 class DashboardService
 {
+    public function __construct(private readonly StatistiqueService $statistiqueService) {}
+
     public function getStats(?int $exerciceId): array
     {
         $now = Carbon::now();
@@ -362,72 +364,31 @@ class DashboardService
     {
         $now = Carbon::now();
 
-        $creances = Facture::with(['entreprise', 'avoirs', 'relances'])
-            ->where('type', 'FF')
-            ->whereIn('statut_paiement', ['en_attente', 'partiel'])
+        // Requete + agregats partages avec StatistiqueService (stats cabinet) : aucun
+        // filtre exercice ici, le dashboard secretaire porte sur toutes les creances.
+        $creances = $this->statistiqueService->creancesQuery(null)
+            ->with('relances')
             ->get();
 
-        $totalImpaye = 0.0;
         $clientsDebiteurs = $creances->pluck('entreprise_id')->unique()->count();
-        $aging = ['retard_15_30' => 0.0, 'retard_30_60' => 0.0, 'retard_60_plus' => 0.0];
-        $debiteursMap = [];
 
-        foreach ($creances as $facture) {
-            $restant = $facture->montantRestant();
-            $totalImpaye += $restant;
-
-            if ($restant <= 0) {
-                continue;
-            }
-
-            $entrepriseId = $facture->entreprise_id;
-            if (! isset($debiteursMap[$entrepriseId])) {
-                $debiteursMap[$entrepriseId] = [
-                    'entreprise_id' => $entrepriseId,
-                    'raison_sociale' => $facture->entreprise?->raison_sociale ?? 'Inconnu',
-                    'montant_impaye' => 0.0,
-                ];
-            }
-            $debiteursMap[$entrepriseId]['montant_impaye'] += $restant;
-
-            if ($facture->date_echeance && $facture->date_echeance->lt($now)) {
-                $jours = (int) $facture->date_echeance->diffInDays($now);
-                if ($jours >= 60) {
-                    $aging['retard_60_plus'] += $restant;
-                } elseif ($jours >= 30) {
-                    $aging['retard_30_60'] += $restant;
-                } elseif ($jours >= 15) {
-                    $aging['retard_15_30'] += $restant;
-                }
-            }
-        }
-
-        $topDebiteurs = collect($debiteursMap)
-            ->sortByDesc('montant_impaye')
-            ->take(5)
-            ->values()
-            ->map(fn (array $row) => [
-                'entreprise_id' => $row['entreprise_id'],
-                'raison_sociale' => $row['raison_sociale'],
-                'montant_impaye' => round($row['montant_impaye'], 2),
-            ])
-            ->all();
+        $agrege = $this->statistiqueService->calculerAgingEtTopDebiteurs($creances, $now);
 
         $relancesDues = $this->compterRelancesDues($creances, $now);
 
         $enRetard = $creances->filter(
-            fn (Facture $f) => $f->date_echeance && $f->date_echeance->lt($now) && $f->montantRestant() > 0
+            fn (Facture $f) => $f->date_echeance && $f->date_echeance->lt($now) && $this->statistiqueService->restantAvecAvoirsSum($f) > 0
         )->count();
 
         $recentesCreances = $creances
-            ->filter(fn (Facture $f) => $f->montantRestant() > 0)
+            ->filter(fn (Facture $f) => $this->statistiqueService->restantAvecAvoirsSum($f) > 0)
             ->sortBy('date_echeance')
             ->take(5)
             ->map(fn (Facture $f) => [
                 'id' => $f->id,
                 'numero' => $f->numero,
                 'entreprise' => $f->entreprise?->raison_sociale,
-                'montant_restant' => round($f->montantRestant(), 2),
+                'montant_restant' => round($this->statistiqueService->restantAvecAvoirsSum($f), 2),
                 'date_echeance' => $f->date_echeance?->toDateString(),
                 'statut_paiement' => $f->statut_paiement,
                 'en_retard' => $f->date_echeance && $f->date_echeance->lt($now),
@@ -458,17 +419,13 @@ class DashboardService
             'alertes' => $alertes,
             'actions' => $actions,
             'creances' => [
-                'total_impaye' => round($totalImpaye, 2),
+                'total_impaye' => $agrege['total_impaye'],
                 'clients_debiteurs' => $clientsDebiteurs,
                 'en_retard' => $enRetard,
             ],
-            'aging' => [
-                'retard_15_30' => round($aging['retard_15_30'], 2),
-                'retard_30_60' => round($aging['retard_30_60'], 2),
-                'retard_60_plus' => round($aging['retard_60_plus'], 2),
-            ],
+            'aging' => $agrege['aging'],
             'relances_dues' => $relancesDues,
-            'top_debiteurs' => $topDebiteurs,
+            'top_debiteurs' => $agrege['top_debiteurs'],
             'encaissements_mois' => $encaissementsMois,
             'recentes_creances' => $recentesCreances,
         ];

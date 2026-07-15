@@ -9,6 +9,29 @@
 
 ## [Unreleased]
 
+### Page Statistiques — analytique cabinet & pilotage collaborateurs — feature/page-statistiques
+
+Nouvelle page **Statistiques** (admin) à deux onglets, qui **remplace la page « KPI Objectifs »** (menu renommé, ancienne URL `/kpi/objectifs` redirigée). Filtre exercice global partagé. Suites vertes : **479 backend / 593 frontend**, `vue-tsc` 0 erreur. L'export PDF des objectifs (US-34), annoncé mais jamais implémenté, est **annulé** (décision produit).
+
+**Onglet Cabinet**
+- **Top 8 entreprises contributrices** au CA facturé **HT net d'avoirs** (barres horizontales) — double agrégat SQL groupé (factures puis avoirs) pour éviter le fan-out d'un join, aucun input utilisateur dans les `selectRaw`.
+- **Répartition des missions par prestation** (doughnut) et **missions par état** (barres), scopées par exercice.
+- **Créances** : total impayé (avoirs déduits), aging 15-30 / 30-60 / 60+ jours, top 5 débiteurs cliquables vers la fiche entreprise — logique **mutualisée** avec le dashboard secrétaire (`StatistiqueService`), en corrigeant au passage un N+1 caché (`montantRestant()` par facture remplacé par `withSum`).
+
+**Onglet Collaborateurs**
+- Dropdown de sélection (admin + collaborateurs, **secrétaire exclue** du périmètre KPI) → 5 cartes KPI (CA HT réalisé avec mention « missions clôturées uniquement », missions clôturées, tâches terminées / en retard, délai moyen), **CA HT réalisé par mois** (barres) et **tâches par statut** (doughnut), jauges réalisé vs cible (pourcentage réel non plafonné).
+- Éditeur d'objectifs migré à l'identique dans [ObjectifsEditor.vue](frontend/src/pages/statistiques/ObjectifsEditor.vue) (diff + ConfirmDialog + suppression par champ vidé + `Promise.allSettled`) ; l'ancienne `KpiObjectifsPage.vue` est supprimée. Le calcul n'est plus fait pour **tous** les collaborateurs au chargement (5×N requêtes) mais à la demande du sélectionné.
+
+**Backend (SOLID / OWASP)**
+- Nouveau `StatistiqueService` + `StatistiqueController::cabinet` mince ; `KpiService::getCollaborateurStats` (réalisé mensuel par mois de `date_fin`, tâches par statut, missions par prestation).
+- **Doughnut « Missions par prestation »** (onglet Collaborateurs) : participation du collaborateur par type de mission (ex. Audit légal 5, Assistance comptable 2), palette de graphiques mutualisée (`utils/chartPalette.ts`).
+- **Définition de la participation alignée sur US-45** : un collaborateur participe à une mission s'il est **membre de l'équipe OU a une tâche assignée** dedans (à la création d'une mission on n'affecte personne — l'affectation réelle passe par les tâches). Appliquée partout : réalisé (CA HT, missions clôturées), CA mensuel, missions par prestation — un collaborateur travaillant uniquement via ses tâches n'affiche plus 0.
+- `GET /stats/cabinet` (groupe `role:admin`) ; `GET /kpi/collaborateurs/{user}/stats` (groupe `role:admin|collaborateur` **+** `KpiObjectifPolicy::viewStats` : admin **ou soi-même** — prépare la phase 2 « Mes objectifs » sur le dashboard collaborateur) ; cible non staff-KPI → 404 ; `exercice_id` validé (`exists`).
+- **29 nouveaux tests backend** (montants nets d'avoirs, scoping exercice, matrice de rôles complète : admin/collaborateur self/collaborateur autre/secrétaire/client) + **46 nouveaux tests frontend**.
+
+**RGAA**
+- Chaque graphique doublé d'un tableau `sr-only` avec `<caption>`, `role="img"` + `aria-label` dynamiques, états chargement `role="status"` / erreur `role="alert"` + « Réessayer », labels sur les selects, `prefers-reduced-motion` respecté (animations Chart.js coupées), chiffres en `--ledge-ff-mono` / `text-2xl`, montants `,00` et compact ≥ 1 M avec exact en tooltip.
+
 ### Correctif — décalage J-1 des dates saisies (conversion UTC) — fix/dates-decalage-utc
 
 Le PrimeVue DatePicker émet une `Date` à minuit **local** ; plusieurs pages la sérialisaient encore via `toISOString()` (UTC) — en Algérie (UTC+1), minuit local = 23h **la veille** en UTC → toute date saisie était enregistrée au jour précédent. Bug signalé sur la création d'exercice (01/01/2025 → 31/12/2024, 31/12/2025 → 30/12/2025). Devis/Factures avaient déjà été corrigés (`fix/correctifs-planning`) mais pas les autres pages : correctif généralisé via l'utilitaire partagé `utils/date.ts` (`toIsoDate`/`parseIsoDate` en composants locaux), suppression des 3 clones locaux bugués.

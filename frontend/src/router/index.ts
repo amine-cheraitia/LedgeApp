@@ -46,11 +46,13 @@ const router = createRouter({
           meta: { roles: ROLES.allStaff },
         },
         {
-          path: 'kpi/objectifs',
-          name: 'kpi-objectifs',
-          component: () => import('@/pages/dashboard/KpiObjectifsPage.vue'),
+          path: 'statistiques',
+          name: 'statistiques',
+          component: () => import('@/pages/statistiques/StatistiquesPage.vue'),
           meta: { roles: ROLES.adminOnly },
         },
+        // Ancienne page « KPI Objectifs » absorbee par Statistiques (onglet Collaborateurs)
+        { path: 'kpi/objectifs', redirect: '/statistiques' },
         {
           path: 'users',
           name: 'users',

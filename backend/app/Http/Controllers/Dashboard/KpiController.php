@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Dashboard\StoreKpiObjectifRequest;
 use App\Models\KpiObjectif;
+use App\Models\User;
 use App\Services\KpiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -51,5 +52,27 @@ class KpiController extends Controller
         $this->kpiService->supprimerObjectif($objectif);
 
         return response()->json(null, 204);
+    }
+
+    /**
+     * Stats detaillees d'un collaborateur (page /statistiques, onglet KPI).
+     * La secretaire n'est jamais une cible valide -> 404 (pas 403, la ressource
+     * n'existe pas dans ce contexte pour eviter de reveler les roles existants).
+     */
+    public function collaborateurStats(Request $request, User $user): JsonResponse
+    {
+        abort_if(! $user->hasAnyRole(['admin', 'collaborateur']), 404);
+
+        $this->authorize('viewStats', [KpiObjectif::class, $user]);
+
+        $request->validate([
+            'exercice_id' => ['nullable', 'integer', 'exists:exercices,id'],
+        ]);
+
+        $exerciceId = $request->integer('exercice_id') ?: null;
+
+        return response()->json([
+            'data' => $this->kpiService->getCollaborateurStats($user, $exerciceId),
+        ]);
     }
 }
