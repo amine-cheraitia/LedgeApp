@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\Dashboard\KpiController;
+use App\Http\Controllers\Dashboard\StatistiqueController;
 use App\Http\Controllers\Entreprises\ContactController;
 use App\Http\Controllers\Entreprises\EntrepriseController;
 use App\Http\Controllers\Exercices\ExerciceController;
@@ -94,6 +95,9 @@ Route::prefix('v1')->group(function () {
 
                 // Dashboard stats financieres (admin uniquement)
                 Route::get('/stats', [DashboardController::class, 'stats']);
+
+                // Statistiques cabinet — page /statistiques (agregats globaux, admin uniquement)
+                Route::get('/stats/cabinet', [StatistiqueController::class, 'cabinet']);
 
                 // Journal d'audit — piste d'audit des actions utilisateurs
                 Route::get('/audit-logs', [AuditController::class, 'index']);
@@ -190,6 +194,9 @@ Route::prefix('v1')->group(function () {
             Route::middleware('role:admin|collaborateur')->group(function () {
                 // Dashboard collaborateur
                 Route::get('collaborateur/stats', [DashboardController::class, 'collaborateurStats']);
+
+                // KPI collaborateur — stats detaillees page /statistiques (defense en profondeur : middleware + Policy)
+                Route::get('kpi/collaborateurs/{user}/stats', [KpiController::class, 'collaborateurStats']);
 
                 // Planning — Calendrier (filtre auto par user dans le service)
                 Route::get('calendar', [CalendarController::class, 'index']);

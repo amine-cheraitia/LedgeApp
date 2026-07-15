@@ -25,4 +25,15 @@ class KpiObjectifPolicy
     {
         return $user->hasRole('admin');
     }
+
+    /**
+     * Autorise la vue des stats detaillees d'un collaborateur (page /statistiques) :
+     * l'admin voit tout le monde ; le collaborateur ne voit que lui-meme.
+     * Le self-view prepare la phase 2 (Mes objectifs sur le dashboard collaborateur).
+     */
+    public function viewStats(User $auth, User $collaborateur): bool
+    {
+        return $auth->hasRole('admin')
+            || ($auth->id === $collaborateur->id && $auth->hasAnyRole(['collaborateur', 'admin']));
+    }
 }

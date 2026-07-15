@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Exercice;
 use App\Models\KpiObjectif;
 use App\Models\Mission;
 use App\Models\Tache;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -33,6 +35,39 @@ class KpiService
             'objectifs' => $user->kpiObjectifs->keyBy('type')->map(fn ($o) => ['id' => $o->id, 'valeur' => (float) $o->valeur]),
             'realise' => $this->calculerRealise($user, $exerciceId),
         ]);
+    }
+
+    /**
+     * Retourne les stats detaillees d'un collaborateur (page /statistiques, onglet KPI) :
+     * objectifs, realise global, serie mensuelle du CA HT et repartition des taches.
+     *
+     * @return array{
+     *     user: array{id:int, name:string, email:string},
+     *     objectifs: Collection<string, array{id:int, valeur:float}>,
+     *     realise: array<string, float>,
+     *     realise_mensuel: array{annee:int, data:list<float>},
+     *     taches_par_statut: array{a_faire:int, en_cours:int, terminee:int, bloquee:int}
+     * }
+     */
+    public function getCollaborateurStats(User $collaborateur, ?int $exerciceId): array
+    {
+        $objectifs = $collaborateur->kpiObjectifs()
+            ->when($exerciceId, fn ($q) => $q->where('exercice_id', $exerciceId))
+            ->get()
+            ->keyBy('type')
+            ->map(fn (KpiObjectif $o) => ['id' => $o->id, 'valeur' => (float) $o->valeur]);
+
+        return [
+            'user' => [
+                'id' => $collaborateur->id,
+                'name' => $collaborateur->name,
+                'email' => $collaborateur->email,
+            ],
+            'objectifs' => $objectifs,
+            'realise' => $this->calculerRealise($collaborateur, $exerciceId),
+            'realise_mensuel' => $this->calculerRealiseMensuel($collaborateur, $exerciceId),
+            'taches_par_statut' => $this->calculerTachesParStatut($collaborateur, $exerciceId),
+        ];
     }
 
     /**
@@ -99,6 +134,63 @@ class KpiService
             'taches_terminees' => (float) $tachesTerminees,
             'taches_en_retard' => (float) $tachesEnRetard,
             'delai_moyen_tache' => $delaiMoyenTache,
+        ];
+    }
+
+    /**
+     * Serie du CA HT des missions TERMINEES du collaborateur, bucketee par mois de
+     * date_fin (12 valeurs). Annee = celle de l'exercice filtre, sinon annee courante.
+     * Regroupement en PHP (portable SQLite/MySQL), meme approche que
+     * DashboardService::calculerCaMensuel.
+     *
+     * @return array{annee: int, data: list<float>}
+     */
+    private function calculerRealiseMensuel(User $user, ?int $exerciceId): array
+    {
+        $exercice = $exerciceId ? Exercice::find($exerciceId) : null;
+        $annee = $exercice ? (int) $exercice->annee : Carbon::now()->year;
+
+        $missionIds = DB::table('mission_user')
+            ->where('user_id', $user->id)
+            ->pluck('mission_id');
+
+        $data = array_fill(0, 12, 0.0);
+
+        Mission::whereIn('id', $missionIds)
+            ->where('statut', 'terminee')
+            ->whereNotNull('date_fin')
+            ->whereYear('date_fin', $annee)
+            ->when($exerciceId, fn ($q) => $q->where('exercice_id', $exerciceId))
+            ->get(['date_fin', 'prix_ht'])
+            ->each(function (Mission $mission) use (&$data): void {
+                $mois = (int) $mission->date_fin->format('n');
+                $data[$mois - 1] += (float) $mission->prix_ht;
+            });
+
+        return [
+            'annee' => $annee,
+            'data' => array_map(fn (float $total) => round($total, 2), $data),
+        ];
+    }
+
+    /**
+     * Repartition des taches assignees au collaborateur par statut, scopee exercice
+     * via la mission rattachee.
+     *
+     * @return array{a_faire:int, en_cours:int, terminee:int, bloquee:int}
+     */
+    private function calculerTachesParStatut(User $user, ?int $exerciceId): array
+    {
+        $tacheQuery = fn () => Tache::where('assigned_to', $user->id)
+            ->whereHas('mission', fn ($q) => $q
+                ->when($exerciceId, fn ($q2) => $q2->where('exercice_id', $exerciceId))
+            );
+
+        return [
+            'a_faire' => $tacheQuery()->where('statut', 'a_faire')->count(),
+            'en_cours' => $tacheQuery()->where('statut', 'en_cours')->count(),
+            'terminee' => $tacheQuery()->where('statut', 'terminee')->count(),
+            'bloquee' => $tacheQuery()->where('statut', 'bloquee')->count(),
         ];
     }
 
