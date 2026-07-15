@@ -18,6 +18,7 @@ import { usePrestations } from '@/composables/usePrestations'
 import { useUsers } from '@/composables/useUsers'
 import { useExercices } from '@/composables/useExercices'
 import { useAuthStore } from '@/stores/authStore'
+import { toIsoDate, parseIsoDate } from '@/utils/date'
 import type { Mission } from '@/types'
 import type { MissionPayload } from '@/api/modules/missions'
 
@@ -68,15 +69,10 @@ const form = ref<MissionPayload>({
   notes: '',
 })
 
-function toIsoDate(d: Date | null): string {
-  if (!d) return ''
-  return d.toISOString().split('T')[0]
-}
-
 function openEdit(mission: Mission) {
   editMission.value = mission
-  editDateDebut.value = new Date(mission.date_debut)
-  editDateFin.value = mission.date_fin ? new Date(mission.date_fin) : null
+  editDateDebut.value = parseIsoDate(mission.date_debut)
+  editDateFin.value = mission.date_fin ? parseIsoDate(mission.date_fin) : null
   editForm.value.collaborateur_ids = mission.collaborateurs?.map((c: any) => c.id) ?? []
   editForm.value.notes = mission.notes ?? ''
   editDialogVisible.value = true
@@ -86,9 +82,10 @@ async function onSubmitEdit() {
   if (!editMission.value || !editDateDebut.value) return
   editSaving.value = true
   try {
+    // toIsoDate (utils/date) formate en LOCAL : pas de bascule J-1 via UTC
     await updateMission(editMission.value.id, {
-      date_debut: toIsoDate(editDateDebut.value),
-      date_fin: toIsoDate(editDateFin.value),
+      date_debut: toIsoDate(editDateDebut.value) ?? '',
+      date_fin: toIsoDate(editDateFin.value) ?? '',
       collaborateur_ids: editForm.value.collaborateur_ids,
       notes: editForm.value.notes,
     })
@@ -120,8 +117,8 @@ async function onSubmit() {
   try {
     await createMission({
       ...form.value,
-      date_debut: toIsoDate(dateDebut.value),
-      date_fin: toIsoDate(dateFin.value),
+      date_debut: toIsoDate(dateDebut.value) ?? '',
+      date_fin: toIsoDate(dateFin.value) ?? '',
     })
     dialogVisible.value = false
   } catch {

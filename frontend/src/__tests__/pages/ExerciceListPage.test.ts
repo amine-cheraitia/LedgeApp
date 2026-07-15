@@ -81,6 +81,30 @@ describe('ExerciceListPage — creation', () => {
     expect(wrapper.find('#ex-annee').exists()).toBe(false)
   })
 
+  // Regression : le DatePicker emet une Date a minuit LOCAL. L'ancien code passait
+  // par toISOString() (UTC) -> en UTC+1 (Algerie), 01/01/2025 devenait 2024-12-31
+  // et 31/12/2025 devenait 2025-12-30. Les dates locales doivent partir telles quelles.
+  it('n applique aucun decalage UTC : minuit local reste le meme jour (J-1 bug)', async () => {
+    mockCreate.mockResolvedValue({ data: { id: 3 } })
+    const { wrapper } = await mountPage(ExerciceListPage)
+
+    await findButton(wrapper, 'Nouvel exercice')!.trigger('click')
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    // new Date(annee, mois, jour) = minuit LOCAL — exactement ce qu'emet le DatePicker
+    vm.dateOuverture = new Date(2025, 0, 1)
+    vm.dateCloture = new Date(2025, 11, 31)
+    vm.form.annee = 2025
+
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ date_ouverture: '2025-01-01', date_cloture: '2025-12-31' }),
+    )
+  })
+
   it("garde le dialog ouvert si la creation echoue (dates vides -> '')", async () => {
     mockCreate.mockRejectedValue(new Error('422'))
     const { wrapper } = await mountPage(ExerciceListPage)

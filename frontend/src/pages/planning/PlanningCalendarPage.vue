@@ -23,6 +23,7 @@ import { usePlanning } from '@/composables/usePlanning'
 import { useAuthStore } from '@/stores/authStore'
 import type { CalendarMission, CalendarTache } from '@/api/modules/planning'
 import { prioriteLabel, PRIORITE_COLORS } from '@/utils/priorite'
+import { toIsoDate } from '@/utils/date'
 
 const router = useRouter()
 const toast  = useToast()
@@ -86,7 +87,8 @@ watch(collaborateurFilter, () => {
   const api = calendarRef.value?.getApi()
   if (!api) return
   const { activeStart, activeEnd } = api.view
-  loadEvents(activeStart.toISOString().slice(0, 10), activeEnd.toISOString().slice(0, 10))
+  // Dates LOCALES (pas toISOString/UTC) : evite de decaler la plage d'un jour en UTC+1
+  loadEvents(toIsoDate(activeStart) ?? '', toIsoDate(activeEnd) ?? '')
 })
 
 // ── Dialog détail / action ────────────────────────────────────────────────────
@@ -203,7 +205,8 @@ function formatDateShort(iso: string): string {
 }
 
 function isToday(iso: string): boolean {
-  return iso === new Date().toISOString().slice(0, 10)
+  // Date LOCALE : entre minuit et 1h (UTC+1), toISOString donnerait la veille
+  return iso === toIsoDate(new Date())
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
