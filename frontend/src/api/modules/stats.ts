@@ -180,7 +180,7 @@ export interface CollaborateurKpiStats {
   // CA HT des missions terminees par mois (12 valeurs, annee de l'exercice filtre)
   realise_mensuel: { annee: number; data: number[] }
   taches_par_statut: { a_faire: number; en_cours: number; terminee: number; bloquee: number }
-  // Participation par type de prestation (missions via pivot, tous statuts)
+  // Participation par type de prestation (equipe OU tache assignee, tous statuts)
   missions_par_prestation: { prestation_id: number; designation: string; total: number }[]
 }
 

@@ -247,6 +247,53 @@ class KpiCollaborateurStatsTest extends TestCase
         $this->assertSame(1, $rows[1]['total']);
     }
 
+    public function test_participation_via_tache_assignee_sans_equipe(): void
+    {
+        // Regle metier : a la creation d'une mission on n'affecte personne a
+        // l'equipe — la participation reelle passe par les taches (US-45).
+        // Mission terminee ou le collaborateur n'est PAS dans mission_user mais
+        // possede une tache -> elle compte pour la prestation ET le realise.
+        $mission = Mission::factory()->create([
+            'entreprise_id' => Entreprise::factory()->create(['statut' => 'client'])->id,
+            'exercice_id' => $this->exercice->id,
+            'prestation_id' => $this->prestation->id,
+            'statut' => 'terminee',
+            'date_fin' => now()->year.'-05-20',
+            'prix_ht' => 120000,
+        ]);
+        Tache::factory()->create(['mission_id' => $mission->id, 'assigned_to' => $this->collaborateur->id, 'statut' => 'terminee']);
+
+        $res = $this->actingAs($this->admin)
+            ->getJson("/api/v1/kpi/collaborateurs/{$this->collaborateur->id}/stats?exercice_id=".$this->exercice->id)
+            ->assertOk();
+
+        $rows = $res->json('data.missions_par_prestation');
+        $this->assertCount(1, $rows);
+        $this->assertSame(1, $rows[0]['total']);
+
+        // Le realise suit la meme definition de participation
+        $this->assertEquals(120000.0, $res->json('data.realise.ca_ht'));
+        $this->assertEquals(1, $res->json('data.realise.missions_cloturees'));
+        $this->assertEquals(120000.0, $res->json('data.realise_mensuel.data')[4]); // mai -> index 4
+    }
+
+    public function test_participation_equipe_et_tache_comptee_une_seule_fois(): void
+    {
+        // Collaborateur membre de l'equipe ET assigne a une tache de la meme
+        // mission : la mission ne doit compter qu'une fois (pas de doublon OR).
+        $mission = $this->creerMissionTerminee($this->collaborateur, now()->year.'-03-10', 100000);
+        Tache::factory()->create(['mission_id' => $mission->id, 'assigned_to' => $this->collaborateur->id, 'statut' => 'en_cours']);
+
+        $res = $this->actingAs($this->admin)
+            ->getJson("/api/v1/kpi/collaborateurs/{$this->collaborateur->id}/stats?exercice_id=".$this->exercice->id)
+            ->assertOk();
+
+        $rows = $res->json('data.missions_par_prestation');
+        $this->assertCount(1, $rows);
+        $this->assertSame(1, $rows[0]['total']);
+        $this->assertEquals(1, $res->json('data.realise.missions_cloturees'));
+    }
+
     public function test_missions_par_prestation_scope_exercice(): void
     {
         $autreExercice = Exercice::factory()->create(['annee' => now()->year - 1, 'statut' => 'cloture']);

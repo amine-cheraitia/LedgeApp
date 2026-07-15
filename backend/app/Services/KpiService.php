@@ -9,9 +9,9 @@ use App\Models\KpiObjectif;
 use App\Models\Mission;
 use App\Models\Tache;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 class KpiService
 {
@@ -72,17 +72,15 @@ class KpiService
     }
 
     /**
-     * Repartition des missions du collaborateur par prestation (participation
-     * via la pivot mission_user, tous statuts confondus), scopee par exercice.
+     * Repartition des missions du collaborateur par prestation (participation :
+     * equipe OU tache assignee, tous statuts confondus), scopee par exercice.
      *
      * @return list<array{prestation_id:int, designation:string, total:int}>
      */
     private function calculerMissionsParPrestation(User $collaborateur, ?int $exerciceId): array
     {
-        return Mission::query()
-            ->join('mission_user', 'mission_user.mission_id', '=', 'missions.id')
+        return $this->missionsParticipation($collaborateur)
             ->join('prestations', 'prestations.id', '=', 'missions.prestation_id')
-            ->where('mission_user.user_id', $collaborateur->id)
             ->when($exerciceId, fn ($q) => $q->where('missions.exercice_id', $exerciceId))
             ->groupBy('missions.prestation_id', 'prestations.designation')
             ->selectRaw('missions.prestation_id as prestation_id, prestations.designation as designation, COUNT(*) as total')
@@ -116,18 +114,28 @@ class KpiService
     }
 
     /**
+     * Missions auxquelles le collaborateur PARTICIPE : membre de l'equipe
+     * (pivot mission_user) OU au moins une tache qui lui est assignee.
+     * Meme definition metier que MissionService::listerMissions (US-45) :
+     * a la creation d'une mission on n'affecte personne — la participation
+     * reelle passe par les taches.
+     */
+    private function missionsParticipation(User $user): Builder
+    {
+        return Mission::where(fn ($q) => $q
+            ->whereHas('collaborateurs', fn ($c) => $c->where('users.id', $user->id))
+            ->orWhereHas('taches', fn ($t) => $t->where('assigned_to', $user->id))
+        );
+    }
+
+    /**
      * Calcule les KPI réalisés pour un collaborateur sur un exercice.
      *
      * @return array<string, float>
      */
     private function calculerRealise(User $user, ?int $exerciceId): array
     {
-        // Missions assignées à ce collaborateur via la table pivot mission_user
-        $missionIds = DB::table('mission_user')
-            ->where('user_id', $user->id)
-            ->pluck('mission_id');
-
-        $missionsTerminees = Mission::whereIn('id', $missionIds)
+        $missionsTerminees = $this->missionsParticipation($user)
             ->where('statut', 'terminee')
             ->when($exerciceId, fn ($q) => $q->where('exercice_id', $exerciceId))
             ->get();
@@ -176,13 +184,9 @@ class KpiService
         $exercice = $exerciceId ? Exercice::find($exerciceId) : null;
         $annee = $exercice ? (int) $exercice->annee : Carbon::now()->year;
 
-        $missionIds = DB::table('mission_user')
-            ->where('user_id', $user->id)
-            ->pluck('mission_id');
-
         $data = array_fill(0, 12, 0.0);
 
-        Mission::whereIn('id', $missionIds)
+        $this->missionsParticipation($user)
             ->where('statut', 'terminee')
             ->whereNotNull('date_fin')
             ->whereYear('date_fin', $annee)

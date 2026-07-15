@@ -23,7 +23,9 @@ Nouvelle page **Statistiques** (admin) à deux onglets, qui **remplace la page �
 - Éditeur d'objectifs migré à l'identique dans [ObjectifsEditor.vue](frontend/src/pages/statistiques/ObjectifsEditor.vue) (diff + ConfirmDialog + suppression par champ vidé + `Promise.allSettled`) ; l'ancienne `KpiObjectifsPage.vue` est supprimée. Le calcul n'est plus fait pour **tous** les collaborateurs au chargement (5×N requêtes) mais à la demande du sélectionné.
 
 **Backend (SOLID / OWASP)**
-- Nouveau `StatistiqueService` + `StatistiqueController::cabinet` mince ; `KpiService::getCollaborateurStats` (réalisé mensuel par mois de `date_fin`, tâches par statut).
+- Nouveau `StatistiqueService` + `StatistiqueController::cabinet` mince ; `KpiService::getCollaborateurStats` (réalisé mensuel par mois de `date_fin`, tâches par statut, missions par prestation).
+- **Doughnut « Missions par prestation »** (onglet Collaborateurs) : participation du collaborateur par type de mission (ex. Audit légal 5, Assistance comptable 2), palette de graphiques mutualisée (`utils/chartPalette.ts`).
+- **Définition de la participation alignée sur US-45** : un collaborateur participe à une mission s'il est **membre de l'équipe OU a une tâche assignée** dedans (à la création d'une mission on n'affecte personne — l'affectation réelle passe par les tâches). Appliquée partout : réalisé (CA HT, missions clôturées), CA mensuel, missions par prestation — un collaborateur travaillant uniquement via ses tâches n'affiche plus 0.
 - `GET /stats/cabinet` (groupe `role:admin`) ; `GET /kpi/collaborateurs/{user}/stats` (groupe `role:admin|collaborateur` **+** `KpiObjectifPolicy::viewStats` : admin **ou soi-même** — prépare la phase 2 « Mes objectifs » sur le dashboard collaborateur) ; cible non staff-KPI → 404 ; `exercice_id` validé (`exists`).
 - **29 nouveaux tests backend** (montants nets d'avoirs, scoping exercice, matrice de rôles complète : admin/collaborateur self/collaborateur autre/secrétaire/client) + **46 nouveaux tests frontend**.
 
