@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Prestations;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Prestations\CalculerPrixRequest;
 use App\Http\Requests\Prestations\StorePrestationRequest;
 use App\Http\Requests\Prestations\UpdatePrestationRequest;
 use App\Http\Resources\Prestations\PrestationResource;
@@ -12,7 +13,6 @@ use App\Models\Prestation;
 use App\Services\PrestationService;
 use DomainException;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class PrestationController extends Controller
@@ -66,14 +66,9 @@ class PrestationController extends Controller
         return response()->json(['message' => 'Prestation supprimee.']);
     }
 
-    public function calculerPrix(Request $request, Prestation $prestation): JsonResponse
+    public function calculerPrix(CalculerPrixRequest $request, Prestation $prestation): JsonResponse
     {
         $this->authorize('viewAny', Prestation::class);
-
-        $request->validate([
-            'regime_fiscal' => ['required', 'string'],
-            'categorie' => ['required', 'string'],
-        ]);
 
         $prixHt = $prestation->calculerPrixHt(
             $request->regime_fiscal,
