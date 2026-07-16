@@ -21,6 +21,25 @@ class EntrepriseService
         $entreprise->delete();
     }
 
+    /**
+     * Compteurs globaux affiches en tete de la liste (independants des filtres).
+     *
+     * @return array{total:int, clients:int, prospects:int}
+     */
+    public function compteursStatuts(): array
+    {
+        $parStatut = Entreprise::query()
+            ->selectRaw('statut, COUNT(*) as total')
+            ->groupBy('statut')
+            ->pluck('total', 'statut');
+
+        return [
+            'total' => (int) $parStatut->sum(),
+            'clients' => (int) ($parStatut['client'] ?? 0),
+            'prospects' => (int) ($parStatut['prospect'] ?? 0),
+        ];
+    }
+
     public function lister(array $filters): LengthAwarePaginator
     {
         return Entreprise::query()

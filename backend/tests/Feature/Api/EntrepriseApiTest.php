@@ -40,6 +40,23 @@ class EntrepriseApiTest extends TestCase
             ->assertJsonCount(3, 'data');
     }
 
+    public function test_liste_expose_les_compteurs_globaux_par_statut(): void
+    {
+        Entreprise::factory()->count(2)->create(['statut' => 'client']);
+        Entreprise::factory()->prospect()->create();
+
+        // Les compteurs sont GLOBAUX : un filtre actif ne les modifie pas
+        // (ils alimentent le sous-titre « X entreprises · Y clients · Z prospects »).
+        $response = $this->actingAs($this->admin)
+            ->getJson('/api/v1/entreprises?statut=client');
+
+        $response->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('compteurs.total', 3)
+            ->assertJsonPath('compteurs.clients', 2)
+            ->assertJsonPath('compteurs.prospects', 1);
+    }
+
     public function test_can_create_entreprise(): void
     {
         $response = $this->actingAs($this->admin)

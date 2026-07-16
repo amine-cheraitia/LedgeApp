@@ -34,7 +34,9 @@ class EntrepriseController extends Controller
             'search', 'statut', 'wilaya', 'per_page',
         ]));
 
-        return EntrepriseResource::collection($entreprises);
+        // Compteurs globaux (tous filtres confondus) pour le sous-titre de la liste
+        return EntrepriseResource::collection($entreprises)
+            ->additional(['compteurs' => $this->entrepriseService->compteursStatuts()]);
     }
 
     public function wilayas(): JsonResponse

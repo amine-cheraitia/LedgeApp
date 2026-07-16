@@ -9,8 +9,15 @@ export interface EntrepriseFilters {
   wilaya?: string
 }
 
+// Compteurs globaux (independants des filtres) pour le sous-titre de la liste
+export interface EntrepriseCompteurs {
+  total: number
+  clients: number
+  prospects: number
+}
+
 export const entreprisesApi = {
-  getAll(params?: EntrepriseFilters): Promise<PaginatedResponse<Entreprise>> {
+  getAll(params?: EntrepriseFilters): Promise<PaginatedResponse<Entreprise> & { compteurs?: EntrepriseCompteurs }> {
     return api.get('/entreprises', { params }).then(r => r.data)
   },
 

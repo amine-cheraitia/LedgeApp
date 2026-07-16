@@ -24,7 +24,7 @@ const toast = useToast()
 const router = useRouter()
 const auth = useAuthStore()
 const {
-  entreprises, loading, totalRecords, filters,
+  entreprises, loading, totalRecords, compteurs, filters,
   fetchEntreprises, createEntreprise, updateEntreprise, deleteEntreprise,
   onPage, onSearch, setStatut, setWilaya, resetFilters,
 } = useEntreprises()
@@ -350,7 +350,14 @@ onMounted(() => {
 <template>
   <div>
     <div class="page-header">
-      <h1>Entreprises</h1>
+      <div>
+        <h1>Entreprises</h1>
+        <p v-if="compteurs" class="page-compteurs">
+          {{ compteurs.total }} entreprise{{ compteurs.total > 1 ? 's' : '' }}
+          · {{ compteurs.clients }} client{{ compteurs.clients > 1 ? 's' : '' }}
+          · {{ compteurs.prospects }} prospect{{ compteurs.prospects > 1 ? 's' : '' }}
+        </p>
+      </div>
       <Button label="Nouvelle entreprise" icon="pi pi-plus" @click="openCreate" />
     </div>
 
@@ -422,9 +429,23 @@ onMounted(() => {
       dataKey="id"
       responsiveLayout="scroll"
       stripedRows
+      paginatorTemplate="CurrentPageReport PrevPageLink PageLinks NextPageLink"
+      currentPageReportTemplate="{totalRecords} résultat(s) · Page {currentPage} sur {totalPages}"
+      class="table-entreprises"
     >
-      <Column field="raison_sociale" header="Raison sociale" />
-      <Column field="nif" header="NIF" />
+      <Column field="raison_sociale" header="Raison sociale">
+        <template #body="{ data }">
+          <div class="cell-entreprise">
+            <span class="cell-entreprise__nom">{{ data.raison_sociale }}</span>
+            <span v-if="data.email" class="cell-entreprise__email">{{ data.email }}</span>
+          </div>
+        </template>
+      </Column>
+      <Column field="nif" header="NIF">
+        <template #body="{ data }">
+          <span class="cell-nif">{{ data.nif || '—' }}</span>
+        </template>
+      </Column>
       <Column field="regime_fiscal" header="Regime fiscal" />
       <Column header="Statut">
         <template #body="{ data }">
@@ -433,7 +454,7 @@ onMounted(() => {
       </Column>
       <Column v-if="auth.isAdmin" header="Portail">
         <template #body="{ data }">
-          <template v-if="data.statut === 'client'">
+          <div v-if="data.statut === 'client'" class="portail-cell">
             <template v-if="data.portail_user">
               <Tag
                 :value="data.portail_user.portail_actif ? 'Actif' : 'Desactive'"
@@ -466,52 +487,53 @@ onMounted(() => {
               size="small"
               severity="success"
               text
+              :aria-label="`Activer l'acces portail de ${data.raison_sociale}`"
               @click="openPortailActivation(data)"
             />
-          </template>
+          </div>
           <span v-else class="text-muted">—</span>
         </template>
       </Column>
       <Column field="wilaya" header="Wilaya" />
       <Column header="Actions" style="width: 13rem">
         <template #body="{ data }">
-          <Button
-            icon="pi pi-eye"
-            text
-            rounded
-            severity="secondary"
-            aria-label="Voir le dossier complet"
-            v-tooltip.top="'Dossier 360°'"
-            @click="router.push(`/entreprises/${data.id}`)"
-          />
-          <Button
-            icon="pi pi-users"
-            text
-            rounded
-            severity="secondary"
-            aria-label="Gerer les contacts"
-            v-tooltip.top="'Contacts'"
-            @click="openContacts(data)"
-          />
-          <Button
-            icon="pi pi-pencil"
-            text
-            rounded
-            severity="info"
-            aria-label="Modifier l'entreprise"
-            v-tooltip.top="'Modifier'"
-            @click="openEdit(data)"
-          />
-          <Button
-            v-if="auth.isAdmin"
-            icon="pi pi-trash"
-            text
-            rounded
-            severity="danger"
-            aria-label="Supprimer l'entreprise"
-            v-tooltip.top="'Supprimer'"
-            @click="confirmDelete(data)"
-          />
+          <div class="actions-cell">
+            <Button
+              icon="pi pi-eye"
+              text
+              size="small"
+              severity="secondary"
+              aria-label="Voir le dossier complet"
+              v-tooltip.top="'Dossier 360°'"
+              @click="router.push(`/entreprises/${data.id}`)"
+            />
+            <Button
+              icon="pi pi-users"
+              text
+              size="small"
+              severity="secondary"
+              aria-label="Gerer les contacts"
+              v-tooltip.top="'Contacts'"
+              @click="openContacts(data)"
+            />
+            <Button
+              icon="pi pi-pencil"
+              size="small"
+              severity="secondary"
+              aria-label="Modifier l'entreprise"
+              v-tooltip.top="'Modifier'"
+              @click="openEdit(data)"
+            />
+            <Button
+              v-if="auth.isAdmin"
+              icon="pi pi-trash"
+              size="small"
+              severity="danger"
+              aria-label="Supprimer l'entreprise"
+              v-tooltip.top="'Supprimer'"
+              @click="confirmDelete(data)"
+            />
+          </div>
         </template>
       </Column>
     </DataTable>
@@ -815,6 +837,62 @@ onMounted(() => {
 .dialog-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
 .text-muted { color: var(--p-text-muted-color, #999); }
 .portail-tag { margin-right: 0.25rem; }
+
+/* ── En-tete : compteurs sous le titre ─────────────────────────────────── */
+.page-compteurs {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+}
+
+/* ── Cellules enrichies ────────────────────────────────────────────────── */
+.cell-entreprise {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.cell-entreprise__nom { font-weight: 600; }
+.cell-entreprise__email {
+  font-size: 0.8rem;
+  color: var(--p-text-muted-color);
+}
+.cell-nif { font-family: var(--ledge-ff-mono); }
+
+/* Groupes de boutons alignes (colonnes Portail et Actions) */
+.portail-cell,
+.actions-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: nowrap;
+}
+
+/* ── Zebrage charte : alternance « un peu clair / plus fonce » ─────────── */
+/* stripedRows etait pose mais le token du theme rendait l'alternance
+   invisible en sombre : on ancre les deux modes sur les surfaces de la charte. */
+.table-entreprises :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-100) 55%, var(--p-surface-0));
+}
+.app-dark .table-entreprises :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-800) 45%, var(--p-surface-900));
+}
+/* Le survol doit rester lisible par-dessus le zebrage (les deux modes) */
+.table-entreprises :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-200) 45%, var(--p-surface-0));
+}
+.app-dark .table-entreprises :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-700) 45%, var(--p-surface-900));
+}
+
+/* ── Pagination : rapport a gauche, navigation a droite (screenshot 1) ─── */
+.table-entreprises :deep(.p-paginator) {
+  justify-content: space-between;
+}
+.table-entreprises :deep(.p-paginator-current) {
+  margin-right: auto;
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+}
 .portail-intro { margin-bottom: 0.75rem; font-size: 0.875rem; }
 .credentials-box {
   background: rgba(128,128,128,0.1);
