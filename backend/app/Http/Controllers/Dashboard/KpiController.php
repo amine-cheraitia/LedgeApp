@@ -5,26 +5,22 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Dashboard\FiltreExerciceRequest;
 use App\Http\Requests\Dashboard\StoreKpiObjectifRequest;
 use App\Models\KpiObjectif;
 use App\Models\User;
 use App\Services\KpiService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class KpiController extends Controller
 {
     public function __construct(private readonly KpiService $kpiService) {}
 
-    public function index(Request $request): JsonResponse
+    public function index(FiltreExerciceRequest $request): JsonResponse
     {
         $this->authorize('viewAny', KpiObjectif::class);
 
-        $request->validate([
-            'exercice_id' => ['nullable', 'integer', 'exists:exercices,id'],
-        ]);
-
-        $data = $this->kpiService->getCollaborateurs($request->integer('exercice_id') ?: null);
+        $data = $this->kpiService->getCollaborateurs($request->exerciceId());
 
         return response()->json(['data' => $data]);
     }
@@ -59,20 +55,14 @@ class KpiController extends Controller
      * La secretaire n'est jamais une cible valide -> 404 (pas 403, la ressource
      * n'existe pas dans ce contexte pour eviter de reveler les roles existants).
      */
-    public function collaborateurStats(Request $request, User $user): JsonResponse
+    public function collaborateurStats(FiltreExerciceRequest $request, User $user): JsonResponse
     {
         abort_if(! $user->hasAnyRole(['admin', 'collaborateur']), 404);
 
         $this->authorize('viewStats', [KpiObjectif::class, $user]);
 
-        $request->validate([
-            'exercice_id' => ['nullable', 'integer', 'exists:exercices,id'],
-        ]);
-
-        $exerciceId = $request->integer('exercice_id') ?: null;
-
         return response()->json([
-            'data' => $this->kpiService->getCollaborateurStats($user, $exerciceId),
+            'data' => $this->kpiService->getCollaborateurStats($user, $request->exerciceId()),
         ]);
     }
 }

@@ -9,6 +9,14 @@
 
 ## [Unreleased]
 
+### Architecture — controllers minces & validation uniforme — refactor/controllers-minces-et-form-requests
+
+Résorption des dettes SOLID confirmées par une relecture externe (aucun changement de comportement, suites vertes inchangées) :
+
+- **`TacheService::commenter()`** : la création d'un commentaire et la règle métier « le 1er commentaire engage la tâche (`a_faire` → `en_cours`) » vivaient dans `TacheCommentaireController::store` (transaction incluse) — déplacées dans le service, controller réduit à valider → déléguer → Resource.
+- **`FacturationService::supprimerPaiement()`** : le couple suppression + recalcul du statut de facture vivait dans `PaiementController::destroy` — extrait dans le service (miroir exact de `supprimerAvoir`), l'invariant « statut toujours recalculé après mutation » est désormais garanti au même endroit.
+- **Fin des `$request->validate()` inline** : les 4 occurrences restantes remplacées par des FormRequests dédiées — `FiltreExerciceRequest` (filtre exercice commun aux endpoints KPI/Statistiques, avec helper `exerciceId()`) et `CalculerPrixRequest` (simulateur de prix des prestations). Stratégie de validation 100 % uniforme sur l'API.
+
 ### Règle métier — prix contractuel du devis accepté + délai de validité — fix/prix-devis-conserve-conversion
 
 Constats d'une relecture externe, vérifiés sur pièce puis corrigés :

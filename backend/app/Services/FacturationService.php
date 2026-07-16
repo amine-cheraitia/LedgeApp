@@ -461,6 +461,23 @@ class FacturationService
         });
     }
 
+    /**
+     * Supprime un paiement et recalcule le statut de SA facture — invariant
+     * metier : le statut de paiement est toujours recalcule apres mutation
+     * (miroir de supprimerAvoir, suppression + recalcul indissociables).
+     */
+    public function supprimerPaiement(Paiement $paiement): void
+    {
+        DB::transaction(function () use ($paiement) {
+            $facture = $paiement->facture;
+            $paiement->delete();
+
+            if ($facture !== null) {
+                $this->recalculerStatutPaiement($facture);
+            }
+        });
+    }
+
     public function supprimerFacture(Facture $facture): void
     {
         if ($facture->paiements()->exists()) {

@@ -10,12 +10,14 @@ use App\Http\Requests\Planning\UpdateTacheCommentaireRequest;
 use App\Http\Resources\Planning\TacheCommentaireResource;
 use App\Models\Tache;
 use App\Models\TacheCommentaire;
+use App\Services\TacheService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Support\Facades\DB;
 
 class TacheCommentaireController extends Controller
 {
+    public function __construct(private readonly TacheService $tacheService) {}
+
     public function index(Tache $tache): AnonymousResourceCollection
     {
         $this->authorize('view', $tache);
@@ -30,19 +32,11 @@ class TacheCommentaireController extends Controller
         // Seul un utilisateur pouvant voir la tâche (admin ou collaborateur affecté) peut commenter.
         $this->authorize('view', $tache);
 
-        $commentaire = DB::transaction(function () use ($request, $tache) {
-            $commentaire = $tache->commentaires()->create([
-                'user_id' => $request->user()->id,
-                'contenu' => $request->validated('contenu'),
-            ]);
-
-            // Le 1er commentaire engage la tache : a_faire -> en_cours
-            if ($tache->statut === 'a_faire') {
-                $tache->update(['statut' => 'en_cours']);
-            }
-
-            return $commentaire;
-        });
+        $commentaire = $this->tacheService->commenter(
+            $tache,
+            $request->user(),
+            $request->validated('contenu'),
+        );
 
         return (new TacheCommentaireResource($commentaire->load('user')))
             ->response()

@@ -393,6 +393,7 @@ GET    /api/v1/portail/missions
 - Composables : prefixe `use` -> `useFactures.ts`, `useAuth.ts`
 - Stores Pinia : suffixe `Store` -> `factureStore.ts`, `authStore.ts`
 - Appels API toujours via les modules `api/` — jamais axios direct dans les composants
+- **Composable vs module api/ (regle actee 2026-07)** : logique d'etat REUTILISABLE entre pages (listes, CRUD, filtres, toasts standards) -> composable `use*` obligatoire ; appel ponctuel sans etat partage (telechargement de PDF/blob, action one-shot, page auth isolee) -> appel direct du module `api/` tolere. Pas de refonte retroactive des pages existantes : la regle s'applique au code NOUVEAU et en refactor opportuniste quand on touche deja une page.
 - Pages Vue dans `frontend/src/pages/{domaine}/`
 
 ---
