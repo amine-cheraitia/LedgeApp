@@ -1,5 +1,6 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
+import { defaultExclude } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 import Components from 'unplugin-vue-components/vite'
@@ -52,6 +53,10 @@ export default defineConfig({
   test: {
     environment: 'happy-dom',
     globals: true,
+    // La suite E2E Playwright (frontend/e2e/*.spec.ts) vit hors de src/, mais le
+    // glob par defaut de Vitest scanne tout le repo : on l'exclut explicitement
+    // pour que `npx vitest run` ne la ramasse jamais.
+    exclude: [...defaultExclude, 'e2e/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
