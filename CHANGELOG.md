@@ -9,6 +9,14 @@
 
 ## [Unreleased]
 
+### Règle métier — prix contractuel du devis accepté + délai de validité — fix/prix-devis-conserve-conversion
+
+Constats d'une relecture externe, vérifiés sur pièce puis corrigés :
+
+- **Le prix du devis accepté est désormais CONTRACTUEL** : à la conversion devis→mission, `MissionService::creerMission` reprenait le prix **recalculé depuis la grille actuelle** (`calculerPrixHt`) au lieu du `prix_ht` du devis — si le tarif de la prestation ou les indices (régime/catégorie) changeaient entre l'acceptation et la conversion, la mission (et donc les factures T1/T2/T3) divergeait du devis signé par le client. La mission reprend maintenant tel quel le prix du devis d'origine ; sans devis, le calcul grille à la création reste inchangé.
+- **Acceptation bornée au délai de validité** : `accepterDevis` ne vérifiait jamais `date_validite` — un devis échu restait acceptable indéfiniment (et le statut `expire`, présent dans l'enum, n'était produit par aucun code). Désormais : acceptation possible jusqu'au jour d'échéance **inclus** ; passé ce délai → 409 explicite et bascule automatique en `expire` (premier vrai producteur de ce statut), ce qui rend le devis inconvertible.
+- Règle documentée dans CLAUDE.md (règle métier n°1). **4 nouveaux tests** (prix conservé malgré changement de grille, prix grille sans devis, refus + bascule `expire` après échéance, acceptation le jour J) ; 2 fixtures de tests corrigées au passage (dates de validité codées en dur devenues expirées en cours d'année — le nouveau garde les a démasquées).
+
 ### Page Statistiques — analytique cabinet & pilotage collaborateurs — feature/page-statistiques
 
 Nouvelle page **Statistiques** (admin) à deux onglets, qui **remplace la page « KPI Objectifs »** (menu renommé, ancienne URL `/kpi/objectifs` redirigée). Filtre exercice global partagé. Suites vertes : **479 backend / 593 frontend**, `vue-tsc` 0 erreur. L'export PDF des objectifs (US-34), annoncé mais jamais implémenté, est **annulé** (décision produit).

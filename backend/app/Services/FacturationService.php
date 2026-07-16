@@ -245,6 +245,18 @@ class FacturationService
             throw new DomainException('Seuls les devis envoyes peuvent etre acceptes.');
         }
 
+        // Regle metier : un devis n'est acceptable que dans son delai de
+        // validite (jour d'echeance inclus). Passe ce delai il devient
+        // 'expire' (seul producteur de ce statut) : son prix n'engage plus
+        // le cabinet et la conversion en mission devient impossible.
+        if ($devis->date_validite !== null && $devis->date_validite->endOfDay()->isPast()) {
+            $devis->update(['statut' => 'expire']);
+
+            throw new DomainException(
+                'Ce devis a expiré le '.$devis->date_validite->format('d/m/Y').' : il ne peut plus être accepté.'
+            );
+        }
+
         $devis->update(['statut' => 'accepte']);
 
         return $devis->load('prestation', 'entreprise');
