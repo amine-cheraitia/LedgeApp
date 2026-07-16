@@ -166,6 +166,7 @@
 - Un devis = une seule prestation — regle immuable
 - Calcul : `tarif x indice_regime x indice_categorie` — calcule a la creation, jamais modifiable
 - Numerotation `DV{ANNEE}-{NNN}` · statuts : brouillon / envoye / accepte / refuse / expire
+- 🔄 **Prix contractuel & delai de validite (fix/prix-devis-conserve-conversion)** : le prix du devis accepte est repris TEL QUEL a la conversion en mission (il etait recalcule depuis la grille courante — divergence possible avec le devis signe si les tarifs/indices avaient change) ; l'acceptation n'est possible que jusqu'au jour d'echeance inclus, au-dela le devis bascule automatiquement en `expire` (statut jusque-la jamais produit par le code)
 - `FacturationService::creerDevis()` avec calcul TVA automatique
 - Frontend : `Select` prestation dans le formulaire, prix HT affiche en lecture seule
 - Bouton "Envoyer" : change le statut en `envoye` — **l'envoi par mail (PDF en PJ) est prevu mais non implemente, depend de US-12**

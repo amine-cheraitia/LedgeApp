@@ -55,8 +55,7 @@ class PaiementController extends Controller
         // PaiementPolicy::delete : admin (tout) ou secretaire (ses propres saisies).
         $this->authorize('delete', $paiement);
 
-        $paiement->delete();
-        $this->facturationService->recalculerStatutPaiement($facture);
+        $this->facturationService->supprimerPaiement($paiement);
 
         return response()->json(['message' => 'Paiement supprimé.']);
     }

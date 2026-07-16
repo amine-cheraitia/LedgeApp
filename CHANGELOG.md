@@ -19,6 +19,22 @@ Harnais **E2E Playwright** complétant la pyramide de tests (unitaires backend S
 - **Job CI dédié** (après les gates unitaires) : service MySQL + Chromium, rapport Playwright uploadé en artefact en cas d'échec.
 - **Bug de schéma trouvé par le harnais dès son premier run** : `missions.date_fin` était `NOT NULL` en base alors que la validation, le formulaire de conversion et tous les services la traitent comme nullable → toute conversion devis→mission sans date de fin provoquait un 500 SQL. Migration corrective réversible (`nullable()->change()`).
 
+### Architecture — controllers minces & validation uniforme — refactor/controllers-minces-et-form-requests
+
+Résorption des dettes SOLID confirmées par une relecture externe (aucun changement de comportement, suites vertes inchangées) :
+
+- **`TacheService::commenter()`** : la création d'un commentaire et la règle métier « le 1er commentaire engage la tâche (`a_faire` → `en_cours`) » vivaient dans `TacheCommentaireController::store` (transaction incluse) — déplacées dans le service, controller réduit à valider → déléguer → Resource.
+- **`FacturationService::supprimerPaiement()`** : le couple suppression + recalcul du statut de facture vivait dans `PaiementController::destroy` — extrait dans le service (miroir exact de `supprimerAvoir`), l'invariant « statut toujours recalculé après mutation » est désormais garanti au même endroit.
+- **Fin des `$request->validate()` inline** : les 4 occurrences restantes remplacées par des FormRequests dédiées — `FiltreExerciceRequest` (filtre exercice commun aux endpoints KPI/Statistiques, avec helper `exerciceId()`) et `CalculerPrixRequest` (simulateur de prix des prestations). Stratégie de validation 100 % uniforme sur l'API.
+
+### Règle métier — prix contractuel du devis accepté + délai de validité — fix/prix-devis-conserve-conversion
+
+Constats d'une relecture externe, vérifiés sur pièce puis corrigés :
+
+- **Le prix du devis accepté est désormais CONTRACTUEL** : à la conversion devis→mission, `MissionService::creerMission` reprenait le prix **recalculé depuis la grille actuelle** (`calculerPrixHt`) au lieu du `prix_ht` du devis — si le tarif de la prestation ou les indices (régime/catégorie) changeaient entre l'acceptation et la conversion, la mission (et donc les factures T1/T2/T3) divergeait du devis signé par le client. La mission reprend maintenant tel quel le prix du devis d'origine ; sans devis, le calcul grille à la création reste inchangé.
+- **Acceptation bornée au délai de validité** : `accepterDevis` ne vérifiait jamais `date_validite` — un devis échu restait acceptable indéfiniment (et le statut `expire`, présent dans l'enum, n'était produit par aucun code). Désormais : acceptation possible jusqu'au jour d'échéance **inclus** ; passé ce délai → 409 explicite et bascule automatique en `expire` (premier vrai producteur de ce statut), ce qui rend le devis inconvertible.
+- Règle documentée dans CLAUDE.md (règle métier n°1). **4 nouveaux tests** (prix conservé malgré changement de grille, prix grille sans devis, refus + bascule `expire` après échéance, acceptation le jour J) ; 2 fixtures de tests corrigées au passage (dates de validité codées en dur devenues expirées en cours d'année — le nouveau garde les a démasquées).
+
 ### Page Statistiques — analytique cabinet & pilotage collaborateurs — feature/page-statistiques
 
 Nouvelle page **Statistiques** (admin) à deux onglets, qui **remplace la page « KPI Objectifs »** (menu renommé, ancienne URL `/kpi/objectifs` redirigée). Filtre exercice global partagé. Suites vertes : **479 backend / 593 frontend**, `vue-tsc` 0 erreur. L'export PDF des objectifs (US-34), annoncé mais jamais implémenté, est **annulé** (décision produit).
