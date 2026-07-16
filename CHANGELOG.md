@@ -9,6 +9,19 @@
 
 ## [Unreleased]
 
+### UI — refonte du tableau Entreprises — feature/tableau-entreprises-portail
+
+Premier lot de la passe d'amélioration du front avant la release (maquette de référence validée par capture) :
+
+- **Zébrage des lignes selon la charte** : `stripedRows` était posé mais le token du thème rendait l'alternance invisible en mode sombre — les lignes impaires s'ancrent désormais sur les surfaces navy/slate de la charte (`color-mix` sur `--p-surface-*`), avec un survol distinct dans les deux modes.
+- **Sous-titre de comptage** « X entreprises · Y clients · Z prospects » sous le titre — compteurs **globaux** (indépendants des filtres) exposés par l'API (`EntrepriseService::compteursStatuts`, champ additionnel `compteurs`).
+- **Cellule Raison sociale à deux lignes** (nom + email en dessous) et **NIF en police mono** (`--ledge-ff-mono`), repli « — » si absent.
+- **En-tête façon maquette** : Export CSV remonté à côté de « Nouvelle entreprise » (groupe d'actions à droite du titre) ; la barre de recherche + filtres occupe sa propre ligne.
+- **Tableau en carte** : bloc arrondi bordé légèrement élevé (les deux modes), en-têtes de colonnes en petites capitales espacées sur fond distinct, survol des lignes en transition douce (150 ms, `prefers-reduced-motion` respecté).
+- **Boutons d'actions et colonne Portail conservés à l'identique** (demande explicite) — seul un `aria-label` manquant a été ajouté sur « Activer » et le groupe Portail est aligné proprement.
+- **Pagination façon maquette** : « X résultat(s) · Page n sur m » à gauche, navigation à droite.
+- Tests : +4 frontend (compteurs, cellule 2 lignes, zébrage/pagination posés) et +1 backend (compteurs globaux insensibles aux filtres) ; suites complètes **490 backend / 598 frontend / 15 E2E** vertes.
+
 ### Tests E2E Playwright — parcours critiques contre le vrai backend — feature/tests-e2e-playwright
 
 Harnais **E2E Playwright** complétant la pyramide de tests (unitaires backend SQLite + composants front mockés) : **15 tests / 4 parcours** exécutés dans Chromium contre la **vraie stack** (Laravel + MySQL + Vite). Comble le trou structurel révélé par les bugs récents (`role[]` 500, toasts 403 secrétaire) : tout ce qui traverse la frontière front↔back est désormais couvert.

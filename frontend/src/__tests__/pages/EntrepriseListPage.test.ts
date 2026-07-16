@@ -116,7 +116,11 @@ const clipboardWrite = vi.fn()
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockGetAll.mockResolvedValue({ data: entreprises, meta: { total: entreprises.length } })
+  mockGetAll.mockResolvedValue({
+    data: entreprises,
+    meta: { total: entreprises.length },
+    compteurs: { total: 5, clients: 4, prospects: 1 },
+  })
   mockWilayas.mockResolvedValue({ data: ['Alger', 'Oran'] })
   mockContactsGetAll.mockResolvedValue({ data: contacts })
   Object.defineProperty(globalThis.navigator, 'clipboard', {
@@ -136,6 +140,37 @@ describe('EntrepriseListPage — liste', () => {
     expect(wrapper.text()).toContain('Beta SPA')
     expect(wrapper.text()).toContain('Omega SARL')
     expect(wrapper.text()).toContain('prospect')
+  })
+
+  it('affiche les compteurs globaux sous le titre (screenshot cible)', async () => {
+    const { wrapper } = await mountPage(EntrepriseListPage)
+
+    // Compteurs issus du champ additionnel `compteurs` de l'API (independants des filtres)
+    expect(wrapper.text()).toContain('5 entreprises')
+    expect(wrapper.text()).toContain('4 clients')
+    expect(wrapper.text()).toContain('1 prospect')
+  })
+
+  it('cellule raison sociale a deux lignes : nom + email en dessous', async () => {
+    const { wrapper } = await mountPage(EntrepriseListPage)
+
+    const cellules = wrapper.findAll('.cell-entreprise')
+    expect(cellules.length).toBeGreaterThan(0)
+    const alpha = cellules.find((c) => c.text().includes('Alpha SARL'))
+    expect(alpha?.find('.cell-entreprise__email').text()).toBe('alpha@ledge.dz')
+
+    // Gamma n'a pas d'email -> pas de sous-ligne
+    const gamma = cellules.find((c) => c.text().includes('Gamma EURL'))
+    expect(gamma?.find('.cell-entreprise__email').exists()).toBe(false)
+  })
+
+  it('le zebrage et la pagination du screenshot sont poses sur la table', async () => {
+    const { wrapper } = await mountPage(EntrepriseListPage)
+
+    const table = wrapper.findComponent({ name: 'DataTable' })
+    expect(table.props('stripedRows')).toBe(true)
+    expect(table.props('currentPageReportTemplate')).toContain('résultat(s)')
+    expect(table.props('currentPageReportTemplate')).toContain('Page {currentPage} sur {totalPages}')
   })
 
   it('affiche la colonne Portail pour l admin : actif, desactive, activer, — pour prospect', async () => {

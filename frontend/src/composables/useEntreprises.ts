@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { useToast } from 'primevue/usetoast'
-import { entreprisesApi, type EntrepriseFilters } from '@/api/modules/entreprises'
+import { entreprisesApi, type EntrepriseCompteurs, type EntrepriseFilters } from '@/api/modules/entreprises'
 import type { Entreprise } from '@/types'
 
 export function useEntreprises() {
@@ -8,6 +8,7 @@ export function useEntreprises() {
   const entreprises = ref<Entreprise[]>([])
   const loading = ref(false)
   const totalRecords = ref(0)
+  const compteurs = ref<EntrepriseCompteurs | null>(null)
   const filters = ref<EntrepriseFilters>({ page: 1, per_page: 15 })
 
   async function fetchEntreprises() {
@@ -19,6 +20,7 @@ export function useEntreprises() {
       })
       entreprises.value = response.data
       totalRecords.value = response.meta?.total ?? response.data.length
+      compteurs.value = response.compteurs ?? null
     } catch {
       toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de charger les entreprises.', life: 3000 })
     } finally {
@@ -78,6 +80,7 @@ export function useEntreprises() {
     entreprises,
     loading,
     totalRecords,
+    compteurs,
     filters,
     fetchEntreprises,
     createEntreprise,

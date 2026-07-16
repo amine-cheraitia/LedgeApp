@@ -24,7 +24,7 @@ const toast = useToast()
 const router = useRouter()
 const auth = useAuthStore()
 const {
-  entreprises, loading, totalRecords, filters,
+  entreprises, loading, totalRecords, compteurs, filters,
   fetchEntreprises, createEntreprise, updateEntreprise, deleteEntreprise,
   onPage, onSearch, setStatut, setWilaya, resetFilters,
 } = useEntreprises()
@@ -350,8 +350,26 @@ onMounted(() => {
 <template>
   <div>
     <div class="page-header">
-      <h1>Entreprises</h1>
-      <Button label="Nouvelle entreprise" icon="pi pi-plus" @click="openCreate" />
+      <div>
+        <h1>Entreprises</h1>
+        <p v-if="compteurs" class="page-compteurs">
+          {{ compteurs.total }} entreprise{{ compteurs.total > 1 ? 's' : '' }}
+          · {{ compteurs.clients }} client{{ compteurs.clients > 1 ? 's' : '' }}
+          · {{ compteurs.prospects }} prospect{{ compteurs.prospects > 1 ? 's' : '' }}
+        </p>
+      </div>
+      <div class="header-actions">
+        <Button
+          icon="pi pi-download"
+          label="Export CSV"
+          severity="secondary"
+          outlined
+          :loading="exportLoading"
+          aria-label="Exporter en CSV"
+          @click="handleExportCsv"
+        />
+        <Button label="Nouvelle entreprise" icon="pi pi-plus" @click="openCreate" />
+      </div>
     </div>
 
     <div class="page-toolbar">
@@ -399,18 +417,9 @@ onMounted(() => {
           @click="handleReset"
         />
       </div>
-
-      <Button
-        icon="pi pi-download"
-        label="Export CSV"
-        severity="secondary"
-        outlined
-        :loading="exportLoading"
-        aria-label="Exporter en CSV"
-        @click="handleExportCsv"
-      />
     </div>
 
+    <div class="table-card">
     <DataTable aria-label="Liste des entreprises"
       :value="entreprises"
       :loading="loading"
@@ -422,9 +431,23 @@ onMounted(() => {
       dataKey="id"
       responsiveLayout="scroll"
       stripedRows
+      paginatorTemplate="CurrentPageReport PrevPageLink PageLinks NextPageLink"
+      currentPageReportTemplate="{totalRecords} résultat(s) · Page {currentPage} sur {totalPages}"
+      class="table-entreprises"
     >
-      <Column field="raison_sociale" header="Raison sociale" />
-      <Column field="nif" header="NIF" />
+      <Column field="raison_sociale" header="Raison sociale">
+        <template #body="{ data }">
+          <div class="cell-entreprise">
+            <span class="cell-entreprise__nom">{{ data.raison_sociale }}</span>
+            <span v-if="data.email" class="cell-entreprise__email">{{ data.email }}</span>
+          </div>
+        </template>
+      </Column>
+      <Column field="nif" header="NIF">
+        <template #body="{ data }">
+          <span class="cell-nif">{{ data.nif || '—' }}</span>
+        </template>
+      </Column>
       <Column field="regime_fiscal" header="Regime fiscal" />
       <Column header="Statut">
         <template #body="{ data }">
@@ -433,7 +456,7 @@ onMounted(() => {
       </Column>
       <Column v-if="auth.isAdmin" header="Portail">
         <template #body="{ data }">
-          <template v-if="data.statut === 'client'">
+          <div v-if="data.statut === 'client'" class="portail-cell">
             <template v-if="data.portail_user">
               <Tag
                 :value="data.portail_user.portail_actif ? 'Actif' : 'Desactive'"
@@ -466,9 +489,10 @@ onMounted(() => {
               size="small"
               severity="success"
               text
+              :aria-label="`Activer l'acces portail de ${data.raison_sociale}`"
               @click="openPortailActivation(data)"
             />
-          </template>
+          </div>
           <span v-else class="text-muted">—</span>
         </template>
       </Column>
@@ -515,6 +539,7 @@ onMounted(() => {
         </template>
       </Column>
     </DataTable>
+    </div>
 
     <!-- Dialog creation/edition entreprise -->
     <Dialog
@@ -815,6 +840,100 @@ onMounted(() => {
 .dialog-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
 .text-muted { color: var(--p-text-muted-color, #999); }
 .portail-tag { margin-right: 0.25rem; }
+
+/* ── En-tete : compteurs sous le titre ─────────────────────────────────── */
+.page-compteurs {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+}
+
+/* ── Cellules enrichies ────────────────────────────────────────────────── */
+.cell-entreprise {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.cell-entreprise__nom { font-weight: 600; }
+.cell-entreprise__email {
+  font-size: 0.8rem;
+  color: var(--p-text-muted-color);
+}
+.cell-nif { font-family: var(--ledge-ff-mono); }
+
+/* Groupe de boutons aligne (colonne Portail — systeme valide sur maquette) */
+.portail-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: nowrap;
+}
+
+/* ── En-tete : Export CSV + Nouvelle entreprise groupes a droite ───────── */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ── Carte du tableau (maquette : bloc arrondi legerement eleve) ────────── */
+.table-card {
+  border: 1px solid var(--p-surface-200);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--p-surface-0);
+}
+.app-dark .table-card {
+  border-color: color-mix(in srgb, var(--p-surface-700) 60%, transparent);
+  background: color-mix(in srgb, var(--p-surface-800) 30%, var(--p-surface-900));
+}
+
+/* En-tetes de colonnes : petites capitales espacees, fond distinct (maquette) */
+.table-card :deep(.p-datatable-thead > tr > th) {
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--p-text-muted-color);
+  background: var(--p-surface-100);
+}
+.app-dark .table-card :deep(.p-datatable-thead > tr > th) {
+  background: color-mix(in srgb, var(--p-surface-700) 35%, var(--p-surface-900));
+}
+
+/* Transition douce du survol des lignes (150ms, colors only) */
+.table-card :deep(.p-datatable-tbody > tr) {
+  transition: background-color 0.15s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .table-card :deep(.p-datatable-tbody > tr) { transition: none; }
+}
+
+/* ── Zebrage charte : alternance « un peu clair / plus fonce » ─────────── */
+/* stripedRows etait pose mais le token du theme rendait l'alternance
+   invisible en sombre : on ancre les deux modes sur les surfaces de la charte. */
+.table-entreprises :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-100) 55%, var(--p-surface-0));
+}
+.app-dark .table-entreprises :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-800) 45%, var(--p-surface-900));
+}
+/* Le survol doit rester lisible par-dessus le zebrage (les deux modes) */
+.table-entreprises :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-200) 45%, var(--p-surface-0));
+}
+.app-dark .table-entreprises :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-700) 45%, var(--p-surface-900));
+}
+
+/* ── Pagination : rapport a gauche, navigation a droite (screenshot 1) ─── */
+.table-entreprises :deep(.p-paginator) {
+  justify-content: space-between;
+}
+.table-entreprises :deep(.p-paginator-current) {
+  margin-right: auto;
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+}
 .portail-intro { margin-bottom: 0.75rem; font-size: 0.875rem; }
 .credentials-box {
   background: rgba(128,128,128,0.1);
