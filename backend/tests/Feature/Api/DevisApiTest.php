@@ -281,11 +281,15 @@ class DevisApiTest extends TestCase
 
     public function test_workflow_envoyer_accepter_refuser(): void
     {
+        // Validite RELATIVE (future) : l'acceptation est refusee passe l'echeance
+        // (regle metier), une date en dur finirait par expirer en cours d'annee.
+        $dateValidite = now()->addMonth()->toDateString();
+
         $devisId = $this->actingAs($this->admin)->postJson('/api/v1/devis', [
             'entreprise_id' => $this->entreprise->id,
             'prestation_id' => $this->prestation->id,
             'date_devis' => '2026-03-31',
-            'date_validite' => '2026-04-30',
+            'date_validite' => $dateValidite,
         ])->json('data.id');
 
         // Envoyer
@@ -299,7 +303,7 @@ class DevisApiTest extends TestCase
             'entreprise_id' => $this->entreprise->id,
             'prestation_id' => $this->prestation->id,
             'date_devis' => '2026-03-31',
-            'date_validite' => '2026-04-30',
+            'date_validite' => $dateValidite,
         ])->json('data.id');
 
         $this->actingAs($this->admin)
@@ -317,7 +321,7 @@ class DevisApiTest extends TestCase
             'entreprise_id' => $this->entreprise->id,
             'prestation_id' => $this->prestation->id,
             'date_devis' => '2026-03-31',
-            'date_validite' => '2026-04-30',
+            'date_validite' => $dateValidite,
         ])->json('data.id');
 
         $this->actingAs($this->admin)->postJson("/api/v1/devis/{$devisId3}/envoyer");

@@ -156,6 +156,8 @@ $prixHt = $prestation->calculerPrixHt($entreprise->regime_fiscal, $entreprise->c
 ```
 Ce montant est calcule UNE SEULE FOIS a la creation et stocke de facon immuable. **Jamais recalcule dynamiquement.**
 
+**Conversion devis -> mission : le prix HT du devis accepte est CONTRACTUEL** — repris tel quel sur la mission (`devis->prix_ht`), jamais recalcule depuis la grille (le tarif ou les indices ont pu changer entre l'acceptation et la conversion). Un devis n'est acceptable que **dans son delai de validite** (jour d'echeance inclus) ; passe ce delai, l'acceptation le bascule en statut `expire` (409).
+
 ### 2. TVA historisee — regle absolue
 ```php
 // TOUJOURS passer la date de facturation — JAMAIS Carbon::now()
