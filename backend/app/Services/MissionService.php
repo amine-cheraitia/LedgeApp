@@ -112,6 +112,8 @@ class MissionService
     public function creerMission(array $data): Mission
     {
         return DB::transaction(function () use ($data) {
+            $devis = null;
+
             // Conversion depuis un devis : il doit etre accepte et ne pas avoir
             // deja genere une mission (anti-doublon, verrou pour la concurrence).
             if (! empty($data['devis_id'])) {
@@ -143,10 +145,17 @@ class MissionService
             $entreprise = Entreprise::findOrFail($data['entreprise_id']);
             $prestation = Prestation::findOrFail($data['prestation_id']);
 
-            $prixHt = $prestation->calculerPrixHt(
-                $entreprise->regime_fiscal,
-                $entreprise->categorie,
-            );
+            // Regle metier : le prix d'un devis accepte (dans son delai de
+            // validite) est CONTRACTUEL — il est repris tel quel sur la mission,
+            // jamais recalcule depuis la grille (le tarif ou les indices ont pu
+            // changer entre l'acceptation et la conversion). Sans devis, le prix
+            // est fige a la creation depuis la grille en vigueur.
+            $prixHt = $devis !== null
+                ? (float) $devis->prix_ht
+                : $prestation->calculerPrixHt(
+                    $entreprise->regime_fiscal,
+                    $entreprise->categorie,
+                );
 
             $prefixe = Setting::get('mission_prefixe', 'M');
             $reference = $this->numerotation->genererNumero($prefixe, 'missions', $exercice, 'reference');

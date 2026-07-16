@@ -144,11 +144,14 @@ class FacturationLifecycleTest extends TestCase
 
     private function creerDevisId(?int $entrepriseId = null): int
     {
+        // Dates RELATIVES : une date de validite codee en dur finit fatalement
+        // dans le passe en cours d'annee — le devis serait alors expire et
+        // inacceptable (regle metier), rendant les tests dependants du calendrier.
         return (int) $this->actingAs($this->admin)->postJson('/api/v1/devis', [
             'entreprise_id' => $entrepriseId ?? $this->entreprise->id,
             'prestation_id' => $this->prestation->id,
-            'date_devis' => date('Y').'-06-01',
-            'date_validite' => date('Y').'-07-01',
+            'date_devis' => now()->toDateString(),
+            'date_validite' => now()->addMonth()->toDateString(),
         ])->json('data.id');
     }
 
@@ -326,6 +329,77 @@ class FacturationLifecycleTest extends TestCase
 
         $mission = Mission::findOrFail($response->json('data.id'));
         $this->assertSame(1, $mission->collaborateurs()->count());
+    }
+
+    public function test_conversion_conserve_le_prix_du_devis_malgre_changement_de_grille(): void
+    {
+        // Regle metier : le prix d'un devis accepte est CONTRACTUEL. Meme si la
+        // grille tarifaire change entre l'acceptation et la conversion, la
+        // mission reprend le prix du devis — jamais un recalcul.
+        $devisId = $this->creerDevisId();
+        Devis::whereKey($devisId)->update(['statut' => 'accepte']);
+
+        $prixDevis = (float) Devis::findOrFail($devisId)->prix_ht; // 315 000 (120 000 x 1.5 x 1.75)
+
+        // La grille change APRES l'acceptation : tarif ACMPT double.
+        $this->prestation->update(['tarif_initial' => 240000]);
+
+        $response = $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId}/convertir-en-mission", [
+                'date_debut' => date('Y').'-06-01',
+                'date_fin' => date('Y').'-09-30',
+            ])->assertSuccessful();
+
+        $mission = Mission::findOrFail($response->json('data.id'));
+        $this->assertEquals($prixDevis, (float) $mission->prix_ht);
+        $this->assertEquals(315000.0, (float) $mission->prix_ht); // pas 630 000 recalcule
+    }
+
+    public function test_mission_sans_devis_calcule_le_prix_depuis_la_grille(): void
+    {
+        // Sans devis d'origine, le prix reste fige a la creation depuis la grille en vigueur.
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/missions', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_debut' => date('Y').'-06-01',
+                'date_fin' => date('Y').'-09-30',
+            ])->assertSuccessful();
+
+        $this->assertEquals(315000.0, (float) Mission::findOrFail($response->json('data.id'))->prix_ht);
+    }
+
+    public function test_accepter_devis_expire_est_refuse_et_marque_expire(): void
+    {
+        // Regle metier : un devis n'est acceptable que dans son delai de validite.
+        $devisId = $this->creerDevisId();
+        Devis::whereKey($devisId)->update([
+            'statut' => 'envoye',
+            'date_validite' => now()->subDay()->toDateString(),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId}/accepter")
+            ->assertStatus(409);
+
+        // Le devis est marque 'expire' (seul producteur de ce statut) et
+        // devient ainsi inconvertible (la conversion exige 'accepte').
+        $this->assertEquals('expire', Devis::findOrFail($devisId)->statut);
+    }
+
+    public function test_accepter_devis_le_jour_de_l_echeance_reste_possible(): void
+    {
+        // Le jour d'echeance est inclus dans le delai de validite.
+        $devisId = $this->creerDevisId();
+        Devis::whereKey($devisId)->update([
+            'statut' => 'envoye',
+            'date_validite' => now()->toDateString(),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId}/accepter")
+            ->assertOk()
+            ->assertJsonPath('data.statut', 'accepte');
     }
 
     public function test_convertir_devis_sans_date_debut_est_rejete(): void
