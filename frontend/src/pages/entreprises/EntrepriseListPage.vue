@@ -376,15 +376,13 @@ onMounted(() => {
       <div class="toolbar-filters">
         <div class="search-wrapper">
           <label for="search-entreprises" class="sr-only">Rechercher une entreprise</label>
-          <span class="p-input-icon-left">
-            <i class="pi pi-search" />
-            <InputText
-              id="search-entreprises"
-              v-model="search"
-              placeholder="Raison sociale, NIF, email..."
-              style="padding-left: 2.25rem; min-width: 18rem;"
-            />
-          </span>
+          <i class="pi pi-search search-icon" aria-hidden="true" />
+          <InputText
+            id="search-entreprises"
+            v-model="search"
+            class="search-input"
+            placeholder="Raison sociale, NIF, email…"
+          />
         </div>
 
         <Select
@@ -394,7 +392,7 @@ onMounted(() => {
           optionValue="value"
           placeholder="Statut"
           aria-label="Filtrer par statut"
-          style="min-width: 12rem;"
+          class="toolbar-select"
         />
 
         <Select
@@ -404,7 +402,7 @@ onMounted(() => {
           optionValue="value"
           placeholder="Wilaya"
           aria-label="Filtrer par wilaya"
-          style="min-width: 12rem;"
+          class="toolbar-select"
         />
 
         <Button
@@ -829,10 +827,38 @@ onMounted(() => {
 .toolbar-filters {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
+  flex: 1;
 }
-.search-wrapper { position: relative; }
+
+/* ── Barre de recherche façon maquette : large, arrondie, pleine largeur ── */
+.search-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 16rem;
+}
+.search-icon {
+  position: absolute;
+  left: 0.95rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--p-text-muted-color);
+  pointer-events: none;
+}
+.search-input {
+  width: 100%;
+  height: 2.9rem;
+  padding-left: 2.6rem;
+  border-radius: 10px;
+}
+/* Filtres harmonises sur la meme hauteur/arrondi que la recherche */
+.toolbar-select {
+  min-width: 11rem;
+  height: 2.9rem;
+  border-radius: 10px;
+  align-items: center;
+}
 .dialog-form { display: flex; flex-direction: column; gap: 0.75rem; }
 .form-field { display: flex; flex-direction: column; gap: 0.25rem; flex: 1; }
 .form-field label { font-size: 0.875rem; font-weight: 500; }
@@ -884,8 +910,8 @@ onMounted(() => {
   background: var(--p-surface-0);
 }
 .app-dark .table-card {
-  border-color: color-mix(in srgb, var(--p-surface-700) 60%, transparent);
-  background: color-mix(in srgb, var(--p-surface-800) 30%, var(--p-surface-900));
+  border-color: color-mix(in srgb, var(--p-surface-700) 55%, transparent);
+  background: color-mix(in srgb, var(--p-surface-800) 62%, var(--p-surface-900));
 }
 
 /* En-tetes de colonnes : petites capitales espacees, fond distinct (maquette) */
@@ -897,7 +923,7 @@ onMounted(() => {
   background: var(--p-surface-100);
 }
 .app-dark .table-card :deep(.p-datatable-thead > tr > th) {
-  background: color-mix(in srgb, var(--p-surface-700) 35%, var(--p-surface-900));
+  background: color-mix(in srgb, var(--p-surface-700) 45%, var(--p-surface-900));
 }
 
 /* Transition douce du survol des lignes (150ms, colors only) */
@@ -909,27 +935,36 @@ onMounted(() => {
 }
 
 /* ── Zebrage charte : alternance « un peu clair / plus fonce » ─────────── */
-/* stripedRows etait pose mais le token du theme rendait l'alternance
-   invisible en sombre : on ancre les deux modes sur les surfaces de la charte. */
-.table-entreprises :deep(.p-datatable-tbody > tr.p-row-odd) {
-  background: color-mix(in srgb, var(--p-surface-100) 55%, var(--p-surface-0));
-}
-.app-dark .table-entreprises :deep(.p-datatable-tbody > tr.p-row-odd) {
-  background: color-mix(in srgb, var(--p-surface-800) 45%, var(--p-surface-900));
-}
-/* Le survol doit rester lisible par-dessus le zebrage (les deux modes) */
-.table-entreprises :deep(.p-datatable-tbody > tr:hover) {
-  background: color-mix(in srgb, var(--p-surface-200) 45%, var(--p-surface-0));
-}
-.app-dark .table-entreprises :deep(.p-datatable-tbody > tr:hover) {
-  background: color-mix(in srgb, var(--p-surface-700) 45%, var(--p-surface-900));
+/* Point cle : la DataTable PrimeVue peint ses propres fonds OPAQUES (lignes,
+   paginator) qui masquaient la carte -> on rend la table transparente dans
+   .table-card et la charte peint tout (carte, zebrage, survol). */
+.table-card :deep(.p-datatable),
+.table-card :deep(.p-datatable-table),
+.table-card :deep(.p-datatable-tbody > tr),
+.table-card :deep(.p-paginator) {
+  background: transparent;
 }
 
-/* ── Pagination : rapport a gauche, navigation a droite (screenshot 1) ─── */
-.table-entreprises :deep(.p-paginator) {
-  justify-content: space-between;
+.table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-100) 65%, transparent);
 }
-.table-entreprises :deep(.p-paginator-current) {
+.app-dark .table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-700) 28%, transparent);
+}
+/* Le survol doit rester lisible par-dessus le zebrage (les deux modes) */
+.table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-200) 60%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-600) 30%, transparent);
+}
+
+/* ── Pagination : rapport a gauche, navigation a droite (maquette) ──────── */
+.table-card :deep(.p-paginator) {
+  justify-content: space-between;
+  border-top: 1px solid color-mix(in srgb, var(--p-surface-500) 25%, transparent);
+}
+.table-card :deep(.p-paginator-current) {
   margin-right: auto;
   font-size: 0.875rem;
   color: var(--p-text-muted-color);
