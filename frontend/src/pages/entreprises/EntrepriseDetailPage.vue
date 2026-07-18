@@ -515,10 +515,9 @@ onMounted(async () => {
   align-items: flex-start;
   gap: 0.75rem;
 }
+/* Taille/graisse : base h1 globale (main.css) */
 .header-left h1 {
   margin: 0;
-  font-size: 1.4rem;
-  font-weight: 600;
 }
 .skeleton-title {
   width: 16rem;

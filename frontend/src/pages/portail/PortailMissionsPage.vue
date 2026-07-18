@@ -246,11 +246,9 @@ onMounted(fetchMissions)
   margin-bottom: 1.25rem;
 }
 
+/* Taille/graisse : base h1 globale (main.css) */
 .page-header h1 {
-  font-size: 1.4rem;
-  font-weight: 700;
   margin: 0;
-  color: var(--p-text-color);
 }
 
 .page-toolbar {

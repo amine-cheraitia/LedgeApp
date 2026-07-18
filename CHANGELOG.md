@@ -9,6 +9,10 @@
 
 ## [Unreleased]
 
+### UI — base typographique unique pour les titres de page — feature/tableau-entreprises-portail
+
+Aucun style global n'existait pour les `h1` : le reset CSS les laissait à la taille du texte courant (1rem) sur la quasi-totalité des pages (listes, fiche mission…), trois pages compensant localement avec des valeurs divergentes (1.375 / 1.4 / 1.5rem). Une règle globale unique dans `main.css` (1.5rem · 700 · interlettrage −0.015em · couleur au token — l'échelle déjà utilisée par le Dashboard) s'applique désormais partout, back-office **et portail client** ; les overrides locaux divergents sont supprimés. Exceptions volontaires conservées : pages d'auth, 404/accès refusé, dashboard portail, titre de la fiche tâche (1.25rem + ellipsis pour les titres longs). Hiérarchie visuelle enfin alignée sur la hiérarchie sémantique (RGAA).
+
 ### UX — dashboard collaborateur : salutation unique — feature/tableau-entreprises-portail
 
 Le sous-titre « Bienvenue, {prénom}. » de l'en-tête faisait doublon avec le « Bonjour, {prénom} » du bandeau héro juste en dessous : il est masqué pour le rôle collaborateur (le héro, plus riche — date, prénom, chips d'état — porte seul l'accueil ; admin et secrétaire, sans héro d'accueil, le conservent). Le `h1` « Tableau de bord » reste pour la structure et les lecteurs d'écran. Retrait au passage du glyphe « § » devant la date du héro (règle locale à la page).

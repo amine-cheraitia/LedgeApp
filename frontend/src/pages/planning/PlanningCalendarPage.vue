@@ -582,9 +582,8 @@ if (!auth.isCollaborateur) fetchCollaborateurs()
   gap: 0.75rem;
   flex-wrap: wrap;
 }
+/* Taille/graisse : base h1 globale (main.css) */
 .page-title {
-  font-size: 1.5rem;
-  font-weight: 600;
   margin: 0;
 }
 .collab-subtitle {

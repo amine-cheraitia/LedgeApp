@@ -284,7 +284,8 @@ onMounted(fetchCreances)
   margin-bottom: 1.25rem;
   flex-wrap: wrap;
 }
-.page-title { font-size: 1.375rem; font-weight: 700; margin: 0; }
+/* Taille/graisse : base h1 globale (main.css) */
+.page-title { margin: 0; }
 .page-subtitle { color: var(--p-text-muted-color); margin: 0.25rem 0 0; font-size: 0.875rem; }
 
 /* ── En-tete : compteur sous le titre (meme patron que les entreprises/missions) ── */
