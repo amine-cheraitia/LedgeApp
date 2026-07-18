@@ -595,7 +595,7 @@ onMounted(async () => {
   align-items: center;
   gap: 0.25rem;
 }
-.kpi-trend--up { color: var(--p-green-600, #16a34a); }
+.kpi-trend--up { color: var(--ledge-success); }
 .kpi-trend--down { color: var(--p-red-600, #dc2626); }
 .kpi-trend--stable { color: var(--p-text-muted-color, #888); }
 

@@ -602,8 +602,8 @@ if (!auth.isCollaborateur) fetchCollaborateurs()
   padding: 0.2rem 0.6rem;
   border-radius: 9999px;
 }
-.stat-chip--blue   { background: #3B82F620; color: #3B82F6; }
-.stat-chip--orange { background: #F59E0B20; color: #F59E0B; }
+.stat-chip--blue   { background: #3B82F620; color: var(--ledge-accent); }
+.stat-chip--orange { background: #F59E0B20; color: var(--ledge-warning); }
 
 /* ── Filtres statuts ─────────────────────────────────────────────────────────── */
 .statut-filters {
@@ -923,8 +923,8 @@ if (!auth.isCollaborateur) fetchCollaborateurs()
 .tache-chip:hover { filter: brightness(0.95); }
 .tache-chip--en_cours  { background: #8B5CF620; color: #8B5CF6; }
 .tache-chip--a_faire   { background: #0EA5E920; color: #0EA5E9; }
-.tache-chip--bloquee   { background: #EF444420; color: #EF4444; }
-.tache-chip--terminee  { background: #22C55E20; color: #22C55E; }
+.tache-chip--bloquee   { background: #EF444420; color: var(--ledge-danger); }
+.tache-chip--terminee  { background: #22C55E20; color: var(--ledge-success); }
 .dispo-label {
   font-size: 0.68rem;
   color: var(--p-text-muted-color);

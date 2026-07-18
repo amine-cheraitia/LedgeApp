@@ -8,11 +8,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\UpdateSettingRequest;
 use App\Http\Resources\Settings\SettingResource;
 use App\Models\Setting;
+use App\Services\SettingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class SettingController extends Controller
 {
+    public function __construct(private readonly SettingService $settingService) {}
+
     public function index(): AnonymousResourceCollection
     {
         $this->authorize('viewAny', Setting::class);
@@ -24,9 +27,7 @@ class SettingController extends Controller
     {
         $this->authorize('update', Setting::class);
 
-        foreach ($request->settings as $setting) {
-            Setting::set($setting['key'], $setting['value']);
-        }
+        $this->settingService->mettreAJour($request->validated()['settings']);
 
         return response()->json(['message' => 'Paramètres mis à jour.']);
     }
