@@ -9,6 +9,15 @@
 
 ## [Unreleased]
 
+### Sécurité — plus aucun secret dans les fichiers versionnés — fix/env-secrets-versionnes
+
+Remédiation du constat A05 de l'audit interne du 2026-07-17 (détail : `docs/SECURITY.md`, section « Secrets & fichiers d'environnement ») :
+
+- **`backend/.env.e2e` retiré du suivi git** : il contenait une `APP_KEY` fonctionnelle commitée. Remplacé par un template `.env.e2e.example` sans clé ; le fichier réel est **généré automatiquement** au chargement de la config Playwright (`e2e/ensure-env.ts` : copie + `key:generate --env=e2e`), en local comme en CI — zéro étape manuelle. La clé historique est considérée compromise et a été régénérée.
+- **Garde-fou anti-perte de données** ajouté au `global-setup` E2E : si `.env.e2e` manque, la suite refuse de démarrer au lieu de laisser `--env=e2e` retomber silencieusement sur le `.env` de dev — où `migrate:fresh` aurait **vidé la base de développement**.
+- **`backend/.env.docker` sans mot de passe** : `DB_PASSWORD` passe par `docker-compose.yml` (défaut de démo surchargeable), même patron que `ADMIN_PASSWORD` — `docker compose up --build` reste zéro-config.
+- Vérifié de bout en bout : suppression du `.env.e2e` local → `npx playwright test` régénère le fichier (clé fraîche, base `ledge_e2e`) → **14 tests E2E passés** (1 flaky repassé au retry, comportement inchangé).
+
 ### Tests E2E Playwright — parcours critiques contre le vrai backend — feature/tests-e2e-playwright
 
 Harnais **E2E Playwright** complétant la pyramide de tests (unitaires backend SQLite + composants front mockés) : **15 tests / 4 parcours** exécutés dans Chromium contre la **vraie stack** (Laravel + MySQL + Vite). Comble le trou structurel révélé par les bugs récents (`role[]` 500, toasts 403 secrétaire) : tout ce qui traverse la frontière front↔back est désormais couvert.

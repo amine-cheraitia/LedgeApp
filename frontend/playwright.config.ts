@@ -1,5 +1,11 @@
 import { defineConfig, devices } from '@playwright/test'
 
+import { ensureE2eEnvFile } from './e2e/ensure-env'
+
+// Avant toute chose (webServers compris) : backend/.env.e2e doit exister —
+// il n'est plus versionne, il est genere depuis .env.e2e.example + key:generate.
+ensureE2eEnvFile()
+
 /**
  * Configuration Playwright — suite E2E dediee (environnement APP_ENV=e2e).
  *
