@@ -738,7 +738,7 @@ onMounted(() => {
   color: var(--p-text-color);
 }
 .conflit-warning i {
-  color: #f59e0b;
+  color: var(--ledge-warning-bright);
   font-size: 1.05rem;
   margin-top: 0.1rem;
 }
