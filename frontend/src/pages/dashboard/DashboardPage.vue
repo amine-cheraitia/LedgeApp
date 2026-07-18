@@ -125,11 +125,14 @@ const donutSegments = computed(() => {
     const rawArc = (p.value / t.total) * C
     // gap uniquement s'il y a plusieurs segments, arc minimum de 8 pour rester visible
     const gap = active.length > 1 ? DONUT_GAP : 0
-    const arc = Math.max(rawArc - gap, 8)
+    const arc = Math.max(rawArc - gap, Math.min(rawArc, 8))
+    // Piege dashoffset : la periode du motif est (on + off). Elle doit valoir
+    // exactement C pour que `C - debut` positionne le segment — un off de C
+    // (periode C + arc) decale chaque segment de son propre arc.
     const seg = {
       color: p.color,
-      dasharray: `${arc} ${C}`,
-      dashoffset: C - cumulative,
+      dasharray: `${arc} ${C - arc}`,
+      dashoffset: C - (cumulative + gap / 2),
       pct: Math.round(p.value / t.total * 100),
     }
     cumulative += rawArc // position suivante basée sur l'arc brut

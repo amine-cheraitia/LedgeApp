@@ -444,9 +444,36 @@ describe('DashboardPage — collaborateur', () => {
     expect(vm.donutSegments).toHaveLength(1)
     expect(vm.donutSegments[0].pct).toBe(100)
     expect(vm.donutSegments[0].color).toBe('#3b82f6')
-    // segment unique -> pas de gap, l'arc couvre toute la circonference
+    // segment unique -> pas de gap, l'arc couvre toute la circonference.
+    // La periode du motif (on + off) doit valoir exactement C, sinon le
+    // dashoffset decale chaque segment de son propre arc (bug corrige).
     const circumference = 2 * Math.PI * 38
-    expect(vm.donutSegments[0].dasharray).toBe(`${circumference} ${circumference}`)
+    expect(vm.donutSegments[0].dasharray).toBe(`${circumference} ${0}`)
+    expect(vm.donutSegments[0].dashoffset).toBe(circumference)
+  })
+
+  it('positionne les segments du donut bout a bout (periode du motif = circonference)', async () => {
+    mockGetCollaborateur.mockResolvedValue({
+      data: {
+        ...collabStatsVide,
+        taches: { total: 4, a_faire: 2, en_cours: 1, terminees: 1, bloquees: 0, taux_completion: 25, en_retard: 0 },
+      },
+    })
+    const { wrapper } = await mountPage(DashboardPage, { role: 'collaborateur' })
+    const vm = wrapper.vm as any
+
+    const C = 2 * Math.PI * 38
+    const gap = 4
+    expect(vm.donutSegments).toHaveLength(3)
+    // Chaque motif a une periode de C exactement : arc + reste = C
+    for (const seg of vm.donutSegments) {
+      const [on, off] = seg.dasharray.split(' ').map(Number)
+      expect(on + off).toBeCloseTo(C, 6)
+    }
+    // Les departs s'enchainent sur les arcs bruts : 25 %, 25 %, 50 %
+    expect(vm.donutSegments[0].dashoffset).toBeCloseTo(C - gap / 2, 6)
+    expect(vm.donutSegments[1].dashoffset).toBeCloseTo(C - (C * 0.25 + gap / 2), 6)
+    expect(vm.donutSegments[2].dashoffset).toBeCloseTo(C - (C * 0.5 + gap / 2), 6)
   })
 })
 
