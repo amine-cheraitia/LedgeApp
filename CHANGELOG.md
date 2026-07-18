@@ -9,6 +9,14 @@
 
 ## [Unreleased]
 
+### Fix — donut « Répartition des tâches » du dashboard collaborateur — feature/tableau-entreprises-portail
+
+Les segments de l'anneau étaient déplacés/chevauchés (arcs empilés, segment majoritaire quasi invisible) : le motif `stroke-dasharray` avait une période de `arc + circonférence` alors que le `dashoffset` supposait une période égale à la circonférence — chaque segment se décalait de la longueur de son propre arc. Corrigé (période exactement = circonférence, départ compensé du demi-écart) et **verrouillé par un test** qui vérifie l'enchaînement bout à bout des segments (scénario 25/25/50).
+
+### UI — fiche mission normalisée sur la charte standard — feature/tableau-entreprises-portail
+
+La fiche mission abandonne le style « éditorial » (page limitée à 980px ≈ 60 % de l'écran, titre serif Fraunces, kickers mono avec glyphe « § », grille à pointillés, boutons compacts) au profit du langage utilisé partout ailleurs : **pleine largeur**, en-tête standard (retour + h1 Manrope + référence mono · entreprise · tag de statut **libellé** — fini le `en_cours` brut), **informations et documents en cartes** à la surface des tableaux (bordure, rayon 12px, variantes dark), titres de section h2 simples, boutons Générer/Imprimer et actions d'en-tête au **padding normal**. Zéro classe `ledger-*` restante sur la page ; fiches tâche et entreprise encore en style éditorial (harmonisation à décider).
+
 ### UI — habillage maquette généralisé aux 10 listes — feature/tableau-entreprises-portail
 
 Le système validé sur le tableau Entreprises (carte arrondie, en-têtes en petites capitales, zébrage/survol charte, recherche large arrondie avec loupe, compteur sous le titre, **pagination centrée** « X résultat(s) · Page n sur m ») est déployé sur toutes les pages de liste : **Missions, Devis, Factures & Avoirs (les deux tableaux des onglets), Créances, Prestations, Taux de TVA, Exercices, Utilisateurs, Journal d'audit** — adapté à la nature de chaque page (pas de recherche ni pagination inventées sur les petites listes référentiel). RGAA intégralement préservé (ids, labels `sr-only`, `aria-label`, `role`, `aria-live` — vérifié par diff), dark mode couvert partout. Correctif outillage au passage : `playwright-report/` et `test-results/` exclus d'ESLint (le rapport E2E local minifié générait des milliers de fausses erreurs de lint).

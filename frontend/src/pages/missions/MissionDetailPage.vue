@@ -262,6 +262,13 @@ function statutMissionSeverity(statut: string) {
   return map[statut] ?? 'secondary'
 }
 
+function statutMissionLabel(statut: string) {
+  const map: Record<string, string> = {
+    en_cours: 'En cours', terminee: 'Terminée', suspendue: 'Suspendue', annulee: 'Annulée',
+  }
+  return map[statut] ?? statut
+}
+
 function statutTacheSeverity(statut: string) {
   const map: Record<string, string> = {
     a_faire: 'secondary', en_cours: 'info', terminee: 'success', bloquee: 'danger',
@@ -305,32 +312,40 @@ onMounted(() => {
 </script>
 
 <template>
-  <article v-if="!loading && mission" class="ledger-page">
-    <!-- ═══ Top rail ═══════════════════════════════════════════════ -->
-    <header class="ledger-rail">
-      <div class="ledger-rail-left">
-        <button
-          type="button"
-          class="ledger-back"
+  <article v-if="!loading && mission" class="mission-page">
+    <!-- ═══ En-tête standard (patron des autres pages) ═════════════ -->
+    <div class="page-header">
+      <div class="header-left">
+        <Button
+          icon="pi pi-arrow-left"
+          text
+          severity="secondary"
           aria-label="Retour aux missions"
           @click="router.push({ name: 'missions' })"
-        >
-          <span aria-hidden="true">←</span>
-          <span>Missions</span>
-        </button>
-        <span class="ledger-ref">{{ mission.reference }}</span>
+        />
+        <div>
+          <h1 id="mission-titre">{{ mission.prestation?.designation ?? 'Mission sans prestation' }}</h1>
+          <p class="page-compteurs">
+            <span class="ref-mono">{{ mission.reference }}</span>
+            <span v-if="mission.entreprise?.raison_sociale"> · {{ mission.entreprise.raison_sociale }}</span>
+            <Tag
+              :value="statutMissionLabel(mission.statut)"
+              :severity="statutMissionSeverity(mission.statut)"
+              class="statut-tag"
+            />
+          </p>
+        </div>
       </div>
 
       <div
         v-if="!auth.isCollaborateur && mission.statut !== 'terminee' && mission.statut !== 'annulee'"
-        class="ledger-rail-right"
+        class="header-actions"
       >
         <Button
           v-if="mission.statut === 'suspendue'"
           label="Reprendre"
           icon="pi pi-play"
           severity="info"
-          size="small"
           :loading="updatingStatut"
           @click="changerStatutMission('en_cours')"
         />
@@ -339,7 +354,6 @@ onMounted(() => {
           label="Suspendre"
           icon="pi pi-pause"
           severity="warn"
-          size="small"
           :loading="updatingStatut"
           @click="changerStatutMission('suspendue')"
         />
@@ -348,7 +362,6 @@ onMounted(() => {
           label="Terminer"
           icon="pi pi-check"
           severity="success"
-          size="small"
           :loading="updatingStatut"
           @click="changerStatutMission('terminee')"
         />
@@ -356,87 +369,62 @@ onMounted(() => {
           label="Annuler"
           icon="pi pi-times"
           severity="danger"
-          size="small"
           outlined
           :loading="updatingStatut"
           @click="changerStatutMission('annulee')"
         />
       </div>
-    </header>
+    </div>
 
-    <!-- ═══ Hero ═══════════════════════════════════════════════════ -->
-    <section class="ledger-hero" aria-labelledby="mission-titre">
-      <p class="ledger-eyebrow">
-        Mission
-        <Tag
-          :value="mission.statut"
-          :severity="statutMissionSeverity(mission.statut)"
-          class="hero-statut-tag"
-        />
-      </p>
-      <h1 id="mission-titre" class="ledger-title">
-        {{ mission.prestation?.designation ?? 'Mission sans prestation' }}
-      </h1>
-      <p v-if="mission.entreprise?.raison_sociale" class="ledger-lede">
-        Pour <strong>{{ mission.entreprise.raison_sociale }}</strong>
-      </p>
-    </section>
-
-    <!-- ═══ Ledger grid (metadata) ═════════════════════════════════ -->
-    <section aria-labelledby="meta-heading">
-      <div class="ledger-section-head">
-        <h2 id="meta-heading" class="ledger-section-kicker">
-          Métadonnées <span class="ledger-section-code">[01]</span>
-        </h2>
-        <span class="ledger-rule" aria-hidden="true"></span>
+    <!-- ═══ Informations (carte au fond des tableaux) ══════════════ -->
+    <section aria-labelledby="meta-heading" class="section">
+      <div class="section-header">
+        <h2 id="meta-heading">Informations</h2>
       </div>
+      <div class="info-card">
+        <dl class="meta-grid">
+          <div class="meta-cell">
+            <dt class="meta-key">Entreprise</dt>
+            <dd class="meta-val">{{ mission.entreprise?.raison_sociale ?? '—' }}</dd>
+          </div>
+          <div class="meta-cell">
+            <dt class="meta-key">Prestation</dt>
+            <dd class="meta-val">{{ mission.prestation?.designation ?? '—' }}</dd>
+          </div>
+          <div class="meta-cell">
+            <dt class="meta-key">Prix HT</dt>
+            <dd class="meta-val cell-mono">{{ formatDA(mission.prix_ht) }}</dd>
+          </div>
+          <div class="meta-cell">
+            <dt class="meta-key">Début</dt>
+            <dd class="meta-val cell-mono">{{ formatDate(mission.date_debut) }}</dd>
+          </div>
+          <div class="meta-cell">
+            <dt class="meta-key">Fin</dt>
+            <dd class="meta-val cell-mono">{{ formatDate(mission.date_fin) }}</dd>
+          </div>
+        </dl>
 
-      <dl class="ledger-grid">
-        <div class="ledger-cell">
-          <dt class="ledger-cell-key">Entreprise</dt>
-          <dd class="ledger-cell-val">{{ mission.entreprise?.raison_sociale ?? '—' }}</dd>
+        <div v-if="mission.collaborateurs && mission.collaborateurs.length > 0" class="collaborateurs">
+          <strong>Collaborateurs :</strong>
+          <span v-for="c in mission.collaborateurs" :key="c.id" class="collab-chip">{{ c.name }}</span>
         </div>
-        <div class="ledger-cell">
-          <dt class="ledger-cell-key">Prestation</dt>
-          <dd class="ledger-cell-val">{{ mission.prestation?.designation ?? '—' }}</dd>
-        </div>
-        <div class="ledger-cell">
-          <dt class="ledger-cell-key">Prix HT</dt>
-          <dd class="ledger-cell-val ledger-mono">{{ formatDA(mission.prix_ht) }}</dd>
-        </div>
-        <div class="ledger-cell">
-          <dt class="ledger-cell-key">Début</dt>
-          <dd class="ledger-cell-val ledger-mono">{{ formatDate(mission.date_debut) }}</dd>
-        </div>
-        <div class="ledger-cell">
-          <dt class="ledger-cell-key">Fin</dt>
-          <dd class="ledger-cell-val ledger-mono">{{ formatDate(mission.date_fin) }}</dd>
-        </div>
-      </dl>
 
-      <div v-if="mission.collaborateurs && mission.collaborateurs.length > 0" class="collaborateurs">
-        <strong>Collaborateurs :</strong>
-        <span v-for="c in mission.collaborateurs" :key="c.id" class="collab-chip">{{ c.name }}</span>
-      </div>
-
-      <div v-if="mission.notes" class="mission-notes">
-        <strong>Notes :</strong> {{ mission.notes }}
+        <div v-if="mission.notes" class="mission-notes">
+          <strong>Notes :</strong> {{ mission.notes }}
+        </div>
       </div>
     </section>
 
     <!-- Documents -->
     <section v-if="!auth.isCollaborateur" aria-labelledby="docs-heading" class="section">
-      <div class="ledger-section-head">
-        <h2 id="docs-heading" class="ledger-section-kicker">
-          Documents <span class="ledger-section-code">[02]</span>
-        </h2>
-        <span class="ledger-rule" aria-hidden="true"></span>
+      <div class="section-header">
+        <h2 id="docs-heading">Documents</h2>
         <Button
           v-if="auth.isAdmin"
           :label="mission.visible_portail ? 'Visible portail' : 'Masqué portail'"
           :icon="mission.visible_portail ? 'pi pi-eye' : 'pi pi-eye-slash'"
           :severity="mission.visible_portail ? 'success' : 'secondary'"
-          size="small"
           outlined
           :loading="togglingPortail"
           :aria-label="mission.visible_portail ? 'Masquer les documents du portail client' : 'Rendre les documents visibles dans le portail client'"
@@ -458,7 +446,6 @@ onMounted(() => {
             :label="mission.convention_numero ? 'Imprimer' : 'Générer'"
             :icon="mission.convention_numero ? 'pi pi-print' : 'pi pi-cog'"
             severity="secondary"
-            size="small"
             :loading="loadingConvention"
             aria-label="Télécharger la convention de prestation"
             @click="telechargerConvention"
@@ -477,7 +464,7 @@ onMounted(() => {
           <Button
             :label="mission.mandat_numero ? 'Imprimer' : 'Générer'"
             :icon="mission.mandat_numero ? 'pi pi-print' : 'pi pi-cog'"
-            size="small"
+            severity="secondary"
             :loading="loadingMandat"
             aria-label="Télécharger le mandat d'acceptation"
             @click="telechargerMandat"
@@ -496,7 +483,6 @@ onMounted(() => {
             label="Générer"
             icon="pi pi-download"
             severity="secondary"
-            size="small"
             aria-label="Télécharger le rapport de fin de mission en PDF"
             @click="telechargerRapport"
           />
@@ -506,11 +492,8 @@ onMounted(() => {
 
     <!-- Tranches -->
     <section v-if="!auth.isCollaborateur" aria-labelledby="tranches-heading" class="section">
-      <div class="ledger-section-head">
-        <h2 id="tranches-heading" class="ledger-section-kicker">
-          Tranches de facturation suggérées <span class="ledger-section-code">[03]</span>
-        </h2>
-        <span class="ledger-rule" aria-hidden="true"></span>
+      <div class="section-header">
+        <h2 id="tranches-heading">Tranches de facturation suggérées</h2>
       </div>
       <div class="tranches-grid">
         <div v-for="t in tranches" :key="t.label" class="tranche-card">
@@ -533,11 +516,8 @@ onMounted(() => {
       aria-labelledby="factures-heading"
       class="section"
     >
-      <div class="ledger-section-head">
-        <h2 id="factures-heading" class="ledger-section-kicker">
-          Factures liées <span class="ledger-section-code">[04]</span>
-        </h2>
-        <span class="ledger-rule" aria-hidden="true"></span>
+      <div class="section-header">
+        <h2 id="factures-heading">Factures liées</h2>
       </div>
       <div class="table-card">
       <DataTable aria-label="Factures liées à la mission" :value="mission.factures" dataKey="id" stripedRows>
@@ -563,16 +543,12 @@ onMounted(() => {
 
     <!-- Tâches -->
     <section aria-labelledby="taches-title" class="section">
-      <div class="ledger-section-head">
-        <h2 id="taches-title" class="ledger-section-kicker">
-          Tâches <span class="taches-count">{{ taches.length }}</span> <span class="ledger-section-code">[05]</span>
-        </h2>
-        <span class="ledger-rule" aria-hidden="true"></span>
+      <div class="section-header">
+        <h2 id="taches-title">Tâches <span class="taches-count">{{ taches.length }}</span></h2>
         <Button
           v-if="!auth.isCollaborateur"
           label="Ajouter une tâche"
           icon="pi pi-plus"
-          size="small"
           aria-label="Ajouter une tâche à cette mission"
           @click="openCreateDialog"
         />
@@ -774,7 +750,34 @@ onMounted(() => {
 .conflit-warning li {
   margin-top: 0.15rem;
 }
-.hero-statut-tag { margin-left: 0.5rem; }
+/* ── En-tête standard (même patron que les autres pages) ────────────────── */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+.header-left { display: flex; align-items: flex-start; gap: 0.25rem; }
+.header-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.page-compteurs {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+.ref-mono {
+  font-family: var(--ledge-ff-mono);
+  letter-spacing: var(--ledge-letter-spacing-mono);
+  font-weight: 600;
+  color: var(--p-text-color);
+}
+.statut-tag { margin-left: 0.25rem; }
+
 .collaborateurs {
   margin-top: 1rem;
   display: flex;
@@ -796,6 +799,48 @@ onMounted(() => {
 .section {
   margin-bottom: 2rem;
 }
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ── Carte d'informations : même surface que les cartes de tableau ──────── */
+.info-card {
+  border: 1px solid var(--p-surface-200);
+  border-radius: 12px;
+  background: var(--p-surface-0);
+  padding: 1.25rem 1.5rem;
+}
+.app-dark .info-card {
+  border-color: color-mix(in srgb, var(--p-surface-700) 55%, transparent);
+  background: color-mix(in srgb, var(--p-surface-800) 62%, var(--p-surface-900));
+}
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 1rem 1.5rem;
+  margin: 0;
+}
+.meta-cell { display: flex; flex-direction: column; gap: 0.3rem; }
+.meta-key {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--p-text-muted-color);
+  margin: 0;
+}
+.meta-val {
+  margin: 0;
+  font-size: 0.925rem;
+  font-weight: 600;
+  color: var(--p-text-color);
+}
+
 .tranches-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -838,14 +883,18 @@ onMounted(() => {
   gap: 1rem;
 }
 .doc-card {
-  background: var(--p-surface-card);
-  border: 1px solid var(--p-surface-border);
-  border-radius: 8px;
+  background: var(--p-surface-0);
+  border: 1px solid var(--p-surface-200);
+  border-radius: 12px;
   padding: 1rem 1.25rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+}
+.app-dark .doc-card {
+  border-color: color-mix(in srgb, var(--p-surface-700) 55%, transparent);
+  background: color-mix(in srgb, var(--p-surface-800) 62%, var(--p-surface-900));
 }
 .doc-info {
   display: flex;
