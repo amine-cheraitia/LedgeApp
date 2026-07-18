@@ -103,6 +103,9 @@ onMounted(fetchCreances)
       <div>
         <h1 class="page-title">Créances impayées</h1>
         <p class="page-subtitle">Factures en attente ou partiellement réglées</p>
+        <p v-if="creances.length" class="page-compteurs">
+          {{ creances.length }} créance{{ creances.length > 1 ? 's' : '' }} impayée{{ creances.length > 1 ? 's' : '' }}
+        </p>
       </div>
       <Button
         icon="pi pi-refresh"
@@ -127,12 +130,12 @@ onMounted(fetchCreances)
     </div>
 
     <!-- Tableau desktop -->
+    <div class="table-card">
     <DataTable
       :value="creances"
       :loading="loading"
       striped-rows
       responsive-layout="scroll"
-      class="creances-table"
       aria-label="Liste des créances impayées"
     >
       <template #empty>
@@ -197,6 +200,7 @@ onMounted(fetchCreances)
         </template>
       </Column>
     </DataTable>
+    </div>
 
     <!-- Dialog relance -->
     <Dialog
@@ -283,6 +287,13 @@ onMounted(fetchCreances)
 .page-title { font-size: 1.375rem; font-weight: 700; margin: 0; }
 .page-subtitle { color: var(--p-text-muted-color); margin: 0.25rem 0 0; font-size: 0.875rem; }
 
+/* ── En-tete : compteur sous le titre (meme patron que les entreprises/missions) ── */
+.page-compteurs {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+}
+
 /* KPI bar */
 .kpi-bar {
   display: flex;
@@ -306,10 +317,65 @@ onMounted(fetchCreances)
 .kpi-item.kpi-danger .kpi-value { color: var(--p-red-600); }
 
 /* Table */
-.creances-table { border-radius: 0.5rem; overflow: hidden; }
 .cell-main { font-weight: 500; }
 .cell-sub { font-size: 0.75rem; color: var(--p-text-muted-color); margin-top: 2px; }
 .montant-restant { font-weight: 700; color: var(--p-red-600); }
+
+/* ── Carte du tableau (maquette : bloc arrondi legerement eleve) ────────── */
+.table-card {
+  border: 1px solid var(--p-surface-200);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--p-surface-0);
+}
+.app-dark .table-card {
+  border-color: color-mix(in srgb, var(--p-surface-700) 55%, transparent);
+  background: color-mix(in srgb, var(--p-surface-800) 62%, var(--p-surface-900));
+}
+
+/* En-tetes de colonnes : petites capitales espacees, fond distinct (maquette) */
+.table-card :deep(.p-datatable-thead > tr > th) {
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--p-text-muted-color);
+  background: var(--p-surface-100);
+}
+.app-dark .table-card :deep(.p-datatable-thead > tr > th) {
+  background: color-mix(in srgb, var(--p-surface-700) 45%, var(--p-surface-900));
+}
+
+/* Transition douce du survol des lignes (150ms, colors only) */
+.table-card :deep(.p-datatable-tbody > tr) {
+  transition: background-color 0.15s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .table-card :deep(.p-datatable-tbody > tr) { transition: none; }
+}
+
+/* ── Zebrage charte : alternance « un peu clair / plus fonce » ─────────── */
+/* Point cle : la DataTable PrimeVue peint ses propres fonds OPAQUES (lignes,
+   paginator) qui masquaient la carte -> on rend la table transparente dans
+   .table-card et la charte peint tout (carte, zebrage, survol). */
+.table-card :deep(.p-datatable),
+.table-card :deep(.p-datatable-table),
+.table-card :deep(.p-datatable-tbody > tr) {
+  background: transparent;
+}
+
+.table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-100) 65%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-700) 28%, transparent);
+}
+/* Le survol doit rester lisible par-dessus le zebrage (les deux modes) */
+.table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-200) 60%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-600) 30%, transparent);
+}
 
 /* Empty state */
 .empty-state {

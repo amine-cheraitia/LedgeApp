@@ -146,22 +146,32 @@ onMounted(fetchUsers)
 <template>
   <div>
     <div class="page-header">
-      <h1>Utilisateurs</h1>
+      <div>
+        <h1>Utilisateurs</h1>
+        <p v-if="totalRecords" class="page-compteurs">
+          {{ totalRecords }} utilisateur{{ totalRecords > 1 ? 's' : '' }}
+        </p>
+      </div>
       <Button label="Nouvel utilisateur" icon="pi pi-plus" @click="openCreate" />
     </div>
 
     <div class="page-toolbar">
-      <form @submit.prevent="handleSearch" role="search" class="search-form">
-        <label for="search-users" class="sr-only">Rechercher un utilisateur</label>
-        <InputText
-          id="search-users"
-          v-model="search"
-          placeholder="Rechercher..."
-        />
-        <Button icon="pi pi-search" aria-label="Lancer la recherche" @click="handleSearch" />
-      </form>
+      <div class="toolbar-filters">
+        <form @submit.prevent="handleSearch" role="search" class="search-wrapper">
+          <label for="search-users" class="sr-only">Rechercher un utilisateur</label>
+          <i class="pi pi-search search-icon" aria-hidden="true" />
+          <InputText
+            id="search-users"
+            v-model="search"
+            class="search-input"
+            placeholder="Rechercher..."
+          />
+          <Button icon="pi pi-search" aria-label="Lancer la recherche" type="submit" text rounded size="small" class="search-submit" @click="handleSearch" />
+        </form>
+      </div>
     </div>
 
+    <div class="table-card">
     <DataTable aria-label="Liste des utilisateurs"
       :value="users"
       :loading="loading"
@@ -173,6 +183,8 @@ onMounted(fetchUsers)
       dataKey="id"
       responsiveLayout="scroll"
       stripedRows
+      paginatorTemplate="CurrentPageReport PrevPageLink PageLinks NextPageLink"
+      currentPageReportTemplate="{totalRecords} résultat(s) · Page {currentPage} sur {totalPages}"
     >
       <Column field="name" header="Nom" />
       <Column field="email" header="Email" />
@@ -188,12 +200,15 @@ onMounted(fetchUsers)
       </Column>
       <Column header="Actions" style="width: 11rem">
         <template #body="{ data }">
-          <Button icon="pi pi-pencil" text severity="info" aria-label="Modifier" v-tooltip.top="'Modifier'" @click="openEdit(data)" />
-          <Button icon="pi pi-envelope" text severity="secondary" :aria-label="`Renvoyer l'invitation a ${data.name}`" v-tooltip.top="'Renvoyer l\'invitation'" @click="onResendInvitation(data)" />
-          <Button icon="pi pi-trash" text severity="danger" aria-label="Supprimer" v-tooltip.top="'Supprimer'" @click="confirmDelete(data)" />
+          <div class="actions-cell">
+            <Button icon="pi pi-pencil" text rounded severity="info" size="small" aria-label="Modifier" v-tooltip.top="'Modifier'" @click="openEdit(data)" />
+            <Button icon="pi pi-envelope" text rounded severity="secondary" size="small" :aria-label="`Renvoyer l'invitation a ${data.name}`" v-tooltip.top="'Renvoyer l\'invitation'" @click="onResendInvitation(data)" />
+            <Button icon="pi pi-trash" text rounded severity="danger" size="small" aria-label="Supprimer" v-tooltip.top="'Supprimer'" @click="confirmDelete(data)" />
+          </div>
         </template>
       </Column>
     </DataTable>
+    </div>
 
     <Dialog
       v-model:visible="dialogVisible"
@@ -259,10 +274,61 @@ onMounted(fetchUsers)
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
-.page-toolbar { margin-bottom: 1rem; }
-.search-form { display: flex; gap: 0.5rem; max-width: 20rem; }
+.page-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.toolbar-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+/* ── En-tete : compteur sous le titre (meme patron que les entreprises/missions) ── */
+.page-compteurs {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+}
+
+/* ── Barre de recherche façon maquette : large, arrondie, pleine largeur ── */
+.search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 16rem;
+}
+.search-icon {
+  position: absolute;
+  left: 0.95rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--p-text-muted-color);
+  pointer-events: none;
+}
+.search-input {
+  width: 100%;
+  height: 2.9rem;
+  padding-left: 2.6rem;
+  padding-right: 2.6rem;
+  border-radius: 10px;
+}
+.search-submit {
+  position: absolute;
+  right: 0.4rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
 .dialog-form { display: flex; flex-direction: column; gap: 0.75rem; }
 .form-field { display: flex; flex-direction: column; gap: 0.25rem; }
 .form-field label { font-size: 0.875rem; font-weight: 500; }
@@ -275,6 +341,97 @@ onMounted(fetchUsers)
   font-size: 0.8125rem;
   line-height: 1.4;
   color: var(--p-text-muted-color, #64748b);
+}
+
+/* ── Table ──────────────────────────────────────────────────────────────── */
+.actions-cell {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.15rem;
+  align-items: center;
+}
+
+/* ── Carte du tableau (maquette : bloc arrondi legerement eleve) ────────── */
+.table-card {
+  border: 1px solid var(--p-surface-200);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--p-surface-0);
+}
+.app-dark .table-card {
+  border-color: color-mix(in srgb, var(--p-surface-700) 55%, transparent);
+  background: color-mix(in srgb, var(--p-surface-800) 62%, var(--p-surface-900));
+}
+
+/* En-tetes de colonnes : petites capitales espacees, fond distinct (maquette) */
+.table-card :deep(.p-datatable-thead > tr > th) {
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--p-text-muted-color);
+  background: var(--p-surface-100);
+}
+.app-dark .table-card :deep(.p-datatable-thead > tr > th) {
+  background: color-mix(in srgb, var(--p-surface-700) 45%, var(--p-surface-900));
+}
+
+/* Transition douce du survol des lignes (150ms, colors only) */
+.table-card :deep(.p-datatable-tbody > tr) {
+  transition: background-color 0.15s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .table-card :deep(.p-datatable-tbody > tr) { transition: none; }
+}
+
+/* ── Zebrage charte : alternance « un peu clair / plus fonce » ─────────── */
+/* Point cle : la DataTable PrimeVue peint ses propres fonds OPAQUES (lignes,
+   paginator) qui masquaient la carte -> on rend la table transparente dans
+   .table-card et la charte peint tout (carte, zebrage, survol). */
+.table-card :deep(.p-datatable),
+.table-card :deep(.p-datatable-table),
+.table-card :deep(.p-datatable-tbody > tr),
+.table-card :deep(.p-paginator) {
+  background: transparent;
+}
+
+.table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-100) 65%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-700) 28%, transparent);
+}
+/* Le survol doit rester lisible par-dessus le zebrage (les deux modes) */
+.table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-200) 60%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-600) 30%, transparent);
+}
+
+/* ── Pagination : rapport + numeros de page centres ─────────────────────── */
+.table-card :deep(.p-paginator) {
+  justify-content: center;
+  gap: 0.75rem;
+  border-top: 1px solid color-mix(in srgb, var(--p-surface-500) 25%, transparent);
+}
+.table-card :deep(.p-paginator-current) {
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .page-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .toolbar-filters {
+    width: 100%;
+  }
+  .search-wrapper {
+    min-width: 0;
+    width: 100%;
+  }
 }
 .invitation-box {
   background: rgba(128, 128, 128, 0.08);

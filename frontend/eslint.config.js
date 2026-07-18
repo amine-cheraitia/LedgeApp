@@ -6,7 +6,10 @@ import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescri
 
 export default defineConfigWithVueTs(
   { files: ['**/*.{ts,mts,tsx,vue}'] },
-  { ignores: ['dist/**', 'coverage/**', 'node_modules/**', '*.config.*'] },
+  // playwright-report/ et test-results/ : artefacts generes par les runs E2E
+  // locaux (gitignores) — sans cette exclusion, `npm run lint` lint leur JS
+  // minifie et remonte des milliers de fausses erreurs.
+  { ignores: ['dist/**', 'coverage/**', 'node_modules/**', '*.config.*', 'playwright-report/**', 'test-results/**'] },
   pluginVue.configs['flat/essential'],
   vueTsConfigs.recommended,
   {

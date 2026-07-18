@@ -112,10 +112,16 @@ onMounted(fetchExercices)
 <template>
   <div>
     <div class="page-header">
-      <h1>Exercices fiscaux</h1>
+      <div>
+        <h1>Exercices fiscaux</h1>
+        <p v-if="exercices.length" class="page-compteurs">
+          {{ exercices.length }} exercice{{ exercices.length > 1 ? 's' : '' }}
+        </p>
+      </div>
       <Button label="Nouvel exercice" icon="pi pi-plus" @click="openCreate" />
     </div>
 
+    <div class="table-card">
     <DataTable aria-label="Liste des exercices fiscaux"
       :value="exercices"
       :loading="loading"
@@ -163,6 +169,7 @@ onMounted(fetchExercices)
         </template>
       </Column>
     </DataTable>
+    </div>
 
     <Dialog
       v-model:visible="dialogVisible"
@@ -207,8 +214,72 @@ onMounted(fetchExercices)
   align-items: center;
   margin-bottom: 1rem;
 }
+
+/* ── En-tete : compteur sous le titre (meme patron que missions/entreprises) ── */
+.page-compteurs {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+}
+
 .dialog-form { display: flex; flex-direction: column; gap: 0.75rem; }
 .form-field { display: flex; flex-direction: column; gap: 0.25rem; }
 .form-field label { font-size: 0.875rem; font-weight: 500; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
+
+/* ── Carte du tableau (maquette : bloc arrondi legerement eleve) ────────── */
+.table-card {
+  border: 1px solid var(--p-surface-200);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--p-surface-0);
+}
+.app-dark .table-card {
+  border-color: color-mix(in srgb, var(--p-surface-700) 55%, transparent);
+  background: color-mix(in srgb, var(--p-surface-800) 62%, var(--p-surface-900));
+}
+
+/* En-tetes de colonnes : petites capitales espacees, fond distinct (maquette) */
+.table-card :deep(.p-datatable-thead > tr > th) {
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--p-text-muted-color);
+  background: var(--p-surface-100);
+}
+.app-dark .table-card :deep(.p-datatable-thead > tr > th) {
+  background: color-mix(in srgb, var(--p-surface-700) 45%, var(--p-surface-900));
+}
+
+/* Transition douce du survol des lignes (150ms, colors only) */
+.table-card :deep(.p-datatable-tbody > tr) {
+  transition: background-color 0.15s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .table-card :deep(.p-datatable-tbody > tr) { transition: none; }
+}
+
+/* ── Zebrage charte : alternance « un peu clair / plus fonce » ─────────── */
+/* Point cle : la DataTable PrimeVue peint ses propres fonds OPAQUES (lignes)
+   qui masquaient la carte -> on rend la table transparente dans .table-card
+   et la charte peint tout (carte, zebrage, survol). */
+.table-card :deep(.p-datatable),
+.table-card :deep(.p-datatable-table),
+.table-card :deep(.p-datatable-tbody > tr) {
+  background: transparent;
+}
+
+.table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-100) 65%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-700) 28%, transparent);
+}
+/* Le survol doit rester lisible par-dessus le zebrage (les deux modes) */
+.table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-200) 60%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-600) 30%, transparent);
+}
 </style>

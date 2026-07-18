@@ -330,12 +330,14 @@ onMounted(async () => {
 <template>
   <div>
     <div class="page-header">
-      <h1>Factures &amp; Avoirs</h1>
+      <div>
+        <h1>Factures &amp; Avoirs</h1>
+      </div>
       <Button v-if="auth.isAdmin" label="Nouvelle facture" icon="pi pi-plus" aria-label="Creer une facture" @click="openCreate" />
     </div>
 
     <div class="page-toolbar">
-      <div class="toolbar-right">
+      <div class="toolbar-filters">
         <label for="f-exercice" class="sr-only">Filtrer par exercice</label>
         <Select
           id="f-exercice"
@@ -345,7 +347,7 @@ onMounted(async () => {
           optionValue="id"
           placeholder="Tous les exercices"
           showClear
-          style="width: 14rem"
+          class="toolbar-select"
         />
       </div>
     </div>
@@ -366,15 +368,19 @@ onMounted(async () => {
         <!-- ===== Tab Factures ===== -->
         <TabPanel value="factures">
           <div class="tab-toolbar">
-            <label for="search-factures" class="sr-only">Rechercher une facture</label>
-            <InputText
-              id="search-factures"
-              v-model="search"
-              placeholder="Rechercher par numero ou client..."
-              style="width: 22rem"
-            />
+            <div class="search-wrapper">
+              <label for="search-factures" class="sr-only">Rechercher une facture</label>
+              <i class="pi pi-search search-icon" aria-hidden="true" />
+              <InputText
+                id="search-factures"
+                v-model="search"
+                class="search-input"
+                placeholder="Rechercher par numero ou client..."
+              />
+            </div>
           </div>
 
+          <div class="table-card">
           <DataTable aria-label="Liste des factures"
             :value="factures"
             :loading="loading"
@@ -389,6 +395,8 @@ onMounted(async () => {
             dataKey="id"
             stripedRows
             removableSort
+            paginatorTemplate="CurrentPageReport PrevPageLink PageLinks NextPageLink"
+            currentPageReportTemplate="{totalRecords} résultat(s) · Page {currentPage} sur {totalPages}"
           >
             <Column field="numero" header="Numero" sortable />
             <Column header="Entreprise">
@@ -471,20 +479,25 @@ onMounted(async () => {
               </template>
             </Column>
           </DataTable>
+          </div>
         </TabPanel>
 
         <!-- ===== Tab Avoirs ===== -->
         <TabPanel value="avoirs">
           <div class="tab-toolbar">
-            <label for="search-avoirs" class="sr-only">Rechercher un avoir</label>
-            <InputText
-              id="search-avoirs"
-              v-model="avoirsSearch"
-              placeholder="Rechercher par numero ou client..."
-              style="width: 22rem"
-            />
+            <div class="search-wrapper">
+              <label for="search-avoirs" class="sr-only">Rechercher un avoir</label>
+              <i class="pi pi-search search-icon" aria-hidden="true" />
+              <InputText
+                id="search-avoirs"
+                v-model="avoirsSearch"
+                class="search-input"
+                placeholder="Rechercher par numero ou client..."
+              />
+            </div>
           </div>
 
+          <div class="table-card">
           <DataTable aria-label="Liste des avoirs"
             :value="avoirs"
             :loading="avoirsLoading"
@@ -495,6 +508,8 @@ onMounted(async () => {
             @page="onAvoirsPage"
             dataKey="id"
             stripedRows
+            paginatorTemplate="CurrentPageReport PrevPageLink PageLinks NextPageLink"
+            currentPageReportTemplate="{totalRecords} résultat(s) · Page {currentPage} sur {totalPages}"
           >
             <Column field="numero" header="Numero" />
             <Column header="Facture d'origine">
@@ -541,6 +556,7 @@ onMounted(async () => {
               </template>
             </Column>
           </DataTable>
+          </div>
         </TabPanel>
       </TabPanels>
     </Tabs>
@@ -738,14 +754,52 @@ onMounted(async () => {
 }
 .page-toolbar {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.toolbar-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  flex: 1;
 }
 .tab-toolbar {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1rem;
   margin-top: 1rem;
+}
+
+/* ── Barre de recherche façon maquette : large, arrondie, pleine largeur ── */
+.search-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 16rem;
+}
+.search-icon {
+  position: absolute;
+  left: 0.95rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--p-text-muted-color);
+  pointer-events: none;
+}
+.search-input {
+  width: 100%;
+  height: 2.9rem;
+  padding-left: 2.6rem;
+  border-radius: 10px;
+}
+/* Filtres harmonises sur la meme hauteur/arrondi que la recherche */
+.toolbar-select {
+  min-width: 11rem;
+  height: 2.9rem;
+  border-radius: 10px;
+  align-items: center;
 }
 .tab-badge {
   display: inline-flex;
@@ -803,7 +857,94 @@ onMounted(async () => {
 .recap-row { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
 .recap-label { font-size: 0.8rem; color: var(--p-text-muted-color); }
 
+/* ── Carte du tableau (maquette : bloc arrondi legerement eleve) ────────── */
+.table-card {
+  border: 1px solid var(--p-surface-200);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--p-surface-0);
+}
+.app-dark .table-card {
+  border-color: color-mix(in srgb, var(--p-surface-700) 55%, transparent);
+  background: color-mix(in srgb, var(--p-surface-800) 62%, var(--p-surface-900));
+}
+
+/* En-tetes de colonnes : petites capitales espacees, fond distinct (maquette) */
+.table-card :deep(.p-datatable-thead > tr > th) {
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--p-text-muted-color);
+  background: var(--p-surface-100);
+}
+.app-dark .table-card :deep(.p-datatable-thead > tr > th) {
+  background: color-mix(in srgb, var(--p-surface-700) 45%, var(--p-surface-900));
+}
+
+/* Transition douce du survol des lignes (150ms, colors only) */
+.table-card :deep(.p-datatable-tbody > tr) {
+  transition: background-color 0.15s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .table-card :deep(.p-datatable-tbody > tr) { transition: none; }
+}
+
+/* ── Zebrage charte : alternance « un peu clair / plus fonce » ─────────── */
+/* Point cle : la DataTable PrimeVue peint ses propres fonds OPAQUES (lignes,
+   paginator) qui masquaient la carte -> on rend la table transparente dans
+   .table-card et la charte peint tout (carte, zebrage, survol). */
+.table-card :deep(.p-datatable),
+.table-card :deep(.p-datatable-table),
+.table-card :deep(.p-datatable-tbody > tr),
+.table-card :deep(.p-paginator) {
+  background: transparent;
+}
+
+.table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-100) 65%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-700) 28%, transparent);
+}
+/* Le survol doit rester lisible par-dessus le zebrage (les deux modes) */
+.table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-200) 60%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-600) 30%, transparent);
+}
+
+/* ── Pagination : rapport + numeros de page centres ─────────────────────── */
+.table-card :deep(.p-paginator) {
+  justify-content: center;
+  gap: 0.75rem;
+  border-top: 1px solid color-mix(in srgb, var(--p-surface-500) 25%, transparent);
+}
+.table-card :deep(.p-paginator-current) {
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .form-row { flex-direction: column; }
+  .page-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .toolbar-filters {
+    width: 100%;
+  }
+  .tab-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .search-wrapper {
+    min-width: 0;
+    width: 100%;
+  }
+  .toolbar-select {
+    width: 100%;
+  }
 }
 </style>

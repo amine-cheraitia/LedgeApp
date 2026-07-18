@@ -959,13 +959,13 @@ onMounted(() => {
   background: color-mix(in srgb, var(--p-surface-600) 30%, transparent);
 }
 
-/* ── Pagination : rapport a gauche, navigation a droite (maquette) ──────── */
+/* ── Pagination : rapport + numeros de page centres ─────────────────────── */
 .table-card :deep(.p-paginator) {
-  justify-content: space-between;
+  justify-content: center;
+  gap: 0.75rem;
   border-top: 1px solid color-mix(in srgb, var(--p-surface-500) 25%, transparent);
 }
 .table-card :deep(.p-paginator-current) {
-  margin-right: auto;
   font-size: 0.875rem;
   color: var(--p-text-muted-color);
 }
