@@ -9,6 +9,22 @@
 
 ## [Unreleased]
 
+### RGAA — contrastes conformes en mode clair — refactor/setting-service
+
+Correction de la seule non-conformité RGAA mesurable relevée par l'audit du 2026-07-17 : des textes et icônes colorés sous le ratio WCAG AA (4.5:1 texte, 3:1 composants d'interface) en **mode clair** — le dark mode était déjà conforme.
+
+- **Tokens** ([tokens.css](frontend/src/assets/styles/tokens.css)) : `--ledge-success` `#16A34A` (3.30:1 sur blanc) → `#15803D` (5.0:1) ; `--ledge-warning-bright` `#F59E0B` (2.15:1) → `#D97706` (3.2:1). Corrige d'un coup les chips succès des dashboards, le tampon `.ledger-stamp--ok` (texte clair sur vert : 3.01:1 → 4.6:1) et l'icône du toggle de thème. Les valeurs dark restent inchangées.
+- **Textes sur fonds teintés passés aux tokens** (les hex en dur servaient les deux modes) : pills et badges du Dashboard (`.kpi-pill--*`, `.timeline-badge--*`, `.task-date--retard` — bleu 3.68:1, vert 2.28:1, orange 2.15:1, rouge 3.76:1 → tous ≥ 4.5:1), chips du Planning (`.stat-chip--*`, `.tache-chip--*`), tendance KPI fiche entreprise. Bonus : ces éléments suivent désormais aussi les bonnes valeurs en dark.
+- **Icônes** des cartes KPI, timeline et alertes de conflit alignées sur les tokens (≥ 3:1). Fonds teintés, barres décoratives et palettes de graphiques inchangés — l'identité visuelle est conservée (mêmes teintes, un cran plus foncées).
+
+### UX/RGAA — confirmation visible après définition du mot de passe — refactor/setting-service
+
+Bug relevé par l'audit du 2026-07-17 sur le parcours d'activation (invitation → `/definir-mot-de-passe`) : le toast de succès n'était **jamais affiché** — la page est hors layouts (`AppLayout`/`PortailLayout`, seuls porteurs d'un `<Toast/>`) et un message émis sans `<Toast/>` monté est perdu ; l'utilisateur retombait sur `/login` sans aucun retour.
+
+- Remplacement du toast par une **confirmation inline** `role="status"` / `aria-live="polite"` (annoncée par les lecteurs d'écran), qui reste affichée jusqu'à l'action de l'utilisateur — plus robuste qu'un toast même monté, que la redirection immédiate aurait de toute façon escamoté.
+- Le formulaire disparaît après succès et le lien de pied de page devient « Se connecter » ; plus de redirection automatique.
+- Tests de la page mis à jour (confirmation affichée, formulaire masqué, pas de faux succès en cas d'erreur API) ; suites : **595 tests front / 493 back**, couverture au-dessus des seuils CI.
+
 ### Architecture — SettingService & controller mince — refactor/setting-service
 
 Dernier écart « controller mince » relevé par l'audit du 2026-07-17 (aucun changement de comportement, suites vertes) :
