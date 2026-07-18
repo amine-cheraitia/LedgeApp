@@ -9,6 +9,14 @@
 
 ## [Unreleased]
 
+### Architecture — SettingService & controller mince — refactor/setting-service
+
+Dernier écart « controller mince » relevé par l'audit du 2026-07-17 (aucun changement de comportement, suites vertes) :
+
+- **`SettingService::mettreAJour()`** : la boucle de persistance des paramètres vivait dans `SettingController::update` (seul controller sur 27 avec de la logique métier inline) — déplacée dans un service dédié, désormais **transactionnelle** : si une écriture échoue, aucune n'est appliquée, là où l'ancien code laissait un lot à moitié appliqué.
+- Le controller consomme `$request->validated()` au lieu de la propriété brute `$request->settings` — la donnée itérée est désormais celle filtrée par le FormRequest.
+- **4 nouveaux tests unitaires** (`SettingServiceTest` : mise à jour d'un paramètre existant, création d'une clé absente, lot multiple, valeur nulle) ; suite backend complète verte : **493 tests / 1482 assertions**.
+
 ### Tests E2E Playwright — parcours critiques contre le vrai backend — feature/tests-e2e-playwright
 
 Harnais **E2E Playwright** complétant la pyramide de tests (unitaires backend SQLite + composants front mockés) : **15 tests / 4 parcours** exécutés dans Chromium contre la **vraie stack** (Laravel + MySQL + Vite). Comble le trou structurel révélé par les bugs récents (`role[]` 500, toasts 403 secrétaire) : tout ce qui traverse la frontière front↔back est désormais couvert.
