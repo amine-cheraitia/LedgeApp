@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useToast } from 'primevue/usetoast'
+import { useRoute } from 'vue-router'
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import Button from 'primevue/button'
@@ -10,8 +9,6 @@ import { authApi } from '@/api/modules/auth'
 import { getApiError } from '@/composables/useApiError'
 
 const route = useRoute()
-const router = useRouter()
-const toast = useToast()
 
 const token = ref((route.query.token as string) ?? '')
 const email = ref((route.query.email as string) ?? '')
@@ -19,6 +16,7 @@ const password = ref('')
 const passwordConfirmation = ref('')
 const error = ref('')
 const submitting = ref(false)
+const succes = ref(false)
 
 const lienInvalide = computed(() => !token.value || !email.value)
 
@@ -38,13 +36,9 @@ async function onSubmit() {
       password: password.value,
       password_confirmation: passwordConfirmation.value,
     })
-    toast.add({
-      severity: 'success',
-      summary: 'Mot de passe defini',
-      detail: 'Vous pouvez maintenant vous connecter.',
-      life: 4000,
-    })
-    router.push('/login')
+    // Confirmation inline : la page est hors layouts, aucun <Toast/> n'y est
+    // monte — un toast serait perdu. Le message reste visible jusqu'au clic.
+    succes.value = true
   } catch (e: unknown) {
     const apiError = getApiError(e)
     error.value =
@@ -86,7 +80,18 @@ onMounted(() => {
         {{ error }}
       </Message>
 
-      <form v-if="!lienInvalide" @submit.prevent="onSubmit" novalidate class="auth-form">
+      <Message
+        v-if="succes"
+        severity="success"
+        :closable="false"
+        class="auth-alert"
+        role="status"
+        aria-live="polite"
+      >
+        Mot de passe defini. Vous pouvez maintenant vous connecter avec votre adresse e-mail.
+      </Message>
+
+      <form v-if="!lienInvalide && !succes" @submit.prevent="onSubmit" novalidate class="auth-form">
         <div class="auth-field">
           <label for="reset-email" class="auth-label">Adresse e-mail</label>
           <InputText id="reset-email" v-model="email" type="email" autocomplete="username" readonly fluid />
@@ -135,7 +140,9 @@ onMounted(() => {
       </form>
 
       <p class="auth-foot">
-        <RouterLink to="/login" class="auth-link">Retour a la connexion</RouterLink>
+        <RouterLink to="/login" class="auth-link">
+          {{ succes ? 'Se connecter' : 'Retour a la connexion' }}
+        </RouterLink>
       </p>
     </main>
   </div>

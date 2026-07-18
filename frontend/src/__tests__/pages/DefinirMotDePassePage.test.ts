@@ -16,10 +16,6 @@ vi.mock('@/api/modules/auth', () => ({
   },
 }))
 
-// ── Mock PrimeVue toast ──────────────────────────────────────────────────────
-const toastAdd = vi.fn()
-vi.mock('primevue/usetoast', () => ({ useToast: () => ({ add: toastAdd }) }))
-
 // ── Import de la page APRES les mocks ────────────────────────────────────────
 import DefinirMotDePassePage from '@/pages/auth/DefinirMotDePassePage.vue'
 import { mountPage } from '../helpers/mount'
@@ -94,9 +90,9 @@ describe('DefinirMotDePassePage — lien valide', () => {
     expect(wrapper.find('[role="alert"]').text()).toContain('ne correspondent pas')
   })
 
-  it('appelle resetPassword avec le token/email de la query puis redirige vers /login', async () => {
+  it('appelle resetPassword avec le token/email de la query puis affiche la confirmation', async () => {
     mockResetPassword.mockResolvedValue({ message: 'ok' })
-    const { wrapper, router } = await monterLienValide()
+    const { wrapper } = await monterLienValide()
 
     await saisirEtSoumettre(wrapper, 'Abcd1234!', 'Abcd1234!')
 
@@ -106,10 +102,15 @@ describe('DefinirMotDePassePage — lien valide', () => {
       password: 'Abcd1234!',
       password_confirmation: 'Abcd1234!',
     })
-    expect(toastAdd).toHaveBeenCalledWith(
-      expect.objectContaining({ severity: 'success', summary: 'Mot de passe defini' }),
-    )
-    expect(router.currentRoute.value.path).toBe('/login')
+    // Confirmation inline (role=status) — pas de toast : la page est hors
+    // layouts, aucun <Toast/> n'y est monte, un toast serait perdu
+    const status = wrapper.find('[role="status"]')
+    expect(status.exists()).toBe(true)
+    expect(status.text()).toContain('Mot de passe defini')
+    expect(status.attributes('aria-live')).toBe('polite')
+    // Le formulaire disparait, l'action suivante est explicite
+    expect(wrapper.find('form').exists()).toBe(false)
+    expect(wrapper.find('a[href="/login"]').text()).toContain('Se connecter')
   })
 
   it("affiche l'erreur de jeton renvoyee par l'API (errors.token)", async () => {
@@ -121,13 +122,14 @@ describe('DefinirMotDePassePage — lien valide', () => {
         errors: { token: ['Ce lien a expire.'] },
       }),
     )
-    const { wrapper, router } = await monterLienValide()
+    const { wrapper } = await monterLienValide()
 
     await saisirEtSoumettre(wrapper, 'Abcd1234!', 'Abcd1234!')
 
     expect(wrapper.find('[role="alert"]').text()).toContain('Ce lien a expire.')
-    expect(toastAdd).not.toHaveBeenCalled()
-    expect(router.currentRoute.value.path).not.toBe('/login')
+    // Pas de confirmation de succes : le formulaire reste affiche
+    expect(wrapper.find('[role="status"]').exists()).toBe(false)
+    expect(wrapper.find('form').exists()).toBe(true)
   })
 
   it("affiche l'erreur de mot de passe renvoyee par l'API (errors.password)", async () => {
