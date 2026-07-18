@@ -9,6 +9,18 @@
 
 ## [Unreleased]
 
+### UI — habillage maquette généralisé aux 10 listes — feature/tableau-entreprises-portail
+
+Le système validé sur le tableau Entreprises (carte arrondie, en-têtes en petites capitales, zébrage/survol charte, recherche large arrondie avec loupe, compteur sous le titre, **pagination centrée** « X résultat(s) · Page n sur m ») est déployé sur toutes les pages de liste : **Missions, Devis, Factures & Avoirs (les deux tableaux des onglets), Créances, Prestations, Taux de TVA, Exercices, Utilisateurs, Journal d'audit** — adapté à la nature de chaque page (pas de recherche ni pagination inventées sur les petites listes référentiel). RGAA intégralement préservé (ids, labels `sr-only`, `aria-label`, `role`, `aria-live` — vérifié par diff), dark mode couvert partout. Correctif outillage au passage : `playwright-report/` et `test-results/` exclus d'ESLint (le rapport E2E local minifié générait des milliers de fausses erreurs de lint).
+
+### UI — fiche mission alignée sur la charte éditoriale — feature/tableau-entreprises-portail
+
+Le bas de la fiche mission (sections brutes) rejoint le langage « ledger » du haut de page : sections numérotées `[02]`–`[05]` avec kicker mono et filet, tableaux Factures liées et Tâches en carte maquette, numéros/montants/documents en JetBrains Mono, cartes tranches au rayon/bordures charte, couleurs en dur remplacées par les tokens. Le formateur de montants local est remplacé par `formatDA` partagé (`utils/currency`) — les montants affichent désormais les centimes, conformément à la règle projet. Découpage, logique et accessibilité inchangés.
+
+### PDF — rapport de mission refait dans la charte facture/devis + logos — feature/tableau-entreprises-portail
+
+Le rapport de fin de mission est entièrement réécrit dans le langage graphique des factures/devis : bande navy dégradée avec **logo damier Ledge**, pilule de statut en liseré, cartes mission/client, KPI en cartes, chronologie, tableau statistiques à en-tête navy, blocs tâches/factures en cartes claires, solde global en bloc navy « TTC », pied de page identique. Mise en page fiabilisée : marge haute sur **toutes** les pages (fini le contenu collé au bord du papier), « Tâches et commentaires » démarre toujours en haut d'une nouvelle page, `page-break-inside: avoid` sur chaque bloc (un bloc qui ne tient pas bascule entier sur la page suivante), glyphes non couverts par la police remplacés. Poids du fichier : **1,3 Mo → 44 Ko** (police non embarquée). Convention et mandat : le carré « L » est remplacé par le **damier Ledge** (centré sur la page de garde de la convention).
+
 ### UI — refonte du tableau Entreprises — feature/tableau-entreprises-portail
 
 Premier lot de la passe d'amélioration du front avant la release (maquette de référence validée par capture) :
