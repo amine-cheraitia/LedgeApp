@@ -58,6 +58,7 @@ vi.mock('primevue/useconfirm', () => ({ useConfirm: () => ({ require: confirmReq
 
 // ── Import de la page APRES les mocks ────────────────────────────────────────
 import MissionDetailPage from '@/pages/missions/MissionDetailPage.vue'
+import { formatDA } from '@/utils/currency'
 import { mountPage, findButton } from '../helpers/mount'
 import type { MountPageOptions } from '../helpers/mount'
 
@@ -397,7 +398,8 @@ describe('MissionDetailPage — tranches et factures liées', () => {
     expect(vm.statutTacheLabel('bloquee')).toBe('Bloquée')
     expect(vm.statutTacheLabel('inconnu')).toBe('inconnu')
     expect(vm.formatDate(null)).toBe('—')
-    expect(vm.formatMontant(1000)).toContain('DA')
+    // formatMontant local remplace par le formateur partage utils/currency
+    expect(formatDA(1000)).toContain('DA')
 
     // Sans mission chargée : aucun appel API ni ouverture de PDF
     vm.mission = null
