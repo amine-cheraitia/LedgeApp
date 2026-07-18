@@ -9,6 +9,10 @@
 
 ## [Unreleased]
 
+### UX — dashboard collaborateur : salutation unique — feature/tableau-entreprises-portail
+
+Le sous-titre « Bienvenue, {prénom}. » de l'en-tête faisait doublon avec le « Bonjour, {prénom} » du bandeau héro juste en dessous : il est masqué pour le rôle collaborateur (le héro, plus riche — date, prénom, chips d'état — porte seul l'accueil ; admin et secrétaire, sans héro d'accueil, le conservent). Le `h1` « Tableau de bord » reste pour la structure et les lecteurs d'écran. Retrait au passage du glyphe « § » devant la date du héro (règle locale à la page).
+
 ### Fix — donut « Répartition des tâches » du dashboard collaborateur — feature/tableau-entreprises-portail
 
 Les segments de l'anneau étaient déplacés/chevauchés (arcs empilés, segment majoritaire quasi invisible) : le motif `stroke-dasharray` avait une période de `arc + circonférence` alors que le `dashoffset` supposait une période égale à la circonférence — chaque segment se décalait de la longueur de son propre arc. Corrigé (période exactement = circonférence, départ compensé du demi-écart) et **verrouillé par un test** qui vérifie l'enchaînement bout à bout des segments (scénario 25/25/50).

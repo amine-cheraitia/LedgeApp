@@ -256,7 +256,9 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
       <div class="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 id="dashboard-title" class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">Tableau de bord</h1>
-          <p class="text-muted-color mt-1">Bienvenue, {{ auth.user?.name }}.</p>
+          <!-- Le hero collaborateur porte deja l'accueil (Bonjour + date + etat) :
+               on evite la double salutation. -->
+          <p v-if="!auth.isCollaborateur" class="text-muted-color mt-1">Bienvenue, {{ auth.user?.name }}.</p>
         </div>
         <div v-if="auth.isAdmin && stats">
           <label for="filtre-exercice" class="sr-only">Filtrer par exercice</label>
@@ -1219,14 +1221,6 @@ const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day
   letter-spacing: 0.14em;
   color: var(--p-text-muted-color);
   margin: 0 0 0.4rem;
-}
-
-.hero-today::before {
-  content: '§ ';
-  color: var(--ledge-accent);
-  font-family: var(--ledge-ff-display);
-  font-style: italic;
-  font-weight: 500;
 }
 
 .hero-greeting {
