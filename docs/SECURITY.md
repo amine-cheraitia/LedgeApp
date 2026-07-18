@@ -57,6 +57,43 @@ par la mise à jour vers les versions correctives publiées dans les plages `^7.
 
 ---
 
+## Secrets & fichiers d'environnement (OWASP A05)
+
+### Constat — audit interne du 2026-07-17
+
+Deux fichiers d'environnement versionnés contenaient des valeurs sensibles :
+
+- `backend/.env.e2e` : une **`APP_KEY` fonctionnelle** (clé de chiffrement Laravel) commitée.
+  Portée réelle limitée (base E2E jetable `ledge_e2e`, données factices), mais une clé
+  cryptographique valide ne doit jamais être versionnée.
+- `backend/.env.docker` : `DB_PASSWORD=secret` en clair (stack de démo Docker isolée).
+
+### Remédiation (2026-07-18)
+
+- `backend/.env.e2e` **retiré du suivi git** (`.gitignore`) et remplacé par un template
+  `backend/.env.e2e.example` sans clé. Le fichier réel est généré automatiquement au
+  chargement de la config Playwright (`frontend/e2e/ensure-env.ts` : copie du template +
+  `php artisan key:generate --env=e2e`). Garde-fou ajouté dans le `global-setup` : si le
+  fichier manque, la suite **refuse de démarrer** plutôt que de laisser `--env=e2e`
+  retomber sur le `.env` de dev (où `migrate:fresh` aurait détruit la base `ledge`).
+- La clé E2E exposée dans l'historique git est **considérée compromise** : régénérée
+  localement, elle ne protège plus rien (l'historique n'est pas réécrit — coût/bénéfice
+  défavorable pour une clé de test morte).
+- `backend/.env.docker` ne contient **plus aucun mot de passe** : `DB_PASSWORD` est fourni
+  par `docker-compose.yml` (variable `DB_PASSWORD`, défaut de démo surchargeable avant
+  `up`), même patron que `ADMIN_PASSWORD`. L'environnement conteneur prime sur le `.env`
+  copié.
+
+### Risques résiduels acceptés (documentés)
+
+- Le **défaut de démo** `secret` reste visible dans `docker-compose.yml` : c'est un
+  paramètre par défaut d'une stack locale isolée (réseau Docker interne, port MySQL 3307),
+  surchargeable, pas un secret d'exploitation. Toute mise en production suit
+  `docs/MANUEL-DEPLOIEMENT.md` (valeurs dédiées, jamais les défauts).
+- `frontend/.env` reste versionné : il ne contient que des variables `VITE_*` (URLs
+  locales), **publiques par conception** — Vite les injecte en clair dans le bundle
+  livré au navigateur.
+
 ## Cartographie OWASP Top 10 (2021)
 
 Contrôles en place dans Ledge, catégorie par catégorie.

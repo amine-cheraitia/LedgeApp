@@ -165,8 +165,10 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       # Les deux serveurs (backend 8001 via --env=e2e -> backend/.env.e2e,
-      # base MySQL ledge_e2e creee par le global-setup ; frontend 5174) sont
-      # demarres et arretes par Playwright (webServer).
+      # genere au chargement de la config Playwright depuis .env.e2e.example
+      # avec key:generate — le fichier n'est pas versionne ; base MySQL
+      # ledge_e2e creee par le global-setup ; frontend 5174) sont demarres
+      # et arretes par Playwright (webServer).
       - name: Run E2E tests
         working-directory: frontend
         run: npx playwright test

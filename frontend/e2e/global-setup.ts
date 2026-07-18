@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process'
-import { writeFileSync, unlinkSync } from 'node:fs'
+import { existsSync, writeFileSync, unlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -42,6 +42,16 @@ function createDatabaseIfMissing(): void {
 }
 
 export default async function globalSetup(): Promise<void> {
+  // Defense en profondeur : .env.e2e est genere par ensureE2eEnvFile()
+  // (playwright.config.ts). S'il manque malgre tout, --env=e2e retomberait
+  // sur le .env de dev et migrate:fresh detruirait la base « ledge ».
+  if (!existsSync(join(BACKEND_DIR, '.env.e2e'))) {
+    throw new Error(
+      'backend/.env.e2e manquant — abandon pour proteger la base de dev. ' +
+        'Lancer via `npx playwright test` (la config le genere depuis .env.e2e.example).',
+    )
+  }
+
   createDatabaseIfMissing()
 
   execSync('php artisan migrate:fresh --seed --env=e2e --force', {

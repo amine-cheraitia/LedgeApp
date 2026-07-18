@@ -27,6 +27,10 @@ services:
       # Auto-init : le seed cree le compte admin@ledge.dz avec ce mot de passe,
       # a changer imperativement. Le juré peut le surcharger avant `up`.
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Ledge@Demo2026}
+      # Mot de passe BDD : meme source que le service mysql (defaut demo,
+      # surchargeable via DB_PASSWORD avant `up`). L'env conteneur prime sur
+      # le .env copie depuis .env.docker, qui ne contient plus de secret.
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
     volumes:
       - ./backend:/var/www
       - ./backend/docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
