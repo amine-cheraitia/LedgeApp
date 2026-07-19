@@ -9,6 +9,18 @@
 
 ## [Unreleased]
 
+### UI — chiffres en mono et formateur partagé sur tout le front — feature/tableau-entreprises-portail
+
+Application complète de la règle charte « chiffres en JetBrains Mono, montants via `utils/currency` » : les 7 derniers fichiers à formateur local (listes Devis et Factures & Avoirs, drawer des paiements, Prestations, fiche Entreprise, dialogue Planning, Factures du portail client) passent à `formatDA` (centimes affichés, « DA » systématique — y compris sur les devis qui l'omettaient) avec numéros de documents (DV/FF/FA/M) et NIF en mono. Cartes KPI de la fiche entreprise en format compact `formatDAKpi` avec montant exact en `title`/`aria-label`. Plus **aucun formateur de montant local** dans le front. En-têtes de colonnes devis épurés du « (DA) » devenu redondant.
+
+### UI — fiche entreprise en cartes charte et statuts libellés — feature/tableau-entreprises-portail
+
+Même traitement que la fiche mission : cartes KPI et sections d'infos (Coordonnées, Contacts, Notes) sur la **surface standard** (fond, bordure, rayon 12px, variantes dark), les 3 tableaux d'onglets en `table-card` complet (en-têtes petites capitales, zébrage/survol, `prefers-reduced-motion`), **l'orange de la carte Impayé remplacé par le rouge** (identité navy/slate sans orange), et les 4 familles de tags enfin libellées (Prospect/Client, En cours/Terminée…, Brouillon/Envoyé/Accepté…, En attente/Partiel/Soldé) au lieu des valeurs brutes `en_cours`. Tokens (`--ledge-danger`/`--ledge-accent`) en remplacement des hex à repli indigo d'une ancienne charte.
+
+### Fix — lisibilité des onglets en mode sombre — feature/tableau-entreprises-portail
+
+Deux défauts dark : la pastille de comptage des onglets de la fiche entreprise (fond `surface-200` clair figé + chiffre en `text-color` devenu blanc → invisible) est alignée sur la version correcte de Factures & Avoirs (tokens primaires auto-adaptés) ; et l'**onglet actif** des Tabs PrimeVue (texte primaire slate-600) paraissait plus terne que les onglets inactifs — hiérarchie inversée. Libellé et barre active passés en slate-300 en dark, dans le bloc `main.css` qui documentait déjà ce défaut pour les liens. Correction globale (fiche entreprise, Factures & Avoirs, Statistiques, Planning).
+
 ### Fix — créances : le restant réel devient la source de vérité — feature/tableau-entreprises-portail
 
 Une facture au statut désynchronisé (donnée antérieure à la prise en compte des avoirs dans le recalcul) pouvait apparaître en créance avec **0 DA de restant dû** et être **relancée pour 0 DA** — y compris par le cron de relances automatiques.

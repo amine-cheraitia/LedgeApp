@@ -106,3 +106,13 @@ h1 {
 .app-dark .text-primary {
   color: #cbd5e1;
 }
+
+/* Meme defaut sur les Tabs PrimeVue : l'onglet ACTIF (texte primaire
+   slate-600) paraissait plus terne que les onglets inactifs en mode sombre
+   — hierarchie visuelle inversee. Libelle et barre active en slate-300. */
+.app-dark .p-tab.p-tab-active {
+  color: #cbd5e1;
+}
+.app-dark .p-tablist-active-bar {
+  background: #cbd5e1;
+}
