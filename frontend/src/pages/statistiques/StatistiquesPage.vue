@@ -100,9 +100,8 @@ onMounted(init)
   margin-bottom: 1.25rem;
 }
 
+/* Taille/graisse : base h1 globale (main.css) */
 .stats-header h1 {
-  font-size: 1.5rem;
-  font-weight: 700;
   margin: 0;
 }
 

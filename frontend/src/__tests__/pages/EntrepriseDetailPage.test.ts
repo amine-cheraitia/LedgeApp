@@ -30,6 +30,7 @@ vi.mock('primevue/usetoast', () => ({ useToast: () => ({ add: toastAdd }) }))
 import EntrepriseDetailPage from '@/pages/entreprises/EntrepriseDetailPage.vue'
 import { mountPage, findButton } from '../helpers/mount'
 import type { MountPageOptions } from '../helpers/mount'
+import { formatDA } from '@/utils/currency'
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 const entreprise = {
@@ -207,7 +208,7 @@ describe('EntrepriseDetailPage — KPIs', () => {
     expect(vm.facturesKpi).toEqual([])
     expect(vm.totalFacture).toBe(0)
     expect(wrapper.text()).not.toContain('Impayé')
-    expect(wrapper.text()).toContain('0 DA')
+    expect(wrapper.text()).toContain(formatDA(0))
   })
 
   it('sans exercice ouvert : fetch sans filtre et libelles par defaut', async () => {

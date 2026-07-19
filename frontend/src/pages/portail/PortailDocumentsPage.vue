@@ -146,11 +146,9 @@ onMounted(fetchDocuments)
   margin-bottom: 1.5rem;
 }
 
+/* Taille/graisse : base h1 globale (main.css) */
 .page-header h1 {
-  font-size: 1.4rem;
-  font-weight: 700;
   margin: 0 0 0.25rem;
-  color: var(--p-text-color);
 }
 
 .page-subtitle {

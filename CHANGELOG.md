@@ -9,6 +9,66 @@
 
 ## [Unreleased]
 
+### UI — chiffres en mono et formateur partagé sur tout le front — feature/tableau-entreprises-portail
+
+Application complète de la règle charte « chiffres en JetBrains Mono, montants via `utils/currency` » : les 7 derniers fichiers à formateur local (listes Devis et Factures & Avoirs, drawer des paiements, Prestations, fiche Entreprise, dialogue Planning, Factures du portail client) passent à `formatDA` (centimes affichés, « DA » systématique — y compris sur les devis qui l'omettaient) avec numéros de documents (DV/FF/FA/M) et NIF en mono. Cartes KPI de la fiche entreprise en format compact `formatDAKpi` avec montant exact en `title`/`aria-label`. Plus **aucun formateur de montant local** dans le front. En-têtes de colonnes devis épurés du « (DA) » devenu redondant.
+
+### UI — fiche entreprise en cartes charte et statuts libellés — feature/tableau-entreprises-portail
+
+Même traitement que la fiche mission : cartes KPI et sections d'infos (Coordonnées, Contacts, Notes) sur la **surface standard** (fond, bordure, rayon 12px, variantes dark), les 3 tableaux d'onglets en `table-card` complet (en-têtes petites capitales, zébrage/survol, `prefers-reduced-motion`), **l'orange de la carte Impayé remplacé par le rouge** (identité navy/slate sans orange), et les 4 familles de tags enfin libellées (Prospect/Client, En cours/Terminée…, Brouillon/Envoyé/Accepté…, En attente/Partiel/Soldé) au lieu des valeurs brutes `en_cours`. Tokens (`--ledge-danger`/`--ledge-accent`) en remplacement des hex à repli indigo d'une ancienne charte.
+
+### Fix — lisibilité des onglets en mode sombre — feature/tableau-entreprises-portail
+
+Deux défauts dark : la pastille de comptage des onglets de la fiche entreprise (fond `surface-200` clair figé + chiffre en `text-color` devenu blanc → invisible) est alignée sur la version correcte de Factures & Avoirs (tokens primaires auto-adaptés) ; et l'**onglet actif** des Tabs PrimeVue (texte primaire slate-600) paraissait plus terne que les onglets inactifs — hiérarchie inversée. Libellé et barre active passés en slate-300 en dark, dans le bloc `main.css` qui documentait déjà ce défaut pour les liens. Correction globale (fiche entreprise, Factures & Avoirs, Statistiques, Planning).
+
+### Fix — créances : le restant réel devient la source de vérité — feature/tableau-entreprises-portail
+
+Une facture au statut désynchronisé (donnée antérieure à la prise en compte des avoirs dans le recalcul) pouvait apparaître en créance avec **0 DA de restant dû** et être **relancée pour 0 DA** — y compris par le cron de relances automatiques.
+
+- **Backend** : `listerCreances()` filtre sur le restant réel (TTC − paiements − avoirs > 0) et non plus sur le seul statut ; relances manuelle **et** automatique refusées (422) sans reste à payer ; **migration de rattrapage** qui recalcule `statut_paiement`/`montant_paye` de toutes les factures selon la règle canonique. 2 tests de non-régression (exclusion de la liste, refus de relance) — suite **496 backend** verte.
+- **Frontend (page Créances)** : la colonne Retard ne ment plus — « échéance dans X j » en tag neutre pour les factures non échues (l'ancien `Math.max(0, …)` affichait « J+0 » un mois avant l'échéance), « J+X » réservé aux vrais retards ; bouton Relancer en navy charte (fini l'orange hors identité) ; carte « Total restant dû » adaptée au dark mode ; montants en `formatDA` partagé + mono (centimes affichés) ; un restant nul s'affiche grisé, jamais en rouge ; compteur redondant supprimé.
+
+### UI — base typographique unique pour les titres de page — feature/tableau-entreprises-portail
+
+Aucun style global n'existait pour les `h1` : le reset CSS les laissait à la taille du texte courant (1rem) sur la quasi-totalité des pages (listes, fiche mission…), trois pages compensant localement avec des valeurs divergentes (1.375 / 1.4 / 1.5rem). Une règle globale unique dans `main.css` (1.5rem · 700 · interlettrage −0.015em · couleur au token — l'échelle déjà utilisée par le Dashboard) s'applique désormais partout, back-office **et portail client** ; les overrides locaux divergents sont supprimés. Exceptions volontaires conservées : pages d'auth, 404/accès refusé, dashboard portail, titre de la fiche tâche (1.25rem + ellipsis pour les titres longs). Hiérarchie visuelle enfin alignée sur la hiérarchie sémantique (RGAA).
+
+### UX — dashboard collaborateur : salutation unique — feature/tableau-entreprises-portail
+
+Le sous-titre « Bienvenue, {prénom}. » de l'en-tête faisait doublon avec le « Bonjour, {prénom} » du bandeau héro juste en dessous : il est masqué pour le rôle collaborateur (le héro, plus riche — date, prénom, chips d'état — porte seul l'accueil ; admin et secrétaire, sans héro d'accueil, le conservent). Le `h1` « Tableau de bord » reste pour la structure et les lecteurs d'écran. Retrait au passage du glyphe « § » devant la date du héro (règle locale à la page).
+
+### Fix — donut « Répartition des tâches » du dashboard collaborateur — feature/tableau-entreprises-portail
+
+Les segments de l'anneau étaient déplacés/chevauchés (arcs empilés, segment majoritaire quasi invisible) : le motif `stroke-dasharray` avait une période de `arc + circonférence` alors que le `dashoffset` supposait une période égale à la circonférence — chaque segment se décalait de la longueur de son propre arc. Corrigé (période exactement = circonférence, départ compensé du demi-écart) et **verrouillé par un test** qui vérifie l'enchaînement bout à bout des segments (scénario 25/25/50).
+
+### UI — fiche mission normalisée sur la charte standard — feature/tableau-entreprises-portail
+
+La fiche mission abandonne le style « éditorial » (page limitée à 980px ≈ 60 % de l'écran, titre serif Fraunces, kickers mono avec glyphe « § », grille à pointillés, boutons compacts) au profit du langage utilisé partout ailleurs : **pleine largeur**, en-tête standard (retour + h1 Manrope + référence mono · entreprise · tag de statut **libellé** — fini le `en_cours` brut), **informations et documents en cartes** à la surface des tableaux (bordure, rayon 12px, variantes dark), titres de section h2 simples, boutons Générer/Imprimer et actions d'en-tête au **padding normal**. Zéro classe `ledger-*` restante sur la page ; fiches tâche et entreprise encore en style éditorial (harmonisation à décider).
+
+### UI — habillage maquette généralisé aux 10 listes — feature/tableau-entreprises-portail
+
+Le système validé sur le tableau Entreprises (carte arrondie, en-têtes en petites capitales, zébrage/survol charte, recherche large arrondie avec loupe, compteur sous le titre, **pagination centrée** « X résultat(s) · Page n sur m ») est déployé sur toutes les pages de liste : **Missions, Devis, Factures & Avoirs (les deux tableaux des onglets), Créances, Prestations, Taux de TVA, Exercices, Utilisateurs, Journal d'audit** — adapté à la nature de chaque page (pas de recherche ni pagination inventées sur les petites listes référentiel). RGAA intégralement préservé (ids, labels `sr-only`, `aria-label`, `role`, `aria-live` — vérifié par diff), dark mode couvert partout. Correctif outillage au passage : `playwright-report/` et `test-results/` exclus d'ESLint (le rapport E2E local minifié générait des milliers de fausses erreurs de lint).
+
+### UI — fiche mission alignée sur la charte éditoriale — feature/tableau-entreprises-portail
+
+Le bas de la fiche mission (sections brutes) rejoint le langage « ledger » du haut de page : sections numérotées `[02]`–`[05]` avec kicker mono et filet, tableaux Factures liées et Tâches en carte maquette, numéros/montants/documents en JetBrains Mono, cartes tranches au rayon/bordures charte, couleurs en dur remplacées par les tokens. Le formateur de montants local est remplacé par `formatDA` partagé (`utils/currency`) — les montants affichent désormais les centimes, conformément à la règle projet. Découpage, logique et accessibilité inchangés.
+
+### PDF — rapport de mission refait dans la charte facture/devis + logos — feature/tableau-entreprises-portail
+
+Le rapport de fin de mission est entièrement réécrit dans le langage graphique des factures/devis : bande navy dégradée avec **logo damier Ledge**, pilule de statut en liseré, cartes mission/client, KPI en cartes, chronologie, tableau statistiques à en-tête navy, blocs tâches/factures en cartes claires, solde global en bloc navy « TTC », pied de page identique. Mise en page fiabilisée : marge haute sur **toutes** les pages (fini le contenu collé au bord du papier), « Tâches et commentaires » démarre toujours en haut d'une nouvelle page, `page-break-inside: avoid` sur chaque bloc (un bloc qui ne tient pas bascule entier sur la page suivante), glyphes non couverts par la police remplacés. Poids du fichier : **1,3 Mo → 44 Ko** (police non embarquée). Convention et mandat : le carré « L » est remplacé par le **damier Ledge** (centré sur la page de garde de la convention).
+
+### UI — refonte du tableau Entreprises — feature/tableau-entreprises-portail
+
+Premier lot de la passe d'amélioration du front avant la release (maquette de référence validée par capture) :
+
+- **Zébrage des lignes selon la charte** : `stripedRows` était posé mais le token du thème rendait l'alternance invisible en mode sombre — les lignes impaires s'ancrent désormais sur les surfaces navy/slate de la charte (`color-mix` sur `--p-surface-*`), avec un survol distinct dans les deux modes.
+- **Sous-titre de comptage** « X entreprises · Y clients · Z prospects » sous le titre — compteurs **globaux** (indépendants des filtres) exposés par l'API (`EntrepriseService::compteursStatuts`, champ additionnel `compteurs`).
+- **Cellule Raison sociale à deux lignes** (nom + email en dessous) et **NIF en police mono** (`--ledge-ff-mono`), repli « — » si absent.
+- **En-tête façon maquette** : Export CSV remonté à côté de « Nouvelle entreprise » (groupe d'actions à droite du titre) ; la barre de recherche + filtres occupe sa propre ligne.
+- **Tableau en carte** : bloc arrondi bordé légèrement élevé (les deux modes), en-têtes de colonnes en petites capitales espacées sur fond distinct, survol des lignes en transition douce (150 ms, `prefers-reduced-motion` respecté).
+- **Boutons d'actions et colonne Portail conservés à l'identique** (demande explicite) — seul un `aria-label` manquant a été ajouté sur « Activer » et le groupe Portail est aligné proprement.
+- **Pagination façon maquette** : « X résultat(s) · Page n sur m » à gauche, navigation à droite.
+- Tests : +4 frontend (compteurs, cellule 2 lignes, zébrage/pagination posés) et +1 backend (compteurs globaux insensibles aux filtres) ; suites complètes **490 backend / 598 frontend / 15 E2E** vertes.
+
 ### Sécurité — plus aucun secret dans les fichiers versionnés — fix/env-secrets-versionnes
 
 Remédiation du constat A05 de l'audit interne du 2026-07-17 (détail : `docs/SECURITY.md`, section « Secrets & fichiers d'environnement ») :

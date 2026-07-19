@@ -11,6 +11,7 @@ import Select from 'primevue/select'
 import DatePicker from 'primevue/datepicker'
 import { facturesApi, type PaiementPayload } from '@/api/modules/factures'
 import { useAuthStore } from '@/stores/authStore'
+import { formatDA } from '@/utils/currency'
 import type { Facture, Paiement } from '@/types'
 
 const props = defineProps<{
@@ -123,7 +124,7 @@ function validate(): boolean {
   if (!montant || montant <= 0) {
     errors.value.montant = 'Le montant doit être supérieur à 0 DA.'
   } else if (localFacture.value && montant > Number(localFacture.value.montant_restant)) {
-    errors.value.montant = `Le montant ne peut pas dépasser le restant dû (${formatMontant(localFacture.value.montant_restant)}).`
+    errors.value.montant = `Le montant ne peut pas dépasser le restant dû (${formatDA(localFacture.value.montant_restant)}).`
   }
   if (!datePaiement.value) {
     errors.value.date = 'La date de paiement est obligatoire.'
@@ -147,7 +148,7 @@ async function submitPaiement() {
     toast.add({
       severity: 'success',
       summary: 'Paiement enregistré',
-      detail: `${formatMontant(paiementForm.value.montant)} enregistré avec succès.`,
+      detail: `${formatDA(paiementForm.value.montant)} enregistré avec succès.`,
       life: 3000,
     })
     await loadPaiements()
@@ -165,7 +166,7 @@ async function submitPaiement() {
 
 function confirmDelete(paiement: Paiement) {
   confirm.require({
-    message: `Supprimer ce paiement de ${formatMontant(paiement.montant)} ?`,
+    message: `Supprimer ce paiement de ${formatDA(paiement.montant)} ?`,
     header: 'Supprimer le paiement',
     icon: 'pi pi-exclamation-triangle',
     acceptLabel: 'Supprimer',
@@ -204,10 +205,6 @@ function formatDate(d: string) {
   return new Date(d).toLocaleDateString('fr-FR')
 }
 
-function formatMontant(v: number) {
-  return Number(v).toLocaleString('fr-FR') + ' DA'
-}
-
 function statutColor(statut: string): 'warn' | 'info' | 'success' | 'secondary' {
   const map: Record<string, 'warn' | 'info' | 'success' | 'secondary'> = {
     en_attente: 'warn',
@@ -243,7 +240,7 @@ function modeLabel(mode: string): string {
     <template #header>
       <div class="drawer-header" v-if="localFacture">
         <div class="drawer-header-top">
-          <span class="drawer-title">{{ localFacture.numero }}</span>
+          <span class="drawer-title cell-mono">{{ localFacture.numero }}</span>
           <Tag
             :value="statutLabel(localFacture.statut_paiement)"
             :severity="statutColor(localFacture.statut_paiement)"
@@ -259,19 +256,19 @@ function modeLabel(mode: string): string {
       <div class="amounts-band" role="region" aria-label="Résumé financier de la facture">
         <div class="amount-item">
           <span class="amount-label">Total TTC</span>
-          <span class="amount-value">{{ formatMontant(localFacture.montant_ttc) }}</span>
+          <span class="amount-value cell-mono">{{ formatDA(localFacture.montant_ttc) }}</span>
         </div>
         <div class="amount-item">
           <span class="amount-label">Encaissé</span>
-          <span class="amount-value amount-paye">{{ formatMontant(localFacture.montant_paye) }}</span>
+          <span class="amount-value amount-paye cell-mono">{{ formatDA(localFacture.montant_paye) }}</span>
         </div>
         <div class="amount-item">
           <span class="amount-label">Reste dû</span>
           <span
-            class="amount-value"
+            class="amount-value cell-mono"
             :class="localFacture.montant_restant > 0 ? 'amount-restant' : 'amount-zero'"
           >
-            {{ formatMontant(localFacture.montant_restant) }}
+            {{ formatDA(localFacture.montant_restant) }}
           </span>
         </div>
       </div>
@@ -307,7 +304,7 @@ function modeLabel(mode: string): string {
             class="paiement-row"
           >
             <div class="paiement-main">
-              <span class="paiement-montant">{{ formatMontant(p.montant) }}</span>
+              <span class="paiement-montant cell-mono">{{ formatDA(p.montant) }}</span>
               <span class="paiement-mode">{{ modeLabel(p.mode_paiement) }}</span>
             </div>
             <div class="paiement-meta">
@@ -322,7 +319,7 @@ function modeLabel(mode: string): string {
               rounded
               severity="danger"
               size="small"
-              :aria-label="`Supprimer le paiement de ${formatMontant(p.montant)}`"
+              :aria-label="`Supprimer le paiement de ${formatDA(p.montant)}`"
               v-tooltip.top="'Supprimer'"
               @click="confirmDelete(p)"
             />
@@ -368,7 +365,7 @@ function modeLabel(mode: string): string {
               {{ errors.montant }}
             </small>
             <small v-else id="pd-montant-hint" class="hint">
-              Reste dû : <strong>{{ formatMontant(localFacture.montant_restant) }}</strong>
+              Reste dû : <strong class="cell-mono">{{ formatDA(localFacture.montant_restant) }}</strong>
             </small>
           </div>
 
@@ -452,7 +449,7 @@ function modeLabel(mode: string): string {
         <div class="confirm-card" role="region" aria-label="Récapitulatif du paiement">
           <div class="confirm-row">
             <span class="confirm-label">Montant encaissé</span>
-            <strong class="confirm-montant">{{ formatMontant(paiementForm.montant) }}</strong>
+            <strong class="confirm-montant cell-mono">{{ formatDA(paiementForm.montant) }}</strong>
           </div>
           <div class="confirm-row">
             <span class="confirm-label">Mode</span>
@@ -471,8 +468,8 @@ function modeLabel(mode: string): string {
 
           <div class="confirm-row">
             <span class="confirm-label">Reste dû après</span>
-            <strong :class="montantRestantApres === 0 ? 'text-success' : 'text-warn'">
-              {{ formatMontant(montantRestantApres) }}
+            <strong :class="[montantRestantApres === 0 ? 'text-success' : 'text-warn', 'cell-mono']">
+              {{ formatDA(montantRestantApres) }}
             </strong>
           </div>
           <div class="confirm-row">
@@ -529,6 +526,12 @@ function modeLabel(mode: string): string {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+}
+
+/* Chiffres en mono, regle charte */
+.cell-mono {
+  font-family: var(--ledge-ff-mono);
+  letter-spacing: var(--ledge-letter-spacing-mono);
 }
 
 /* Bande montants */

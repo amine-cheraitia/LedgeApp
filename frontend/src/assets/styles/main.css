@@ -32,6 +32,20 @@ body {
   outline-offset: 2px;
 }
 
+/* Titre de page (h1) — base unique et sobre. Sans elle, le reset laissait les
+   h1 nus à la taille du texte courant (1rem) : titres illisibles sur toutes
+   les pages de liste. Échelle alignée sur le Dashboard (1.5rem / bold).
+   Les pages à identité propre (auth, portail dashboard, 404, fiche tâche)
+   gardent leur classe dédiée, de spécificité supérieure. */
+h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  margin: 0;
+  color: var(--p-text-color);
+}
+
 /* Skip to main content — RGAA */
 .skip-link {
   position: absolute;
@@ -91,4 +105,14 @@ body {
    ================================================================ */
 .app-dark .text-primary {
   color: #cbd5e1;
+}
+
+/* Meme defaut sur les Tabs PrimeVue : l'onglet ACTIF (texte primaire
+   slate-600) paraissait plus terne que les onglets inactifs en mode sombre
+   — hierarchie visuelle inversee. Libelle et barre active en slate-300. */
+.app-dark .p-tab.p-tab-active {
+  color: #cbd5e1;
+}
+.app-dark .p-tablist-active-bar {
+  background: #cbd5e1;
 }

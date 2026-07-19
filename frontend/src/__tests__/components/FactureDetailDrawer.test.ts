@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
+import { formatDA } from '@/utils/currency'
 import type { Facture, Paiement } from '@/types'
 
 // ── Mocks API ────────────────────────────────────────────────────────────────
@@ -164,9 +165,9 @@ describe('FactureDetailDrawer — affichage', () => {
 
   it('affiche le montant TTC, encaissé et restant dû', async () => {
     const wrapper = await mountDrawer()
-    expect(wrapper.text()).toContain('41 650')
-    expect(wrapper.text()).toContain('40 000')
-    expect(wrapper.text()).toContain('1 650')
+    expect(wrapper.text()).toContain(formatDA(41650))
+    expect(wrapper.text()).toContain(formatDA(40000))
+    expect(wrapper.text()).toContain(formatDA(1650))
   })
 
   it('le montant encaissé porte la classe amount-paye (dark mode fix)', async () => {
@@ -328,7 +329,7 @@ describe('FactureDetailDrawer — étape confirmation', () => {
 
     expect(wrapper.text()).toContain('Confirmer l\'encaissement')
     // Reste dû après = 1650 - 1000 = 650
-    expect(wrapper.text()).toContain('650')
+    expect(wrapper.text()).toContain(formatDA(650))
   })
 
   it('émet paiement-changed et revient à history après succès', async () => {

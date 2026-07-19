@@ -7,6 +7,7 @@ import Tag from 'primevue/tag'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import { portailApi } from '@/api/modules/portail'
+import { formatDA } from '@/utils/currency'
 import type { Facture } from '@/types'
 
 const toast = useToast()
@@ -111,18 +112,22 @@ onMounted(fetchFactures)
       stripedRows
       aria-labelledby="page-title"
     >
-      <Column field="numero" header="Numéro" />
+      <Column header="Numéro">
+        <template #body="{ data }">
+          <span class="cell-mono">{{ data.numero }}</span>
+        </template>
+      </Column>
       <Column field="date_facture" header="Date" />
       <Column field="date_echeance" header="Échéance" />
       <Column header="Montant TTC">
         <template #body="{ data }">
-          {{ Number(data.montant_ttc).toLocaleString('fr-DZ') }} DA
+          <span class="cell-mono">{{ formatDA(data.montant_ttc) }}</span>
         </template>
       </Column>
       <Column header="Restant dû">
         <template #body="{ data }">
-          <span :class="data.montant_restant > 0 ? 'text-danger' : ''">
-            {{ Number(data.montant_restant).toLocaleString('fr-DZ') }} DA
+          <span class="cell-mono" :class="{ 'text-danger': data.montant_restant > 0 }">
+            {{ formatDA(data.montant_restant) }}
           </span>
         </template>
       </Column>
@@ -152,11 +157,9 @@ onMounted(fetchFactures)
   margin-bottom: 1.25rem;
 }
 
+/* Taille/graisse : base h1 globale (main.css) */
 .page-header h1 {
-  font-size: 1.4rem;
-  font-weight: 700;
   margin: 0;
-  color: var(--p-text-color);
 }
 
 .page-toolbar {
@@ -169,5 +172,11 @@ onMounted(fetchFactures)
 .text-danger {
   color: var(--p-red-500, #ef4444);
   font-weight: 600;
+}
+
+/* Chiffres en mono, regle charte */
+.cell-mono {
+  font-family: var(--ledge-ff-mono);
+  letter-spacing: var(--ledge-letter-spacing-mono);
 }
 </style>

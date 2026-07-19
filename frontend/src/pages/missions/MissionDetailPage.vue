@@ -20,6 +20,7 @@ import { useAuthStore } from '@/stores/authStore'
 import type { Mission, Tache } from '@/types'
 import { PRIORITE_OPTIONS, prioriteLabel, prioriteSeverity } from '@/utils/priorite'
 import { toIsoDate, parseIsoDate } from '@/utils/date'
+import { formatDA } from '@/utils/currency'
 
 const route = useRoute()
 const router = useRouter()
@@ -261,6 +262,13 @@ function statutMissionSeverity(statut: string) {
   return map[statut] ?? 'secondary'
 }
 
+function statutMissionLabel(statut: string) {
+  const map: Record<string, string> = {
+    en_cours: 'En cours', terminee: 'Terminée', suspendue: 'Suspendue', annulee: 'Annulée',
+  }
+  return map[statut] ?? statut
+}
+
 function statutTacheSeverity(statut: string) {
   const map: Record<string, string> = {
     a_faire: 'secondary', en_cours: 'info', terminee: 'success', bloquee: 'danger',
@@ -278,10 +286,6 @@ function statutTacheLabel(statut: string) {
 function formatDate(d: string | null) {
   if (!d) return '—'
   return new Date(d).toLocaleDateString('fr-FR')
-}
-
-function formatMontant(v: number) {
-  return new Intl.NumberFormat('fr-DZ').format(v) + ' DA'
 }
 
 const tranches = computed(() => {
@@ -308,32 +312,40 @@ onMounted(() => {
 </script>
 
 <template>
-  <article v-if="!loading && mission" class="ledger-page">
-    <!-- ═══ Top rail ═══════════════════════════════════════════════ -->
-    <header class="ledger-rail">
-      <div class="ledger-rail-left">
-        <button
-          type="button"
-          class="ledger-back"
+  <article v-if="!loading && mission" class="mission-page">
+    <!-- ═══ En-tête standard (patron des autres pages) ═════════════ -->
+    <div class="page-header">
+      <div class="header-left">
+        <Button
+          icon="pi pi-arrow-left"
+          text
+          severity="secondary"
           aria-label="Retour aux missions"
           @click="router.push({ name: 'missions' })"
-        >
-          <span aria-hidden="true">←</span>
-          <span>Missions</span>
-        </button>
-        <span class="ledger-ref">{{ mission.reference }}</span>
+        />
+        <div>
+          <h1 id="mission-titre">{{ mission.prestation?.designation ?? 'Mission sans prestation' }}</h1>
+          <p class="page-compteurs">
+            <span class="ref-mono">{{ mission.reference }}</span>
+            <span v-if="mission.entreprise?.raison_sociale"> · {{ mission.entreprise.raison_sociale }}</span>
+            <Tag
+              :value="statutMissionLabel(mission.statut)"
+              :severity="statutMissionSeverity(mission.statut)"
+              class="statut-tag"
+            />
+          </p>
+        </div>
       </div>
 
       <div
         v-if="!auth.isCollaborateur && mission.statut !== 'terminee' && mission.statut !== 'annulee'"
-        class="ledger-rail-right"
+        class="header-actions"
       >
         <Button
           v-if="mission.statut === 'suspendue'"
           label="Reprendre"
           icon="pi pi-play"
           severity="info"
-          size="small"
           :loading="updatingStatut"
           @click="changerStatutMission('en_cours')"
         />
@@ -342,7 +354,6 @@ onMounted(() => {
           label="Suspendre"
           icon="pi pi-pause"
           severity="warn"
-          size="small"
           :loading="updatingStatut"
           @click="changerStatutMission('suspendue')"
         />
@@ -351,7 +362,6 @@ onMounted(() => {
           label="Terminer"
           icon="pi pi-check"
           severity="success"
-          size="small"
           :loading="updatingStatut"
           @click="changerStatutMission('terminee')"
         />
@@ -359,84 +369,62 @@ onMounted(() => {
           label="Annuler"
           icon="pi pi-times"
           severity="danger"
-          size="small"
           outlined
           :loading="updatingStatut"
           @click="changerStatutMission('annulee')"
         />
       </div>
-    </header>
+    </div>
 
-    <!-- ═══ Hero ═══════════════════════════════════════════════════ -->
-    <section class="ledger-hero" aria-labelledby="mission-titre">
-      <p class="ledger-eyebrow">
-        Mission
-        <Tag
-          :value="mission.statut"
-          :severity="statutMissionSeverity(mission.statut)"
-          style="margin-left: 0.5rem;"
-        />
-      </p>
-      <h1 id="mission-titre" class="ledger-title">
-        {{ mission.prestation?.designation ?? 'Mission sans prestation' }}
-      </h1>
-      <p v-if="mission.entreprise?.raison_sociale" class="ledger-lede">
-        Pour <strong>{{ mission.entreprise.raison_sociale }}</strong>
-      </p>
-    </section>
-
-    <!-- ═══ Ledger grid (metadata) ═════════════════════════════════ -->
-    <section aria-labelledby="meta-heading">
-      <div class="ledger-section-head">
-        <h2 id="meta-heading" class="ledger-section-kicker">
-          Métadonnées <span class="ledger-section-code">[01]</span>
-        </h2>
-        <span class="ledger-rule" aria-hidden="true"></span>
+    <!-- ═══ Informations (carte au fond des tableaux) ══════════════ -->
+    <section aria-labelledby="meta-heading" class="section">
+      <div class="section-header">
+        <h2 id="meta-heading">Informations</h2>
       </div>
+      <div class="info-card">
+        <dl class="meta-grid">
+          <div class="meta-cell">
+            <dt class="meta-key">Entreprise</dt>
+            <dd class="meta-val">{{ mission.entreprise?.raison_sociale ?? '—' }}</dd>
+          </div>
+          <div class="meta-cell">
+            <dt class="meta-key">Prestation</dt>
+            <dd class="meta-val">{{ mission.prestation?.designation ?? '—' }}</dd>
+          </div>
+          <div class="meta-cell">
+            <dt class="meta-key">Prix HT</dt>
+            <dd class="meta-val cell-mono">{{ formatDA(mission.prix_ht) }}</dd>
+          </div>
+          <div class="meta-cell">
+            <dt class="meta-key">Début</dt>
+            <dd class="meta-val cell-mono">{{ formatDate(mission.date_debut) }}</dd>
+          </div>
+          <div class="meta-cell">
+            <dt class="meta-key">Fin</dt>
+            <dd class="meta-val cell-mono">{{ formatDate(mission.date_fin) }}</dd>
+          </div>
+        </dl>
 
-      <dl class="ledger-grid">
-        <div class="ledger-cell">
-          <dt class="ledger-cell-key">Entreprise</dt>
-          <dd class="ledger-cell-val">{{ mission.entreprise?.raison_sociale ?? '—' }}</dd>
+        <div v-if="mission.collaborateurs && mission.collaborateurs.length > 0" class="collaborateurs">
+          <strong>Collaborateurs :</strong>
+          <span v-for="c in mission.collaborateurs" :key="c.id" class="collab-chip">{{ c.name }}</span>
         </div>
-        <div class="ledger-cell">
-          <dt class="ledger-cell-key">Prestation</dt>
-          <dd class="ledger-cell-val">{{ mission.prestation?.designation ?? '—' }}</dd>
-        </div>
-        <div class="ledger-cell">
-          <dt class="ledger-cell-key">Prix HT</dt>
-          <dd class="ledger-cell-val ledger-mono">{{ formatMontant(mission.prix_ht) }}</dd>
-        </div>
-        <div class="ledger-cell">
-          <dt class="ledger-cell-key">Début</dt>
-          <dd class="ledger-cell-val ledger-mono">{{ formatDate(mission.date_debut) }}</dd>
-        </div>
-        <div class="ledger-cell">
-          <dt class="ledger-cell-key">Fin</dt>
-          <dd class="ledger-cell-val ledger-mono">{{ formatDate(mission.date_fin) }}</dd>
-        </div>
-      </dl>
 
-      <div v-if="mission.collaborateurs && mission.collaborateurs.length > 0" class="collaborateurs">
-        <strong>Collaborateurs :</strong>
-        <span v-for="c in mission.collaborateurs" :key="c.id" class="collab-chip">{{ c.name }}</span>
-      </div>
-
-      <div v-if="mission.notes" class="mission-notes">
-        <strong>Notes :</strong> {{ mission.notes }}
+        <div v-if="mission.notes" class="mission-notes">
+          <strong>Notes :</strong> {{ mission.notes }}
+        </div>
       </div>
     </section>
 
     <!-- Documents -->
-    <div v-if="!auth.isCollaborateur" class="section">
+    <section v-if="!auth.isCollaborateur" aria-labelledby="docs-heading" class="section">
       <div class="section-header">
-        <h2>Documents</h2>
+        <h2 id="docs-heading">Documents</h2>
         <Button
           v-if="auth.isAdmin"
           :label="mission.visible_portail ? 'Visible portail' : 'Masqué portail'"
           :icon="mission.visible_portail ? 'pi pi-eye' : 'pi pi-eye-slash'"
           :severity="mission.visible_portail ? 'success' : 'secondary'"
-          size="small"
           outlined
           :loading="togglingPortail"
           :aria-label="mission.visible_portail ? 'Masquer les documents du portail client' : 'Rendre les documents visibles dans le portail client'"
@@ -447,18 +435,17 @@ onMounted(() => {
       <div class="documents-grid">
         <div class="doc-card">
           <div class="doc-info">
-            <i class="pi pi-file-pdf" style="font-size: 1.4rem; color: #1e3a5f;" aria-hidden="true"></i>
+            <i class="pi pi-file-pdf doc-icon" aria-hidden="true"></i>
             <div>
               <div class="doc-label">Convention de prestation</div>
-              <div class="doc-ref" v-if="mission.convention_numero">{{ mission.convention_numero }}</div>
-              <div class="doc-ref" v-else style="color: #94a3b8;">Non générée</div>
+              <div class="doc-ref doc-ref--num" v-if="mission.convention_numero">{{ mission.convention_numero }}</div>
+              <div class="doc-ref doc-ref--empty" v-else>Non générée</div>
             </div>
           </div>
           <Button
             :label="mission.convention_numero ? 'Imprimer' : 'Générer'"
             :icon="mission.convention_numero ? 'pi pi-print' : 'pi pi-cog'"
             severity="secondary"
-            size="small"
             :loading="loadingConvention"
             aria-label="Télécharger la convention de prestation"
             @click="telechargerConvention"
@@ -467,17 +454,17 @@ onMounted(() => {
 
         <div class="doc-card">
           <div class="doc-info">
-            <i class="pi pi-file-pdf" style="font-size: 1.4rem; color: #1e3a5f;" aria-hidden="true"></i>
+            <i class="pi pi-file-pdf doc-icon" aria-hidden="true"></i>
             <div>
               <div class="doc-label">Mandat d'acceptation</div>
-              <div class="doc-ref" v-if="mission.mandat_numero">{{ mission.mandat_numero }}</div>
-              <div class="doc-ref" v-else style="color: #94a3b8;">Non généré</div>
+              <div class="doc-ref doc-ref--num" v-if="mission.mandat_numero">{{ mission.mandat_numero }}</div>
+              <div class="doc-ref doc-ref--empty" v-else>Non généré</div>
             </div>
           </div>
           <Button
             :label="mission.mandat_numero ? 'Imprimer' : 'Générer'"
             :icon="mission.mandat_numero ? 'pi pi-print' : 'pi pi-cog'"
-            size="small"
+            severity="secondary"
             :loading="loadingMandat"
             aria-label="Télécharger le mandat d'acceptation"
             @click="telechargerMandat"
@@ -486,7 +473,7 @@ onMounted(() => {
 
         <div class="doc-card">
           <div class="doc-info">
-            <i class="pi pi-file-pdf" style="font-size: 1.4rem; color: #c0392b;" aria-hidden="true"></i>
+            <i class="pi pi-file-pdf doc-icon doc-icon--danger" aria-hidden="true"></i>
             <div>
               <div class="doc-label">Rapport de fin de mission</div>
               <div class="doc-ref">Tâches · Commentaires · Facturation</div>
@@ -496,21 +483,22 @@ onMounted(() => {
             label="Générer"
             icon="pi pi-download"
             severity="secondary"
-            size="small"
             aria-label="Télécharger le rapport de fin de mission en PDF"
             @click="telechargerRapport"
           />
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- Tranches -->
-    <div v-if="!auth.isCollaborateur" class="section">
-      <h2>Tranches de facturation suggérées</h2>
+    <section v-if="!auth.isCollaborateur" aria-labelledby="tranches-heading" class="section">
+      <div class="section-header">
+        <h2 id="tranches-heading">Tranches de facturation suggérées</h2>
+      </div>
       <div class="tranches-grid">
         <div v-for="t in tranches" :key="t.label" class="tranche-card">
-          <span>{{ t.label }}</span>
-          <strong>{{ formatMontant(t.montant) }}</strong>
+          <span class="tranche-label">{{ t.label }}</span>
+          <strong class="tranche-montant">{{ formatDA(t.montant) }}</strong>
         </div>
       </div>
       <Button
@@ -520,15 +508,26 @@ onMounted(() => {
         @click="router.push({ name: 'factures' })"
         class="mt-action"
       />
-    </div>
+    </section>
 
     <!-- Factures liées -->
-    <div v-if="!auth.isCollaborateur && mission.factures && mission.factures.length > 0" class="section">
-      <h2>Factures liées</h2>
+    <section
+      v-if="!auth.isCollaborateur && mission.factures && mission.factures.length > 0"
+      aria-labelledby="factures-heading"
+      class="section"
+    >
+      <div class="section-header">
+        <h2 id="factures-heading">Factures liées</h2>
+      </div>
+      <div class="table-card">
       <DataTable aria-label="Factures liées à la mission" :value="mission.factures" dataKey="id" stripedRows>
-        <Column field="numero" header="Numéro" />
+        <Column field="numero" header="Numéro">
+          <template #body="{ data }">
+            <span class="cell-mono">{{ data.numero }}</span>
+          </template>
+        </Column>
         <Column header="Montant TTC">
-          <template #body="{ data }">{{ formatMontant(data.montant_ttc) }}</template>
+          <template #body="{ data }"><span class="cell-mono">{{ formatDA(data.montant_ttc) }}</span></template>
         </Column>
         <Column header="Statut paiement">
           <template #body="{ data }">
@@ -539,7 +538,8 @@ onMounted(() => {
           </template>
         </Column>
       </DataTable>
-    </div>
+      </div>
+    </section>
 
     <!-- Tâches -->
     <section aria-labelledby="taches-title" class="section">
@@ -549,12 +549,12 @@ onMounted(() => {
           v-if="!auth.isCollaborateur"
           label="Ajouter une tâche"
           icon="pi pi-plus"
-          size="small"
           aria-label="Ajouter une tâche à cette mission"
           @click="openCreateDialog"
         />
       </div>
 
+      <div class="table-card">
       <DataTable aria-label="Tâches de la mission" :value="taches" dataKey="id" stripedRows>
         <Column field="titre" header="Titre" />
         <Column header="Assignée à">
@@ -622,6 +622,7 @@ onMounted(() => {
           </template>
         </Column>
       </DataTable>
+      </div>
     </section>
 
     <!-- Dialog création tâche -->
@@ -749,28 +750,34 @@ onMounted(() => {
 .conflit-warning li {
   margin-top: 0.15rem;
 }
+/* ── En-tête standard (même patron que les autres pages) ────────────────── */
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
+  align-items: flex-start;
   gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
 }
-.header-left { display: flex; align-items: center; }
+.header-left { display: flex; align-items: flex-start; gap: 0.25rem; }
 .header-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-.mission-info {
-  background: var(--p-surface-card);
-  border: 1px solid var(--p-surface-border);
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
+.page-compteurs {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
 }
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
+.ref-mono {
+  font-family: var(--ledge-ff-mono);
+  letter-spacing: var(--ledge-letter-spacing-mono);
+  font-weight: 600;
+  color: var(--p-text-color);
 }
+.statut-tag { margin-left: 0.25rem; }
+
 .collaborateurs {
   margin-top: 1rem;
   display: flex;
@@ -796,22 +803,78 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.75rem;
   margin-bottom: 0.75rem;
+  flex-wrap: wrap;
 }
+
+/* ── Carte d'informations : même surface que les cartes de tableau ──────── */
+.info-card {
+  border: 1px solid var(--p-surface-200);
+  border-radius: 12px;
+  background: var(--p-surface-0);
+  padding: 1.25rem 1.5rem;
+}
+.app-dark .info-card {
+  border-color: color-mix(in srgb, var(--p-surface-700) 55%, transparent);
+  background: color-mix(in srgb, var(--p-surface-800) 62%, var(--p-surface-900));
+}
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 1rem 1.5rem;
+  margin: 0;
+}
+.meta-cell { display: flex; flex-direction: column; gap: 0.3rem; }
+.meta-key {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--p-text-muted-color);
+  margin: 0;
+}
+.meta-val {
+  margin: 0;
+  font-size: 0.925rem;
+  font-weight: 600;
+  color: var(--p-text-color);
+}
+
 .tranches-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   margin-bottom: 1rem;
 }
+/* Cartes tranches : meme langage que les cartes de tableau (maquette) */
 .tranche-card {
-  background: var(--p-surface-card);
-  border: 1px solid var(--p-surface-border);
-  border-radius: 8px;
-  padding: 1rem;
+  background: var(--p-surface-0);
+  border: 1px solid var(--p-surface-200);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.35rem;
+}
+.app-dark .tranche-card {
+  border-color: color-mix(in srgb, var(--p-surface-700) 55%, transparent);
+  background: color-mix(in srgb, var(--p-surface-800) 62%, var(--p-surface-900));
+}
+.tranche-label {
+  font-size: 0.8rem;
+  color: var(--p-text-muted-color);
+}
+/* Chiffres en mono, regle charte */
+.tranche-montant {
+  font-family: var(--ledge-ff-mono);
+  letter-spacing: var(--ledge-letter-spacing-mono);
+  font-size: 1.05rem;
+}
+.cell-mono {
+  font-family: var(--ledge-ff-mono);
+  letter-spacing: var(--ledge-letter-spacing-mono);
+  font-size: 0.875rem;
 }
 .mt-action { margin-top: 0.5rem; }
 .documents-grid {
@@ -820,14 +883,18 @@ onMounted(() => {
   gap: 1rem;
 }
 .doc-card {
-  background: var(--p-surface-card);
-  border: 1px solid var(--p-surface-border);
-  border-radius: 8px;
+  background: var(--p-surface-0);
+  border: 1px solid var(--p-surface-200);
+  border-radius: 12px;
   padding: 1rem 1.25rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+}
+.app-dark .doc-card {
+  border-color: color-mix(in srgb, var(--p-surface-700) 55%, transparent);
+  background: color-mix(in srgb, var(--p-surface-800) 62%, var(--p-surface-900));
 }
 .doc-info {
   display: flex;
@@ -836,6 +903,17 @@ onMounted(() => {
 }
 .doc-label { font-weight: 600; font-size: 0.9rem; }
 .doc-ref { font-size: 0.8rem; color: var(--p-text-muted-color); margin-top: 2px; }
+/* Numeros de document (CV/MD) en mono, regle charte */
+.doc-ref--num {
+  font-family: var(--ledge-ff-mono);
+  letter-spacing: var(--ledge-letter-spacing-mono);
+}
+.doc-ref--empty { font-style: italic; }
+.doc-icon {
+  font-size: 1.4rem;
+  color: var(--ledge-brand);
+}
+.doc-icon--danger { color: var(--ledge-danger); }
 .loading-center { text-align: center; padding: 3rem; }
 .dialog-form {
   display: flex;
@@ -889,4 +967,56 @@ onMounted(() => {
   flex-shrink: 0;
 }
 .text-muted { color: var(--p-text-muted-color); font-size: 0.875rem; }
+
+/* ── Carte du tableau (meme patron que les pages listes maquette) ───────── */
+.table-card {
+  border: 1px solid var(--p-surface-200);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--p-surface-0);
+}
+.app-dark .table-card {
+  border-color: color-mix(in srgb, var(--p-surface-700) 55%, transparent);
+  background: color-mix(in srgb, var(--p-surface-800) 62%, var(--p-surface-900));
+}
+
+/* En-tetes de colonnes : petites capitales espacees, fond distinct (maquette) */
+.table-card :deep(.p-datatable-thead > tr > th) {
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--p-text-muted-color);
+  background: var(--p-surface-100);
+}
+.app-dark .table-card :deep(.p-datatable-thead > tr > th) {
+  background: color-mix(in srgb, var(--p-surface-700) 45%, var(--p-surface-900));
+}
+
+/* Transition douce du survol des lignes (150ms, colors only) */
+.table-card :deep(.p-datatable-tbody > tr) {
+  transition: background-color 0.15s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .table-card :deep(.p-datatable-tbody > tr) { transition: none; }
+}
+
+/* Zebrage charte : la DataTable PrimeVue peint ses propres fonds opaques ->
+   table transparente dans .table-card, la charte peint tout. */
+.table-card :deep(.p-datatable),
+.table-card :deep(.p-datatable-table),
+.table-card :deep(.p-datatable-tbody > tr) {
+  background: transparent;
+}
+.table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-100) 65%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-700) 28%, transparent);
+}
+.table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-200) 60%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-600) 30%, transparent);
+}
 </style>

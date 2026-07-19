@@ -21,8 +21,10 @@ class RelanceService
      */
     public function envoyerManuelle(Facture $facture, int $niveau, int $userId): Relance
     {
-        if ($facture->statut_paiement === 'solde') {
-            throw new DomainException('Impossible d\'envoyer une relance sur une facture soldee.');
+        // montantRestant() plutot que le seul statut : un statut desynchronise
+        // ne doit pas permettre de relancer un client pour 0 DA.
+        if ($facture->estSolde() || $facture->montantRestant() <= 0) {
+            throw new DomainException('Impossible d\'envoyer une relance : la facture ne presente aucun reste a payer.');
         }
 
         $email = $facture->entreprise?->emailDestinataire();
@@ -63,7 +65,8 @@ class RelanceService
      */
     public function envoyerAutomatique(Facture $facture, int $niveau): ?Relance
     {
-        if ($facture->statut_paiement === 'solde') {
+        // Meme garde que la relance manuelle : jamais de relance sans reste a payer.
+        if ($facture->estSolde() || $facture->montantRestant() <= 0) {
             return null;
         }
 

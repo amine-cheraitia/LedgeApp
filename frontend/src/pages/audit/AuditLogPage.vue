@@ -130,7 +130,12 @@ onMounted(fetchActivites)
 <template>
   <section aria-labelledby="audit-title">
     <div class="page-header">
-      <h1 id="audit-title">Journal d'audit</h1>
+      <div>
+        <h1 id="audit-title">Journal d'audit</h1>
+        <p v-if="totalRecords" class="page-compteurs">
+          {{ totalRecords }} action{{ totalRecords > 1 ? 's' : '' }}
+        </p>
+      </div>
     </div>
 
     <p class="page-intro">
@@ -139,7 +144,7 @@ onMounted(fetchActivites)
     </p>
 
     <div class="page-toolbar" role="search" aria-label="Filtres du journal d'audit">
-      <div class="filter-field">
+      <div class="toolbar-filters">
         <label for="f-entite" class="sr-only">Filtrer par entite</label>
         <Select
           id="f-entite"
@@ -149,10 +154,9 @@ onMounted(fetchActivites)
           optionValue="value"
           placeholder="Toutes les entites"
           showClear
-          style="width: 12rem"
+          class="toolbar-select"
         />
-      </div>
-      <div class="filter-field">
+
         <label for="f-action" class="sr-only">Filtrer par action</label>
         <Select
           id="f-action"
@@ -162,19 +166,18 @@ onMounted(fetchActivites)
           optionValue="value"
           placeholder="Toutes les actions"
           showClear
-          style="width: 11rem"
+          class="toolbar-select"
         />
-      </div>
-      <div class="filter-field">
+
         <label for="f-debut" class="sr-only">Date de debut</label>
         <DatePicker id="f-debut" v-model="filtres.date_debut" dateFormat="dd/mm/yy" placeholder="Du..." showButtonBar />
-      </div>
-      <div class="filter-field">
+
         <label for="f-fin" class="sr-only">Date de fin</label>
         <DatePicker id="f-fin" v-model="filtres.date_fin" dateFormat="dd/mm/yy" placeholder="Au..." showButtonBar />
       </div>
     </div>
 
+    <div class="table-card">
     <DataTable aria-label="Journal d'audit"
       :value="activites"
       :loading="loading"
@@ -185,6 +188,8 @@ onMounted(fetchActivites)
       @page="onPage"
       dataKey="id"
       stripedRows
+      paginatorTemplate="CurrentPageReport PrevPageLink PageLinks NextPageLink"
+      currentPageReportTemplate="{totalRecords} résultat(s) · Page {currentPage} sur {totalPages}"
     >
       <template #empty>Aucune action enregistree pour ces criteres.</template>
 
@@ -219,6 +224,7 @@ onMounted(fetchActivites)
         </template>
       </Column>
     </DataTable>
+    </div>
 
     <!-- Dialog detail -->
     <Dialog
@@ -282,11 +288,39 @@ onMounted(fetchActivites)
 }
 .page-toolbar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
-.filter-field { display: flex; flex-direction: column; }
+.toolbar-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+/* ── En-tete : compteur sous le titre (meme patron que missions/entreprises) ── */
+.page-compteurs {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+}
+
+/* Filtres harmonises sur la meme hauteur/arrondi que la recherche (maquette) */
+.toolbar-filters :deep(.p-datepicker-input) {
+  height: 2.9rem;
+  border-radius: 10px;
+}
+.toolbar-select {
+  min-width: 11rem;
+  height: 2.9rem;
+  border-radius: 10px;
+  align-items: center;
+}
+
 .entite-id { color: var(--p-text-muted-color); font-size: 0.8rem; }
 .detail-content { display: flex; flex-direction: column; gap: 1rem; }
 .detail-recap {
@@ -305,8 +339,88 @@ onMounted(fetchActivites)
 .val-apres { color: var(--p-text-color); font-weight: 500; }
 .hint { color: var(--p-text-muted-color); font-size: 0.85rem; }
 
+/* ── Carte du tableau (maquette : bloc arrondi legerement eleve) ────────── */
+.table-card {
+  border: 1px solid var(--p-surface-200);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--p-surface-0);
+}
+.app-dark .table-card {
+  border-color: color-mix(in srgb, var(--p-surface-700) 55%, transparent);
+  background: color-mix(in srgb, var(--p-surface-800) 62%, var(--p-surface-900));
+}
+
+/* En-tetes de colonnes : petites capitales espacees, fond distinct (maquette) */
+.table-card :deep(.p-datatable-thead > tr > th) {
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--p-text-muted-color);
+  background: var(--p-surface-100);
+}
+.app-dark .table-card :deep(.p-datatable-thead > tr > th) {
+  background: color-mix(in srgb, var(--p-surface-700) 45%, var(--p-surface-900));
+}
+
+/* Transition douce du survol des lignes (150ms, colors only) */
+.table-card :deep(.p-datatable-tbody > tr) {
+  transition: background-color 0.15s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .table-card :deep(.p-datatable-tbody > tr) { transition: none; }
+}
+
+/* ── Zebrage charte : alternance « un peu clair / plus fonce » ─────────── */
+/* Point cle : la DataTable PrimeVue peint ses propres fonds OPAQUES (lignes,
+   paginator) qui masquaient la carte -> on rend la table transparente dans
+   .table-card et la charte peint tout (carte, zebrage, survol). */
+.table-card :deep(.p-datatable),
+.table-card :deep(.p-datatable-table),
+.table-card :deep(.p-datatable-tbody > tr),
+.table-card :deep(.p-paginator) {
+  background: transparent;
+}
+
+.table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-100) 65%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-700) 28%, transparent);
+}
+/* Le survol doit rester lisible par-dessus le zebrage (les deux modes) */
+.table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-200) 60%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-600) 30%, transparent);
+}
+
+/* ── Pagination : rapport + numeros de page centres ─────────────────────── */
+.table-card :deep(.p-paginator) {
+  justify-content: center;
+  gap: 0.75rem;
+  border-top: 1px solid color-mix(in srgb, var(--p-surface-500) 25%, transparent);
+}
+.table-card :deep(.p-paginator-current) {
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  .page-toolbar { flex-direction: column; }
-  .filter-field :deep(.p-select), .filter-field :deep(.p-datepicker) { width: 100% !important; }
+  .page-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .toolbar-filters {
+    width: 100%;
+  }
+  .toolbar-select {
+    width: 100%;
+  }
+  .toolbar-filters :deep(.p-datepicker) {
+    width: 100%;
+  }
 }
 </style>

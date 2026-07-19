@@ -17,6 +17,7 @@ import { devisApi } from '@/api/modules/devis'
 import { facturesApi } from '@/api/modules/factures'
 import { useExercices } from '@/composables/useExercices'
 import { useAuthStore } from '@/stores/authStore'
+import { formatDA, formatDAKpi } from '@/utils/currency'
 import type { Entreprise, Mission, Devis, Facture } from '@/types'
 
 type TagSeverity = 'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast'
@@ -170,12 +171,6 @@ async function applyExercice(id: number | null) {
 }
 
 // --- Formatters ---
-function formatMontant(v: number | string | null | undefined) {
-  const n = Number(v)
-  if (isNaN(n)) return '0 DA'
-  return n.toLocaleString('fr-FR') + ' DA'
-}
-
 function formatDate(d: string | null) {
   if (!d) return '—'
   return new Date(d).toLocaleDateString('fr-FR')
@@ -199,6 +194,27 @@ function statutFactureColor(s: string): TagSeverity {
 function statutEntrepriseColor(s: string): TagSeverity {
   const map: Record<string, TagSeverity> = { prospect: 'warn', client: 'success' }
   return map[s] ?? 'secondary'
+}
+
+// Libellés lisibles sur les tags (jamais la valeur brute type « en_cours »)
+function statutMissionLabel(s: string): string {
+  const map: Record<string, string> = { en_cours: 'En cours', terminee: 'Terminée', suspendue: 'Suspendue', annulee: 'Annulée' }
+  return map[s] ?? s
+}
+
+function statutDevisLabel(s: string): string {
+  const map: Record<string, string> = { brouillon: 'Brouillon', envoye: 'Envoyé', accepte: 'Accepté', refuse: 'Refusé', expire: 'Expiré' }
+  return map[s] ?? s
+}
+
+function statutFactureLabel(s: string): string {
+  const map: Record<string, string> = { en_attente: 'En attente', partiel: 'Partiel', solde: 'Soldé' }
+  return map[s] ?? s
+}
+
+function statutEntrepriseLabel(s: string): string {
+  const map: Record<string, string> = { prospect: 'Prospect', client: 'Client' }
+  return map[s] ?? s
 }
 
 onMounted(async () => {
@@ -227,7 +243,7 @@ onMounted(async () => {
         <div v-if="entreprise">
           <h1>{{ entreprise.raison_sociale }}</h1>
           <Tag
-            :value="entreprise.statut"
+            :value="statutEntrepriseLabel(entreprise.statut)"
             :severity="statutEntrepriseColor(entreprise.statut)"
             class="mt-1"
           />
@@ -240,14 +256,15 @@ onMounted(async () => {
           v-if="totalImpaye > 0"
           class="kpi-card kpi-warning"
           role="status"
-          :aria-label="`Montant impayé : ${formatMontant(totalImpaye)} sur ${nbFacturesImpayees} facture${nbFacturesImpayees > 1 ? 's' : ''}`"
+          :title="formatDA(totalImpaye)"
+          :aria-label="`Montant impayé : ${formatDA(totalImpaye)} sur ${nbFacturesImpayees} facture${nbFacturesImpayees > 1 ? 's' : ''}`"
         >
           <div class="kpi-icon" aria-hidden="true">
             <i class="pi pi-exclamation-triangle" />
           </div>
           <div class="kpi-content">
             <span class="kpi-label">Impayé</span>
-            <span class="kpi-value">{{ formatMontant(totalImpaye) }}</span>
+            <span class="kpi-value">{{ formatDAKpi(totalImpaye) }}</span>
             <span class="kpi-sub">{{ nbFacturesImpayees }} facture{{ nbFacturesImpayees > 1 ? 's' : '' }}</span>
           </div>
         </div>
@@ -255,14 +272,15 @@ onMounted(async () => {
         <div
           class="kpi-card"
           role="status"
-          :aria-label="`Chiffre d'affaires total HT : ${formatMontant(totalFacture)}`"
+          :title="formatDA(totalFacture)"
+          :aria-label="`Chiffre d'affaires total HT : ${formatDA(totalFacture)}`"
         >
           <div class="kpi-icon" aria-hidden="true">
             <i class="pi pi-chart-line" />
           </div>
           <div class="kpi-content">
             <span class="kpi-label">CA total</span>
-            <span class="kpi-value">{{ formatMontant(totalFacture) }}</span>
+            <span class="kpi-value">{{ formatDAKpi(totalFacture) }}</span>
             <span
               v-if="variationCa"
               class="kpi-sub"
@@ -319,7 +337,7 @@ onMounted(async () => {
           <h2 id="section-coordonnees" class="section-title">Coordonnees</h2>
           <dl class="info-list">
             <div class="info-row" v-if="entreprise.nif">
-              <dt>NIF</dt><dd>{{ entreprise.nif }}</dd>
+              <dt>NIF</dt><dd class="cell-mono">{{ entreprise.nif }}</dd>
             </div>
             <div class="info-row" v-if="entreprise.nis">
               <dt>NIS</dt><dd>{{ entreprise.nis }}</dd>
@@ -387,6 +405,7 @@ onMounted(async () => {
           <TabPanels>
             <!-- Missions -->
             <TabPanel v-if="peutVoirMissions" value="missions">
+              <div class="table-card">
               <DataTable aria-label="Missions de l'entreprise"
                 :value="missions"
                 :loading="loadingMissions"
@@ -398,7 +417,7 @@ onMounted(async () => {
                   <template #body="{ data }">
                     <a
                       :href="`/missions/${data.id}`"
-                      class="link"
+                      class="link cell-mono"
                       aria-label="Voir la mission"
                       @click.prevent="router.push(`/missions/${data.id}`)"
                     >{{ data.reference }}</a>
@@ -406,7 +425,7 @@ onMounted(async () => {
                 </Column>
                 <Column field="prestation.designation" header="Prestation" />
                 <Column header="Prix HT" style="width: 10rem">
-                  <template #body="{ data }">{{ formatMontant(data.prix_ht) }}</template>
+                  <template #body="{ data }"><span class="cell-mono">{{ formatDA(data.prix_ht) }}</span></template>
                 </Column>
                 <Column header="Debut" style="width: 8rem">
                   <template #body="{ data }">{{ formatDate(data.date_debut) }}</template>
@@ -416,10 +435,11 @@ onMounted(async () => {
                 </Column>
                 <Column header="Statut" style="width: 8rem">
                   <template #body="{ data }">
-                    <Tag :value="data.statut" :severity="statutMissionColor(data.statut)" />
+                    <Tag :value="statutMissionLabel(data.statut)" :severity="statutMissionColor(data.statut)" />
                   </template>
                 </Column>
               </DataTable>
+              </div>
               <p v-if="missions.length === 0 && !loadingMissions" class="empty-msg">
                 Aucune mission pour cet exercice.
               </p>
@@ -427,6 +447,7 @@ onMounted(async () => {
 
             <!-- Devis -->
             <TabPanel value="devis">
+              <div class="table-card">
               <DataTable aria-label="Devis de l'entreprise"
                 :value="devisList"
                 :loading="loadingDevis"
@@ -434,12 +455,14 @@ onMounted(async () => {
                 stripedRows
                 size="small"
               >
-                <Column field="numero" header="Numero" style="width: 9rem" />
+                <Column header="Numero" style="width: 9rem">
+                  <template #body="{ data }"><span class="cell-mono">{{ data.numero }}</span></template>
+                </Column>
                 <Column header="Prestation">
                   <template #body="{ data }">{{ data.prestation?.designation ?? '—' }}</template>
                 </Column>
                 <Column header="Montant TTC" style="width: 10rem">
-                  <template #body="{ data }">{{ formatMontant(data.montant_ttc) }}</template>
+                  <template #body="{ data }"><span class="cell-mono">{{ formatDA(data.montant_ttc) }}</span></template>
                 </Column>
                 <Column header="Date" style="width: 8rem">
                   <template #body="{ data }">{{ formatDate(data.date_devis) }}</template>
@@ -449,10 +472,11 @@ onMounted(async () => {
                 </Column>
                 <Column header="Statut" style="width: 8rem">
                   <template #body="{ data }">
-                    <Tag :value="data.statut" :severity="statutDevisColor(data.statut)" />
+                    <Tag :value="statutDevisLabel(data.statut)" :severity="statutDevisColor(data.statut)" />
                   </template>
                 </Column>
               </DataTable>
+              </div>
               <p v-if="devisList.length === 0 && !loadingDevis" class="empty-msg">
                 Aucun devis pour cet exercice.
               </p>
@@ -460,6 +484,7 @@ onMounted(async () => {
 
             <!-- Factures -->
             <TabPanel value="factures">
+              <div class="table-card">
               <DataTable aria-label="Factures de l'entreprise"
                 :value="factures"
                 :loading="loadingFactures"
@@ -467,9 +492,11 @@ onMounted(async () => {
                 stripedRows
                 size="small"
               >
-                <Column field="numero" header="Numero" style="width: 9rem" />
+                <Column header="Numero" style="width: 9rem">
+                  <template #body="{ data }"><span class="cell-mono">{{ data.numero }}</span></template>
+                </Column>
                 <Column header="Montant TTC" style="width: 10rem">
-                  <template #body="{ data }">{{ formatMontant(data.montant_ttc) }}</template>
+                  <template #body="{ data }"><span class="cell-mono">{{ formatDA(data.montant_ttc) }}</span></template>
                 </Column>
                 <Column header="Date" style="width: 8rem">
                   <template #body="{ data }">{{ formatDate(data.date_facture) }}</template>
@@ -479,17 +506,18 @@ onMounted(async () => {
                 </Column>
                 <Column header="Restant" style="width: 10rem">
                   <template #body="{ data }">
-                    <span :class="{ 'impaye': data.montant_restant > 0 }">
-                      {{ formatMontant(data.montant_restant) }}
+                    <span class="cell-mono" :class="{ 'impaye': data.montant_restant > 0 }">
+                      {{ formatDA(data.montant_restant) }}
                     </span>
                   </template>
                 </Column>
                 <Column header="Statut" style="width: 8rem">
                   <template #body="{ data }">
-                    <Tag :value="data.statut_paiement" :severity="statutFactureColor(data.statut_paiement)" />
+                    <Tag :value="statutFactureLabel(data.statut_paiement)" :severity="statutFactureColor(data.statut_paiement)" />
                   </template>
                 </Column>
               </DataTable>
+              </div>
               <p v-if="factures.length === 0 && !loadingFactures" class="empty-msg">
                 Aucune facture pour cet exercice.
               </p>
@@ -515,10 +543,9 @@ onMounted(async () => {
   align-items: flex-start;
   gap: 0.75rem;
 }
+/* Taille/graisse : base h1 globale (main.css) */
 .header-left h1 {
   margin: 0;
-  font-size: 1.4rem;
-  font-weight: 600;
 }
 .skeleton-title {
   width: 16rem;
@@ -531,20 +558,30 @@ onMounted(async () => {
   gap: 0.75rem;
   flex-wrap: wrap;
 }
+/* Surface standard des cartes (meme langage que table-card) */
 .kpi-card {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  background: transparent;
-  border: 1px solid var(--p-content-border-color, rgba(128, 128, 128, 0.2));
-  border-radius: 0.5rem;
+  background: var(--p-surface-0);
+  border: 1px solid var(--p-surface-200);
+  border-radius: 12px;
   padding: 0.75rem 1rem;
   min-width: 9rem;
   color: var(--p-text-color);
 }
+.app-dark .kpi-card {
+  border-color: color-mix(in srgb, var(--p-surface-700) 55%, transparent);
+  background: color-mix(in srgb, var(--p-surface-800) 62%, var(--p-surface-900));
+}
+/* Impaye = rouge (charte : pas d'orange), meme traitement que la page Creances */
 .kpi-card.kpi-warning {
-  border-color: var(--p-orange-400, #fb923c);
-  background: rgba(234, 88, 12, 0.08);
+  border-color: var(--p-red-300);
+  background: var(--p-red-50);
+}
+.app-dark .kpi-card.kpi-warning {
+  border-color: color-mix(in srgb, var(--p-red-500) 45%, transparent);
+  background: color-mix(in srgb, var(--p-red-500) 14%, var(--p-surface-900));
 }
 .kpi-icon {
   flex-shrink: 0;
@@ -562,8 +599,8 @@ onMounted(async () => {
   background: rgba(255, 255, 255, 0.06);
 }
 .kpi-card.kpi-warning .kpi-icon {
-  background: rgba(234, 88, 12, 0.15);
-  color: #c2410c;
+  background: color-mix(in srgb, var(--ledge-danger) 14%, transparent);
+  color: var(--ledge-danger);
 }
 .kpi-content {
   display: flex;
@@ -577,15 +614,21 @@ onMounted(async () => {
   letter-spacing: 0.04em;
   font-weight: 600;
 }
+/* Chiffres en mono, regle charte */
 .kpi-value {
   font-size: 1.5rem;
   font-weight: 700;
   line-height: 1.15;
   margin-top: 0.15rem;
   color: var(--p-text-color);
+  font-family: var(--ledge-ff-mono);
+  letter-spacing: var(--ledge-letter-spacing-mono);
 }
 .kpi-card.kpi-warning .kpi-value {
-  color: #c2410c;
+  color: var(--p-red-600);
+}
+.app-dark .kpi-card.kpi-warning .kpi-value {
+  color: var(--p-red-300);
 }
 .kpi-sub {
   margin-top: 0.3rem;
@@ -596,7 +639,7 @@ onMounted(async () => {
   gap: 0.25rem;
 }
 .kpi-trend--up { color: var(--ledge-success); }
-.kpi-trend--down { color: var(--p-red-600, #dc2626); }
+.kpi-trend--down { color: var(--ledge-danger); }
 .kpi-trend--stable { color: var(--p-text-muted-color, #888); }
 
 .exercice-bar {
@@ -618,12 +661,17 @@ onMounted(async () => {
   flex-direction: column;
   gap: 1.25rem;
 }
+/* Surface standard des cartes (meme langage que table-card) */
 .info-section {
-  background: transparent;
-  border: 1px solid var(--p-content-border-color, rgba(128,128,128,0.2));
-  border-radius: 0.5rem;
-  padding: 1rem;
+  background: var(--p-surface-0);
+  border: 1px solid var(--p-surface-200);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
   color: var(--p-text-color);
+}
+.app-dark .info-section {
+  border-color: color-mix(in srgb, var(--p-surface-700) 55%, transparent);
+  background: color-mix(in srgb, var(--p-surface-800) 62%, var(--p-surface-900));
 }
 .section-title {
   font-size: 0.8rem;
@@ -663,12 +711,14 @@ onMounted(async () => {
 .notes-text { font-size: 0.875rem; white-space: pre-wrap; margin: 0; }
 
 .tabs-area { min-width: 0; }
+/* Meme version que FactureListPage : tokens primaires, lisible dans les
+   deux modes (surface-200 + text-color rendait le chiffre invisible en dark) */
 .tab-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--p-surface-200, #e5e5e5);
-  color: var(--p-text-color, #333);
+  background: var(--p-primary-color);
+  color: var(--p-primary-contrast-color);
   border-radius: 9999px;
   font-size: 0.7rem;
   font-weight: 700;
@@ -683,9 +733,59 @@ onMounted(async () => {
   color: var(--p-text-muted-color, #999);
   font-size: 0.875rem;
 }
-.link { color: var(--p-primary-color, #6366f1); text-decoration: none; }
+.link { color: var(--ledge-accent); text-decoration: none; }
 .link:hover { text-decoration: underline; }
-.impaye { color: var(--p-red-600, #dc2626); font-weight: 600; }
+.impaye { color: var(--ledge-danger); font-weight: 600; }
+
+/* ── Carte du tableau (meme patron que les pages listes maquette) ───────── */
+.table-card {
+  border: 1px solid var(--p-surface-200);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--p-surface-0);
+}
+.app-dark .table-card {
+  border-color: color-mix(in srgb, var(--p-surface-700) 55%, transparent);
+  background: color-mix(in srgb, var(--p-surface-800) 62%, var(--p-surface-900));
+}
+.table-card :deep(.p-datatable-thead > tr > th) {
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--p-text-muted-color);
+  background: var(--p-surface-100);
+}
+.app-dark .table-card :deep(.p-datatable-thead > tr > th) {
+  background: color-mix(in srgb, var(--p-surface-700) 45%, var(--p-surface-900));
+}
+.table-card :deep(.p-datatable-tbody > tr) {
+  transition: background-color 0.15s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .table-card :deep(.p-datatable-tbody > tr) { transition: none; }
+}
+.table-card :deep(.p-datatable),
+.table-card :deep(.p-datatable-table),
+.table-card :deep(.p-datatable-tbody > tr) {
+  background: transparent;
+}
+.table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-100) 65%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-700) 28%, transparent);
+}
+.table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-200) 60%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-600) 30%, transparent);
+}
+/* Chiffres en mono, regle charte : montants, numeros de documents, NIF */
+.cell-mono {
+  font-family: var(--ledge-ff-mono);
+  letter-spacing: var(--ledge-letter-spacing-mono);
+}
 .mt-1 { margin-top: 0.25rem; }
 
 @media (max-width: 900px) {
