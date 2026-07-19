@@ -57,9 +57,16 @@ class FacturationService
     public function listerCreances(): Collection
     {
         return Facture::with(['entreprise', 'mission.prestation'])
+            ->withSum('avoirs as total_avoirs', 'montant_ttc')
             ->whereIn('statut_paiement', ['en_attente', 'partiel'])
             ->orderBy('date_echeance', 'asc')
-            ->get();
+            ->get()
+            // Defense en profondeur : le statut est un champ derive qui peut etre
+            // desynchronise (donnees anterieures au recalcul incluant les avoirs).
+            // Une facture sans reste a payer ne doit JAMAIS apparaitre en creance
+            // — on filtre sur le restant reel (TTC - paiements - avoirs).
+            ->filter(fn (Facture $f) => (float) $f->montant_ttc - (float) $f->montant_paye - (float) ($f->total_avoirs ?? 0) > 0.009)
+            ->values();
     }
 
     public function listerFactures(array $filters): LengthAwarePaginator

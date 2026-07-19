@@ -9,6 +9,13 @@
 
 ## [Unreleased]
 
+### Fix — créances : le restant réel devient la source de vérité — feature/tableau-entreprises-portail
+
+Une facture au statut désynchronisé (donnée antérieure à la prise en compte des avoirs dans le recalcul) pouvait apparaître en créance avec **0 DA de restant dû** et être **relancée pour 0 DA** — y compris par le cron de relances automatiques.
+
+- **Backend** : `listerCreances()` filtre sur le restant réel (TTC − paiements − avoirs > 0) et non plus sur le seul statut ; relances manuelle **et** automatique refusées (422) sans reste à payer ; **migration de rattrapage** qui recalcule `statut_paiement`/`montant_paye` de toutes les factures selon la règle canonique. 2 tests de non-régression (exclusion de la liste, refus de relance) — suite **496 backend** verte.
+- **Frontend (page Créances)** : la colonne Retard ne ment plus — « échéance dans X j » en tag neutre pour les factures non échues (l'ancien `Math.max(0, …)` affichait « J+0 » un mois avant l'échéance), « J+X » réservé aux vrais retards ; bouton Relancer en navy charte (fini l'orange hors identité) ; carte « Total restant dû » adaptée au dark mode ; montants en `formatDA` partagé + mono (centimes affichés) ; un restant nul s'affiche grisé, jamais en rouge ; compteur redondant supprimé.
+
 ### UI — base typographique unique pour les titres de page — feature/tableau-entreprises-portail
 
 Aucun style global n'existait pour les `h1` : le reset CSS les laissait à la taille du texte courant (1rem) sur la quasi-totalité des pages (listes, fiche mission…), trois pages compensant localement avec des valeurs divergentes (1.375 / 1.4 / 1.5rem). Une règle globale unique dans `main.css` (1.5rem · 700 · interlettrage −0.015em · couleur au token — l'échelle déjà utilisée par le Dashboard) s'applique désormais partout, back-office **et portail client** ; les overrides locaux divergents sont supprimés. Exceptions volontaires conservées : pages d'auth, 404/accès refusé, dashboard portail, titre de la fiche tâche (1.25rem + ellipsis pour les titres longs). Hiérarchie visuelle enfin alignée sur la hiérarchie sémantique (RGAA).

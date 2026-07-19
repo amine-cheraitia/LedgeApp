@@ -9,6 +9,7 @@ import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
 import { creancesApi } from '@/api/modules/creances'
 import { relancesApi } from '@/api/modules/relances'
+import { formatDA } from '@/utils/currency'
 import type { Facture } from '@/types'
 
 const toast = useToast()
@@ -69,11 +70,19 @@ async function envoyerRelance() {
   }
 }
 
+// Valeur signee : negative tant que l'echeance n'est pas atteinte.
+// L'ancien Math.max(0, ...) affichait « J+0 » pour des factures pas encore
+// echues — la colonne Retard mentait.
 function joursRetard(dateEcheance: string): number {
-  return Math.max(0, Math.floor((Date.now() - new Date(dateEcheance).getTime()) / 86400000))
+  return Math.floor((Date.now() - new Date(dateEcheance).getTime()) / 86400000)
 }
 
-function retardSeverity(jours: number): 'warn' | 'danger' {
+function retardLabel(jours: number): string {
+  return jours < 0 ? `échéance dans ${-jours} j` : `J+${jours}`
+}
+
+function retardSeverity(jours: number): 'secondary' | 'warn' | 'danger' {
+  if (jours < 0) return 'secondary'
   return jours > 30 ? 'danger' : 'warn'
 }
 
@@ -83,10 +92,6 @@ function statutSeverity(statut: string): 'warn' | 'danger' {
 
 function statutLabel(statut: string): string {
   return statut === 'partiel' ? 'Partiel' : 'Impayée'
-}
-
-function formatMontant(val: number | string): string {
-  return Number(val).toLocaleString('fr-DZ') + ' DA'
 }
 
 const niveauLabel = computed(() =>
@@ -103,9 +108,6 @@ onMounted(fetchCreances)
       <div>
         <h1 class="page-title">Créances impayées</h1>
         <p class="page-subtitle">Factures en attente ou partiellement réglées</p>
-        <p v-if="creances.length" class="page-compteurs">
-          {{ creances.length }} créance{{ creances.length > 1 ? 's' : '' }} impayée{{ creances.length > 1 ? 's' : '' }}
-        </p>
       </div>
       <Button
         icon="pi pi-refresh"
@@ -125,7 +127,7 @@ onMounted(fetchCreances)
       </div>
       <div class="kpi-item kpi-danger">
         <span class="kpi-label">Total restant dû</span>
-        <span class="kpi-value">{{ formatMontant(totalRestant) }}</span>
+        <span class="kpi-value">{{ formatDA(totalRestant) }}</span>
       </div>
     </div>
 
@@ -163,7 +165,7 @@ onMounted(fetchCreances)
       <Column header="Retard" sortable style="min-width: 6rem">
         <template #body="{ data }">
           <Tag
-            :value="`J+${joursRetard(data.date_echeance)}`"
+            :value="retardLabel(joursRetard(data.date_echeance))"
             :severity="retardSeverity(joursRetard(data.date_echeance))"
           />
         </template>
@@ -171,13 +173,16 @@ onMounted(fetchCreances)
 
       <Column header="Montant TTC" sortable style="min-width: 8rem">
         <template #body="{ data }">
-          {{ formatMontant(data.montant_ttc) }}
+          <span class="cell-mono">{{ formatDA(data.montant_ttc) }}</span>
         </template>
       </Column>
 
       <Column header="Restant dû" style="min-width: 8rem">
         <template #body="{ data }">
-          <span class="montant-restant">{{ formatMontant(data.montant_restant) }}</span>
+          <span
+            class="montant-restant"
+            :class="{ 'montant-restant--zero': Number(data.montant_restant) <= 0 }"
+          >{{ formatDA(data.montant_restant) }}</span>
         </template>
       </Column>
 
@@ -193,7 +198,6 @@ onMounted(fetchCreances)
             icon="pi pi-send"
             label="Relancer"
             size="small"
-            severity="warn"
             :aria-label="`Envoyer une relance pour la facture ${data.numero}`"
             @click="ouvrirRelance(data)"
           />
@@ -228,13 +232,13 @@ onMounted(fetchCreances)
           </div>
           <div class="recap-row">
             <span class="recap-label">Restant dû</span>
-            <span class="recap-val montant-restant">{{ formatMontant(relanceFacture.montant_restant) }}</span>
+            <span class="recap-val montant-restant">{{ formatDA(relanceFacture.montant_restant) }}</span>
           </div>
           <div class="recap-row">
             <span class="recap-label">Retard</span>
             <span class="recap-val">
               <Tag
-                :value="`J+${joursRetard(relanceFacture.date_echeance)}`"
+                :value="retardLabel(joursRetard(relanceFacture.date_echeance))"
                 :severity="retardSeverity(joursRetard(relanceFacture.date_echeance))"
               />
             </span>
@@ -288,12 +292,6 @@ onMounted(fetchCreances)
 .page-title { margin: 0; }
 .page-subtitle { color: var(--p-text-muted-color); margin: 0.25rem 0 0; font-size: 0.875rem; }
 
-/* ── En-tete : compteur sous le titre (meme patron que les entreprises/missions) ── */
-.page-compteurs {
-  margin: 0.25rem 0 0;
-  font-size: 0.875rem;
-  color: var(--p-text-muted-color);
-}
 
 /* KPI bar */
 .kpi-bar {
@@ -313,14 +311,45 @@ onMounted(fetchCreances)
   min-width: 10rem;
 }
 .kpi-item.kpi-danger { border-color: var(--p-red-300); background: var(--p-red-50); }
+/* Dark mode : teinte rouge sombre au lieu du rose clair (seule surface claire
+   de la page sinon), texte rouge clair pour le contraste */
+.app-dark .kpi-item.kpi-danger {
+  border-color: color-mix(in srgb, var(--p-red-500) 45%, transparent);
+  background: color-mix(in srgb, var(--p-red-500) 14%, var(--p-surface-900));
+}
 .kpi-label { font-size: 0.75rem; color: var(--p-text-muted-color); text-transform: uppercase; letter-spacing: 0.05em; }
-.kpi-value { font-size: 1.25rem; font-weight: 700; color: var(--p-text-color); }
+/* Chiffres en mono, regle charte */
+.kpi-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--p-text-color);
+  font-family: var(--ledge-ff-mono);
+  letter-spacing: var(--ledge-letter-spacing-mono);
+}
 .kpi-item.kpi-danger .kpi-value { color: var(--p-red-600); }
+.app-dark .kpi-item.kpi-danger .kpi-value { color: var(--p-red-300); }
 
 /* Table */
 .cell-main { font-weight: 500; }
 .cell-sub { font-size: 0.75rem; color: var(--p-text-muted-color); margin-top: 2px; }
-.montant-restant { font-weight: 700; color: var(--p-red-600); }
+/* Chiffres en mono, regle charte */
+.cell-mono {
+  font-family: var(--ledge-ff-mono);
+  letter-spacing: var(--ledge-letter-spacing-mono);
+}
+.montant-restant {
+  font-weight: 700;
+  color: var(--p-red-600);
+  font-family: var(--ledge-ff-mono);
+  letter-spacing: var(--ledge-letter-spacing-mono);
+}
+.app-dark .montant-restant { color: var(--p-red-300); }
+/* Zero du : pas d'alarme rouge pour un montant nul */
+.montant-restant--zero {
+  color: var(--p-text-muted-color);
+  font-weight: 500;
+}
+.app-dark .montant-restant--zero { color: var(--p-text-muted-color); }
 
 /* ── Carte du tableau (maquette : bloc arrondi legerement eleve) ────────── */
 .table-card {
