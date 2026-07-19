@@ -11,6 +11,7 @@ import InputNumber from 'primevue/inputnumber'
 import Textarea from 'primevue/textarea'
 import ToggleSwitch from 'primevue/toggleswitch'
 import { usePrestations } from '@/composables/usePrestations'
+import { formatDA } from '@/utils/currency'
 import type { Prestation } from '@/types'
 import type { PrestationPayload } from '@/api/modules/prestations'
 
@@ -90,11 +91,6 @@ function confirmDelete(prestation: Prestation) {
   })
 }
 
-// ---------- Helpers ----------
-function formatMontant(v: number) {
-  return Number(v).toLocaleString('fr-FR') + ' DA'
-}
-
 onMounted(fetchPrestations)
 </script>
 
@@ -120,7 +116,7 @@ onMounted(fetchPrestations)
       <Column field="code" header="Code" style="width: 8rem" />
       <Column field="designation" header="Designation" />
       <Column header="Tarif initial" style="width: 12rem">
-        <template #body="{ data }">{{ formatMontant(data.tarif_initial) }}</template>
+        <template #body="{ data }"><span class="cell-mono">{{ formatDA(data.tarif_initial) }}</span></template>
       </Column>
       <Column field="duree_mois" header="Duree (mois)" style="width: 9rem" />
       <Column header="Actif" style="width: 7rem">
@@ -262,6 +258,12 @@ onMounted(fetchPrestations)
   margin: 0.25rem 0 0;
   font-size: 0.875rem;
   color: var(--p-text-muted-color);
+}
+
+/* Chiffres en mono, regle charte */
+.cell-mono {
+  font-family: var(--ledge-ff-mono);
+  letter-spacing: var(--ledge-letter-spacing-mono);
 }
 
 .dialog-form {

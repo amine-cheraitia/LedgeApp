@@ -24,6 +24,7 @@ import { useExercices } from '@/composables/useExercices'
 import { useTvaTaux } from '@/composables/useTvaTaux'
 import { useAuthStore } from '@/stores/authStore'
 import { avoirsApi } from '@/api/modules/avoirs'
+import { formatDA } from '@/utils/currency'
 import type { Facture, Avoir, Exercice } from '@/types'
 
 const toast = useToast()
@@ -288,10 +289,6 @@ function formatDate(d: string) {
   return new Date(d).toLocaleDateString('fr-FR')
 }
 
-function formatMontant(v: number) {
-  return Number(v).toLocaleString('fr-FR') + ' DA'
-}
-
 function statutPaiementColor(statut: string) {
   const map: Record<string, 'warn' | 'info' | 'success' | 'secondary'> = {
     en_attente: 'warn',
@@ -398,12 +395,14 @@ onMounted(async () => {
             paginatorTemplate="CurrentPageReport PrevPageLink PageLinks NextPageLink"
             currentPageReportTemplate="{totalRecords} résultat(s) · Page {currentPage} sur {totalPages}"
           >
-            <Column field="numero" header="Numero" sortable />
+            <Column field="numero" header="Numero" sortable>
+              <template #body="{ data }"><span class="cell-mono">{{ data.numero }}</span></template>
+            </Column>
             <Column header="Entreprise">
               <template #body="{ data }">{{ data.entreprise?.raison_sociale ?? '-' }}</template>
             </Column>
             <Column header="Mission">
-              <template #body="{ data }">{{ data.mission?.reference ?? '-' }}</template>
+              <template #body="{ data }"><span class="cell-mono">{{ data.mission?.reference ?? '-' }}</span></template>
             </Column>
             <Column field="date_facture" header="Date" sortable>
               <template #body="{ data }">{{ formatDate(data.date_facture) }}</template>
@@ -412,10 +411,10 @@ onMounted(async () => {
               <template #body="{ data }">{{ formatDate(data.date_echeance) }}</template>
             </Column>
             <Column field="montant_ttc" header="Montant TTC" sortable>
-              <template #body="{ data }">{{ formatMontant(data.montant_ttc) }}</template>
+              <template #body="{ data }"><span class="cell-mono">{{ formatDA(data.montant_ttc) }}</span></template>
             </Column>
             <Column header="Paye">
-              <template #body="{ data }">{{ formatMontant(data.montant_paye) }}</template>
+              <template #body="{ data }"><span class="cell-mono">{{ formatDA(data.montant_paye) }}</span></template>
             </Column>
             <Column header="Mode">
               <template #body="{ data }">{{ modePaiementLabel(data.mode_paiement) }}</template>
@@ -511,9 +510,11 @@ onMounted(async () => {
             paginatorTemplate="CurrentPageReport PrevPageLink PageLinks NextPageLink"
             currentPageReportTemplate="{totalRecords} résultat(s) · Page {currentPage} sur {totalPages}"
           >
-            <Column field="numero" header="Numero" />
+            <Column field="numero" header="Numero">
+              <template #body="{ data }"><span class="cell-mono">{{ data.numero }}</span></template>
+            </Column>
             <Column header="Facture d'origine">
-              <template #body="{ data }">{{ data.facture_origine?.numero ?? '-' }}</template>
+              <template #body="{ data }"><span class="cell-mono">{{ data.facture_origine?.numero ?? '-' }}</span></template>
             </Column>
             <Column header="Client">
               <template #body="{ data }">{{ data.facture_origine?.entreprise?.raison_sociale ?? '-' }}</template>
@@ -522,10 +523,10 @@ onMounted(async () => {
               <template #body="{ data }">{{ formatDate(data.date_avoir) }}</template>
             </Column>
             <Column header="Montant HT">
-              <template #body="{ data }">{{ formatMontant(data.montant_ht) }}</template>
+              <template #body="{ data }"><span class="cell-mono">{{ formatDA(data.montant_ht) }}</span></template>
             </Column>
             <Column header="Montant TTC">
-              <template #body="{ data }">{{ formatMontant(data.montant_ttc) }}</template>
+              <template #body="{ data }"><span class="cell-mono">{{ formatDA(data.montant_ttc) }}</span></template>
             </Column>
             <Column header="Motif">
               <template #body="{ data }">
@@ -651,11 +652,11 @@ onMounted(async () => {
         <div class="avoir-recap">
           <div class="recap-row">
             <span class="recap-label">Facture</span>
-            <span>{{ avoirFacture.numero }}</span>
+            <span class="cell-mono">{{ avoirFacture.numero }}</span>
           </div>
           <div class="recap-row">
             <span class="recap-label">Montant HT</span>
-            <span>{{ formatMontant(avoirFacture.montant_ht) }}</span>
+            <span class="cell-mono">{{ formatDA(avoirFacture.montant_ht) }}</span>
           </div>
         </div>
 
@@ -826,6 +827,11 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* Charte chiffres : montants et numeros de documents en police mono */
+.cell-mono {
+  font-family: var(--ledge-ff-mono);
+  letter-spacing: var(--ledge-letter-spacing-mono);
 }
 .dialog-form { display: flex; flex-direction: column; gap: 0.75rem; }
 .form-field { display: flex; flex-direction: column; gap: 0.25rem; flex: 1; }

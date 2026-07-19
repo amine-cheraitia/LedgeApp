@@ -24,6 +24,7 @@ import { useAuthStore } from '@/stores/authStore'
 import type { CalendarMission, CalendarTache } from '@/api/modules/planning'
 import { prioriteLabel, PRIORITE_COLORS } from '@/utils/priorite'
 import { toIsoDate } from '@/utils/date'
+import { formatDA } from '@/utils/currency'
 
 const router = useRouter()
 const toast  = useToast()
@@ -492,7 +493,7 @@ if (!auth.isCollaborateur) fetchCollaborateurs()
             </div>
             <div class="detail-row">
               <span class="detail-label">Prix HT</span>
-              <span class="detail-value">{{ selectedEvent.prix_ht.toLocaleString('fr-DZ') }} DA</span>
+              <span class="detail-value cell-mono">{{ formatDA(selectedEvent.prix_ht) }}</span>
             </div>
             <div class="detail-row detail-row--statut">
               <span class="detail-label">Statut</span>
@@ -530,7 +531,7 @@ if (!auth.isCollaborateur) fetchCollaborateurs()
             </div>
             <div class="detail-row">
               <span class="detail-label">Mission</span>
-              <span class="detail-value">{{ selectedTache?.mission_ref ?? '—' }}</span>
+              <span class="detail-value cell-mono">{{ selectedTache?.mission_ref ?? '—' }}</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Statut</span>
@@ -743,6 +744,11 @@ if (!auth.isCollaborateur) fetchCollaborateurs()
 }
 .detail-value {
   font-size: 0.875rem;
+}
+/* Chiffres en mono, regle charte */
+.cell-mono {
+  font-family: var(--ledge-ff-mono);
+  letter-spacing: var(--ledge-letter-spacing-mono);
 }
 .statut-edit {
   display: flex;

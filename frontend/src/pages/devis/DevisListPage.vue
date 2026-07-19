@@ -17,6 +17,7 @@ import { useUsers } from '@/composables/useUsers'
 import { useExercices } from '@/composables/useExercices'
 import { useTvaTaux } from '@/composables/useTvaTaux'
 import { useAuthStore } from '@/stores/authStore'
+import { formatDA } from '@/utils/currency'
 import type { Devis } from '@/types'
 
 const confirm = useConfirm()
@@ -111,10 +112,6 @@ function toIsoDate(d: Date | null): string {
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
-}
-
-function formatMontant(v: number) {
-  return Number(v).toLocaleString('fr-FR')
 }
 
 function statutColor(statut: string) {
@@ -307,7 +304,11 @@ onMounted(async () => {
       paginatorTemplate="CurrentPageReport PrevPageLink PageLinks NextPageLink"
       currentPageReportTemplate="{totalRecords} résultat(s) · Page {currentPage} sur {totalPages}"
     >
-      <Column field="numero" header="Numero" sortable />
+      <Column field="numero" header="Numero" sortable>
+        <template #body="{ data }">
+          <span class="cell-mono">{{ data.numero }}</span>
+        </template>
+      </Column>
       <Column header="Entreprise">
         <template #body="{ data }">
           {{ data.entreprise?.raison_sociale ?? '-' }}
@@ -320,14 +321,14 @@ onMounted(async () => {
       </Column>
       <Column field="date_devis" header="Date" sortable />
       <Column field="date_validite" header="Validite" sortable />
-      <Column field="prix_ht" header="Prix HT (DA)" sortable>
+      <Column field="prix_ht" header="Prix HT" sortable>
         <template #body="{ data }">
-          {{ formatMontant(data.prix_ht) }}
+          <span class="cell-mono">{{ formatDA(data.prix_ht) }}</span>
         </template>
       </Column>
-      <Column field="montant_ttc" header="Montant TTC (DA)" sortable>
+      <Column field="montant_ttc" header="Montant TTC" sortable>
         <template #body="{ data }">
-          {{ formatMontant(data.montant_ttc) }}
+          <span class="cell-mono">{{ formatDA(data.montant_ttc) }}</span>
         </template>
       </Column>
       <Column field="statut" header="Statut" sortable>
@@ -655,6 +656,12 @@ onMounted(async () => {
 .app-dark .table-card {
   border-color: color-mix(in srgb, var(--p-surface-700) 55%, transparent);
   background: color-mix(in srgb, var(--p-surface-800) 62%, var(--p-surface-900));
+}
+
+/* Chiffres en mono, regle charte : montants et numeros de devis */
+.cell-mono {
+  font-family: var(--ledge-ff-mono);
+  letter-spacing: var(--ledge-letter-spacing-mono);
 }
 
 /* En-tetes de colonnes : petites capitales espacees, fond distinct (maquette) */

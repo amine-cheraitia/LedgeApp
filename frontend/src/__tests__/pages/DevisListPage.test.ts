@@ -151,7 +151,7 @@ describe('DevisListPage — liste', () => {
     expect(wrapper.text()).toContain('DV2026-001')
     expect(wrapper.text()).toContain('ACME SARL')
     expect(wrapper.text()).toContain('Assistance comptable')
-    // formatMontant : montant en fr-FR (fragments robustes)
+    // formatDA : montant en fr-DZ avec centimes (fragments robustes)
     expect(wrapper.text()).toContain('120')
     expect(wrapper.text()).toContain('142')
     // Tags de statut (toutes les branches de statutColor)
