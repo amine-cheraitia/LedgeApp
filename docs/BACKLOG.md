@@ -1,7 +1,7 @@
 # Ledge — Backlog Produit v2.1
 
 > RNCP 39583 · Expert en Developpement Logiciel · YNOV · Cheraitia Mohamed Amine · 2025
-> **43 US · 170 pts · 9 couches de dependances · 3 sprints**
+> **52 US · 190 pts · 9 couches de dependances · 3 sprints**
 
 ---
 
@@ -271,7 +271,7 @@
 
 ---
 
-### US-24 · PDF convention et mandat · S · 3 pts · Sprint 2
+### US-24 · PDF convention et mandat · S · 3 pts · Sprint 2 ✅
 
 **En tant qu'administrateur**, je veux generer une convention et un mandat PDF lies a une mission **afin de** formaliser la relation contractuelle.
 
@@ -457,7 +457,7 @@
 
 ---
 
-### US-35 · Rapport de cloture d'exercice · S · 3 pts · Sprint 3
+### US-35 · Rapport de cloture d'exercice · S · 3 pts · Sprint 3 ✅
 
 **En tant qu'administrateur**, je veux generer un rapport financier de cloture d'exercice PDF **afin de** preparer la cloture annuelle.
 
@@ -501,7 +501,7 @@
 
 ---
 
-### US-38 · Tests unitaires · M · 5 pts · Sprint 3 `C2.2.2 ★`
+### US-38 · Tests unitaires · M · 5 pts · Sprint 3 `C2.2.2 ★` ✅
 
 **En tant que developpeur**, je veux ecrire les tests unitaires des modules critiques **afin de** garantir la fiabilite des calculs.
 
@@ -695,26 +695,27 @@
 
 | Sprint | US | Pts | Contenu principal |
 |---|---|---|---|
-| Sprint 1 | US-01 ✅, 02 ✅, 03 ✅, 04 ✅, 05 ✅, 06 ✅, 07 ✅, 08 ✅, 09 ✅, 11 ✅, 12 ✅, 17 ✅, 18 ✅, 40 ✅, 43 ✅ | 49 pts | Auth · Referentiel · Clients · Devis · Mission · Exercice |
-| Sprint 2 | US-10 ✅, 13 ✅, 14 ✅, 15 ✅, 16 ✅, 19 ✅, 20 ✅, 21 ✅, 22 ✅, 23 ✅, 24 ✅, 25 ✅, 26 ✅, 27 ✅, 28 ✅, 29 ✅, 30 ✅, 31 ✅, 32 ✅, 33 ✅, 34 ✅ | 96 pts | Factures · Taches · Portail · Relances · KPI |
-| Sprint 3 | US-35 ✅, 36 ✅, 37 ✅, 38 ✅, 39 ✅, 41 ✅, 42 ✅, 45 ✅, 46 ✅, 47 ✅, 48 ✅, 49 ✅, 50 ✅ · **US-51 🔧** | 43 pts | Qualite · OWASP · RGAA · Tests · MCO · Droits · PDF mission · Dashboard secrétaire · Settings TVA |
-| **Total** | **46 US** | **179 pts** | |
+| Sprint 1 | US-01 ✅, 02 ✅, 03 ✅, 04 ✅, 05 ✅, 06 ✅, 07 ✅, 08 ✅, 09 ✅, 11 ✅, 12 ✅, 17 ✅, 18 ✅, 40 ✅, 43 ✅ | 46 pts | Auth · Referentiel · Clients · Devis · Mission · Exercice |
+| Sprint 2 | US-10 ✅, 13 ✅, 14 ✅, 15 ✅, 16 ✅, 19 ✅, 20 ✅, 21 ✅, 22 ✅, 23 ✅, 24 ✅, 25 ✅, 26 ✅, 27 ✅, 28 ✅, 29 ✅, 30 ✅, 31 ✅, 32 ✅, 33 ✅, 34 ✅ | 90 pts | Factures · Taches · Portail · Relances · KPI |
+| Sprint 3 | US-35 ✅, 36 ✅, 37 ✅, 38 ✅, 39 ✅, 41 ✅, 42 ✅, 45 ✅, 46 ✅, 47 ✅, 48 ✅, 49 ✅, 50 ✅, 51 ✅ | 46 pts | Qualite · OWASP · RGAA · Tests · MCO · Droits · PDF mission · Dashboard secrétaire · Settings TVA |
+| Apres Sprint 3 | US-44 ✅, 52 ✅ | 8 pts | Envoi devis/factures par mail · Page Statistiques |
+| **Total** | **52 US** | **190 pts** | |
 
 ### Par priorite MoSCoW
 
 | Priorite | US | Pts |
 |---|---|---|
-| Must Have | 30 US | 128 pts |
-| Should Have | 14 US | 45 pts |
-| Could Have | 2 US | 6 pts |
+| Must Have | 35 US | 131 pts |
+| Should Have | 16 US | 56 pts |
+| Could Have | 1 US | 3 pts |
 
 ### Avancement
 
 | Statut | US | Pts |
 |---|---|---|
-| ✅ Termine | 44 US | 159 pts |
+| ✅ Termine | 52 US | 190 pts |
 | 🔧 En cours | 0 US | 0 pts |
-| A faire | 2 US | 20 pts |
+| A faire | 0 US | 0 pts |
 
 ### Noeuds critiques
 
@@ -723,7 +724,7 @@
 | **US-18 Mission** ⭐ ✅ | Debloque 11 US en aval (taches, factures, calendrier, portail, KPI, relances) |
 | **US-13 Facture** ⭐ ✅ | Debloque 9 US en aval (PDF DGI, paiements, avoirs, relances, portail, KPI) |
 
-> Sprint 3 terminé : US-35 ✅, US-36 ✅, US-37 ✅, US-38 ✅, US-39 ✅, US-41 ✅, US-42 ✅, US-45 ✅, US-46 ✅, US-47 ✅, US-48 ✅, US-49 ✅, US-50 ✅.
+> Sprint 3 terminé : US-35 ✅, US-36 ✅, US-37 ✅, US-38 ✅, US-39 ✅, US-41 ✅, US-42 ✅, US-45 ✅, US-46 ✅, US-47 ✅, US-48 ✅, US-49 ✅, US-50 ✅, US-51 ✅. Livrées ensuite : US-44 ✅ (envoi par mail), US-52 ✅ (page Statistiques).
 
 ---
 

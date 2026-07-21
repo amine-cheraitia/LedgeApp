@@ -9,6 +9,10 @@
 
 ## [Unreleased]
 
+### Docs — cohérence des documents de livraison — docs/nettoyage-livraison
+
+Remise en cohérence des documents avec l'état réel du dépôt : retrait d'une note de travail obsolète et rafraîchissement des dates dans `CONTEXT.md` ; `GITFLOW.md` remplace son tableau de branches figé au démarrage du projet par la description du workflow réel (une branche par US, PR systématique) et le suivi des bogues tracés par issues GitHub (#20/#21/#22 → PR #23, #52 → PR #53) ; `BACKLOG.md` recalculé depuis les fiches (**52 US · 190 pts**, toutes livrées — badges manquants ajoutés sur US-24/35/38, US-51 passée ✅ dans le résumé) ; chiffres de tests alignés sur les suites réellement exécutées — **497 tests backend** (35 Unit + 462 Feature, 45 fichiers) et **599 tests frontend** (51 fichiers), total 1 096 — dans `README.md` et `STRATEGIE-TESTS.md`.
+
 ### Fix — build Docker cassé par le lien symbolique `public/storage` — docs/demarrage-jury-docker
 
 Après un premier lancement de la stack, le `php artisan storage:link` de l'auto-initialisation crée `backend/public/storage`, lien symbolique vers un chemin interne au conteneur (`/var/www/storage/app/public`) — cassé vu de l'hôte. Tout `docker compose up --build` ultérieur échouait alors à l'envoi du contexte de build : `failed to solve: invalid file request public/storage` (reproduit deux fois sur le PC de démonstration jury). Correctif : le lien est exclu du contexte via `backend/.dockerignore` — le build n'en a pas besoin, l'entrypoint le recrée dans le conteneur à chaque démarrage. Entrée de dépannage ajoutée au manuel de déploiement (§1.7) avec le contournement PowerShell (`Remove-Item backend\public\storage -Force`) pour les copies du projet antérieures au correctif.

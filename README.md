@@ -88,10 +88,10 @@ npm run dev                # http://localhost:5173
 
 ```bash
 # Backend (depuis backend/)
-php artisan test              # 444 tests PHPUnit sur SQLite :memory:
+php artisan test              # 496 tests PHPUnit sur SQLite :memory:
 
 # Frontend (depuis frontend/)
-npm run test                  # 551 tests Vitest
+npm run test                  # 599 tests Vitest
 npm run test:coverage         # rapport de couverture (seuils garde-fous)
 ```
 
@@ -119,8 +119,8 @@ npm run test:coverage         # rapport de couverture (seuils garde-fous)
 | Calendrier / Planning | Fait |
 | KPI / Dashboard | Fait |
 | Journal d'audit (activitylog) | Fait |
-| Tests backend (PHPUnit — 444 tests) | Fait |
-| Tests frontend (Vitest — 551 tests) | Fait |
+| Tests backend (PHPUnit — 496 tests) | Fait |
+| Tests frontend (Vitest — 599 tests) | Fait |
 | CI/CD GitHub Actions (Pint, tests, couverture) | Fait |
 
 ---

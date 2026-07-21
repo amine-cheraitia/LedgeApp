@@ -1,6 +1,6 @@
 # Ledge — Contexte Projet
 
-> Derniere mise a jour : 24 Mars 2026 — Architecture N-tier (Vue.js + Laravel API)
+> Derniere mise a jour : 21 Juillet 2026 — Architecture N-tier (Vue.js + Laravel API)
 > RNCP 39583 - Expert en Developpement Logiciel - YNOV
 
 ---
@@ -14,9 +14,7 @@
 | **Marche cible** | Algerie — cabinet pilote en premier, extensible nationalement |
 | **Contexte** | Le cabinet ne dispose d'aucun outil numerique centralise. Gestion sur Excel / papier -> pertes d'information, erreurs de facturation, relances oubliees, aucune tracabilite. Ledge remplace tout ca. |
 | **Historique** | V0 monolithique (Laravel 8 + Blade + mPDF) -> V1 Filament (abandonnee) -> V2 actuelle N-tier (Vue 3 + Laravel API) |
-| **Deadline** | Debut juin 2026 — MVP complet + tous les livrables RNCP |
-
-> **Note interne (ne pas mentionner dans les livrables RNCP)** : une ancienne application Laravel existe (rapport de stage). Elle sert de reference metier pour les regles de calcul et le modele de donnees, mais Ledge est presente comme une creation from scratch repondant a l'absence de solution numerique.
+| **Deadline** | Juillet 2026 — MVP complet + tous les livrables RNCP |
 
 ---
 
