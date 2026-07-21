@@ -9,6 +9,10 @@
 
 ## [Unreleased]
 
+### Sécurité — remédiation des advisories du 20/07 (Guzzle + npm) — fix/deps-audit-guzzle-npm
+
+Les audits bloquants de la CI ont détecté 6 advisories publiées le 20/07/2026 : 4 sur `guzzlehttp/guzzle` (medium — cookies host-only, DoS cookies, fuite `Proxy-Authorization`) et 2 **high** sur des dépendances transitives frontend (`brace-expansion` — DoS ReDoS, `immutable` via sass — DoS). Remédiation conforme à la politique du projet (aucune advisory silencée) : `composer update guzzlehttp/guzzle` → **7.15.1** (version corrigée) et `npm audit fix` (lockfiles seuls, aucun changement de code). `composer audit` et `npm audit --audit-level=high` repassent au vert ; suites backend et frontend re-exécutées après mise à jour.
+
 ### UI — chiffres en mono et formateur partagé sur tout le front — feature/tableau-entreprises-portail
 
 Application complète de la règle charte « chiffres en JetBrains Mono, montants via `utils/currency` » : les 7 derniers fichiers à formateur local (listes Devis et Factures & Avoirs, drawer des paiements, Prestations, fiche Entreprise, dialogue Planning, Factures du portail client) passent à `formatDA` (centimes affichés, « DA » systématique — y compris sur les devis qui l'omettaient) avec numéros de documents (DV/FF/FA/M) et NIF en mono. Cartes KPI de la fiche entreprise en format compact `formatDAKpi` avec montant exact en `title`/`aria-label`. Plus **aucun formateur de montant local** dans le front. En-têtes de colonnes devis épurés du « (DA) » devenu redondant.
