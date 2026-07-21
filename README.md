@@ -20,7 +20,12 @@ Montants en **Dinars Algeriens (DA)**.
 Un seul prerequis : **Docker Desktop** (ou Docker Engine + Compose v2).
 
 ```bash
+# Depuis le depot Git :
 git clone <url-du-depot> ledge && cd ledge
+
+# Jury — archive de livraison (.zip) : aucun clone necessaire.
+# Dezipper l'archive, puis ouvrir un terminal a la racine du dossier extrait.
+
 docker compose up --build
 ```
 
