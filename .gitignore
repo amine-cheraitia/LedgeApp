@@ -16,6 +16,9 @@ backend/.env.production
 # premier run des tests E2E) — jamais versionne, une cle fonctionnelle
 # n'a rien a faire dans git.
 backend/.env.e2e
+# .env.jury : variante de .env.docker avec identifiants SMTP de demonstration,
+# injectee uniquement dans le zip remis au jury — jamais versionnee.
+backend/.env.jury
 # backend/.env.docker : versionne volontairement — template de demo Docker,
 # sans secret reel (mots de passe admin et BDD injectes via docker-compose).
 backend/.phpactor.json

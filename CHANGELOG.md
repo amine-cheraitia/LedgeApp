@@ -9,6 +9,10 @@
 
 ## [Unreleased]
 
+### Fix — extension PHP `intl` manquante dans l'image Docker — fix/docker-extension-intl
+
+La génération des PDF (montant en lettres via `NumberFormatter`, extension `intl`) échouait dans la stack Docker de démonstration : l'image PHP n'installait pas `intl`. Conséquences en cascade — téléchargement des PDF (devis, factures, avoirs, conventions) en erreur 500, et **envoi de devis impossible** (l'erreur PDF, avalée par le catch générique, s'affichait « Vérifiez la configuration d'envoi (SMTP) ») laissant le devis bloqué en brouillon, donc ni acceptable ni convertible en mission. Correctif : `libicu-dev` + `docker-php-ext-install intl` dans `backend/docker/php/Dockerfile` ; prérequis `intl` documenté (README, manuel de déploiement). La déclaration `ext-intl` dans `composer.json` est différée : Composer bloque toute re-résolution tant que les advisories Guzzle en cours n'ont pas de version corrigée (audit sécurité conservé actif, aucune advisory silencée).
+
 ### Sécurité — remédiation des advisories du 20/07 (Guzzle + npm) — fix/deps-audit-guzzle-npm
 
 Les audits bloquants de la CI ont détecté 6 advisories publiées le 20/07/2026 : 4 sur `guzzlehttp/guzzle` (medium — cookies host-only, DoS cookies, fuite `Proxy-Authorization`) et 2 **high** sur des dépendances transitives frontend (`brace-expansion` — DoS ReDoS, `immutable` via sass — DoS). Remédiation conforme à la politique du projet (aucune advisory silencée) : `composer update guzzlehttp/guzzle` → **7.15.1** (version corrigée) et `npm audit fix` (lockfiles seuls, aucun changement de code). `composer audit` et `npm audit --audit-level=high` repassent au vert ; suites backend et frontend re-exécutées après mise à jour.

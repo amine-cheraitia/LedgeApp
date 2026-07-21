@@ -121,7 +121,7 @@ MAIL_PASSWORD=<cle-smtp>
 ## 2. Installation manuelle (developpement)
 
 ### 2.1 Prerequis
-- PHP 8.2+ (`pdo_mysql`, `mbstring`, `bcmath`, `gd`, `zip`)
+- PHP 8.2+ (`pdo_mysql`, `mbstring`, `bcmath`, `gd`, `intl`, `zip`)
 - Composer 2, Node.js 20+
 - MySQL 8 (ou SQLite pour un essai rapide)
 

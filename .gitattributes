@@ -5,5 +5,6 @@
 # Regles CIBLEES uniquement (pas de `* text=auto` global -> evite de renormaliser
 # tout le depot).
 *.sh                  text eol=lf
+*.bat                 text eol=crlf
 /docker-compose.yml   text eol=lf
 /backend/.env.docker  text eol=lf

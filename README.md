@@ -15,9 +15,19 @@ Montants en **Dinars Algeriens (DA)**.
 
 ---
 
-## Demarrage rapide avec Docker (recommande pour tester en local)
+## 🚀 Demarrage rapide avec Docker
 
-Un seul prerequis : **Docker Desktop** (ou Docker Engine + Compose v2).
+### Pour le jury (archive de livraison — installation simple)
+
+1. Installer **Docker Desktop** : https://www.docker.com/products/docker-desktop/
+2. Dezipper l'archive de livraison.
+3. Double-cliquer sur **`start-ledge.bat`** (Windows) — ou executer
+   `./start-ledge.sh` (Mac/Linux).
+4. Attendre la fin de l'initialisation (**~2 minutes au premier lancement**).
+5. Ouvrir **http://localhost:5173** et se connecter avec
+   `admin@ledge.dz` / `Ledge@Demo2026`.
+
+### Depuis le depot Git
 
 ```bash
 git clone <url-du-depot> ledge && cd ledge
@@ -45,7 +55,7 @@ usage reel. Aucun mot de passe de production n'est versionne dans ce depot.
 ## Installation manuelle (sans Docker)
 
 ### Pre-requis
-- PHP 8.2+ (extensions : `pdo_mysql`, `mbstring`, `bcmath`, `gd`, `zip`)
+- PHP 8.2+ (extensions : `pdo_mysql`, `mbstring`, `bcmath`, `gd`, `intl`, `zip`)
 - Composer 2
 - Node.js 20+
 - MySQL 8 (ou SQLite pour un essai rapide)
