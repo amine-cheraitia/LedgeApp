@@ -9,6 +9,10 @@
 
 ## [Unreleased]
 
+### Fix — extension PHP `intl` manquante dans l'image Docker — fix/docker-extension-intl
+
+La génération des PDF (montant en lettres via `NumberFormatter`, extension `intl`) échouait dans la stack Docker de démonstration : l'image PHP n'installait pas `intl`. Conséquences en cascade — téléchargement des PDF (devis, factures, avoirs, conventions) en erreur 500, et **envoi de devis impossible** (l'erreur PDF, avalée par le catch générique, s'affichait « Vérifiez la configuration d'envoi (SMTP) ») laissant le devis bloqué en brouillon, donc ni acceptable ni convertible en mission. Correctif : `libicu-dev` + `docker-php-ext-install intl` dans `backend/docker/php/Dockerfile` ; prérequis `intl` documenté (README, manuel de déploiement). La déclaration `ext-intl` dans `composer.json` est différée : Composer bloque toute re-résolution tant que les advisories Guzzle en cours n'ont pas de version corrigée (audit sécurité conservé actif, aucune advisory silencée).
+
 ### UI — chiffres en mono et formateur partagé sur tout le front — feature/tableau-entreprises-portail
 
 Application complète de la règle charte « chiffres en JetBrains Mono, montants via `utils/currency` » : les 7 derniers fichiers à formateur local (listes Devis et Factures & Avoirs, drawer des paiements, Prestations, fiche Entreprise, dialogue Planning, Factures du portail client) passent à `formatDA` (centimes affichés, « DA » systématique — y compris sur les devis qui l'omettaient) avec numéros de documents (DV/FF/FA/M) et NIF en mono. Cartes KPI de la fiche entreprise en format compact `formatDAKpi` avec montant exact en `title`/`aria-label`. Plus **aucun formateur de montant local** dans le front. En-têtes de colonnes devis épurés du « (DA) » devenu redondant.

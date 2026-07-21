@@ -45,7 +45,7 @@ usage reel. Aucun mot de passe de production n'est versionne dans ce depot.
 ## Installation manuelle (sans Docker)
 
 ### Pre-requis
-- PHP 8.2+ (extensions : `pdo_mysql`, `mbstring`, `bcmath`, `gd`, `zip`)
+- PHP 8.2+ (extensions : `pdo_mysql`, `mbstring`, `bcmath`, `gd`, `intl`, `zip`)
 - Composer 2
 - Node.js 20+
 - MySQL 8 (ou SQLite pour un essai rapide)
