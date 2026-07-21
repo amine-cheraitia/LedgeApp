@@ -166,7 +166,6 @@ class PdfEndpointsTest extends TestCase
             'date_devis' => date('Y').'-01-05',
             'date_validite' => date('Y').'-02-05',
             'prix_ht' => 315000,
-            'montant_ht' => 315000,
             'taux_tva' => 19,
             'montant_tva' => 59850,
             'montant_ttc' => 374850,
@@ -203,6 +202,33 @@ class PdfEndpointsTest extends TestCase
             ->get("/api/v1/devis/{$this->devis->id}/pdf")
             ->assertOk()
             ->assertHeader('Content-Type', 'application/pdf');
+    }
+
+    public function test_le_template_devis_affiche_le_prix_ht_reel(): void
+    {
+        // Non-regression : la colonne devis.montant_ht a ete supprimee
+        // (migration nettoyage_schema_mort) mais le template lisait encore
+        // l'attribut mort -> HT affiche a 0,00 DA sur le PDF. Le rendu doit
+        // provenir de prix_ht, la seule source de verite.
+        $html = view('pdf.devis', [
+            'devis' => $this->devis->load('entreprise', 'prestation', 'exercice', 'createdBy'),
+            'cabinet' => [
+                'nom' => 'Cabinet Ledge',
+                'adresse' => '5 boulevard Zighout Youcef, Alger',
+                'nif' => '000216009999999',
+                'nis' => '000216008888888',
+                'rib' => '00300123456789012345',
+                'telephone' => '+213 21 00 00 00',
+                'agrement' => 'AG-2020-001',
+                'soustitre' => 'Experts-comptables',
+            ],
+            'montantEnLettres' => 'Trois cent soixante-quatorze mille huit cent cinquante dinars',
+        ])->render();
+
+        $this->assertStringContainsString('315 000,00 DA', $html);   // HT = prix_ht
+        $this->assertStringContainsString('59 850,00 DA', $html);    // TVA 19%
+        $this->assertStringContainsString('374 850,00 DA', $html);   // TTC
+        $this->assertStringNotContainsString('>0,00 DA<', $html);    // aucune cellule a zero
     }
 
     public function test_facture_pdf_est_genere(): void
