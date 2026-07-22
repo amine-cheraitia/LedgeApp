@@ -127,6 +127,7 @@ MAIL_PASSWORD=<cle-smtp>
 | Le frontend charge mais l'API repond 502 | Backend encore en cours d'init | Attendre la fin de l'init (`docker compose logs -f app`) |
 | Erreur 419 (CSRF) au login | Cookies non partages | Verifier l'acces via `http://localhost:5173` (pas `127.0.0.1`) |
 | Base incoherente apres essais | Migrations partielles | `docker compose down -v` puis `docker compose up` |
+| `failed to solve: invalid file request public/storage` au build | Lien symbolique `backend/public/storage` cree par un lancement precedent (normalement exclu via `.dockerignore`) | Supprimer le lien puis relancer : `Remove-Item backend\public\storage -Force` (PowerShell) |
 
 ---
 
