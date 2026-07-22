@@ -9,6 +9,10 @@
 
 ## [Unreleased]
 
+### Fix — build Docker cassé par le lien symbolique `public/storage` — docs/demarrage-jury-docker
+
+Après un premier lancement de la stack, le `php artisan storage:link` de l'auto-initialisation crée `backend/public/storage`, lien symbolique vers un chemin interne au conteneur (`/var/www/storage/app/public`) — cassé vu de l'hôte. Tout `docker compose up --build` ultérieur échouait alors à l'envoi du contexte de build : `failed to solve: invalid file request public/storage` (reproduit deux fois sur le PC de démonstration jury). Correctif : le lien est exclu du contexte via `backend/.dockerignore` — le build n'en a pas besoin, l'entrypoint le recrée dans le conteneur à chaque démarrage. Entrée de dépannage ajoutée au manuel de déploiement (§1.7) avec le contournement PowerShell (`Remove-Item backend\public\storage -Force`) pour les copies du projet antérieures au correctif.
+
 ### Docs — démarrage jury : prérequis Docker explicites — docs/demarrage-jury-docker
 
 Manuel de déploiement §1 : lien de téléchargement Docker Desktop, mention de l'installation WSL 2 au premier lancement sous Windows, rappel que Docker Desktop doit être démarré avant de lancer la stack, lancement depuis l'archive de livraison (`start-ledge`) documenté en plus du clone Git, et nouvelle entrée de dépannage (« docker n'est pas reconnu » / daemon injoignable → démarrer Docker Desktop). README : mêmes précisions dans les étapes jury (WSL 2, Docker Desktop démarré).
