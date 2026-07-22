@@ -9,6 +9,10 @@
 
 ## [Unreleased]
 
+### Sécurité — remédiation des advisories dompdf du 22/07 — fix/deps-audit-dompdf
+
+L'audit bloquant de la CI a détecté 2 advisories publiées le 22/07/2026 sur `dompdf/dompdf` < 3.1.6 (sévérité **low**) : CVE-2026-55554 — *Chroot Validation Bypass* (contournement de la restriction des fichiers locaux lisibles pendant le rendu) et CVE-2026-55555 — *File existence oracle via font-face* (une déclaration CSS `@font-face` piégée révèle l'existence de fichiers sur le serveur). **Impact réel sur Ledge : quasi nul** — les deux failles supposent du HTML/CSS attaquant-contrôlé, or les PDF (devis, factures, avoirs, conventions) sont rendus depuis des templates Blade internes avec styles et polices fixés par l'application ; l'utilisateur ne fournit que des données échappées. Remédiation conforme à la politique du projet (aucune advisory silencée) : `composer update dompdf/dompdf` → **3.1.6** (montée patch, lockfile seul, wrapper `barryvdh/laravel-dompdf` inchangé). `composer audit` repasse au vert ; suite backend re-exécutée et rendu PDF vérifié après mise à jour.
+
 ### Docs — démarrage jury : prérequis Docker explicites — docs/demarrage-jury-docker
 
 Manuel de déploiement §1 : lien de téléchargement Docker Desktop, mention de l'installation WSL 2 au premier lancement sous Windows, rappel que Docker Desktop doit être démarré avant de lancer la stack, lancement depuis l'archive de livraison (`start-ledge`) documenté en plus du clone Git, et nouvelle entrée de dépannage (« docker n'est pas reconnu » / daemon injoignable → démarrer Docker Desktop). README : mêmes précisions dans les étapes jury (WSL 2, Docker Desktop démarré).
