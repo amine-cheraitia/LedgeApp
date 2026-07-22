@@ -9,6 +9,10 @@
 
 ## [Unreleased]
 
+### Docs — démarrage jury : prérequis Docker explicites — docs/demarrage-jury-docker
+
+Manuel de déploiement §1 : lien de téléchargement Docker Desktop, mention de l'installation WSL 2 au premier lancement sous Windows, rappel que Docker Desktop doit être démarré avant de lancer la stack, lancement depuis l'archive de livraison (`start-ledge`) documenté en plus du clone Git, et nouvelle entrée de dépannage (« docker n'est pas reconnu » / daemon injoignable → démarrer Docker Desktop). README : mêmes précisions dans les étapes jury (WSL 2, Docker Desktop démarré).
+
 ### Fix — extension PHP `intl` manquante dans l'image Docker — fix/docker-extension-intl
 
 La génération des PDF (montant en lettres via `NumberFormatter`, extension `intl`) échouait dans la stack Docker de démonstration : l'image PHP n'installait pas `intl`. Conséquences en cascade — téléchargement des PDF (devis, factures, avoirs, conventions) en erreur 500, et **envoi de devis impossible** (l'erreur PDF, avalée par le catch générique, s'affichait « Vérifiez la configuration d'envoi (SMTP) ») laissant le devis bloqué en brouillon, donc ni acceptable ni convertible en mission. Correctif : `libicu-dev` + `docker-php-ext-install intl` dans `backend/docker/php/Dockerfile` ; prérequis `intl` documenté (README, manuel de déploiement). La déclaration `ext-intl` dans `composer.json` est différée : Composer bloque toute re-résolution tant que les advisories Guzzle en cours n'ont pas de version corrigée (audit sécurité conservé actif, aucune advisory silencée).
