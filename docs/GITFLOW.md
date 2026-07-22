@@ -67,7 +67,7 @@ docs(changelog): v1.1.0 — portail client + planning
 
 ### Phase 2 — Merge dans develop
 - PR review + merge
-- GitHub Actions : lint -> tests -> build -> staging deploy
+- GitHub Actions : lint -> tests (back + front) -> audits dependances -> E2E
 
 **Competences :** C2.1.2 (CI), C4.2.2 (CD)
 
@@ -76,7 +76,7 @@ docs(changelog): v1.1.0 — portail client + planning
 2. PR `develop -> main` (revue finale + merge)
 3. Tag Git : `git tag vx.y.z`
 4. GitHub Release avec notes
-5. Deploy prod auto via GitHub Actions
+5. Deploiement selon la procedure du [MANUEL-DEPLOIEMENT.md](MANUEL-DEPLOIEMENT.md)
 
 **Competences :** C4.3.2 (obligatoire), C4.2.2
 

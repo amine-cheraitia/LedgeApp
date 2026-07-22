@@ -130,7 +130,7 @@
 
 **En tant qu'administrateur**, je veux ajouter, modifier et supprimer des prestations depuis l'interface **afin de** faire evoluer le catalogue tarifaire sans intervention technique.
 
-- CRUD complet (`store`, `update`, `destroy`) sur `PrestationController` — actuellement lecture seule
+- CRUD complet (`store`, `update`, `destroy`) sur `PrestationController`
 - Guard admin uniquement · protection suppression si missions associees
 - Interface settings ou page dediee
 - Depend de : **US-05**

@@ -1,6 +1,6 @@
 # Ledge — Contexte Projet
 
-> Derniere mise a jour : 21 Juillet 2026 — Architecture N-tier (Vue.js + Laravel API)
+> Derniere mise a jour : 23 Juillet 2026 — Architecture N-tier (Vue.js + Laravel API)
 > RNCP 39583 - Expert en Developpement Logiciel - YNOV
 
 ---
@@ -25,7 +25,7 @@
 | **Architecture** | N-tier 3 couches (presentation / metier / donnees) | — |
 | **Frontend** | Vue 3 + TypeScript + PrimeVue + Pinia + Vue Router | Vue 3.5 / PrimeVue 4 |
 | **Backend** | Laravel (API REST) + Sanctum + PHP | Laravel 12 / PHP 8.3 |
-| **BDD** | MySQL | 9.1.0 (WAMP local) |
+| **BDD** | MySQL | 8.0 (Docker demo / production) — 9.1 en dev local WAMP |
 | **Auth** | Laravel Sanctum (SPA cookie-based) | v4.3 |
 | **Permissions** | Spatie Laravel Permission | v7.2 |
 | **PDF** | DomPDF | v3.1 |
@@ -33,7 +33,7 @@
 | **Stockage docs** | Disque local + compatible S3 | PDF factures, documents cabinet |
 | **Serveur cible** | Nginx + PHP-FPM | VPS Linux Ubuntu 22 LTS |
 | **CI/CD** | GitHub Actions | Deploiement automatise |
-| **Dev tooling** | WAMP (Windows) + Claude Code | Environnement local |
+| **Dev tooling** | WAMP (Windows) + VS Code | Environnement local |
 
 > **Dev local :** WAMP sur Windows. Fix MySQL 9 requis : `ROW_FORMAT=DYNAMIC` dans `config/database.php`.
 
@@ -61,7 +61,7 @@ Ledge/
 │   │   │   ├── Requests/      # FormRequests par domaine
 │   │   │   ├── Resources/     # API Resources JSON par domaine
 │   │   │   └── Middleware/    # EnsureBackofficeAccess, EnsurePortailAccess
-│   │   ├── Models/            # 18 modeles Eloquent
+│   │   ├── Models/            # 19 modeles Eloquent
 │   │   └── Providers/
 │   ├── routes/api.php         # Toutes les routes API /api/v1/*
 │   ├── database/              # Migrations + seeders
@@ -79,7 +79,6 @@ Ledge/
 ├── .github/              # PR template RNCP, GitHub Actions
 ├── docs/                 # Documentation projet
 ├── CHANGELOG.md
-├── CLAUDE.md
 └── README.md
 ```
 
@@ -91,8 +90,10 @@ Ledge/
 |---|---|---|
 | **Backend API** | `http://localhost:8000/api/v1/*` | `cd backend && php artisan serve` |
 | **Frontend** | `http://localhost:5173` | `cd frontend && npm run dev` |
+| **Stack Docker (demo/jury)** | `http://localhost:5173` | `docker compose up --build` (racine) — voir [MANUEL-DEPLOIEMENT.md](MANUEL-DEPLOIEMENT.md) |
 
-**Compte admin par defaut :** `admin@ledge.dz` / `password`
+**Compte admin :** `admin@ledge.dz` / valeur de `ADMIN_PASSWORD` (variable d'environnement,
+jamais versionnee — defaut de demonstration Docker documente dans le manuel de deploiement).
 
 ---
 
@@ -515,10 +516,10 @@ Voir [docs/GITFLOW.md](GITFLOW.md) pour le detail complet.
 
 | Competence | Obligatoire | Statut | Notes |
 |---|---|---|---|
-| C4.1.1 Mises a jour dependances | | en cours | `composer outdated` + Dependabot |
+| C4.1.1 Mises a jour dependances | | fait | Audits CI bloquants + remediations documentees (Guzzle, dompdf — voir SECURITY.md) |
 | C4.1.2 Supervision & alertes | oui | en cours | UptimeRobot + Laravel Health + Sentry |
 | C4.2.1 Consignation anomalies | oui | en cours | Sentry + Laravel logs rotatifs |
-| C4.2.2 Correctif CI/CD | | en cours | Pipeline GitHub Actions |
+| C4.2.2 Correctif CI/CD | | fait | Pipeline GitHub Actions (lint, tests, audits, E2E) |
 | C4.3.1 Axes d'amelioration | | en cours | Retour utilisateurs post-MVP |
 | C4.3.2 Journal des versions | oui | en cours | CHANGELOG.md + GitHub Releases (SemVer) |
 | C4.3.3 Collaboration support client | | en cours | Guide utilisateur + procedure d'escalade |
@@ -531,8 +532,8 @@ Voir [docs/GITFLOW.md](GITFLOW.md) pour le detail complet.
 |---|---|---|---|
 | S1-S2 | Cadrage & Bloc 1 | Dossier de cadrage, SWOT, comparatif, charge, budget, architecture | fait |
 | S3-S4 | Architecture & Setup | Schema BDD, migrations, doc technique, Gantt | fait |
-| S5-S6 | Sprint 1 — Core | Auth/roles, Clients, Facturation (calcul HT/TVA/PDF devis), Settings, Exercices | en cours |
-| S7-S8 | Sprint 2 — Avance | Planning FullCalendar, Relances mails, Portail client, KPI | a faire |
-| S9 | Sprint 3 — Qualite | OWASP Top 10, RGAA (axe + Lighthouse), tests unitaires, staging | a faire |
-| S10-S11 | Recette & MCO | Cahier de recettes, anomalies, CHANGELOG, UptimeRobot, Sentry | a faire |
-| S12 | Soutenance | Slides Blocs 2/3/4, repetition demo live (C3.4.2), argumentation jury | a faire |
+| S5-S6 | Sprint 1 — Core | Auth/roles, Clients, Facturation (calcul HT/TVA/PDF devis), Settings, Exercices | fait |
+| S7-S8 | Sprint 2 — Avance | Planning calendrier, Relances mails, Portail client, KPI | fait |
+| S9 | Sprint 3 — Qualite | OWASP Top 10, RGAA (axe + Lighthouse), tests unitaires | fait |
+| S10-S11 | Recette & MCO | Cahier de recettes, anomalies, CHANGELOG, supervision | fait |
+| S12 | Soutenance | Slides Blocs 2/3/4, repetition demo live (C3.4.2), argumentation jury | en preparation |

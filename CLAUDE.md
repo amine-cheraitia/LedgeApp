@@ -68,7 +68,7 @@ Ledge/
 │   │   └── types/        # TypeScript interfaces
 │   └── package.json
 ├── .github/              # PR template, GitHub Actions
-├── docs/                 # CONTEXT.md, ARCHITECTURE.md, GITFLOW.md, HISTORIQUE.md
+├── docs/                 # CONTEXT.md, ARCHITECTURE.md, GITFLOW.md, manuels, cahier de recettes...
 ├── CHANGELOG.md
 └── README.md
 ```
@@ -260,15 +260,17 @@ public function __construct(private readonly FacturationService $facturationServ
 | Domaine | Controllers | Services | Modeles |
 |---|---|---|---|
 | Auth | AuthController, UserController, PasswordController | InvitationService | User |
-| Entreprises | EntrepriseController | — | Entreprise, CategorieEntreprise, RegimeFiscal |
+| Entreprises | EntrepriseController, ContactController | — | Entreprise, Contact, CategorieEntreprise, RegimeFiscal |
 | Exercices | ExerciceController | — | Exercice |
 | Prestations | PrestationController | — | Prestation |
-| Facturation | DevisController, FactureController, PaiementController | FacturationService | Devis, DevisLigne, Facture, FactureLigne, Paiement |
-| Planning | MissionController, TacheController | MissionService | Mission, Tache, TacheCommentaire |
+| Facturation | DevisController, FactureController, PaiementController, AvoirController, CreanceController | FacturationService, PdfService | Devis, DevisLigne, Facture, FactureLigne, Paiement, Avoir |
+| Relances | RelanceController | RelanceService | Relance |
+| Planning | MissionController, TacheController, TacheCommentaireController, CalendarController | MissionService, CalendarService | Mission, Tache, TacheCommentaire |
+| Dashboard / KPI | DashboardController, StatistiqueController, KpiController | DashboardService, StatistiqueService, KpiService | KpiObjectif |
+| Portail | PortailController, PortailFactureController, PortailMissionController, PortailDocumentController | — | — |
+| Audit | AuditController | AuditService | — |
 | Settings | SettingController | — | Setting |
-| Referentiel | — | — | TvaTaux |
-| Relances (a venir) | RelanceController | RelanceService | Relance |
-| KPI (a venir) | KpiController | KpiCalculatorService | KpiObjectif, KpiResultat |
+| Referentiel | ReferentielTvaController | — | TvaTaux |
 
 ---
 
@@ -282,13 +284,13 @@ public function __construct(private readonly FacturationService $facturationServ
 
 ---
 
-## Jobs & Queues (a venir)
+## Jobs & Queues
 
 | Job | Declencheur | Description |
 |---|---|---|
 | `EnvoyerRelancesJob` | Cron quotidien | Envoi automatique des relances echues |
-| `CalculerKpiMensuelJob` | Cron mensuel | Snapshots KPI mensuels par collaborateur |
 
+Les KPI sont calcules a la volee (`KpiService`, `StatistiqueService`) — pas de job de snapshot.
 Driver : **Redis** en production, **sync** en dev.
 
 ---
@@ -342,10 +344,13 @@ GET|POST        /api/v1/prestations
 GET|POST        /api/v1/settings
 GET|POST        /api/v1/users
 
-# Facturation (a venir)
+# Facturation
 GET|POST        /api/v1/devis
 GET|POST        /api/v1/factures
 GET             /api/v1/factures/{id}/pdf
+GET|POST        /api/v1/avoirs
+GET             /api/v1/creances
+POST            /api/v1/factures/{id}/relances
 
 # Admin uniquement
 POST   /api/v1/entreprises/{id}/activer-portail

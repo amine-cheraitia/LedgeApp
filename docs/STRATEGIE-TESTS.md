@@ -13,9 +13,9 @@ et comment mesurer la couverture. Il accompagne le [cahier de recettes](CAHIER-R
 
 | Couche | Outil | Tests | Fichiers | Couverture lignes |
 |---|---|---|---|---|
-| **Backend** (Laravel API) | PHPUnit 11 | **496** | 45 | **95 %** |
-| **Frontend** (Vue 3 SPA) | Vitest 4 + @vue/test-utils | **599** | 51 | **83 %** |
-| **Total** | | **1095** | | |
+| **Backend** (Laravel API) | PHPUnit 11 | **497** | 45 | **95,9 %** |
+| **Frontend** (Vue 3 SPA) | Vitest 4 + @vue/test-utils | **599** | 51 | **84,9 %** |
+| **Total** | | **1096** | | |
 
 > Suite **calibrée** pour rester proportionnée (RNCP C2.2.2 : un harnais couvrant les fonctionnalités,
 > pas une inflation de tests) tout en dépassant 80 % de couverture de lignes des deux côtés. Un
@@ -64,9 +64,9 @@ Environnement de test isolé : SQLite `:memory:`, cache `array`, mail `array`, q
 | Service | Couverture | Rôle |
 |---|---|---|
 | `TvaTauxService`, `KpiService`, `InvitationService`, `AuditService`, `CalendarService` | 100 % | — |
-| `FacturationService` | 96 % | Facturation, tranches, snapshots TVA |
+| `FacturationService` | 97 % | Facturation, tranches, snapshots TVA |
 | `PortailService` | 96 % | Isolation des données client |
-| `MissionService` | 95 % | Création mission, prix HT immuable |
+| `MissionService` | 96 % | Création mission, prix HT immuable |
 | `RelanceService` | 94 % | Relances automatiques |
 
 ### Exemple — règle métier critique (tranches, anti perte d'arrondi)
@@ -174,7 +174,7 @@ et `frontend/coverage/index.html`.
 
 ```bash
 # Backend (depuis backend/)
-php artisan test                       # 496 tests
+php artisan test                       # 497 tests
 php artisan test --filter=LoginTest    # une classe
 composer test:coverage                 # couverture + gate 80 %
 composer test:coverage-html            # rapport HTML

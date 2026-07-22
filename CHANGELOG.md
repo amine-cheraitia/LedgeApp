@@ -11,7 +11,20 @@
 
 ### Docs — cohérence des documents de livraison — docs/nettoyage-livraison
 
-Remise en cohérence des documents avec l'état réel du dépôt : retrait d'une note de travail obsolète et rafraîchissement des dates dans `CONTEXT.md` ; `GITFLOW.md` remplace son tableau de branches figé au démarrage du projet par la description du workflow réel (une branche par US, PR systématique) et le suivi des bogues tracés par issues GitHub (#20/#21/#22 → PR #23, #52 → PR #53) ; `BACKLOG.md` recalculé depuis les fiches (**52 US · 190 pts**, toutes livrées — badges manquants ajoutés sur US-24/35/38, US-51 passée ✅ dans le résumé) ; chiffres de tests alignés sur les suites réellement exécutées — **497 tests backend** (35 Unit + 462 Feature, 45 fichiers) et **599 tests frontend** (51 fichiers), total 1 096 — dans `README.md` et `STRATEGIE-TESTS.md`.
+Remise en cohérence de l'ensemble des documents avec l'état réel du dépôt, suite à un audit complet de la documentation :
+
+- **`CONTEXT.md`** : retrait d'une note de travail obsolète, dates et deadline rafraîchies, tableau des sprints et compétences C4 passés à l'état réel (livré), 19 modèles Eloquent, versions BDD clarifiées par environnement (MySQL 8 Docker/prod, 9.1 WAMP dev), accès Docker documenté, mot de passe admin aligné sur le mécanisme `ADMIN_PASSWORD` (plus de valeur en dur).
+- **`GITFLOW.md`** : tableau de branches figé au démarrage remplacé par le workflow réel (une branche par US, PR systématique) + suivi des bogues tracés par issues GitHub (#20/#21/#22 → PR #23, #52 → PR #53) ; les deux mentions de déploiement automatique (staging/prod) retirées — la CI réelle fait lint, tests, audits et E2E.
+- **`BACKLOG.md`** : recalculé depuis les fiches (**52 US · 190 pts**, toutes livrées — badges manquants ajoutés sur US-24/35/38, US-51 passée ✅ dans le résumé).
+- **Chiffres de tests** alignés sur les suites réellement exécutées — **497 tests backend** (45 fichiers) et **599 tests frontend** (51 fichiers), total 1 096 — dans `README.md`, `STRATEGIE-TESTS.md`, `SECURITY.md` et `CAHIER-RECETTES.md`.
+- **`SECURITY.md`** : nouvel état daté du 23/07 consignant les remédiations de juillet (Guzzle/npm PR #97, dompdf PR #101) ; correction d'une affirmation fausse — les audits `composer audit` / `npm audit` de la CI sont **bloquants** (et l'ont prouvé), pas « non bloquants ».
+- **`ARCHITECTURE.md`** : 19 modèles, CI décrite fidèlement (PHP 8.3, 4 jobs dont gate de couverture, audits bloquants, E2E Playwright), section Tests refaite (45 fichiers back, 51 front, 4 specs E2E).
+- **`CAHIER-RECETTES.md`** : environnement de recette aligné sur la stack Docker de démonstration (celle du jury), RGA-05 passé ✅ (Lighthouse accessibilité mesuré à 100), compteurs STR-02/03 actualisés.
+- **`MANUEL-UTILISATION.md`** : ajout des sections manquantes **Planning**, **Statistiques** et **Journal d'audit** (rédigées depuis le code réel : rôles, filtres, onglets, comportements).
+- **`CLAUDE.md`** : inventaire des modules remis à niveau (Relances, KPI/Statistiques, Avoirs, Portail, Audit livrés — plus aucun « à venir » périmé), jobs réels documentés.
+- **`MANUEL-DEPLOIEMENT.md` / `README.md`** : durée du premier lancement réaliste (2 à 5 min), variante PowerShell pour surcharger `ADMIN_PASSWORD`.
+- **`CHANGELOG.md`** : purge d'un bloc « A faire » résiduel de mars listant des modules livrés depuis.
+- **Retrait de deux documents de travail** (`docs/plan-rapport-mission-pdf.md` — plan d'une fonctionnalité livrée, `docs/architecture-memoire.md` — note de préparation) qui n'avaient pas leur place dans la documentation produit.
 
 ### Fix — build Docker cassé par le lien symbolique `public/storage` — docs/demarrage-jury-docker
 
@@ -1467,14 +1480,6 @@ forçaient `montant_timbre = 0` et `timbre_taux_id = null`, le calcul `TimbreTau
 - Styles globaux refaits : `layout.scss`, `tailwind.css`
 - Module API `stats.ts` pour le dashboard
 - Pages mises à jour : `LoginPage`, `DashboardPage`, `EntrepriseListPage`
-
-### A faire
-- Module Relances (automatiques via queue + manuelles)
-- Portail client (lecture seule factures/documents)
-- Module KPI / Reporting (CA, missions, performance collaborateurs)
-- Module Documents / GED
-- PDF facture conforme DGI (US-14) — `PdfService::genererFacture()` + montant en lettres
-- Avoirs (FA) — creation depuis facture existante
 
 ---
 

@@ -7,6 +7,24 @@
 
 ## Composants tiers — advisories (OWASP A06)
 
+### État au 2026-07-23 : audits vierges après les remédiations de juillet
+
+Deux vagues d'advisories ont été traitées depuis l'état du 05/07 (détail complet dans le
+[CHANGELOG](../CHANGELOG.md)) :
+
+- **20/07** — 6 advisories : 4 sur `guzzlehttp/guzzle` (medium) et 2 **high** sur des
+  dépendances transitives frontend (`brace-expansion`, `immutable`). Remédiation :
+  `composer update guzzlehttp/guzzle` → 7.15.1 + `npm audit fix` (PR #97).
+- **22-23/07** — 3 advisories **low** sur `dompdf/dompdf` < 3.1.6 (contournement du chroot,
+  oracle d'existence de fichier via `@font-face`, lecture de fichier local via SVG).
+  Remédiation : `dompdf` → **3.1.6** (PR #101). Impact réel quasi nul : les PDF sont rendus
+  depuis des templates Blade internes, sans HTML/CSS fourni par l'utilisateur.
+
+Vérification post-remédiation (23/07) : `composer audit` et `npm audit --omit=dev` vierges ;
+suites re-exécutées après chaque mise à jour — **497 tests backend** et **599 tests frontend**
+verts ; rendu PDF réel contrôlé après la montée dompdf. Ces deux épisodes ont été **détectés
+par l'étape d'audit bloquante de la CI** (cf. Surveillance continue) — le mécanisme fonctionne.
+
 ### État au 2026-07-05 : `composer audit` et `npm audit` vierges
 
 À la suite de la remédiation ci-dessous, les deux audits ne remontent **plus aucune
@@ -49,9 +67,10 @@ par la mise à jour vers les versions correctives publiées dans les plages `^7.
 
 ### Surveillance continue
 
-- La CI (`.github/workflows/ci.yml`) exécute désormais `composer audit` et
-  `npm audit --omit=dev` à chaque build (étapes **non bloquantes** : elles rendent toute
-  nouvelle advisory visible dans les logs sans casser le pipeline).
+- La CI (`.github/workflows/ci.yml`) exécute `composer audit` (**bloquant** : toute advisory
+  Composer fait échouer le pipeline) et `npm audit --omit=dev --audit-level=high` (**bloquant
+  à partir de la sévérité high**) à chaque build : une nouvelle advisory bloque les merges
+  jusqu'à remédiation — démontré les 20/07 (Guzzle/npm) et 22/07 (dompdf).
 - Dès qu'une nouvelle advisory apparaît : évaluer l'impact, appliquer `composer update` /
   `npm audit fix` dans les contraintes, et mettre à jour ce document.
 
