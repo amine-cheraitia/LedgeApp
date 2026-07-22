@@ -13,6 +13,11 @@ Ce document couvre trois scenarios :
 ### 1.1 Prerequis
 
 - **Docker Desktop** (Windows/macOS) ou **Docker Engine + Docker Compose v2** (Linux).
+  Telechargement : https://www.docker.com/products/docker-desktop/
+- Sous Windows, Docker Desktop peut demander d'installer **WSL 2** au premier
+  lancement : suivre l'assistant (un redemarrage peut etre necessaire).
+- **Docker Desktop doit etre demarre** (icone baleine dans la barre des taches)
+  avant de lancer la stack.
 - 4 Go de RAM libre, ports **5173**, **8000** et **3307** disponibles.
 
 Verifier l'installation :
@@ -23,6 +28,12 @@ docker compose version
 ```
 
 ### 1.2 Lancement
+
+Depuis l'**archive de livraison (.zip)** : dezipper, puis double-cliquer sur
+`start-ledge.bat` (Windows) — ou executer `./start-ledge.sh` (Mac/Linux) — a la
+racine du dossier extrait. Aucun clone necessaire.
+
+Depuis le depot Git :
 
 ```bash
 git clone <url-du-depot> ledge
@@ -111,6 +122,7 @@ MAIL_PASSWORD=<cle-smtp>
 
 | Symptome | Cause probable | Solution |
 |---|---|---|
+| `docker n'est pas reconnu` / `cannot connect to the Docker daemon` | Docker Desktop n'est pas installe ou pas demarre | Lancer Docker Desktop et attendre qu'il indique « running », puis relancer |
 | `port is already allocated` | 5173/8000/3307 deja utilise | Liberer le port ou modifier le mapping dans `docker-compose.yml` |
 | Le frontend charge mais l'API repond 502 | Backend encore en cours d'init | Attendre la fin de l'init (`docker compose logs -f app`) |
 | Erreur 419 (CSRF) au login | Cookies non partages | Verifier l'acces via `http://localhost:5173` (pas `127.0.0.1`) |

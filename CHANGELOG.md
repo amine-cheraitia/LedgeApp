@@ -9,6 +9,10 @@
 
 ## [Unreleased]
 
+### Docs — démarrage jury : prérequis Docker explicites — docs/demarrage-jury-docker
+
+Manuel de déploiement §1 : lien de téléchargement Docker Desktop, mention de l'installation WSL 2 au premier lancement sous Windows, rappel que Docker Desktop doit être démarré avant de lancer la stack, lancement depuis l'archive de livraison (`start-ledge`) documenté en plus du clone Git, et nouvelle entrée de dépannage (« docker n'est pas reconnu » / daemon injoignable → démarrer Docker Desktop). README : mêmes précisions dans les étapes jury (WSL 2, Docker Desktop démarré).
+
 ### Fix — PDF devis : montant HT affiché à 0,00 DA — fix/pdf-devis-prix-ht
 
 Le template PDF du devis lisait encore `devis.montant_ht`, colonne supprimée le 08/07 par la migration `nettoyage_schema_mort` (doublon de `prix_ht`) : l'attribut mort renvoyait `null`, affiché « 0,00 DA » dans la cellule Prix HT **et** la ligne Montant HT des totaux — TVA et TTC restaient justes (leurs colonnes existent toujours), rendant le document incohérent. Correctif : le template lit `prix_ht` (source de vérité unique, alignée sur mission) ; retrait d'un `montant_ht` résiduel dans le setUp de `PdfEndpointsTest` ; **test de non-régression** qui rend la vue `pdf.devis` et vérifie les trois montants affichés (HT réel, TVA, TTC — toute cellule à zéro fait échouer le test). Seul le PDF devis était touché : factures, avoirs et rapports conservent leur colonne `montant_ht`.

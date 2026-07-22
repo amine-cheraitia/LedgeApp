@@ -20,9 +20,10 @@ Montants en **Dinars Algeriens (DA)**.
 ### Pour le jury (archive de livraison — installation simple)
 
 1. Installer **Docker Desktop** : https://www.docker.com/products/docker-desktop/
+   (sous Windows, accepter l'installation de WSL 2 si elle est proposee).
 2. Dezipper l'archive de livraison.
-3. Double-cliquer sur **`start-ledge.bat`** (Windows) — ou executer
-   `./start-ledge.sh` (Mac/Linux).
+3. **Docker Desktop demarre**, double-cliquer sur **`start-ledge.bat`** (Windows)
+   — ou executer `./start-ledge.sh` (Mac/Linux).
 4. Attendre la fin de l'initialisation (**~2 minutes au premier lancement**).
 5. Ouvrir **http://localhost:5173** et se connecter avec
    `admin@ledge.dz` / `Ledge@Demo2026`.
