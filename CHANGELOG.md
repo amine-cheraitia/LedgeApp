@@ -9,6 +9,10 @@
 
 ## [Unreleased]
 
+### Fix — PDF devis : montant HT affiché à 0,00 DA — fix/pdf-devis-prix-ht
+
+Le template PDF du devis lisait encore `devis.montant_ht`, colonne supprimée le 08/07 par la migration `nettoyage_schema_mort` (doublon de `prix_ht`) : l'attribut mort renvoyait `null`, affiché « 0,00 DA » dans la cellule Prix HT **et** la ligne Montant HT des totaux — TVA et TTC restaient justes (leurs colonnes existent toujours), rendant le document incohérent. Correctif : le template lit `prix_ht` (source de vérité unique, alignée sur mission) ; retrait d'un `montant_ht` résiduel dans le setUp de `PdfEndpointsTest` ; **test de non-régression** qui rend la vue `pdf.devis` et vérifie les trois montants affichés (HT réel, TVA, TTC — toute cellule à zéro fait échouer le test). Seul le PDF devis était touché : factures, avoirs et rapports conservent leur colonne `montant_ht`.
+
 ### Fix — extension PHP `intl` manquante dans l'image Docker — fix/docker-extension-intl
 
 La génération des PDF (montant en lettres via `NumberFormatter`, extension `intl`) échouait dans la stack Docker de démonstration : l'image PHP n'installait pas `intl`. Conséquences en cascade — téléchargement des PDF (devis, factures, avoirs, conventions) en erreur 500, et **envoi de devis impossible** (l'erreur PDF, avalée par le catch générique, s'affichait « Vérifiez la configuration d'envoi (SMTP) ») laissant le devis bloqué en brouillon, donc ni acceptable ni convertible en mission. Correctif : `libicu-dev` + `docker-php-ext-install intl` dans `backend/docker/php/Dockerfile` ; prérequis `intl` documenté (README, manuel de déploiement). La déclaration `ext-intl` dans `composer.json` est différée : Composer bloque toute re-résolution tant que les advisories Guzzle en cours n'ont pas de version corrigée (audit sécurité conservé actif, aucune advisory silencée).

@@ -224,7 +224,7 @@
                         <div class="presta-sub">{{ $devis->prestation->description }}</div>
                         @endif
                     </td>
-                    <td class="r">{{ number_format((float)$devis->montant_ht, 2, ',', ' ') }} DA</td>
+                    <td class="r">{{ number_format((float)$devis->prix_ht, 2, ',', ' ') }} DA</td>
                     <td class="r">{{ number_format((float)$devis->montant_tva, 2, ',', ' ') }} DA</td>
                 </tr>
             </tbody>
@@ -240,7 +240,7 @@
                     <table class="totaux-inner" cellpadding="0" cellspacing="0">
                         <tr>
                             <td>Montant HT</td>
-                            <td class="v">{{ number_format((float)$devis->montant_ht, 2, ',', ' ') }} DA</td>
+                            <td class="v">{{ number_format((float)$devis->prix_ht, 2, ',', ' ') }} DA</td>
                         </tr>
                         <tr>
                             <td>TVA ({{ number_format((float)$devis->taux_tva, 0) }}%)</td>
