@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import { useNavigationProgress } from '@/composables/useNavigationProgress'
 
 const ROLES = {
   allStaff: ['admin', 'secretaire', 'collaborateur'],
@@ -188,6 +189,13 @@ const router = createRouter({
   ],
 })
 
+// Barre de progression de navigation (affichee par App.vue) : enregistree AVANT
+// la garde d'authentification pour couvrir aussi la resolution de session et le
+// chargement des chunks lazy — la phase ou aucun loader de page ne peut exister.
+router.beforeEach(() => {
+  useNavigationProgress().start()
+})
+
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
 
@@ -264,6 +272,15 @@ window.addEventListener('vite:preloadError', (event) => {
   if (sessionStorage.getItem(PRELOAD_RELOAD_KEY)) return // anti-boucle
   sessionStorage.setItem(PRELOAD_RELOAD_KEY, '1')
   window.location.reload()
+})
+
+// Fin de navigation (aboutie ou en erreur) : la barre de progression se complete.
+router.afterEach(() => {
+  useNavigationProgress().done()
+})
+
+router.onError(() => {
+  useNavigationProgress().done()
 })
 
 export default router
