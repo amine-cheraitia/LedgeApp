@@ -125,6 +125,13 @@ Pipeline GitHub Actions (`.github/workflows/ci.yml`) declenchee sur push/PR vers
 | `frontend` | Node 20 → npm ci → ESLint → Vitest (gates couverture) → `npm audit` (bloquant des high) → vue-tsc → Vite build |
 | `e2e` | Playwright (Chromium) — parcours bout en bout sur la stack complete |
 
+**CD** (`.github/workflows/cd.yml`) — declenche par un tag `vX.Y.Z` : re-execute
+toutes les portes de qualite de la CI (workflow reutilise), construit les deux
+images de production (backend php-fpm+nginx, frontend nginx statique), les scanne
+(Trivy, bloquant HIGH/CRITICAL corrigeable), les smoke-teste puis les publie sur
+GitHub Container Registry (`ghcr.io`). Le livrable de release est une image
+versionnee prete au deploiement (voir MANUEL-DEPLOIEMENT §3.5).
+
 ## Sécurité (OWASP)
 
 - **A01 Broken Access Control** : middleware `backoffice` / `portail` sur les groupes de routes

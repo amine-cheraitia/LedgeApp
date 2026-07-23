@@ -9,6 +9,15 @@
 
 ## [Unreleased]
 
+### CI/CD — pipeline de livraison continue (images Docker de release) — ci/pipeline-cd
+
+Le projet dispose désormais d'une chaîne de **livraison continue sans serveur de déploiement** : à chaque tag `vX.Y.Z`, le workflow `cd.yml` ré-exécute l'intégralité des portes de qualité de la CI (workflow réutilisé via `workflow_call` : lint, 1 096 tests, gates de couverture, audits de dépendances bloquants, E2E Playwright), construit deux **images Docker de production**, les **scanne** (Trivy — vulnérabilités HIGH/CRITICAL corrigeables bloquantes, OS et dépendances embarquées), les **smoke-teste** (framework bootable, SPA servie) puis les **publie sur GitHub Container Registry** avec les tags SemVer + `latest`. Nouveaux artefacts :
+
+- `ledge-backend` — Dockerfile multi-stage : vendor Composer sans dev + autoloader optimisé (étape dédiée), php-fpm 8.3 + nginx embarqué (API autonome sur :8000), opcache production (`validate_timestamps=0`), caches Laravel appliqués **au démarrage** du conteneur (l'environnement n'est jamais figé dans l'image) ; migrations = étape de déploiement explicite.
+- `ledge-frontend` — build Vite figé servi par nginx ; proxy `/api`, `/sanctum`, `/storage`, `/up` vers `BACKEND_HOST` (variable d'environnement, résolution DNS à la requête : le conteneur démarre même sans backend joignable).
+
+Déclenchement manuel possible (`workflow_dispatch`, images `edge-<sha>`) pour valider le pipeline hors release. La stack de démonstration jury (`docker compose up`, `start-ledge`) est **inchangée**. Documentation : MANUEL-DEPLOIEMENT §3.5 (déploiement type par `docker pull`), ARCHITECTURE (section CI/CD), GITFLOW (phase 3 — release).
+
 ### Docs — cohérence des documents de livraison — docs/nettoyage-livraison
 
 Remise en cohérence de l'ensemble des documents avec l'état réel du dépôt, suite à un audit complet de la documentation :
