@@ -509,7 +509,7 @@ Voir [docs/GITFLOW.md](GITFLOW.md) pour le detail complet.
 | C4.2.1 Consignation anomalies | oui | en cours | Sentry + Laravel logs rotatifs |
 | C4.2.2 Correctif CI/CD | | fait | Pipeline GitHub Actions (lint, tests, audits, E2E) |
 | C4.3.1 Axes d'amelioration | | en cours | Retour utilisateurs post-MVP |
-| C4.3.2 Journal des versions | oui | en cours | CHANGELOG.md + GitHub Releases (SemVer) |
+| C4.3.2 Journal des versions | oui | fait | CHANGELOG.md + release v1.0.0 taguee (GitHub Release, SemVer) |
 | C4.3.3 Collaboration support client | | en cours | Guide utilisateur + procedure d'escalade |
 
 ---
