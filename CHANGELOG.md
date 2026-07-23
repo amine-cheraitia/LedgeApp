@@ -9,6 +9,13 @@
 
 ## [Unreleased]
 
+### UX — barre de progression de navigation et loaders initiaux — feature/loader-navigation
+
+Deux améliorations du ressenti de chargement, sans nouvelle dépendance :
+
+- **Barre de progression de navigation globale** : fine barre fixée en haut de l'écran pendant les changements de page — couvre la phase invisible aux loaders de pages (chargement des chunks lazy du router, résolution de session) où l'écran restait muet. Composable singleton `useNavigationProgress` (seuil anti-flash de **150 ms** : les navigations instantanées n'affichent rien ; progression asymptotique plafonnée à 90 %, complétée à 100 % à l'arrivée), branché dans le router (`beforeEach` enregistré **avant** la garde d'authentification, `afterEach` + `onError`) et affiché par `App.vue` — `role="progressbar"` + attributs ARIA, `prefers-reduced-motion` respecté (RGAA). **5 tests Vitest dédiés** (anti-flash, plafond 90 %, complétion/masquage, réinitialisations).
+- **Spinners actifs dès le premier rendu sur 4 pages** (listes Devis, Factures, Missions et fiche Entreprise) : leurs tableaux apparaissaient **vides** pendant les appels préalables au fetch principal (résolution de l'exercice courant, chargement de la fiche) — les indicateurs `loading` démarrent maintenant à `true`, et les appels initiaux indépendants sont parallélisés (`Promise.all`), réduisant l'attente réelle.
+
 ### Docs — mise à jour post-release v1.0.0 — docs/post-release-v1-0-0
 
 La documentation reflète la release effective : `GITFLOW.md` (l'historique des versions va désormais de 0.1.0 à la **1.0.0 taguée et publiée**), `CONTEXT.md` (compétence C4.3.2 passée à « fait » — CHANGELOG + release taguée), `SECURITY.md` (nouveau contrôle documenté : **scan Trivy bloquant des images de release** — couche OS complémentaire aux audits de dépendances, démontré pendant la validation du pipeline), `README.md` (ligne CD dans les modules), `MANUEL-MISE-A-JOUR.md` (nouvelle voie de mise à jour par images GHCR avec rollback par tag précédent).
