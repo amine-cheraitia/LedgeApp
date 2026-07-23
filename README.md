@@ -122,7 +122,8 @@ npm run test:coverage         # rapport de couverture (seuils garde-fous)
 | Journal d'audit (activitylog) | Fait |
 | Tests backend (PHPUnit — 497 tests) | Fait |
 | Tests frontend (Vitest — 599 tests) | Fait |
-| CI/CD GitHub Actions (Pint, tests, couverture) | Fait |
+| CI GitHub Actions (lint, tests, couverture, audits, E2E) | Fait |
+| CD — images de production publiees sur GHCR a chaque tag (scan + smoke tests) | Fait |
 
 ---
 

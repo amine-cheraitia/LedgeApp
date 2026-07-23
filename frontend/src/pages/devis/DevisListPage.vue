@@ -28,6 +28,11 @@ const {
   convertirDevisEnMission, telechargerPdf, deleteDevis, onPage, onSearch, onSort, setExercice,
 } = useDevis()
 
+// Spinner du tableau actif des le premier rendu : le fetch des devis n'est
+// lance qu'apres la resolution de l'exercice courant (onMounted), et sans
+// cela le tableau apparait vide (sans loader) pendant ces appels prealables.
+loading.value = true
+
 const { entreprises, fetchEntreprises } = useEntreprises()
 const { prestations, fetchPrestations } = usePrestations()
 const { users, fetchUsers } = useUsers()
@@ -234,8 +239,9 @@ function confirmEnvoyer(devis: Devis) {
 }
 
 onMounted(async () => {
-  await fetchExerciceCourant()
-  await fetchExercices()
+  // Les deux appels sont independants : en parallele pour reduire l'attente
+  // avant le chargement des devis (le spinner du tableau couvre cette phase).
+  await Promise.all([fetchExerciceCourant(), fetchExercices()])
   exerciceSelectionne.value = exerciceCourant.value?.id
   fetchDevis()
   fetchEntreprises()
