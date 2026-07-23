@@ -7,7 +7,11 @@
 
 ---
 
-## [Unreleased]
+## [1.1.0] — 2026-07-23
+
+> Amélioration du ressenti de chargement (barre de progression de navigation globale accessible,
+> spinners dès le premier rendu) et documentation alignée sur la release v1.0.0 effective
+> (contrôle Trivy documenté, mise à jour par images GHCR). 604 tests frontend (+5), 497 backend.
 
 ### UX — barre de progression de navigation et loaders initiaux — feature/loader-navigation
 
