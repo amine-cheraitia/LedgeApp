@@ -38,9 +38,12 @@ const factures = ref<Facture[]>([])
 // Factures tous exercices confondus — utilisées uniquement pour les KPIs
 const facturesKpi = ref<Facture[]>([])
 const loadingEntreprise = ref(false)
-const loadingMissions = ref(false)
-const loadingDevis = ref(false)
-const loadingFactures = ref(false)
+// Spinners actifs des le premier rendu : les fetches des onglets ne partent
+// qu'apres la premiere vague d'appels (fiche + exercices + KPI) dans onMounted,
+// et sans cela les 3 tableaux apparaissent vides (sans loader) pendant l'attente.
+const loadingMissions = ref(true)
+const loadingDevis = ref(true)
+const loadingFactures = ref(true)
 
 // --- Exercice filter ---
 const { exercices, fetchExercices } = useExercices()
