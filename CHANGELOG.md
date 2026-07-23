@@ -7,7 +7,15 @@
 
 ---
 
-## [Unreleased]
+## [1.0.0] — 2026-07-23
+
+> **Première version stable de Ledge.** Périmètre fonctionnel complet du backlog (52 US · 190 pts) :
+> auth et rôles avec invitations, entreprises et contacts, exercices fiscaux, devis → missions → tâches,
+> facturation par tranches avec TVA historisée, avoirs, paiements et créances, relances manuelles et
+> automatiques, portail client isolé, planning calendrier, dashboards et statistiques, journal d'audit,
+> génération PDF, supervision — validé par 1 096 tests (497 backend / 599 frontend), audités RGAA et
+> OWASP, livré par la chaîne CI/CD ci-dessous. Le tag `v1.0.0` publie les images Docker de production
+> sur GHCR via le pipeline CD.
 
 ### CI/CD — pipeline de livraison continue (images Docker de release) — ci/pipeline-cd
 
