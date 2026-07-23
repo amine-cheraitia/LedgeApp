@@ -53,12 +53,5 @@ frontend/playwright-report/
 frontend/test-results/
 frontend/e2e/.auth/
 
-# Claude
-.claude/settings.local.json
-
 # Notes locales
 docs/notes/
-
-# Tooling / scratch local
-.claude/
-audit-curseur.md

@@ -1,0 +1,73 @@
+# Image de PRODUCTION du backend Ledge (API Laravel).
+# Publiee par le pipeline CD (.github/workflows/cd.yml) sur ghcr.io a chaque tag vX.Y.Z.
+# Difference avec le Dockerfile de demo : sources COPIEES dans l'image (pas montees),
+# dependances sans dev, autoloader optimise, opcache production, nginx embarque.
+# L'image expose l'API en HTTP sur le port 8000 — autonome, prete pour docker pull.
+
+# ---- Etape 1 : dependances PHP de production ----
+FROM composer:2.9 AS vendor
+
+WORKDIR /app
+
+COPY composer.json composer.lock ./
+# --ignore-platform-reqs : les extensions (intl, gd...) sont presentes dans
+# l'image finale, pas dans l'image composer utilisee pour resoudre les paquets.
+RUN composer install --no-dev --no-interaction --prefer-dist --no-progress \
+    --no-scripts --ignore-platform-reqs
+
+COPY . .
+RUN composer dump-autoload --optimize --no-dev --classmap-authoritative
+
+# ---- Etape 2 : image d'execution php-fpm + nginx ----
+FROM php:8.3-fpm
+
+# Dependances systeme + extensions PHP (memes extensions que la stack de demo).
+# `upgrade` : applique les correctifs de securite Debian publies depuis la
+# derniere reconstruction de l'image de base (exigence du scan Trivy bloquant).
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+    nginx \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    libicu-dev \
+    zip \
+    unzip \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install \
+        pdo_mysql \
+        mbstring \
+        exif \
+        pcntl \
+        bcmath \
+        gd \
+        intl \
+        zip \
+        opcache \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /etc/nginx/sites-enabled/default
+
+# Configuration production
+COPY docker/php/opcache.prod.ini /usr/local/etc/php/conf.d/opcache.ini
+COPY docker/nginx/ledge.prod.conf /etc/nginx/conf.d/ledge.conf
+
+WORKDIR /var/www
+
+# Application + vendor optimise (etape 1)
+COPY --from=vendor --chown=www-data:www-data /app /var/www
+
+# Repertoires d'ecriture Laravel (exclus du contexte par .dockerignore)
+RUN mkdir -p storage/framework/cache storage/framework/sessions \
+    storage/framework/views storage/logs bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache
+
+COPY docker/php/entrypoint.prod.sh /usr/local/bin/entrypoint.prod.sh
+RUN chmod +x /usr/local/bin/entrypoint.prod.sh
+
+EXPOSE 8000
+
+ENTRYPOINT ["sh", "/usr/local/bin/entrypoint.prod.sh"]

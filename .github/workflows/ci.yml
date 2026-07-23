@@ -5,6 +5,9 @@ on:
     branches: [main, develop, 'feature/*']
   pull_request:
     branches: [main, develop]
+  # Reutilisable par le pipeline CD : les memes portes de qualite conditionnent
+  # les merges ET la publication des images de release.
+  workflow_call:
 
 jobs:
   gitflow-guard:

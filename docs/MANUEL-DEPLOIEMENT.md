@@ -13,6 +13,11 @@ Ce document couvre trois scenarios :
 ### 1.1 Prerequis
 
 - **Docker Desktop** (Windows/macOS) ou **Docker Engine + Docker Compose v2** (Linux).
+  Telechargement : https://www.docker.com/products/docker-desktop/
+- Sous Windows, Docker Desktop peut demander d'installer **WSL 2** au premier
+  lancement : suivre l'assistant (un redemarrage peut etre necessaire).
+- **Docker Desktop doit etre demarre** (icone baleine dans la barre des taches)
+  avant de lancer la stack.
 - 4 Go de RAM libre, ports **5173**, **8000** et **3307** disponibles.
 
 Verifier l'installation :
@@ -23,6 +28,12 @@ docker compose version
 ```
 
 ### 1.2 Lancement
+
+Depuis l'**archive de livraison (.zip)** : dezipper, puis double-cliquer sur
+`start-ledge.bat` (Windows) — ou executer `./start-ledge.sh` (Mac/Linux) — a la
+racine du dossier extrait. Aucun clone necessaire.
+
+Depuis le depot Git :
 
 ```bash
 git clone <url-du-depot> ledge
@@ -60,7 +71,8 @@ affiche `Local: http://localhost:5173/`, tout est operationnel.
 
 > Identifiants de **demonstration**. Aucun mot de passe de production n'est
 > versionne. Pour en definir un autre avant le premier lancement :
-> `ADMIN_PASSWORD='MonMotDePasse' docker compose up --build`.
+> - Linux/macOS : `ADMIN_PASSWORD='MonMotDePasse' docker compose up --build`
+> - Windows (PowerShell) : `$env:ADMIN_PASSWORD='MonMotDePasse'; docker compose up --build`
 
 ### 1.4 Ce que contient la base au demarrage
 
@@ -111,10 +123,12 @@ MAIL_PASSWORD=<cle-smtp>
 
 | Symptome | Cause probable | Solution |
 |---|---|---|
+| `docker n'est pas reconnu` / `cannot connect to the Docker daemon` | Docker Desktop n'est pas installe ou pas demarre | Lancer Docker Desktop et attendre qu'il indique « running », puis relancer |
 | `port is already allocated` | 5173/8000/3307 deja utilise | Liberer le port ou modifier le mapping dans `docker-compose.yml` |
 | Le frontend charge mais l'API repond 502 | Backend encore en cours d'init | Attendre la fin de l'init (`docker compose logs -f app`) |
 | Erreur 419 (CSRF) au login | Cookies non partages | Verifier l'acces via `http://localhost:5173` (pas `127.0.0.1`) |
 | Base incoherente apres essais | Migrations partielles | `docker compose down -v` puis `docker compose up` |
+| `failed to solve: invalid file request public/storage` au build | Lien symbolique `backend/public/storage` cree par un lancement precedent (normalement exclu via `.dockerignore`) | Supprimer le lien puis relancer : `Remove-Item backend\public\storage -Force` (PowerShell) |
 
 ---
 
@@ -187,8 +201,40 @@ php artisan config:cache && php artisan route:cache && php artisan view:cache
 - Diagnostics detailles : `GET /health` (reserve `role:admin`).
 - Error tracking : renseigner `SENTRY_LARAVEL_DSN`.
 
-Voir [docs/SECURITY.md](SECURITY.md) pour les controles de securite en place.
+Voir [SECURITY.md](SECURITY.md) pour les controles de securite en place.
 
-### 3.5 Mise a jour d'une instance existante
+### 3.5 Images Docker de release (GHCR) — livraison continue
+
+A chaque tag `vX.Y.Z`, le pipeline CD (`.github/workflows/cd.yml`) construit,
+scanne (Trivy — bloquant sur vulnerabilite HIGH/CRITICAL corrigeable) et publie
+deux images de production sur GitHub Container Registry, apres avoir re-execute
+**toutes les portes de qualite de la CI** (lint, 1096 tests, gates de
+couverture, audits de dependances, E2E) :
+
+| Image | Contenu | Port |
+|---|---|---|
+| `ghcr.io/amine-cheraitia/ledge-backend:vX.Y.Z` | API Laravel (php-fpm + nginx embarque, vendor sans dev, opcache production) | 8000 |
+| `ghcr.io/amine-cheraitia/ledge-frontend:vX.Y.Z` | SPA Vue buildee servie par nginx, proxy `/api`, `/sanctum`, `/storage` vers `BACKEND_HOST` | 80 |
+
+Deploiement type (serveur avec Docker, MySQL et Redis accessibles) :
+
+```bash
+docker pull ghcr.io/amine-cheraitia/ledge-backend:vX.Y.Z
+docker pull ghcr.io/amine-cheraitia/ledge-frontend:vX.Y.Z
+
+docker run -d --name ledge-api  --env-file .env.production -p 8000:8000 \
+  ghcr.io/amine-cheraitia/ledge-backend:vX.Y.Z
+docker run -d --name ledge-web  -e BACKEND_HOST=ledge-api:8000 -p 80:80 \
+  ghcr.io/amine-cheraitia/ledge-frontend:vX.Y.Z
+
+# Migrations : etape de deploiement explicite (jamais automatique)
+docker exec ledge-api php artisan migrate --force
+```
+
+Le conteneur backend applique lui-meme `storage:link` et les caches Laravel
+(`php artisan optimize`) au demarrage — l'environnement (`.env.production`)
+n'est connu qu'a l'execution, jamais fige dans l'image.
+
+### 3.6 Mise a jour d'une instance existante
 
 Voir [MANUEL-MISE-A-JOUR.md](MANUEL-MISE-A-JOUR.md) (procedure + rollback).

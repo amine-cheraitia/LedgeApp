@@ -52,7 +52,7 @@ git checkout -b feature/mon-slug
 
 - [ ] `feature/*` → `develop` (jamais directement vers `main`)
 - [ ] Template RNCP rempli (OWASP / RGAA / tests / documentation)
-- [ ] Pas de mention « Generated with Cursor » dans le corps
+- [ ] Description claire : quoi, pourquoi, comment tester
 - [ ] Captures d'écran si changement visuel
 
 ---

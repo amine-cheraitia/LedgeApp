@@ -9,6 +9,60 @@
 
 ## [Unreleased]
 
+### Docs — mise à jour post-release v1.0.0 — docs/post-release-v1-0-0
+
+La documentation reflète la release effective : `GITFLOW.md` (l'historique des versions va désormais de 0.1.0 à la **1.0.0 taguée et publiée**), `CONTEXT.md` (compétence C4.3.2 passée à « fait » — CHANGELOG + release taguée), `SECURITY.md` (nouveau contrôle documenté : **scan Trivy bloquant des images de release** — couche OS complémentaire aux audits de dépendances, démontré pendant la validation du pipeline), `README.md` (ligne CD dans les modules), `MANUEL-MISE-A-JOUR.md` (nouvelle voie de mise à jour par images GHCR avec rollback par tag précédent).
+
+---
+
+## [1.0.0] — 2026-07-23
+
+> **Première version stable de Ledge.** Périmètre fonctionnel complet du backlog (52 US · 190 pts) :
+> auth et rôles avec invitations, entreprises et contacts, exercices fiscaux, devis → missions → tâches,
+> facturation par tranches avec TVA historisée, avoirs, paiements et créances, relances manuelles et
+> automatiques, portail client isolé, planning calendrier, dashboards et statistiques, journal d'audit,
+> génération PDF, supervision — validé par 1 096 tests (497 backend / 599 frontend), audités RGAA et
+> OWASP, livré par la chaîne CI/CD ci-dessous. Le tag `v1.0.0` publie les images Docker de production
+> sur GHCR via le pipeline CD.
+
+### CI/CD — pipeline de livraison continue (images Docker de release) — ci/pipeline-cd
+
+Le projet dispose désormais d'une chaîne de **livraison continue sans serveur de déploiement** : à chaque tag `vX.Y.Z`, le workflow `cd.yml` ré-exécute l'intégralité des portes de qualité de la CI (workflow réutilisé via `workflow_call` : lint, 1 096 tests, gates de couverture, audits de dépendances bloquants, E2E Playwright), construit deux **images Docker de production**, les **scanne** (Trivy — vulnérabilités HIGH/CRITICAL corrigeables bloquantes, OS et dépendances embarquées), les **smoke-teste** (framework bootable, SPA servie) puis les **publie sur GitHub Container Registry** avec les tags SemVer + `latest`. Nouveaux artefacts :
+
+- `ledge-backend` — Dockerfile multi-stage : vendor Composer sans dev + autoloader optimisé (étape dédiée), php-fpm 8.3 + nginx embarqué (API autonome sur :8000), opcache production (`validate_timestamps=0`), caches Laravel appliqués **au démarrage** du conteneur (l'environnement n'est jamais figé dans l'image) ; migrations = étape de déploiement explicite.
+- `ledge-frontend` — build Vite figé servi par nginx ; proxy `/api`, `/sanctum`, `/storage`, `/up` vers `BACKEND_HOST` (variable d'environnement, résolution DNS à la requête : le conteneur démarre même sans backend joignable).
+
+Déclenchement manuel possible (`workflow_dispatch`, images `edge-<sha>`) pour valider le pipeline hors release. La stack de démonstration jury (`docker compose up`, `start-ledge`) est **inchangée**. Documentation : MANUEL-DEPLOIEMENT §3.5 (déploiement type par `docker pull`), ARCHITECTURE (section CI/CD), GITFLOW (phase 3 — release).
+
+### Docs — cohérence des documents de livraison — docs/nettoyage-livraison
+
+Remise en cohérence de l'ensemble des documents avec l'état réel du dépôt, suite à un audit complet de la documentation :
+
+- **`CONTEXT.md`** : retrait d'une note de travail obsolète, dates et deadline rafraîchies, tableau des sprints et compétences C4 passés à l'état réel (livré), 19 modèles Eloquent, versions BDD clarifiées par environnement (MySQL 8 Docker/prod, 9.1 WAMP dev), accès Docker documenté, mot de passe admin aligné sur le mécanisme `ADMIN_PASSWORD` (plus de valeur en dur).
+- **`GITFLOW.md`** : tableau de branches figé au démarrage remplacé par le workflow réel (une branche par US, PR systématique) + suivi des bogues tracés par issues GitHub (#20/#21/#22 → PR #23, #52 → PR #53) ; les deux mentions de déploiement automatique (staging/prod) retirées — la CI réelle fait lint, tests, audits et E2E.
+- **`BACKLOG.md`** : recalculé depuis les fiches (**52 US · 190 pts**, toutes livrées — badges manquants ajoutés sur US-24/35/38, US-51 passée ✅ dans le résumé).
+- **Chiffres de tests** alignés sur les suites réellement exécutées — **497 tests backend** (45 fichiers) et **599 tests frontend** (51 fichiers), total 1 096 — dans `README.md`, `STRATEGIE-TESTS.md`, `SECURITY.md` et `CAHIER-RECETTES.md`.
+- **`SECURITY.md`** : nouvel état daté du 23/07 consignant les remédiations de juillet (Guzzle/npm PR #97, dompdf PR #101) ; correction d'une affirmation fausse — les audits `composer audit` / `npm audit` de la CI sont **bloquants** (et l'ont prouvé), pas « non bloquants ».
+- **`ARCHITECTURE.md`** : 19 modèles, CI décrite fidèlement (PHP 8.3, 4 jobs dont gate de couverture, audits bloquants, E2E Playwright), section Tests refaite (45 fichiers back, 51 front, 4 specs E2E).
+- **`CAHIER-RECETTES.md`** : environnement de recette aligné sur la stack Docker de démonstration (celle du jury), RGA-05 passé ✅ (Lighthouse accessibilité mesuré à 100), compteurs STR-02/03 actualisés.
+- **`MANUEL-UTILISATION.md`** : ajout des sections manquantes **Planning**, **Statistiques** et **Journal d'audit** (rédigées depuis le code réel : rôles, filtres, onglets, comportements).
+- **Périmètre du dépôt resserré sur les livrables** : la documentation publique (`docs/` + README + CHANGELOG) devient l'unique référence du projet.
+- **`MANUEL-DEPLOIEMENT.md` / `README.md`** : durée du premier lancement réaliste (2 à 5 min), variante PowerShell pour surcharger `ADMIN_PASSWORD`.
+- **`CHANGELOG.md`** : purge d'un bloc « A faire » résiduel de mars listant des modules livrés depuis.
+- **Retrait des documents de travail internes** (plans de fonctionnalités livrées, notes de préparation, historique de travail, guide interne de conventions) qui n'avaient pas leur place dans la documentation produit livrée.
+
+### Fix — build Docker cassé par le lien symbolique `public/storage` — docs/demarrage-jury-docker
+
+Après un premier lancement de la stack, le `php artisan storage:link` de l'auto-initialisation crée `backend/public/storage`, lien symbolique vers un chemin interne au conteneur (`/var/www/storage/app/public`) — cassé vu de l'hôte. Tout `docker compose up --build` ultérieur échouait alors à l'envoi du contexte de build : `failed to solve: invalid file request public/storage` (reproduit deux fois sur le PC de démonstration jury). Correctif : le lien est exclu du contexte via `backend/.dockerignore` — le build n'en a pas besoin, l'entrypoint le recrée dans le conteneur à chaque démarrage. Entrée de dépannage ajoutée au manuel de déploiement (§1.7) avec le contournement PowerShell (`Remove-Item backend\public\storage -Force`) pour les copies du projet antérieures au correctif.
+
+### Sécurité — remédiation des advisories dompdf du 22/07 — fix/deps-audit-dompdf
+
+L'audit bloquant de la CI a détecté 2 advisories publiées le 22/07/2026 sur `dompdf/dompdf` < 3.1.6 (sévérité **low**) : CVE-2026-55554 — *Chroot Validation Bypass* (contournement de la restriction des fichiers locaux lisibles pendant le rendu) et CVE-2026-55555 — *File existence oracle via font-face* (une déclaration CSS `@font-face` piégée révèle l'existence de fichiers sur le serveur). **Impact réel sur Ledge : quasi nul** — les deux failles supposent du HTML/CSS attaquant-contrôlé, or les PDF (devis, factures, avoirs, conventions) sont rendus depuis des templates Blade internes avec styles et polices fixés par l'application ; l'utilisateur ne fournit que des données échappées. Remédiation conforme à la politique du projet (aucune advisory silencée) : `composer update dompdf/dompdf` → **3.1.6** (montée patch, lockfile seul, wrapper `barryvdh/laravel-dompdf` inchangé). `composer audit` repasse au vert ; suite backend re-exécutée et rendu PDF vérifié après mise à jour. Une 3e advisory dompdf parue dans la foulée (*Local file read via SVG*) est également couverte : elle ne touche que les versions < 3.1.6.
+
+### Docs — démarrage jury : prérequis Docker explicites — docs/demarrage-jury-docker
+
+Manuel de déploiement §1 : lien de téléchargement Docker Desktop, mention de l'installation WSL 2 au premier lancement sous Windows, rappel que Docker Desktop doit être démarré avant de lancer la stack, lancement depuis l'archive de livraison (`start-ledge`) documenté en plus du clone Git, et nouvelle entrée de dépannage (« docker n'est pas reconnu » / daemon injoignable → démarrer Docker Desktop). README : mêmes précisions dans les étapes jury (WSL 2, Docker Desktop démarré).
+
 ### Fix — PDF devis : montant HT affiché à 0,00 DA — fix/pdf-devis-prix-ht
 
 Le template PDF du devis lisait encore `devis.montant_ht`, colonne supprimée le 08/07 par la migration `nettoyage_schema_mort` (doublon de `prix_ht`) : l'attribut mort renvoyait `null`, affiché « 0,00 DA » dans la cellule Prix HT **et** la ligne Montant HT des totaux — TVA et TTC restaient justes (leurs colonnes existent toujours), rendant le document incohérent. Correctif : le template lit `prix_ht` (source de vérité unique, alignée sur mission) ; retrait d'un `montant_ht` résiduel dans le setUp de `PdfEndpointsTest` ; **test de non-régression** qui rend la vue `pdf.devis` et vérifie les trois montants affichés (HT réel, TVA, TTC — toute cellule à zéro fait échouer le test). Seul le PDF devis était touché : factures, avoirs et rapports conservent leur colonne `montant_ht`.
@@ -138,7 +192,7 @@ Constats d'une relecture externe, vérifiés sur pièce puis corrigés :
 
 - **Le prix du devis accepté est désormais CONTRACTUEL** : à la conversion devis→mission, `MissionService::creerMission` reprenait le prix **recalculé depuis la grille actuelle** (`calculerPrixHt`) au lieu du `prix_ht` du devis — si le tarif de la prestation ou les indices (régime/catégorie) changeaient entre l'acceptation et la conversion, la mission (et donc les factures T1/T2/T3) divergeait du devis signé par le client. La mission reprend maintenant tel quel le prix du devis d'origine ; sans devis, le calcul grille à la création reste inchangé.
 - **Acceptation bornée au délai de validité** : `accepterDevis` ne vérifiait jamais `date_validite` — un devis échu restait acceptable indéfiniment (et le statut `expire`, présent dans l'enum, n'était produit par aucun code). Désormais : acceptation possible jusqu'au jour d'échéance **inclus** ; passé ce délai → 409 explicite et bascule automatique en `expire` (premier vrai producteur de ce statut), ce qui rend le devis inconvertible.
-- Règle documentée dans CLAUDE.md (règle métier n°1). **4 nouveaux tests** (prix conservé malgré changement de grille, prix grille sans devis, refus + bascule `expire` après échéance, acceptation le jour J) ; 2 fixtures de tests corrigées au passage (dates de validité codées en dur devenues expirées en cours d'année — le nouveau garde les a démasquées).
+- Règle documentée dans les règles métier du projet (règle n°1). **4 nouveaux tests** (prix conservé malgré changement de grille, prix grille sans devis, refus + bascule `expire` après échéance, acceptation le jour J) ; 2 fixtures de tests corrigées au passage (dates de validité codées en dur devenues expirées en cours d'année — le nouveau garde les a démasquées).
 
 ### Page Statistiques — analytique cabinet & pilotage collaborateurs — feature/page-statistiques
 
@@ -260,7 +314,7 @@ Les routes `GET /health` (JSON) et `GET /health/dashboard` (HTML) de Spatie Heal
 - Aucun changement frontend nécessaire (les consommateurs n'utilisaient que `id`/`name`/`roles`). Test dédié `UserApiTest` (admin = complet, collaborateur/secrétaire = personnel minimal sans clients, show réservé admin, client bloqué).
 ### Sécurité — défense en profondeur : Policies + FormRequests manquants — fix/backend-defense-en-profondeur
 
-Renforcement de l'autorisation (Policy) et de la validation (FormRequest) au niveau contrôleur, en complément des middlewares de route (règles CLAUDE.md « Policy sur chaque ressource » + « FormRequest sur tout store/update »).
+Renforcement de l'autorisation (Policy) et de la validation (FormRequest) au niveau contrôleur, en complément des middlewares de route (règles du projet « Policy sur chaque ressource » + « FormRequest sur tout store/update »).
 - **5 Policies ajoutées** (auto-découvertes) reflétant exactement les rôles des routes : `PaiementPolicy` (create/viewAny admin+secrétaire ; delete admin **ou** propriétaire de la saisie), `RelancePolicy` (admin+secrétaire), `ExercicePolicy` (lecture admin+secrétaire, écriture admin), `KpiObjectifPolicy` (lecture admin+secrétaire, écriture admin), `ContactPolicy` (admin+secrétaire). Appels `authorize()` ajoutés dans `PaiementController`, `RelanceController`, `ExerciceController`, `KpiController`, `ContactController`. La logique d'appartenance de `PaiementController::destroy` (câblée en dur) est déplacée dans `PaiementPolicy`.
 - **4 FormRequests** : `AuthController::login` branché sur le `LoginRequest` existant (jusque-là code mort) ; nouveaux `StoreKpiObjectifRequest` (KPI), `UpdateSettingRequest` (paramètres), `ActiverPortailRequest` (activation portail) — remplacent les `$request->validate()` inline.
 - Divers : `PaiementController` passe en `private readonly`. Test `LoginTest::test_login_exige_email_et_mot_de_passe` ajouté. Suite backend verte (les tests d'appartenance de paiement passent désormais via la Policy).
@@ -400,7 +454,7 @@ Aligne la suppression de factures sur les règles de conformité (numérotation 
 
 ### Sécurité — Invitation par lien & définition de mot de passe en libre-service — feature/invitation-definition-mot-de-passe
 
-L'administrateur ne manipule, ne voit ni ne transmet plus **aucun mot de passe** — ni à l'activation d'un accès client, ni à la création d'un collaborateur/secrétaire. Chaque utilisateur **définit lui-même** son mot de passe via un lien d'invitation sécurisé reçu par email. Implémente enfin le « email set-password » décrit de longue date (US-29, CLAUDE.md) mais jamais codé.
+L'administrateur ne manipule, ne voit ni ne transmet plus **aucun mot de passe** — ni à l'activation d'un accès client, ni à la création d'un collaborateur/secrétaire. Chaque utilisateur **définit lui-même** son mot de passe via un lien d'invitation sécurisé reçu par email. Implémente enfin le « email set-password » décrit de longue date (US-29) mais jamais codé.
 
 #### Avant / Après
 - **Avant** : l'activation portail générait `Str::random(12)` **renvoyé en clair** dans la réponse JSON et affiché à l'admin ; la création d'un staff exigeait que l'admin **saisisse** le mot de passe. L'admin connaissait donc le secret et devait le transmettre manuellement.
@@ -663,7 +717,7 @@ forçaient `montant_timbre = 0` et `timbre_taux_id = null`, le calcul `TimbreTau
 - **`types/index.ts`** : `montant_timbre` (Facture, Devis) et `timbre_rate_id` (Facture) retirés ; test `types.test.ts` aligné (TTC = HT + TVA)
 
 #### Docs
-- `CLAUDE.md`, `README.md`, `docs/ARCHITECTURE.md`, `docs/BACKLOG.md` (US-04 → « TVA historisée », US-51 → « Gestion des taux TVA ») mis à jour
+- `README.md`, `docs/ARCHITECTURE.md`, `docs/BACKLOG.md` (US-04 → « TVA historisée », US-51 → « Gestion des taux TVA ») mis à jour
 
 #### Fix (repéré pendant la recette)
 - **`PdfService::genererRapportCloture()`** : le filtre des factures utilisait `where('type', 'facture')` alors que
@@ -1452,14 +1506,6 @@ forçaient `montant_timbre = 0` et `timbre_taux_id = null`, le calcul `TimbreTau
 - Module API `stats.ts` pour le dashboard
 - Pages mises à jour : `LoginPage`, `DashboardPage`, `EntrepriseListPage`
 
-### A faire
-- Module Relances (automatiques via queue + manuelles)
-- Portail client (lecture seule factures/documents)
-- Module KPI / Reporting (CA, missions, performance collaborateurs)
-- Module Documents / GED
-- PDF facture conforme DGI (US-14) — `PdfService::genererFacture()` + montant en lettres
-- Avoirs (FA) — creation depuis facture existante
-
 ---
 
 ## [0.5.0] — 2026-03-25
@@ -1601,7 +1647,7 @@ forçaient `montant_timbre = 0` et `timbre_taux_id = null`, le calcul `TimbreTau
   - `TimbreRateTest` (3 tests) : calcul avec plafond, taux correct, null avant tout taux
   - `PrestationTest` (1 test) : prix_ht = tarif × indice_regime × indice_categorie
   - `ConvertProspectToClientTest` (2 tests) : prospect→client a la mission, client reste client
-  - Tests Filament V1 supprimes (obsoletes depuis migration N-tier)
+  - Tests d'un prototype initial supprimes (obsoletes, remplaces par le harnais actuel)
 
 - **Frontend Vitest** — 18 tests, tous passent :
   - `types.test.ts` (5 tests) : validation interfaces Entreprise, Facture, Paiement, Devis, PaginatedResponse

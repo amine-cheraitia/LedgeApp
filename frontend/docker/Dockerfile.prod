@@ -1,0 +1,28 @@
+# Image de PRODUCTION du frontend Ledge (SPA Vue 3).
+# Publiee par le pipeline CD (.github/workflows/cd.yml) sur ghcr.io a chaque tag vX.Y.Z.
+# Build Vite fige dans l'image, servi par nginx ; les appels /api, /sanctum et
+# /storage sont proxifies vers le backend (hote configurable via BACKEND_HOST).
+
+# ---- Etape 1 : build Vite ----
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+# vue-tsc -b && vite build (script build) — le typecheck fait aussi partie du build image
+RUN npm run build
+
+# ---- Etape 2 : nginx statique ----
+FROM nginx:alpine
+
+COPY --from=build /app/dist /usr/share/nginx/html
+# Template : ${BACKEND_HOST} est substitue au demarrage par l'entrypoint nginx officiel
+COPY docker/nginx/default.conf.template /etc/nginx/templates/default.conf.template
+
+# Hote:port du backend API — a surcharger selon la topologie de deploiement
+ENV BACKEND_HOST=backend:8000
+
+EXPOSE 80

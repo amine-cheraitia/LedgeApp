@@ -6,8 +6,8 @@ competence RNCP C2.2.3) et les mesures appliquees dans l'interface Vue / PrimeVu
 ## Demarche
 
 L'accessibilite est traitee **au fil de l'eau** dans chaque composant, pas en
-correction finale. Les regles ci-dessous sont inscrites dans le guide projet
-(`CLAUDE.md`) et verifiees a la revue de code.
+correction finale. Les regles ci-dessous font partie des conventions du projet
+et sont verifiees a la revue de code (checklist du template de PR).
 
 ## Mesures appliquees
 
@@ -66,4 +66,5 @@ authentifiees soient mesurees en conditions reelles.
 
 ## Reference
 
-Regles detaillees : section « RGAA accessibilite » de `CLAUDE.md`.
+Referentiel : [RGAA 4](https://accessibilite.numerique.gouv.fr/) — criteres appliques
+via la checklist accessibilite du template de PR (`.github/pull_request_template.md`).

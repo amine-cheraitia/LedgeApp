@@ -51,17 +51,75 @@ reception d'un lien de reinitialisation (en demo, lien visible dans les logs).
    `en_attente -> partiel -> solde` automatiquement.
 7. **Avoirs** : emettre un avoir (FA) rattache a une facture si necessaire.
 
+### Planning
+Calendrier des missions et des taches (4 vues : Annee, Mois, Semaine, Liste),
+accessible a l'admin et au collaborateur -> **pas d'acces pour la secretaire**
+(cf. tableau des roles).
+
+- **Cote admin**, deux onglets :
+  - **Missions** : calendrier de toutes les missions, filtrable par statut
+    (En cours / Suspendue / Terminee / Annulee), couleur par prestation et
+    bordure par statut. Une mission peut etre deplacee ou redimensionnee
+    directement dans le calendrier (glisser-deposer) pour changer ses dates.
+    Un clic ouvre le detail (entreprise, prestation, periode, prix HT) avec
+    possibilite de changer le statut.
+  - **Equipe** : grille hebdomadaire de disponibilite par collaborateur
+    (navigation semaine par semaine), avec un indicateur de charge
+    (Disponible / Modere / Charge selon le nombre de taches du jour) et
+    acces au detail d'une tache depuis sa vignette.
+- **Cote collaborateur** : calendrier limite a **ses** taches uniquement,
+  en lecture seule (pas de glisser-deposer), colore par priorite.
+- A la creation ou la modification d'une tache, le systeme signale -- a
+  titre indicatif, non bloquant -- si le collaborateur assigne a deja une
+  autre tache sur la meme periode.
+
 ### Portail client
 Depuis la fiche entreprise (statut *client*) -> **« Activer l'acces portail »** :
 - cree le compte client (role `client`, rattache a l'entreprise) ;
 - envoie une **invitation** ; en repli, un **lien copiable** est affiche a l'admin ;
 - `portail_actif = 1` pour activer, `0` pour revoquer.
 
+### Statistiques
+Page reservee a l'admin, avec un filtre d'exercice global (tous les
+exercices ou un exercice precis) partage par les deux onglets.
+
+- Onglet **Cabinet** : agregats globaux sur l'exercice filtre --
+  - top entreprises contributrices (CA HT net, avoirs deduits, les 8
+    premieres) ;
+  - repartition des missions par prestation ;
+  - missions par etat (En cours / Terminee / Suspendue / Annulee) ;
+  - creances : total impaye, anciennete (15-30 / 30-60 / 60 jours et plus),
+    top 5 debiteurs avec lien direct vers la fiche entreprise.
+- Onglet **Collaborateurs** : selection d'un collaborateur (admin ou
+  collaborateur -- jamais secretaire) puis --
+  - cartes KPI : CA HT realise (missions cloturees uniquement), missions
+    cloturees, taches terminees, taches en retard, delai moyen de
+    traitement d'une tache ;
+  - graphiques : CA HT realise par mois, taches par statut, missions par
+    prestation ;
+  - jauges realise vs cible pour CA HT, missions cloturees et taches
+    terminees ;
+  - editeur des objectifs annuels du collaborateur, avec confirmation avant
+    tout ecrasement ou toute suppression d'un objectif existant.
+
+### Journal d'audit
+Page reservee a l'admin : tracabilite des actions sur les entites sensibles
+(factures, avoirs, paiements, devis, entreprises, utilisateurs, parametres)
+-- qui a fait quoi, et quand.
+
+- Liste paginee (15 lignes/page), filtrable par entite, par action
+  (Creation / Modification / Suppression) et par plage de dates.
+- Chaque ligne affiche : date/heure, utilisateur (ou « Systeme » si aucun
+  acteur identifie), action, entite concernee.
+- Bouton « Voir le detail » -> fenetre modale avec le detail champ par
+  champ (valeur avant / valeur apres) lorsqu'il est disponible.
+
 ---
 
 ## Parcours collaborateur
 
 - Voit **ses** missions et **ses** taches.
+- Consulte le **Planning** (calendrier) : uniquement ses propres taches, en lecture seule.
 - Met a jour le statut des taches (en cours, terminee...) et ajoute des commentaires.
 - Pas d'acces a la facturation ni aux parametres.
 

@@ -10,31 +10,26 @@ fix/xxx       <- hotfix (depuis main, merge double main+develop)
 fix/deps-xxx  <- mise a jour dependances
 ```
 
-## Branches — Historique et planning
+## Branches — Organisation
 
-### Branches mergees dans develop
+**Une branche = une fonctionnalite du backlog** : chaque US est developpee sur
+sa branche `feature/{slug}` creee depuis `develop`, puis fusionnee par PR
+(template RNCP, revue + CI verte). L'historique complet des merges est
+consultable dans les Pull Requests GitHub ; le detail fonctionnel de chaque
+livraison est trace dans [`CHANGELOG.md`](../CHANGELOG.md).
 
-| Branche | Module | Statut |
+### Bogues traces par issue GitHub
+
+Chaque anomalie qualifiee suit le processus decrit dans
+[PLAN-CORRECTION-BOGUES.md](PLAN-CORRECTION-BOGUES.md) : issue GitHub,
+branche `fix/*` dediee, test de non-regression, PR :
+
+| Issue | Anomalie | Correctif |
 |---|---|---|
-| `feature/backend-setup` | Laravel 12 API + Sanctum + modeles + migrations + seeders | merge |
-| `feature/auth-api` | AuthController + UserController + middlewares | merge |
-| `feature/core-api` | Controllers Entreprises, Exercices, Prestations, Settings + FormRequests + Resources | merge |
-| `feature/frontend-setup` | Vue 3 + PrimeVue Aura + Pinia + Router + Layouts Admin/Portail + Login | merge |
-| `feature/core-pages` | Pages CRUD Users, Entreprises, Exercices, Prestations, Settings | merge |
-| `fix/dark-mode-colors` | Fix variables CSS dark mode + CSRF proxy | merge |
-
-### Branches a creer
-
-| Branche | Module | Priorite |
-|---|---|---|
-| `feature/facturation` | Devis, factures, avoirs, PDF, TVA historisee | Sprint 1 |
-| `feature/planning` | Missions, taches, FullCalendar, assignation collaborateurs | Sprint 2 |
-| `feature/portail-client` | Portail client lecture seule | Sprint 2 |
-| `feature/relances` | Relances auto (queue) + manuelles | Sprint 2 |
-| `feature/kpi` | Dashboard KPI + graphiques | Sprint 2 |
-| `feature/tests` | PHPUnit + tests composants Vue | Sprint 3 |
-| `feature/audit-rgaa-owasp` | Audit final accessibilite + securite | Sprint 3 |
-| `cicd` | GitHub Actions pipeline | Sprint 3 |
+| #20 | Double modale de confirmation a la suppression d'une mission | `fix/bugs-ui-missions-devis-avoir` — PR #23 |
+| #21 | Bouton Modifier absent pour les missions et les devis | `fix/bugs-ui-missions-devis-avoir` — PR #23 |
+| #22 | Montant HT non pre-rempli dans le dialog « Emettre un avoir » | `fix/bugs-ui-missions-devis-avoir` — PR #23 |
+| #52 | Arrondi des tranches 30/30/40 non reconcilie avec le total facture | `fix/arrondi-tranches-facturation` — PR #53 |
 
 ## Convention de commits (Conventional Commits)
 
@@ -72,7 +67,7 @@ docs(changelog): v1.1.0 — portail client + planning
 
 ### Phase 2 — Merge dans develop
 - PR review + merge
-- GitHub Actions : lint -> tests -> build -> staging deploy
+- GitHub Actions : lint -> tests (back + front) -> audits dependances -> E2E
 
 **Competences :** C2.1.2 (CI), C4.2.2 (CD)
 
@@ -81,7 +76,9 @@ docs(changelog): v1.1.0 — portail client + planning
 2. PR `develop -> main` (revue finale + merge)
 3. Tag Git : `git tag vx.y.z`
 4. GitHub Release avec notes
-5. Deploy prod auto via GitHub Actions
+5. Le tag declenche le **pipeline CD** : portes de qualite CI -> build des images
+   de production -> scan Trivy -> publication sur GHCR (voir MANUEL-DEPLOIEMENT §3.5)
+6. Deploiement de l'image selon la procedure du [MANUEL-DEPLOIEMENT.md](MANUEL-DEPLOIEMENT.md)
 
 **Competences :** C4.3.2 (obligatoire), C4.2.2
 
@@ -115,7 +112,8 @@ Le projet suit le **versionnage semantique** `MAJEUR.MINEUR.CORRECTIF` :
 
 Le **registre des versions** est [`CHANGELOG.md`](../CHANGELOG.md) (format
 *Keep a Changelog*). L'historique va de `0.1.0` (mise en place initiale) a la
-section `[Unreleased]` en cours, close a la prochaine release.
+version stable **`1.0.0`** (23/07/2026) — premiere release taguee (`v1.0.0`),
+publiee en GitHub Release avec ses images de production sur GHCR.
 
 **Un tag est pose a chaque release vers `main`** (jamais sur une branche
 d'integration non fusionnee) :

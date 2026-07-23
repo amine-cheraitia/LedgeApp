@@ -12,8 +12,14 @@
 | 🔁 | Couvert par un test automatisé (PHPUnit back / Vitest front) |
 | ⏳ | À exécuter / re-valider |
 
-> **Environnements** — Back : `php artisan serve` (MySQL via WAMP). Front : `npm run dev` (`localhost:5173`).
-> Jeu de données : `php artisan migrate --seed`. Tests automatisés : `php artisan test` (back) · `npm test` (front).
+> **Environnements** —
+> **Recette / démonstration (recommandé, identique jury)** : stack Docker complète — `docker compose up --build`
+> à la racine (ou `start-ledge.bat`), application sur `http://localhost:5173`, connexion `admin@ledge.dz`
+> (mot de passe : `ADMIN_PASSWORD`, défaut de démo documenté dans le [MANUEL-DEPLOIEMENT.md](MANUEL-DEPLOIEMENT.md)) ;
+> base pré-remplie automatiquement (migrations + seed à l'initialisation).
+> **Développement** : back `php artisan serve` (MySQL via WAMP) · front `npm run dev` (`localhost:5173`) ·
+> jeu de données `php artisan migrate --seed`.
+> Tests automatisés : `php artisan test` (back) · `npm test` (front) · `npm run test:e2e` (Playwright).
 
 ---
 
@@ -185,7 +191,7 @@
 | RGA-02 | Messages d'erreur `role="alert"` / `aria-live` | Présents | ✅ |
 | RGA-03 | Skip link « Aller au contenu principal » + `:focus-visible` | Navigation clavier complète | ✅ |
 | RGA-04 | Graphiques `role="img"` + `aria-label` + table `.sr-only` | Alternative lisible par lecteur d'écran | ✅ |
-| RGA-05 | Score Lighthouse accessibilité | ≥ 85 | ⏳ |
+| RGA-05 | Score Lighthouse accessibilité | ≥ 85 — **mesuré : 100** (build de production, voir CHANGELOG) | ✅ |
 
 ---
 
@@ -242,8 +248,8 @@ Back = PHPUnit (`backend/tests/`), Front = Vitest (`frontend/src/__tests__/`).
 | DSH-04 | `Feature/Api/DashboardKpiTest`, `CalendarApiTest` |
 | AUD-01 / 02 / 03 | `Feature/Api/AuditLogTest` |
 | STR-01 | `vendor/bin/pint --test` (CI) |
-| STR-02 | `php artisan test` — **415 tests back / 95 % couverture** |
-| STR-03 | `npm test` — **557 tests front / 83 % couverture** |
+| STR-02 | `php artisan test` — **497 tests back / 95,9 % couverture lignes** (gate CI ≥ 80 %) |
+| STR-03 | `npm test` — **599 tests front / 84,9 % couverture lignes** (gates Vitest 80/75/65 %) |
 | STR-04 | `npm run build` (vue-tsc + vite build) |
 | SEC-04 | `Feature/Api/ApiExceptionRendererTest` (pas de fuite d'erreur) |
 | SEC-09 | `PasswordResetTest::test_forgot_password_est_throttle`, `RelanceApiTest::test_envoi_relances_est_limite_par_throttle` |
