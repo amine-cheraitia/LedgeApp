@@ -76,7 +76,9 @@ docs(changelog): v1.1.0 — portail client + planning
 2. PR `develop -> main` (revue finale + merge)
 3. Tag Git : `git tag vx.y.z`
 4. GitHub Release avec notes
-5. Deploiement selon la procedure du [MANUEL-DEPLOIEMENT.md](MANUEL-DEPLOIEMENT.md)
+5. Le tag declenche le **pipeline CD** : portes de qualite CI -> build des images
+   de production -> scan Trivy -> publication sur GHCR (voir MANUEL-DEPLOIEMENT §3.5)
+6. Deploiement de l'image selon la procedure du [MANUEL-DEPLOIEMENT.md](MANUEL-DEPLOIEMENT.md)
 
 **Competences :** C4.3.2 (obligatoire), C4.2.2
 

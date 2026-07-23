@@ -1,0 +1,108 @@
+name: CD
+
+# Livraison continue — declenchee par un tag de release vX.Y.Z (SemVer).
+# Sequence : portes de qualite (CI complete reutilisee) -> build des images de
+# production -> scan de vulnerabilites (Trivy, bloquant) -> smoke test ->
+# publication sur GitHub Container Registry (ghcr.io).
+# Pas de serveur de deploiement a ce stade : le livrable est l'image versionnee,
+# prete pour un `docker pull` (voir MANUEL-DEPLOIEMENT §3).
+# workflow_dispatch : execution manuelle de validation — images taguees edge-<sha>.
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  qualite:
+    name: Portes de qualite (CI)
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
+  images:
+    name: "Image ${{ matrix.image }} : build, scan, publication"
+    runs-on: ubuntu-latest
+    needs: qualite
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: backend
+            context: backend
+            dockerfile: backend/docker/php/Dockerfile.prod
+          - image: frontend
+            context: frontend
+            dockerfile: frontend/docker/Dockerfile.prod
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurer Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Metadonnees d'image (tags SemVer + latest)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/ledge-${{ matrix.image }}
+          # latest=auto : `latest` suit uniquement les versions SemVer stables —
+          # jamais les pre-releases (vX.Y.Z-rc.N) utilisees pour valider le pipeline.
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=edge-${{ github.sha }},enable=${{ github.event_name == 'workflow_dispatch' }}
+
+      - name: Build local (pour scan et smoke test)
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          load: true
+          tags: scan/ledge-${{ matrix.image }}:ci
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+      # Bloquant : une vulnerabilite HIGH/CRITICAL corrigeable dans l'image
+      # (OS + dependances embarquees) empeche la publication. ignore-unfixed :
+      # les CVE sans correctif publie sont listees mais non bloquantes.
+      - name: Scan de vulnerabilites de l'image (Trivy)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: scan/ledge-${{ matrix.image }}:ci
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+      - name: Smoke test backend (framework bootable)
+        if: matrix.image == 'backend'
+        run: docker run --rm --entrypoint php scan/ledge-backend:ci /var/www/artisan --version
+
+      - name: Smoke test frontend (nginx sert la SPA)
+        if: matrix.image == 'frontend'
+        run: |
+          docker run -d --rm --name smoke -p 8080:80 scan/ledge-frontend:ci
+          sleep 3
+          curl -fsS http://localhost:8080/ | grep -qi '<html'
+          docker stop smoke
+
+      - name: Connexion au registre GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publication de l'image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.image }}

@@ -203,6 +203,38 @@ php artisan config:cache && php artisan route:cache && php artisan view:cache
 
 Voir [SECURITY.md](SECURITY.md) pour les controles de securite en place.
 
-### 3.5 Mise a jour d'une instance existante
+### 3.5 Images Docker de release (GHCR) — livraison continue
+
+A chaque tag `vX.Y.Z`, le pipeline CD (`.github/workflows/cd.yml`) construit,
+scanne (Trivy — bloquant sur vulnerabilite HIGH/CRITICAL corrigeable) et publie
+deux images de production sur GitHub Container Registry, apres avoir re-execute
+**toutes les portes de qualite de la CI** (lint, 1096 tests, gates de
+couverture, audits de dependances, E2E) :
+
+| Image | Contenu | Port |
+|---|---|---|
+| `ghcr.io/amine-cheraitia/ledge-backend:vX.Y.Z` | API Laravel (php-fpm + nginx embarque, vendor sans dev, opcache production) | 8000 |
+| `ghcr.io/amine-cheraitia/ledge-frontend:vX.Y.Z` | SPA Vue buildee servie par nginx, proxy `/api`, `/sanctum`, `/storage` vers `BACKEND_HOST` | 80 |
+
+Deploiement type (serveur avec Docker, MySQL et Redis accessibles) :
+
+```bash
+docker pull ghcr.io/amine-cheraitia/ledge-backend:vX.Y.Z
+docker pull ghcr.io/amine-cheraitia/ledge-frontend:vX.Y.Z
+
+docker run -d --name ledge-api  --env-file .env.production -p 8000:8000 \
+  ghcr.io/amine-cheraitia/ledge-backend:vX.Y.Z
+docker run -d --name ledge-web  -e BACKEND_HOST=ledge-api:8000 -p 80:80 \
+  ghcr.io/amine-cheraitia/ledge-frontend:vX.Y.Z
+
+# Migrations : etape de deploiement explicite (jamais automatique)
+docker exec ledge-api php artisan migrate --force
+```
+
+Le conteneur backend applique lui-meme `storage:link` et les caches Laravel
+(`php artisan optimize`) au demarrage — l'environnement (`.env.production`)
+n'est connu qu'a l'execution, jamais fige dans l'image.
+
+### 3.6 Mise a jour d'une instance existante
 
 Voir [MANUEL-MISE-A-JOUR.md](MANUEL-MISE-A-JOUR.md) (procedure + rollback).

@@ -1,0 +1,53 @@
+# SPA Vue 3 en production : statique + proxy API vers ${BACKEND_HOST}.
+# proxy_pass via variable + resolver Docker : nginx demarre meme si le backend
+# n'est pas encore joignable (resolution DNS a la requete, pas au demarrage).
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    resolver 127.0.0.11 valid=10s ipv6=off;
+
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+
+    location /api/ {
+        set $api_upstream http://${BACKEND_HOST};
+        proxy_pass $api_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /sanctum/ {
+        set $api_upstream http://${BACKEND_HOST};
+        proxy_pass $api_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /storage/ {
+        set $api_upstream http://${BACKEND_HOST};
+        proxy_pass $api_upstream;
+        proxy_set_header Host $host;
+    }
+
+    location /up {
+        set $api_upstream http://${BACKEND_HOST};
+        proxy_pass $api_upstream;
+    }
+
+    # Assets fingerprints Vite : cache long, immuable
+    location ~* \.(js|css|woff2?|ttf|svg|png|jpg|jpeg|ico)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+
+    # SPA : toute route inconnue retombe sur index.html (Vue Router)
+    location / {
+        try_files $uri /index.html;
+    }
+}
