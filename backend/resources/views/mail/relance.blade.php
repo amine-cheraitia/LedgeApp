@@ -36,7 +36,7 @@
     </div>
 
     <div class="body">
-        <p class="message">{{ $message }}</p>
+        <p class="message">{{ $corps }}</p>
 
         <div class="facture-box">
             <table>

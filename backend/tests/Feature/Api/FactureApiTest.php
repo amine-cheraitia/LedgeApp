@@ -4,15 +4,17 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Api;
 
+use App\Mail\FactureMail;
 use App\Models\Entreprise;
 use App\Models\Exercice;
+use App\Models\Facture;
 use App\Models\Mission;
 use App\Models\Prestation;
 use App\Models\Setting;
-use App\Models\TimbreTaux;
 use App\Models\TvaTaux;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -65,14 +67,6 @@ class FactureApiTest extends TestCase
             'actif' => true,
         ]);
 
-        TimbreTaux::create([
-            'taux' => 1,
-            'plafond' => 2500,
-            'designation' => 'Timbre fiscal',
-            'date_debut' => '2024-01-01',
-            'actif' => true,
-        ]);
-
         Setting::set('facture_prefixe', 'FF');
         Setting::set('avoir_prefixe', 'FA');
 
@@ -106,6 +100,43 @@ class FactureApiTest extends TestCase
         $this->assertStringStartsWith('FF', $data['numero']);
         // Echeance = date_facture + 45 jours
         $this->assertEquals('2026-05-17', $data['date_echeance']);
+    }
+
+    public function test_facture_standard_sans_taux_en_vigueur_refuse(): void
+    {
+        // Exercice 2022 ouvert ; le seul taux standard demarre le 2023-01-01.
+        // Facturer en 2022 (dans l'exercice mais avant le taux) doit echouer (409),
+        // au lieu d'appliquer silencieusement 0% sur une facture soumise a la TVA.
+        $exercice2022 = Exercice::create([
+            'annee' => 2022,
+            'date_ouverture' => '2022-01-01',
+            'date_cloture' => '2022-12-31',
+            'statut' => 'ouvert',
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/factures', [
+                'mission_id' => $this->mission->id,
+                'exercice_id' => $exercice2022->id,
+                'date_facture' => '2022-12-31',
+            ]);
+
+        $response->assertStatus(409);
+        $this->assertDatabaseCount('factures', 0);
+    }
+
+    public function test_date_facture_hors_exercice_refusee(): void
+    {
+        // L'exercice courant (setUp) est l'annee en cours : une date hors de ses
+        // bornes doit etre rejetee avec un 422 sur le champ date_facture.
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/factures', [
+                'mission_id' => $this->mission->id,
+                'date_facture' => '2020-01-01',
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['date_facture']);
     }
 
     public function test_tranches_automatiques_t1_t2_t3(): void
@@ -156,7 +187,7 @@ class FactureApiTest extends TestCase
         $this->assertEquals(19, (float) $data['taux_tva']);
         // TVA = 94500 * 19% = 17955
         $this->assertEquals(17955, (float) $data['montant_tva']);
-        // TTC = 94500 + 17955 = 112455 (timbre = 0)
+        // TTC = 94500 + 17955 = 112455
         $this->assertEquals(112455, (float) $data['montant_ttc']);
     }
 
@@ -260,5 +291,138 @@ class FactureApiTest extends TestCase
             ]);
 
         $response->assertStatus(409);
+    }
+
+    public function test_transmettre_facture_envoie_un_mail_avec_pdf(): void
+    {
+        Mail::fake();
+
+        $factureId = $this->actingAs($this->admin)
+            ->postJson('/api/v1/factures', ['mission_id' => $this->mission->id, 'date_facture' => '2026-04-02'])
+            ->json('data.id');
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$factureId}/transmettre")
+            ->assertOk();
+
+        $facture = Facture::findOrFail($factureId);
+        Mail::assertSent(FactureMail::class, fn (FactureMail $mail) => $mail->hasTo($facture->entreprise->email));
+
+        $attachments = (new FactureMail($facture))->attachments();
+        $this->assertCount(1, $attachments);
+        $this->assertSame("facture-{$facture->numero}.pdf", $attachments[0]->as);
+    }
+
+    public function test_transmettre_sans_email_entreprise_refuse(): void
+    {
+        Mail::fake();
+
+        $factureId = $this->actingAs($this->admin)
+            ->postJson('/api/v1/factures', ['mission_id' => $this->mission->id, 'date_facture' => '2026-04-02'])
+            ->json('data.id');
+
+        Facture::findOrFail($factureId)->entreprise->update(['email' => null]);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$factureId}/transmettre")
+            ->assertStatus(409);
+
+        Mail::assertNothingSent();
+    }
+
+    public function test_transmettre_echec_envoi_renvoie_409_propre(): void
+    {
+        $factureId = $this->actingAs($this->admin)
+            ->postJson('/api/v1/factures', ['mission_id' => $this->mission->id, 'date_facture' => '2026-04-02'])
+            ->json('data.id');
+
+        // Panne d'envoi -> 409 propre (pas de 500)
+        Mail::shouldReceive('to')->andThrow(new \RuntimeException('smtp down'));
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$factureId}/transmettre")
+            ->assertStatus(409);
+    }
+
+    public function test_secretaire_peut_transmettre_collaborateur_non(): void
+    {
+        Mail::fake();
+
+        $factureId = $this->actingAs($this->admin)
+            ->postJson('/api/v1/factures', ['mission_id' => $this->mission->id, 'date_facture' => '2026-04-02'])
+            ->json('data.id');
+
+        $secretaire = User::factory()->create();
+        $secretaire->assignRole('secretaire');
+        $this->actingAs($secretaire)
+            ->postJson("/api/v1/factures/{$factureId}/transmettre")
+            ->assertOk();
+
+        $collaborateur = User::factory()->create();
+        $collaborateur->assignRole('collaborateur');
+        $this->actingAs($collaborateur)
+            ->postJson("/api/v1/factures/{$factureId}/transmettre")
+            ->assertStatus(403);
+    }
+
+    public function test_supprimer_la_derniere_facture_libere_son_numero_pour_reutilisation(): void
+    {
+        $creer = fn (string $date) => $this->actingAs($this->admin)
+            ->postJson('/api/v1/factures', ['mission_id' => $this->mission->id, 'date_facture' => $date]);
+
+        $creer('2026-04-01')->assertCreated();
+        $creer('2026-04-02')->assertCreated();
+        $r3 = $creer('2026-04-03')->assertCreated();
+        $id3 = $r3->json('data.id');
+        $numero3 = $r3->json('data.numero');
+
+        // Supprimer la derniere facture de la sequence
+        $this->actingAs($this->admin)
+            ->deleteJson("/api/v1/factures/{$id3}")
+            ->assertStatus(204);
+
+        // Hard delete : la ligne n'existe plus (numero physiquement libere)
+        $this->assertDatabaseMissing('factures', ['id' => $id3]);
+
+        // La prochaine facture reutilise le numero libere, sans trou
+        $numero4 = $creer('2026-04-04')->assertCreated()->json('data.numero');
+        $this->assertSame($numero3, $numero4);
+    }
+
+    public function test_supprimer_une_facture_non_derniere_est_bloque_et_suggere_un_avoir(): void
+    {
+        $creer = fn (string $date) => $this->actingAs($this->admin)
+            ->postJson('/api/v1/factures', ['mission_id' => $this->mission->id, 'date_facture' => $date]);
+
+        $id1 = $creer('2026-04-01')->assertCreated()->json('data.id');
+        $creer('2026-04-02')->assertCreated();
+        $creer('2026-04-03')->assertCreated();
+
+        $response = $this->actingAs($this->admin)->deleteJson("/api/v1/factures/{$id1}");
+
+        $response->assertStatus(409);
+        $this->assertStringContainsStringIgnoringCase('avoir', (string) $response->json('message'));
+        $this->assertDatabaseHas('factures', ['id' => $id1]);
+    }
+
+    public function test_supprimer_une_facture_avec_avoir_est_bloque(): void
+    {
+        $factureId = $this->actingAs($this->admin)
+            ->postJson('/api/v1/factures', ['mission_id' => $this->mission->id, 'date_facture' => '2026-04-02'])
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$factureId}/avoirs", [
+                'montant_ht' => 1000,
+                'date_avoir' => '2026-04-05',
+                'motif' => 'Annulation partielle',
+            ])->assertCreated();
+
+        $this->actingAs($this->admin)
+            ->deleteJson("/api/v1/factures/{$factureId}")
+            ->assertStatus(409);
+
+        $this->assertDatabaseHas('factures', ['id' => $factureId]);
     }
 }

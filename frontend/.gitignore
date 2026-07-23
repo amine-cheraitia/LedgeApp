@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Fichier de types auto-genere par unplugin-vue-components (ne pas versionner)
+components.d.ts
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

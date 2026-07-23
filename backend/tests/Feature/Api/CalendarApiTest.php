@@ -153,6 +153,31 @@ class CalendarApiTest extends TestCase
         $this->assertEmpty($taches);
     }
 
+    public function test_tache_dont_la_plage_chevauche_le_range_apparait(): void
+    {
+        // Debut avant la fenetre, echeance apres -> la plage chevauche entierement le range.
+        // L'ancien filtre (echeance entre from/to) la ratait : ce test valide le filtre par chevauchement
+        // et la presence de date_debut dans le payload.
+        Tache::create([
+            'mission_id' => $this->mission->id,
+            'titre' => 'Cadrage long',
+            'statut' => 'en_cours',
+            'date_debut' => '2026-03-20',
+            'date_echeance' => '2026-05-10',
+            'priorite' => 2,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->getJson('/api/v1/calendar?from=2026-04-01&to=2026-04-30');
+
+        $response->assertOk();
+        $taches = $response->json('data.taches');
+        $this->assertNotEmpty($taches);
+        $this->assertEquals('Cadrage long', $taches[0]['titre']);
+        $this->assertEquals('2026-03-20', $taches[0]['date_debut']);
+        $this->assertEquals('2026-05-10', $taches[0]['date_echeance']);
+    }
+
     public function test_filtre_collaborateur_id_filtre_les_missions(): void
     {
         // Affecter le collaborateur à la mission

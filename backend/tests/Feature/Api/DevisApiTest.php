@@ -4,16 +4,19 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Api;
 
+use App\Mail\DevisMail;
 use App\Models\CategorieEntreprise;
+use App\Models\Contact;
+use App\Models\Devis;
 use App\Models\Entreprise;
 use App\Models\Exercice;
 use App\Models\Prestation;
 use App\Models\RegimeFiscal;
 use App\Models\Setting;
-use App\Models\TimbreTaux;
 use App\Models\TvaTaux;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -72,15 +75,9 @@ class DevisApiTest extends TestCase
             'actif' => true,
         ]);
 
-        TimbreTaux::create([
-            'taux' => 1,
-            'plafond' => 2500,
-            'designation' => 'Timbre fiscal',
-            'date_debut' => '2024-01-01',
-            'actif' => true,
-        ]);
-
         Setting::set('devis_prefixe', 'DV');
+
+        Mail::fake();
     }
 
     public function test_can_create_devis_avec_une_prestation(): void
@@ -100,7 +97,7 @@ class DevisApiTest extends TestCase
         $data = $response->json('data');
         // Prix HT = 120 000 x 1.5 x 1.75 = 315 000 DA
         $this->assertEquals(315000, (float) $data['prix_ht']);
-        $this->assertEquals(315000, (float) $data['montant_ht']);
+        $this->assertEquals(315000, (float) $data['prix_ht']);
         $this->assertStringStartsWith('DV', $data['numero']);
     }
 
@@ -128,7 +125,7 @@ class DevisApiTest extends TestCase
         $this->assertEquals(120000, (float) $response->json('data.prix_ht'));
     }
 
-    public function test_tva_calcule_sur_prix_ht_sans_timbre(): void
+    public function test_tva_calcule_sur_prix_ht(): void
     {
         $response = $this->actingAs($this->admin)
             ->postJson('/api/v1/devis', [
@@ -142,13 +139,15 @@ class DevisApiTest extends TestCase
         $data = $response->json('data');
 
         // HT = 315 000
-        $this->assertEquals(315000, (float) $data['montant_ht']);
+        $this->assertEquals(315000, (float) $data['prix_ht']);
+        // Taux snapshot persiste sur le devis (parite avec la facture)
+        $this->assertEquals(19, (float) $data['taux_tva']);
         // TVA = 315 000 * 19% = 59 850
         $this->assertEquals(59850, (float) $data['montant_tva']);
-        // Timbre = 0 sur les devis (s'applique uniquement sur les factures)
-        $this->assertEquals(0, (float) $data['montant_timbre']);
         // TTC = 315 000 + 59 850 = 374 850
         $this->assertEquals(374850, (float) $data['montant_ttc']);
+
+        $this->assertDatabaseHas('devis', ['id' => $data['id'], 'taux_tva' => 19]);
     }
 
     public function test_creation_devis_sans_prestation_echoue(): void
@@ -178,6 +177,90 @@ class DevisApiTest extends TestCase
         $response->assertOk()->assertJsonCount(1, 'data');
     }
 
+    public function test_devis_exonere_a_une_tva_nulle(): void
+    {
+        TvaTaux::create([
+            'taux' => 0,
+            'designation' => 'TVA exoneree',
+            'date_debut' => '2023-01-01',
+            'type' => 'exonere',
+            'actif' => true,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/devis', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_devis' => '2026-03-31',
+                'date_validite' => '2026-04-30',
+                'type_tva' => 'exonere',
+            ]);
+
+        $response->assertCreated();
+        $data = $response->json('data');
+        // Exonere : taux et TVA = 0, TTC = HT
+        $this->assertEquals(315000, (float) $data['prix_ht']);
+        $this->assertEquals(0, (float) $data['taux_tva']);
+        $this->assertEquals(0, (float) $data['montant_tva']);
+        $this->assertEquals(315000, (float) $data['montant_ttc']);
+    }
+
+    public function test_devis_standard_sans_taux_en_vigueur_refuse(): void
+    {
+        // Le seul taux standard demarre le 2023-01-01 : un devis date avant n'a aucun taux applicable.
+        // On doit refuser (409) au lieu d'appliquer silencieusement 0%. On rattache le devis a un
+        // exercice 2022 ouvert pour que la date reste dans son exercice (on teste la resolution du
+        // taux, pas la validation de date §1.5).
+        $exercice2022 = Exercice::create([
+            'annee' => 2022,
+            'date_ouverture' => '2022-01-01',
+            'date_cloture' => '2022-12-31',
+            'statut' => 'ouvert',
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/devis', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'exercice_id' => $exercice2022->id,
+                'date_devis' => '2022-12-31',
+                'date_validite' => '2023-01-31',
+            ]);
+
+        $response->assertStatus(409);
+        $this->assertDatabaseCount('devis', 0);
+    }
+
+    public function test_modifier_devis_recalcule_les_totaux(): void
+    {
+        $devisId = $this->actingAs($this->admin)->postJson('/api/v1/devis', [
+            'entreprise_id' => $this->entreprise->id,
+            'prestation_id' => $this->prestation->id,
+            'date_devis' => '2026-03-31',
+            'date_validite' => '2026-04-30',
+        ])->json('data.id');
+
+        // Nouvelle prestation : 100 000 x 1.5 (reel) x 1.75 (PME) = 262 500 DA
+        $autrePrestation = Prestation::create([
+            'code' => 'AUDIT',
+            'designation' => 'Audit',
+            'tarif_initial' => 100000,
+            'duree_mois' => 12,
+            'actif' => true,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->putJson("/api/v1/devis/{$devisId}", ['prestation_id' => $autrePrestation->id]);
+
+        $response->assertOk();
+        $data = $response->json('data');
+        // Totaux recalcules de facon coherente, taux snapshot conserve (19%)
+        $this->assertEquals(262500, (float) $data['prix_ht']);
+        $this->assertEquals(19, (float) $data['taux_tva']);
+        $this->assertEquals(49875, (float) $data['montant_tva']); // 262 500 * 19%
+        $this->assertEquals(312375, (float) $data['montant_ttc']);
+    }
+
     public function test_cannot_delete_non_brouillon_devis(): void
     {
         $createResponse = $this->actingAs($this->admin)->postJson('/api/v1/devis', [
@@ -198,11 +281,15 @@ class DevisApiTest extends TestCase
 
     public function test_workflow_envoyer_accepter_refuser(): void
     {
+        // Validite RELATIVE (future) : l'acceptation est refusee passe l'echeance
+        // (regle metier), une date en dur finirait par expirer en cours d'annee.
+        $dateValidite = now()->addMonth()->toDateString();
+
         $devisId = $this->actingAs($this->admin)->postJson('/api/v1/devis', [
             'entreprise_id' => $this->entreprise->id,
             'prestation_id' => $this->prestation->id,
             'date_devis' => '2026-03-31',
-            'date_validite' => '2026-04-30',
+            'date_validite' => $dateValidite,
         ])->json('data.id');
 
         // Envoyer
@@ -216,7 +303,7 @@ class DevisApiTest extends TestCase
             'entreprise_id' => $this->entreprise->id,
             'prestation_id' => $this->prestation->id,
             'date_devis' => '2026-03-31',
-            'date_validite' => '2026-04-30',
+            'date_validite' => $dateValidite,
         ])->json('data.id');
 
         $this->actingAs($this->admin)
@@ -234,7 +321,7 @@ class DevisApiTest extends TestCase
             'entreprise_id' => $this->entreprise->id,
             'prestation_id' => $this->prestation->id,
             'date_devis' => '2026-03-31',
-            'date_validite' => '2026-04-30',
+            'date_validite' => $dateValidite,
         ])->json('data.id');
 
         $this->actingAs($this->admin)->postJson("/api/v1/devis/{$devisId3}/envoyer");
@@ -251,7 +338,6 @@ class DevisApiTest extends TestCase
             'prestation_id' => $this->prestation->id,
             'date_devis' => '2026-03-31',
             'date_validite' => '2026-04-30',
-            'notes' => 'Test PDF',
         ])->json('data.id');
 
         $response = $this->actingAs($this->admin)
@@ -279,5 +365,89 @@ class DevisApiTest extends TestCase
         $this->assertEquals("DV{$annee}-001", $numeros[0]);
         $this->assertEquals("DV{$annee}-002", $numeros[1]);
         $this->assertEquals("DV{$annee}-003", $numeros[2]);
+    }
+
+    public function test_envoyer_devis_envoie_un_mail_avec_pdf_et_passe_en_envoye(): void
+    {
+        $devisId = $this->actingAs($this->admin)->postJson('/api/v1/devis', [
+            'entreprise_id' => $this->entreprise->id,
+            'prestation_id' => $this->prestation->id,
+            'date_devis' => '2026-03-31',
+            'date_validite' => '2026-04-30',
+        ])->json('data.id');
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId}/envoyer")
+            ->assertOk()
+            ->assertJsonPath('data.statut', 'envoye');
+
+        Mail::assertSent(DevisMail::class, fn (DevisMail $mail) => $mail->hasTo($this->entreprise->email));
+
+        $devis = Devis::findOrFail($devisId);
+        $attachments = (new DevisMail($devis))->attachments();
+        $this->assertCount(1, $attachments);
+        $this->assertSame("devis-{$devis->numero}.pdf", $attachments[0]->as);
+    }
+
+    public function test_envoyer_devis_priorise_le_contact_principal(): void
+    {
+        Contact::create([
+            'entreprise_id' => $this->entreprise->id,
+            'nom' => 'Diallo',
+            'email' => 'contact.principal@example.com',
+            'est_principal' => true,
+        ]);
+
+        $devisId = $this->actingAs($this->admin)->postJson('/api/v1/devis', [
+            'entreprise_id' => $this->entreprise->id,
+            'prestation_id' => $this->prestation->id,
+            'date_devis' => '2026-03-31',
+            'date_validite' => '2026-04-30',
+        ])->json('data.id');
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId}/envoyer")
+            ->assertOk();
+
+        // Le contact principal prime sur l'email general de l'entreprise
+        Mail::assertSent(DevisMail::class, fn (DevisMail $mail) => $mail->hasTo('contact.principal@example.com'));
+    }
+
+    public function test_envoyer_devis_echec_envoi_garde_brouillon(): void
+    {
+        $devisId = $this->actingAs($this->admin)->postJson('/api/v1/devis', [
+            'entreprise_id' => $this->entreprise->id,
+            'prestation_id' => $this->prestation->id,
+            'date_devis' => '2026-03-31',
+            'date_validite' => '2026-04-30',
+        ])->json('data.id');
+
+        // Panne d'envoi -> 409 propre (pas de 500) et le devis reste en brouillon
+        Mail::shouldReceive('to')->andThrow(new \RuntimeException('smtp down'));
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId}/envoyer")
+            ->assertStatus(409);
+
+        $this->assertEquals('brouillon', Devis::findOrFail($devisId)->statut);
+    }
+
+    public function test_envoyer_devis_sans_email_entreprise_refuse(): void
+    {
+        $this->entreprise->update(['email' => null]);
+
+        $devisId = $this->actingAs($this->admin)->postJson('/api/v1/devis', [
+            'entreprise_id' => $this->entreprise->id,
+            'prestation_id' => $this->prestation->id,
+            'date_devis' => '2026-03-31',
+            'date_validite' => '2026-04-30',
+        ])->json('data.id');
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/devis/{$devisId}/envoyer")
+            ->assertStatus(409);
+
+        $this->assertEquals('brouillon', Devis::findOrFail($devisId)->statut);
+        Mail::assertNothingSent();
     }
 }

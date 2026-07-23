@@ -40,6 +40,23 @@ class EntrepriseApiTest extends TestCase
             ->assertJsonCount(3, 'data');
     }
 
+    public function test_liste_expose_les_compteurs_globaux_par_statut(): void
+    {
+        Entreprise::factory()->count(2)->create(['statut' => 'client']);
+        Entreprise::factory()->prospect()->create();
+
+        // Les compteurs sont GLOBAUX : un filtre actif ne les modifie pas
+        // (ils alimentent le sous-titre « X entreprises · Y clients · Z prospects »).
+        $response = $this->actingAs($this->admin)
+            ->getJson('/api/v1/entreprises?statut=client');
+
+        $response->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('compteurs.total', 3)
+            ->assertJsonPath('compteurs.clients', 2)
+            ->assertJsonPath('compteurs.prospects', 1);
+    }
+
     public function test_can_create_entreprise(): void
     {
         $response = $this->actingAs($this->admin)
@@ -67,6 +84,26 @@ class EntrepriseApiTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('data.raison_sociale', 'Apres');
+    }
+
+    public function test_update_ignore_le_statut(): void
+    {
+        // La bascule prospect -> client est reservee a l'Observer (MissionCreated).
+        // L'API d'edition ne doit jamais permettre de forcer ce statut a la main.
+        $entreprise = Entreprise::factory()->create(['statut' => 'prospect']);
+
+        $response = $this->actingAs($this->admin)
+            ->putJson("/api/v1/entreprises/{$entreprise->id}", [
+                'raison_sociale' => 'Toujours prospect',
+                'statut' => 'client',
+            ]);
+
+        $response->assertOk();
+        $this->assertSame('prospect', $entreprise->fresh()->statut);
+        $this->assertDatabaseHas('entreprises', [
+            'id' => $entreprise->id,
+            'statut' => 'prospect',
+        ]);
     }
 
     public function test_cannot_delete_entreprise_with_missions(): void
@@ -125,5 +162,48 @@ class EntrepriseApiTest extends TestCase
         $response->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.raison_sociale', 'Alpha Corp');
+    }
+
+    public function test_secretaire_peut_creer_entreprise(): void
+    {
+        $secretaire = User::factory()->create();
+        $secretaire->assignRole('secretaire');
+
+        $response = $this->actingAs($secretaire)
+            ->postJson('/api/v1/entreprises', [
+                'raison_sociale' => 'Sec SARL',
+                'regime_fiscal' => 'forfait',
+                'categorie' => 'TPE',
+                'statut' => 'prospect',
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.raison_sociale', 'Sec SARL');
+    }
+
+    public function test_secretaire_peut_modifier_entreprise(): void
+    {
+        $secretaire = User::factory()->create();
+        $secretaire->assignRole('secretaire');
+        $entreprise = Entreprise::factory()->create(['raison_sociale' => 'Avant']);
+
+        $response = $this->actingAs($secretaire)
+            ->putJson("/api/v1/entreprises/{$entreprise->id}", [
+                'raison_sociale' => 'Apres Sec',
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.raison_sociale', 'Apres Sec');
+    }
+
+    public function test_secretaire_ne_peut_pas_supprimer_entreprise(): void
+    {
+        $secretaire = User::factory()->create();
+        $secretaire->assignRole('secretaire');
+        $entreprise = Entreprise::factory()->create();
+
+        $this->actingAs($secretaire)
+            ->deleteJson("/api/v1/entreprises/{$entreprise->id}")
+            ->assertForbidden();
     }
 }

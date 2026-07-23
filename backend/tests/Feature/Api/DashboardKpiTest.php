@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Api;
 
+use App\Models\Avoir;
 use App\Models\Entreprise;
 use App\Models\Exercice;
 use App\Models\Facture;
 use App\Models\Mission;
 use App\Models\Prestation;
 use App\Models\Setting;
-use App\Models\TimbreTaux;
 use App\Models\TvaTaux;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -51,10 +51,6 @@ class DashboardKpiTest extends TestCase
             ['taux' => 19],
             ['designation' => 'TVA 19%', 'date_debut' => '2020-01-01', 'actif' => true]
         );
-        $timbre = TimbreTaux::firstOrCreate(
-            ['taux' => 1],
-            ['designation' => 'Timbre 1%', 'date_debut' => '2020-01-01', 'plafond' => 2500, 'actif' => true]
-        );
         $entreprise = Entreprise::factory()->create(['statut' => 'client']);
         $prestation = Prestation::firstOrCreate(
             ['code' => 'ACMPT'],
@@ -73,7 +69,6 @@ class DashboardKpiTest extends TestCase
             'exercice_id' => $this->exercice->id,
             'mission_id' => $mission->id,
             'tva_taux_id' => $tva->id,
-            'timbre_taux_id' => $timbre->id,
             'montant_ht' => 100000,
             'taux_tva' => 19,
             'montant_tva' => 19000,
@@ -146,6 +141,67 @@ class DashboardKpiTest extends TestCase
         $this->assertEquals(80000.0, $res->json('data.factures.ca_ttc'));
     }
 
+    public function test_total_impaye_deduit_avoirs(): void
+    {
+        $facture = $this->creerFacture([
+            'montant_ttc' => 100000,
+            'montant_paye' => 0,
+            'statut_paiement' => 'en_attente',
+        ]);
+
+        Avoir::create([
+            'facture_origine_id' => $facture->id,
+            'entreprise_id' => $facture->entreprise_id,
+            'exercice_id' => $this->exercice->id,
+            'created_by' => $this->admin->id,
+            'numero' => 'FA2026-001',
+            'type' => 'FA',
+            'date_avoir' => now()->toDateString(),
+            'montant_ht' => 10000,
+            'montant_ttc' => 11900,
+            'motif' => 'Test',
+        ]);
+
+        $res = $this->actingAs($this->admin)
+            ->getJson('/api/v1/stats')
+            ->assertOk();
+
+        $this->assertEquals(88100.0, $res->json('data.factures.total_impaye'));
+    }
+
+    public function test_ca_mois_correct_quand_exercice_filtre_est_annee_courante(): void
+    {
+        // $this->exercice est l'annee 2026, egale a l'annee courante dans ce contexte de test
+        $this->creerFacture(['montant_ttc' => 75000]);
+
+        $res = $this->actingAs($this->admin)
+            ->getJson('/api/v1/stats?exercice_id='.$this->exercice->id)
+            ->assertOk();
+
+        $this->assertEquals(75000.0, $res->json('data.kpi.ca_mois'));
+    }
+
+    public function test_ca_mois_null_quand_exercice_filtre_annee_differente(): void
+    {
+        $anneeDifferente = (int) now()->year - 5;
+        $exercicePasse = Exercice::firstOrCreate(
+            ['annee' => $anneeDifferente],
+            ['date_ouverture' => $anneeDifferente.'-01-01', 'statut' => 'cloture']
+        );
+
+        $this->creerFacture([
+            'exercice_id' => $exercicePasse->id,
+            'montant_ttc' => 50000,
+            'date_facture' => $anneeDifferente.'-06-15',
+        ]);
+
+        $res = $this->actingAs($this->admin)
+            ->getJson('/api/v1/stats?exercice_id='.$exercicePasse->id)
+            ->assertOk();
+
+        $this->assertNull($res->json('data.kpi.ca_mois'));
+    }
+
     public function test_alerte_factures_en_retard(): void
     {
         $this->creerFacture([
@@ -203,5 +259,16 @@ class DashboardKpiTest extends TestCase
     public function test_non_authentifie_recu_401(): void
     {
         $this->getJson('/api/v1/stats')->assertUnauthorized();
+    }
+
+    public function test_secretaire_ne_peut_pas_acceder_stats_admin(): void
+    {
+        Role::firstOrCreate(['name' => 'secretaire']);
+        $secretaire = User::factory()->create();
+        $secretaire->assignRole('secretaire');
+
+        $this->actingAs($secretaire)
+            ->getJson('/api/v1/stats')
+            ->assertForbidden();
     }
 }

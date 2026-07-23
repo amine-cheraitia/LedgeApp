@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -7,17 +9,27 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Facture extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, LogsActivity, SoftDeletes;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
     protected $fillable = [
         'entreprise_id', 'exercice_id', 'mission_id', 'devis_id', 'created_by',
-        'tva_taux_id', 'timbre_taux_id', 'numero', 'type', 'facture_origine_id',
+        'tva_taux_id', 'numero', 'type',
         'date_facture', 'date_echeance', 'montant_ht', 'taux_tva', 'montant_tva',
-        'montant_timbre', 'montant_ttc', 'montant_paye', 'statut_paiement',
-        'mode_paiement', 'pdf_path', 'notes',
+        'montant_ttc', 'montant_paye', 'statut_paiement',
+        'mode_paiement',
     ];
 
     protected $casts = [
@@ -26,7 +38,6 @@ class Facture extends Model
         'montant_ht' => 'decimal:2',
         'taux_tva' => 'decimal:2',
         'montant_tva' => 'decimal:2',
-        'montant_timbre' => 'decimal:2',
         'montant_ttc' => 'decimal:2',
         'montant_paye' => 'decimal:2',
     ];
@@ -49,11 +60,6 @@ class Facture extends Model
     public function tvaTaux(): BelongsTo
     {
         return $this->belongsTo(TvaTaux::class);
-    }
-
-    public function timbreTaux(): BelongsTo
-    {
-        return $this->belongsTo(TimbreTaux::class);
     }
 
     public function createdBy(): BelongsTo

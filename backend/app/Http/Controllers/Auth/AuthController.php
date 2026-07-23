@@ -1,8 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Resources\Auth\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -10,13 +14,8 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
-        $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string'],
-        ]);
-
         if (! Auth::attempt($request->only('email', 'password'))) {
             throw ValidationException::withMessages([
                 'email' => ['Identifiants incorrects.'],
@@ -29,7 +28,7 @@ class AuthController extends Controller
         $user->load('roles', 'entreprise');
 
         return response()->json([
-            'user' => $user,
+            'user' => new UserResource($user),
         ]);
     }
 
@@ -49,7 +48,7 @@ class AuthController extends Controller
         $user->load('roles', 'entreprise');
 
         return response()->json([
-            'user' => $user,
+            'user' => new UserResource($user),
         ]);
     }
 }

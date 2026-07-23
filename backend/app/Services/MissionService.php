@@ -4,18 +4,24 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Devis;
 use App\Models\Entreprise;
 use App\Models\Exercice;
 use App\Models\Mission;
 use App\Models\Prestation;
 use App\Models\Setting;
+use App\Models\Tache;
+use App\Models\TacheCommentaire;
+use App\Models\User;
+use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 class MissionService
 {
     public function __construct(
-        private FacturationService $facturationService,
+        private readonly NumerotationService $numerotation,
     ) {}
 
     /**
@@ -24,7 +30,7 @@ class MissionService
      */
     private const SORT_FIELDS = ['reference', 'date_debut', 'date_fin', 'statut', 'prix_ht'];
 
-    public function listerMissions(array $filters): LengthAwarePaginator
+    public function listerMissions(array $filters, User $user): LengthAwarePaginator
     {
         $sortField = in_array($filters['sort_field'] ?? '', self::SORT_FIELDS)
             ? $filters['sort_field']
@@ -32,6 +38,13 @@ class MissionService
         $sortDir = ($filters['sort_direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
 
         return Mission::with('entreprise', 'prestation', 'exercice')
+            ->when(
+                $user->hasRole('collaborateur'),
+                fn ($q) => $q->where(fn ($q2) => $q2
+                    ->whereHas('collaborateurs', fn ($c) => $c->where('user_id', $user->id))
+                    ->orWhereHas('taches', fn ($t) => $t->where('assigned_to', $user->id))
+                )
+            )
             ->when($filters['exercice_id'] ?? null, fn ($q, $v) => $q->where('exercice_id', $v))
             ->when($filters['entreprise_id'] ?? null, fn ($q, $v) => $q->where('entreprise_id', $v))
             ->when($filters['statut'] ?? null, fn ($q, $v) => $q->where('statut', $v))
@@ -39,7 +52,14 @@ class MissionService
                 ->where('reference', 'like', "%{$s}%")
                 ->orWhereHas('entreprise', fn ($eq) => $eq->where('raison_sociale', 'like', "%{$s}%"))
             )
-            ->orderBy($sortField, $sortDir)
+            // Pour le collaborateur sans tri explicite : missions en_cours d'abord, puis plus recentes
+            ->when(
+                $user->hasRole('collaborateur') && ! ($filters['sort_field'] ?? null),
+                fn ($q) => $q
+                    ->orderByRaw("CASE statut WHEN 'en_cours' THEN 0 WHEN 'suspendue' THEN 1 WHEN 'terminee' THEN 2 ELSE 3 END")
+                    ->orderBy('created_at', 'desc'),
+                fn ($q) => $q->orderBy($sortField, $sortDir)
+            )
             ->paginate($filters['per_page'] ?? 15);
     }
 
@@ -66,7 +86,7 @@ class MissionService
 
         $exercice = $mission->exercice ?? Exercice::find($mission->exercice_id);
         $prefixe = Setting::get('convention_prefixe', 'CV');
-        $numero = $this->facturationService->genererNumero($prefixe, 'missions', $exercice, 'convention_numero');
+        $numero = $this->numerotation->genererNumero($prefixe, 'missions', $exercice, 'convention_numero');
         $mission->update(['convention_numero' => $numero]);
 
         return $numero;
@@ -83,7 +103,7 @@ class MissionService
 
         $exercice = $mission->exercice ?? Exercice::find($mission->exercice_id);
         $prefixe = Setting::get('mandat_prefixe', 'MD');
-        $numero = $this->facturationService->genererNumero($prefixe, 'missions', $exercice, 'mandat_numero');
+        $numero = $this->numerotation->genererNumero($prefixe, 'missions', $exercice, 'mandat_numero');
         $mission->update(['mandat_numero' => $numero]);
 
         return $numero;
@@ -92,17 +112,53 @@ class MissionService
     public function creerMission(array $data): Mission
     {
         return DB::transaction(function () use ($data) {
-            $exercice = Exercice::current();
+            $devis = null;
+
+            // Conversion depuis un devis : il doit etre accepte et ne pas avoir
+            // deja genere une mission (anti-doublon, verrou pour la concurrence).
+            if (! empty($data['devis_id'])) {
+                $query = Devis::whereKey($data['devis_id']);
+                if (DB::getDriverName() !== 'sqlite') {
+                    $query->lockForUpdate();
+                }
+                $devis = $query->first();
+
+                if ($devis !== null) {
+                    if ($devis->statut !== 'accepte') {
+                        throw new DomainException('Seul un devis accepté peut être converti en mission.');
+                    }
+
+                    if ($devis->mission()->exists()) {
+                        throw new DomainException('Ce devis a déjà été converti en mission.');
+                    }
+                }
+            }
+
+            $exercice = isset($data['exercice_id'])
+                ? Exercice::findOrFail($data['exercice_id'])
+                : Exercice::current();
+
+            if ($exercice === null) {
+                throw new DomainException('Aucun exercice ouvert : ouvrez l\'exercice de l\'année avant de créer une mission.');
+            }
+
             $entreprise = Entreprise::findOrFail($data['entreprise_id']);
             $prestation = Prestation::findOrFail($data['prestation_id']);
 
-            $prixHt = $prestation->calculerPrixHt(
-                $entreprise->regime_fiscal,
-                $entreprise->categorie,
-            );
+            // Regle metier : le prix d'un devis accepte (dans son delai de
+            // validite) est CONTRACTUEL — il est repris tel quel sur la mission,
+            // jamais recalcule depuis la grille (le tarif ou les indices ont pu
+            // changer entre l'acceptation et la conversion). Sans devis, le prix
+            // est fige a la creation depuis la grille en vigueur.
+            $prixHt = $devis !== null
+                ? (float) $devis->prix_ht
+                : $prestation->calculerPrixHt(
+                    $entreprise->regime_fiscal,
+                    $entreprise->categorie,
+                );
 
             $prefixe = Setting::get('mission_prefixe', 'M');
-            $reference = $this->facturationService->genererNumero($prefixe, 'missions', $exercice, 'reference');
+            $reference = $this->numerotation->genererNumero($prefixe, 'missions', $exercice, 'reference');
 
             $mission = Mission::create([
                 'entreprise_id' => $entreprise->id,
@@ -122,6 +178,43 @@ class MissionService
             }
 
             return $mission->load('entreprise', 'prestation', 'collaborateurs');
+        });
+    }
+
+    /**
+     * Détecte les tâches d'un collaborateur qui chevauchent une période donnée,
+     * toutes missions confondues. Sert à prévenir l'admin d'un conflit d'affectation
+     * au moment où il choisit le collaborateur ou les dates (avertissement non bloquant).
+     *
+     * @return Collection<int, Tache>
+     */
+    public function detecterConflitsTache(int $collaborateurId, ?string $debut, ?string $echeance, ?int $excludeId = null): Collection
+    {
+        return Tache::query()
+            ->where('assigned_to', $collaborateurId)
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
+            ->chevauche($debut, $echeance)
+            ->with('mission:id,reference')
+            ->orderBy('date_debut')
+            ->get();
+    }
+
+    public function supprimerMission(Mission $mission): void
+    {
+        if ($mission->factures()->exists()) {
+            throw new DomainException('Impossible de supprimer une mission avec des factures associees.');
+        }
+
+        DB::transaction(function () use ($mission) {
+            // Les taches sont soft-deletees en masse : ni les events Eloquent ni le
+            // cascadeOnDelete SQL ne se declenchent (soft delete = UPDATE). On nettoie
+            // donc explicitement leurs commentaires pour ne pas laisser d'orphelins actifs.
+            $tacheIds = $mission->taches()->pluck('id');
+            TacheCommentaire::whereIn('tache_id', $tacheIds)->delete();
+
+            $mission->taches()->delete();
+            $mission->collaborateurs()->detach();
+            $mission->delete();
         });
     }
 }

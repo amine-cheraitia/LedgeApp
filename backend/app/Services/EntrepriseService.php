@@ -5,12 +5,41 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Entreprise;
+use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class EntrepriseService
 {
+    public function supprimer(Entreprise $entreprise): void
+    {
+        if ($entreprise->missions()->exists() || $entreprise->devis()->exists()) {
+            throw new DomainException('Impossible de supprimer cette entreprise : des missions ou devis y sont associes.');
+        }
+
+        $entreprise->delete();
+    }
+
+    /**
+     * Compteurs globaux affiches en tete de la liste (independants des filtres).
+     *
+     * @return array{total:int, clients:int, prospects:int}
+     */
+    public function compteursStatuts(): array
+    {
+        $parStatut = Entreprise::query()
+            ->selectRaw('statut, COUNT(*) as total')
+            ->groupBy('statut')
+            ->pluck('total', 'statut');
+
+        return [
+            'total' => (int) $parStatut->sum(),
+            'clients' => (int) ($parStatut['client'] ?? 0),
+            'prospects' => (int) ($parStatut['prospect'] ?? 0),
+        ];
+    }
+
     public function lister(array $filters): LengthAwarePaginator
     {
         return Entreprise::query()
@@ -63,12 +92,7 @@ class EntrepriseService
             ->when($filters['wilaya'] ?? null, fn ($q, $w) => $q->where('wilaya', $w))
             ->orderBy('raison_sociale');
 
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="entreprises.csv"',
-        ];
-
-        return response()->streamDownload(function () use ($query) {
+        $callback = function () use ($query) {
             $handle = fopen('php://output', 'w');
             fwrite($handle, "\xEF\xBB\xBF");
             fputcsv($handle, ['Raison sociale', 'NIF', 'NIS', 'Statut', 'Regime fiscal', 'Categorie', 'Wilaya', 'Ville', 'Email', 'Telephone'], ';');
@@ -91,6 +115,14 @@ class EntrepriseService
             });
 
             fclose($handle);
-        }, 'entreprises.csv', $headers);
+        };
+
+        // StreamedResponse construit directement : `streamDownload()` regenere le
+        // Content-Disposition depuis le nom de fichier (sans guillemets). Ici on
+        // maitrise l'en-tete -> nom de fichier entre guillemets (RFC 6266).
+        return new StreamedResponse($callback, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="entreprises.csv"',
+        ]);
     }
 }

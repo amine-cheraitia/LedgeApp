@@ -23,15 +23,17 @@ use Symfony\Component\HttpFoundation\Response;
 class DevisController extends Controller
 {
     public function __construct(
-        private FacturationService $facturationService,
-        private MissionService $missionService,
-        private PdfService $pdfService,
+        private readonly FacturationService $facturationService,
+        private readonly MissionService $missionService,
+        private readonly PdfService $pdfService,
     ) {}
 
     public function index(Request $request): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Devis::class);
+
         $devis = $this->facturationService->listerDevis($request->only([
-            'exercice_id', 'statut', 'search', 'sort_field', 'sort_direction', 'per_page',
+            'entreprise_id', 'exercice_id', 'statut', 'search', 'sort_field', 'sort_direction', 'per_page',
         ]));
 
         return DevisResource::collection($devis);
@@ -41,10 +43,14 @@ class DevisController extends Controller
     {
         $this->authorize('create', Devis::class);
 
-        $devis = $this->facturationService->creerDevis(
-            $request->validated(),
-            $request->user()->id,
-        );
+        try {
+            $devis = $this->facturationService->creerDevis(
+                $request->validated(),
+                $request->user()->id,
+            );
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
+        }
 
         return (new DevisResource($devis->load('prestation', 'entreprise')))
             ->response()
@@ -53,6 +59,8 @@ class DevisController extends Controller
 
     public function show(Devis $devis): DevisResource
     {
+        $this->authorize('view', $devis);
+
         return new DevisResource($devis->load('prestation', 'entreprise'));
     }
 
@@ -71,6 +79,8 @@ class DevisController extends Controller
 
     public function envoyer(Devis $devis): DevisResource|JsonResponse
     {
+        $this->authorize('envoyer', $devis);
+
         try {
             $devis = $this->facturationService->envoyerDevis($devis);
         } catch (DomainException $e) {
@@ -82,6 +92,8 @@ class DevisController extends Controller
 
     public function accepter(Devis $devis): DevisResource|JsonResponse
     {
+        $this->authorize('update', $devis);
+
         try {
             $devis = $this->facturationService->accepterDevis($devis);
         } catch (DomainException $e) {
@@ -93,6 +105,8 @@ class DevisController extends Controller
 
     public function refuser(Devis $devis): DevisResource|JsonResponse
     {
+        $this->authorize('update', $devis);
+
         try {
             $devis = $this->facturationService->refuserDevis($devis);
         } catch (DomainException $e) {
@@ -104,6 +118,8 @@ class DevisController extends Controller
 
     public function convertirEnMission(ConvertirEnMissionRequest $request, Devis $devis): MissionResource|JsonResponse
     {
+        $this->authorize('update', $devis);
+
         try {
             $mission = $this->missionService->creerMission([
                 'entreprise_id' => $devis->entreprise_id,
@@ -123,6 +139,8 @@ class DevisController extends Controller
 
     public function pdf(Devis $devis): Response
     {
+        $this->authorize('view', $devis);
+
         return $this->pdfService->genererDevis($devis)
             ->stream('devis-'.$devis->numero.'.pdf');
     }

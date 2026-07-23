@@ -12,7 +12,7 @@ onMounted(fetchSettings)
 <template>
   <div>
     <div class="page-header">
-      <h2>Parametres</h2>
+      <h1>Parametres</h1>
     </div>
 
     <div v-if="loading" class="loading">Chargement...</div>

@@ -103,6 +103,10 @@ function avancement(mission: Mission): number {
   return Math.round((terminees / taches.length) * 100)
 }
 
+function telechargerRapportMission(mission: Mission) {
+  window.open(portailApi.rapportMissionPdfUrl(mission.id), '_blank')
+}
+
 onMounted(fetchMissions)
 </script>
 
@@ -125,7 +129,7 @@ onMounted(fetchMissions)
       />
     </div>
 
-    <DataTable
+    <DataTable aria-label="Mes missions"
       :value="missions"
       :loading="loading"
       :paginator="true"
@@ -220,6 +224,18 @@ onMounted(fetchMissions)
           </ul>
         </section>
         <p v-else class="text-muted">Aucune tâche pour cette mission.</p>
+
+        <div class="detail-rapport" style="border-top: 1px solid var(--p-surface-border); padding-top: 1rem; margin-top: 1rem;">
+          <Button
+            label="Télécharger le rapport PDF"
+            icon="pi pi-file-pdf"
+            severity="secondary"
+            outlined
+            size="small"
+            aria-label="Télécharger le rapport de fin de mission en PDF"
+            @click="telechargerRapportMission(missionDetail)"
+          />
+        </div>
       </template>
     </Dialog>
   </div>
@@ -230,11 +246,9 @@ onMounted(fetchMissions)
   margin-bottom: 1.25rem;
 }
 
+/* Taille/graisse : base h1 globale (main.css) */
 .page-header h1 {
-  font-size: 1.4rem;
-  font-weight: 700;
   margin: 0;
-  color: var(--p-text-color);
 }
 
 .page-toolbar {

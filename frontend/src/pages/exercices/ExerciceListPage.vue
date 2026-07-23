@@ -9,14 +9,19 @@ import InputNumber from 'primevue/inputnumber'
 import DatePicker from 'primevue/datepicker'
 import Select from 'primevue/select'
 import { useExercices } from '@/composables/useExercices'
+import { useAuthStore } from '@/stores/authStore'
+import { exercicesApi } from '@/api/modules/exercices'
+import { toIsoDate, parseIsoDate } from '@/utils/date'
 import type { Exercice } from '@/types'
 import type { ExercicePayload } from '@/api/modules/exercices'
 
 const { exercices, loading, fetchExercices, createExercice, updateExercice } = useExercices()
+const auth = useAuthStore()
 
 const dialogVisible = ref(false)
 const editMode = ref(false)
 const saving = ref(false)
+const downloadingId = ref<number | null>(null)
 
 const emptyForm = (): ExercicePayload => ({
   annee: new Date().getFullYear(),
@@ -39,11 +44,6 @@ function formatDate(d: string) {
   return new Date(d).toLocaleDateString('fr-FR')
 }
 
-function toIsoDate(d: Date | null): string {
-  if (!d) return ''
-  return d.toISOString().split('T')[0]
-}
-
 function openCreate() {
   form.value = emptyForm()
   dateOuverture.value = null
@@ -60,8 +60,8 @@ function openEdit(exercice: Exercice) {
     date_cloture: exercice.date_cloture,
     statut: exercice.statut,
   }
-  dateOuverture.value = new Date(exercice.date_ouverture)
-  dateCloture.value = new Date(exercice.date_cloture)
+  dateOuverture.value = parseIsoDate(exercice.date_ouverture)
+  dateCloture.value = parseIsoDate(exercice.date_cloture)
   editId.value = exercice.id
   editMode.value = true
   dialogVisible.value = true
@@ -70,10 +70,11 @@ function openEdit(exercice: Exercice) {
 async function onSubmit() {
   saving.value = true
   try {
+    // toIsoDate (utils/date) formate en LOCAL : pas de bascule J-1 via UTC
     const payload: ExercicePayload = {
       ...form.value,
-      date_ouverture: toIsoDate(dateOuverture.value),
-      date_cloture: toIsoDate(dateCloture.value),
+      date_ouverture: toIsoDate(dateOuverture.value) ?? '',
+      date_cloture: toIsoDate(dateCloture.value) ?? '',
     }
     if (editMode.value && editId.value) {
       await updateExercice(editId.value, payload)
@@ -88,17 +89,40 @@ async function onSubmit() {
   }
 }
 
+async function telechargerRapport(exercice: Exercice) {
+  downloadingId.value = exercice.id
+  try {
+    const blob = await exercicesApi.rapportCloturePdf(exercice.id)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `rapport-cloture-${exercice.annee}.pdf`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch {
+    // erreur silencieuse
+  } finally {
+    downloadingId.value = null
+  }
+}
+
 onMounted(fetchExercices)
 </script>
 
 <template>
   <div>
     <div class="page-header">
-      <h2>Exercices fiscaux</h2>
+      <div>
+        <h1>Exercices fiscaux</h1>
+        <p v-if="exercices.length" class="page-compteurs">
+          {{ exercices.length }} exercice{{ exercices.length > 1 ? 's' : '' }}
+        </p>
+      </div>
       <Button label="Nouvel exercice" icon="pi pi-plus" @click="openCreate" />
     </div>
 
-    <DataTable
+    <div class="table-card">
+    <DataTable aria-label="Liste des exercices fiscaux"
       :value="exercices"
       :loading="loading"
       dataKey="id"
@@ -121,12 +145,31 @@ onMounted(fetchExercices)
           <Tag :value="data.statut" :severity="data.statut === 'ouvert' ? 'success' : 'secondary'" />
         </template>
       </Column>
-      <Column header="Actions" style="width: 5rem">
+      <Column header="Actions" style="width: 8rem">
         <template #body="{ data }">
-          <Button icon="pi pi-pencil" text severity="info" aria-label="Modifier" @click="openEdit(data)" />
+          <div style="display: flex; gap: 0.25rem; align-items: center;">
+            <Button
+              icon="pi pi-pencil"
+              text
+              severity="info"
+              aria-label="Modifier l'exercice"
+              @click="openEdit(data)"
+            />
+            <Button
+              v-if="auth.isAdmin"
+              icon="pi pi-file-pdf"
+              text
+              severity="secondary"
+              :loading="downloadingId === data.id"
+              :aria-label="`Télécharger le rapport de clôture ${data.annee}`"
+              :title="`Rapport de clôture ${data.annee}`"
+              @click="telechargerRapport(data)"
+            />
+          </div>
         </template>
       </Column>
     </DataTable>
+    </div>
 
     <Dialog
       v-model:visible="dialogVisible"
@@ -171,8 +214,72 @@ onMounted(fetchExercices)
   align-items: center;
   margin-bottom: 1rem;
 }
+
+/* ── En-tete : compteur sous le titre (meme patron que missions/entreprises) ── */
+.page-compteurs {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+}
+
 .dialog-form { display: flex; flex-direction: column; gap: 0.75rem; }
 .form-field { display: flex; flex-direction: column; gap: 0.25rem; }
 .form-field label { font-size: 0.875rem; font-weight: 500; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
+
+/* ── Carte du tableau (maquette : bloc arrondi legerement eleve) ────────── */
+.table-card {
+  border: 1px solid var(--p-surface-200);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--p-surface-0);
+}
+.app-dark .table-card {
+  border-color: color-mix(in srgb, var(--p-surface-700) 55%, transparent);
+  background: color-mix(in srgb, var(--p-surface-800) 62%, var(--p-surface-900));
+}
+
+/* En-tetes de colonnes : petites capitales espacees, fond distinct (maquette) */
+.table-card :deep(.p-datatable-thead > tr > th) {
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--p-text-muted-color);
+  background: var(--p-surface-100);
+}
+.app-dark .table-card :deep(.p-datatable-thead > tr > th) {
+  background: color-mix(in srgb, var(--p-surface-700) 45%, var(--p-surface-900));
+}
+
+/* Transition douce du survol des lignes (150ms, colors only) */
+.table-card :deep(.p-datatable-tbody > tr) {
+  transition: background-color 0.15s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .table-card :deep(.p-datatable-tbody > tr) { transition: none; }
+}
+
+/* ── Zebrage charte : alternance « un peu clair / plus fonce » ─────────── */
+/* Point cle : la DataTable PrimeVue peint ses propres fonds OPAQUES (lignes)
+   qui masquaient la carte -> on rend la table transparente dans .table-card
+   et la charte peint tout (carte, zebrage, survol). */
+.table-card :deep(.p-datatable),
+.table-card :deep(.p-datatable-table),
+.table-card :deep(.p-datatable-tbody > tr) {
+  background: transparent;
+}
+
+.table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-100) 65%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-700) 28%, transparent);
+}
+/* Le survol doit rester lisible par-dessus le zebrage (les deux modes) */
+.table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-200) 60%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-600) 30%, transparent);
+}
 </style>

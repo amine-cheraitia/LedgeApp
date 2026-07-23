@@ -17,10 +17,15 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 class PortailService
 {
+    public function __construct(private readonly InvitationService $invitationService) {}
+
     /**
      * Active l'acces portail pour une entreprise cliente.
      *
-     * @return array{user: User, temporary_password: string}
+     * Le client definira lui-meme son mot de passe via le lien d'invitation
+     * envoye par email : aucun mot de passe n'est genere ni transmis en clair.
+     *
+     * @return array{user: User, invitation_url: string}
      */
     public function activerPortail(Entreprise $entreprise, string $name, string $email): array
     {
@@ -34,12 +39,12 @@ class PortailService
             throw new ConflictHttpException('Un acces portail existe deja pour cette entreprise.');
         }
 
-        $tempPassword = Str::random(12);
-
         $user = User::create([
             'name' => $name,
             'email' => $email,
-            'password' => Hash::make($tempPassword),
+            // Mot de passe placeholder inutilisable : le compte n'est activable
+            // que via le lien d'invitation. Personne ne connait cette valeur.
+            'password' => Hash::make(Str::random(40)),
             'entreprise_id' => $entreprise->id,
             'portail_actif' => true,
         ]);
@@ -48,7 +53,26 @@ class PortailService
 
         return [
             'user' => $user->load('roles'),
-            'temporary_password' => $tempPassword,
+            'invitation_url' => $this->invitationService->inviter($user),
+        ];
+    }
+
+    /**
+     * Renvoie une invitation au client deja rattache a l'entreprise.
+     *
+     * @return array{user: User, invitation_url: string}
+     */
+    public function renvoyerInvitation(Entreprise $entreprise): array
+    {
+        $user = $this->getClientUser($entreprise);
+
+        if (! $user) {
+            abort(404, 'Aucun acces portail trouve.');
+        }
+
+        return [
+            'user' => $user->load('roles'),
+            'invitation_url' => $this->invitationService->inviter($user),
         ];
     }
 

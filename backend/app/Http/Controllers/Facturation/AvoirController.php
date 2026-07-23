@@ -26,20 +26,17 @@ class AvoirController extends Controller
 
     public function indexAll(Request $request): AnonymousResourceCollection
     {
-        $avoirs = Avoir::with('factureOrigine.entreprise')
-            ->when($request->exercice_id, fn ($q, $v) => $q->where('exercice_id', $v))
-            ->when($request->search, fn ($q, $s) => $q
-                ->where('numero', 'like', "%{$s}%")
-                ->orWhereHas('factureOrigine.entreprise', fn ($eq) => $eq->where('raison_sociale', 'like', "%{$s}%"))
-            )
-            ->latest()
-            ->paginate((int) ($request->per_page ?? 15));
+        $this->authorize('viewAny', Avoir::class);
 
-        return AvoirResource::collection($avoirs);
+        return AvoirResource::collection(
+            $this->facturationService->listerAvoirs($request->only(['exercice_id', 'search', 'per_page']))
+        );
     }
 
     public function index(Facture $facture): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Avoir::class);
+
         $avoirs = $facture->avoirs()->latest()->get();
 
         return AvoirResource::collection($avoirs);
@@ -49,7 +46,7 @@ class AvoirController extends Controller
     {
         $this->authorize('delete', $avoir);
 
-        $avoir->delete();
+        $this->facturationService->supprimerAvoir($avoir);
 
         return response()->noContent();
     }

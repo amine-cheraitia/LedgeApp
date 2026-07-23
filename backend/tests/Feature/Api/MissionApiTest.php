@@ -11,7 +11,8 @@ use App\Models\Mission;
 use App\Models\Prestation;
 use App\Models\RegimeFiscal;
 use App\Models\Setting;
-use App\Models\TimbreTaux;
+use App\Models\Tache;
+use App\Models\TacheCommentaire;
 use App\Models\TvaTaux;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -101,6 +102,39 @@ class MissionApiTest extends TestCase
         $this->assertEquals('client', $this->entreprise->statut);
     }
 
+    public function test_creer_mission_sans_exercice_ouvert_renvoie_une_erreur_metier(): void
+    {
+        // Aucun exercice ouvert : erreur metier claire (409) au lieu d'un 500.
+        Exercice::query()->update(['statut' => 'cloture']);
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/v1/missions', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_debut' => date('Y').'-04-01',
+                'date_fin' => date('Y').'-12-31',
+            ])
+            ->assertStatus(409)
+            ->assertJsonPath('message', 'Aucun exercice ouvert : ouvrez l\'exercice de l\'année avant de créer une mission.');
+    }
+
+    public function test_collaborateur_ids_doit_designer_du_staff(): void
+    {
+        // Un utilisateur client ne peut pas etre attache comme collaborateur d'une mission.
+        $client = User::factory()->create(['entreprise_id' => $this->entreprise->id]);
+        $client->assignRole('client');
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/v1/missions', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_debut' => '2026-04-01',
+                'date_fin' => '2027-03-31',
+                'collaborateur_ids' => [$client->id],
+            ])
+            ->assertJsonValidationErrors(['collaborateur_ids']);
+    }
+
     public function test_can_list_missions(): void
     {
         $this->actingAs($this->admin)
@@ -116,6 +150,48 @@ class MissionApiTest extends TestCase
 
         $response->assertOk();
         $this->assertCount(1, $response->json('data'));
+    }
+
+    public function test_collaborateur_voit_missions_en_cours_en_premier(): void
+    {
+        $collaborateur = User::factory()->create();
+        $collaborateur->assignRole('collaborateur');
+
+        // Mission 1 -> passee a terminee
+        $m1 = $this->actingAs($this->admin)
+            ->postJson('/api/v1/missions', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_debut' => '2026-04-01',
+                'date_fin' => '2027-03-31',
+            ])
+            ->json('data.id');
+        Mission::find($m1)->update(['statut' => 'terminee']);
+
+        // Mission 2 -> reste en_cours
+        $m2 = $this->actingAs($this->admin)
+            ->postJson('/api/v1/missions', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_debut' => '2026-05-01',
+                'date_fin' => '2027-04-30',
+            ])
+            ->json('data.id');
+
+        // Le collaborateur est rattache aux deux missions
+        Mission::find($m1)->collaborateurs()->attach($collaborateur->id);
+        Mission::find($m2)->collaborateurs()->attach($collaborateur->id);
+
+        $data = $this->actingAs($collaborateur)
+            ->getJson('/api/v1/missions')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertCount(2, $data);
+        // La mission en_cours doit remonter en tete, la terminee ensuite
+        $this->assertEquals($m2, $data[0]['id']);
+        $this->assertEquals('en_cours', $data[0]['statut']);
+        $this->assertEquals('terminee', $data[1]['statut']);
     }
 
     public function test_can_show_mission_detail(): void
@@ -179,13 +255,6 @@ class MissionApiTest extends TestCase
             'type' => 'standard',
             'actif' => true,
         ]);
-        TimbreTaux::create([
-            'taux' => 1,
-            'plafond' => 2500,
-            'designation' => 'Timbre fiscal',
-            'date_debut' => '2024-01-01',
-            'actif' => true,
-        ]);
         Setting::set('facture_prefixe', 'FF');
 
         // Creer une facture liee
@@ -205,6 +274,35 @@ class MissionApiTest extends TestCase
             ->deleteJson("/api/v1/missions/{$missionId}");
 
         $response->assertStatus(409);
+    }
+
+    public function test_suppression_mission_soft_delete_les_taches_et_leurs_commentaires(): void
+    {
+        $missionId = $this->actingAs($this->admin)
+            ->postJson('/api/v1/missions', [
+                'entreprise_id' => $this->entreprise->id,
+                'prestation_id' => $this->prestation->id,
+                'date_debut' => '2026-04-01',
+                'date_fin' => '2027-03-31',
+            ])
+            ->json('data.id');
+
+        $tache = Tache::factory()->create(['mission_id' => $missionId]);
+        $commentaire = TacheCommentaire::create([
+            'tache_id' => $tache->id,
+            'user_id' => $this->admin->id,
+            'contenu' => 'Note de suivi',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->deleteJson("/api/v1/missions/{$missionId}")
+            ->assertNoContent();
+
+        // La mission et sa tache sont soft-deletees...
+        $this->assertSoftDeleted('missions', ['id' => $missionId]);
+        $this->assertSoftDeleted('taches', ['id' => $tache->id]);
+        // ...et le commentaire ne reste pas un orphelin actif.
+        $this->assertSoftDeleted('tache_commentaires', ['id' => $commentaire->id]);
     }
 
     public function test_sequential_reference_numbering(): void

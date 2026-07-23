@@ -61,6 +61,39 @@ class KpiObjectifsTest extends TestCase
             ->assertJsonStructure(['data']);
     }
 
+    public function test_objectifs_exposes_id_et_valeur(): void
+    {
+        $objectif = KpiObjectif::create([
+            'user_id' => $this->collaborateur->id,
+            'exercice_id' => $this->exercice->id,
+            'type' => 'ca_ht',
+            'valeur' => 400000,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->getJson('/api/v1/kpi/objectifs?exercice_id='.$this->exercice->id);
+
+        $response->assertOk();
+
+        $collabData = collect($response->json('data'))
+            ->firstWhere('user.id', $this->collaborateur->id);
+
+        // Le front a besoin de l'id de l'objectif pour permettre sa suppression
+        $this->assertSame($objectif->id, $collabData['objectifs']['ca_ht']['id']);
+        $this->assertEquals(400000.0, $collabData['objectifs']['ca_ht']['valeur']);
+    }
+
+    public function test_secretaire_ne_peut_pas_lister_les_kpi(): void
+    {
+        // Les KPI de production par collaborateur sont reserves a l'admin (hors perimetre secretaire).
+        $secretaire = User::factory()->create();
+        $secretaire->assignRole('secretaire');
+
+        $this->actingAs($secretaire)
+            ->getJson('/api/v1/kpi/objectifs')
+            ->assertForbidden();
+    }
+
     public function test_upsert_objectif_ca_ht(): void
     {
         $response = $this->actingAs($this->admin)

@@ -8,6 +8,11 @@ use App\Models\User;
 
 class SettingPolicy
 {
+    public function viewAny(User $user): bool
+    {
+        return $user->hasAnyRole(['admin', 'secretaire', 'collaborateur']);
+    }
+
     public function update(User $user): bool
     {
         return $user->hasRole('admin');

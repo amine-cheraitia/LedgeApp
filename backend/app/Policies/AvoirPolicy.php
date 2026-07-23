@@ -9,9 +9,14 @@ use App\Models\User;
 
 class AvoirPolicy
 {
-    public function create(User $user): bool
+    public function viewAny(User $user): bool
     {
         return $user->hasAnyRole(['admin', 'secretaire']);
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->hasRole('admin');
     }
 
     public function delete(User $user, Avoir $avoir): bool

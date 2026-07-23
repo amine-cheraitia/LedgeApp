@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Api;
 
+use App\Mail\RelanceClientMail;
+use App\Models\Avoir;
+use App\Models\Contact;
 use App\Models\Entreprise;
 use App\Models\Exercice;
 use App\Models\Facture;
@@ -96,7 +99,6 @@ class RelanceApiTest extends TestCase
             'montant_ht' => 94500,
             'taux_tva' => 19,
             'montant_tva' => 17955,
-            'montant_timbre' => 0,
             'montant_ttc' => 112455,
             'montant_paye' => 0,
             'statut_paiement' => 'en_attente',
@@ -145,6 +147,50 @@ class RelanceApiTest extends TestCase
         $this->assertCount(1, $response->json('data'));
     }
 
+    public function test_creances_excluent_facture_couverte_par_avoir_malgre_statut_desynchronise(): void
+    {
+        // Statut derive desynchronise (donnee anterieure au recalcul incluant
+        // les avoirs) : la facture reste 'en_attente' alors qu'un avoir couvre
+        // tout le TTC. La liste des creances filtre sur le restant REEL — la
+        // facture ne doit pas apparaitre (sinon : relance possible pour 0 DA).
+        $this->creerAvoirCouvrantTotalite();
+
+        $response = $this->actingAs($this->admin)
+            ->getJson('/api/v1/creances');
+
+        $response->assertOk();
+        $this->assertCount(0, $response->json('data'));
+    }
+
+    public function test_relance_refusee_sans_reste_a_payer_malgre_statut_desynchronise(): void
+    {
+        $this->creerAvoirCouvrantTotalite();
+
+        $response = $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$this->factureEnAttente->id}/relances", [
+                'niveau' => 1,
+            ]);
+
+        $response->assertStatus(422);
+        $this->assertDatabaseCount('relances', 0);
+    }
+
+    private function creerAvoirCouvrantTotalite(): void
+    {
+        Avoir::create([
+            'facture_origine_id' => $this->factureEnAttente->id,
+            'exercice_id' => $this->factureEnAttente->exercice_id,
+            'created_by' => $this->admin->id,
+            'numero' => 'FA'.date('Y').'-001',
+            'date_avoir' => date('Y').'-02-01',
+            'montant_ht' => 94500,
+            'taux_tva_snapshot' => 19,
+            'montant_tva' => 17955,
+            'montant_ttc' => 112455,
+            'motif' => 'Annulation commerciale',
+        ]);
+    }
+
     // -------------------------------------------------------------------------
     // US-28 — Relance manuelle
     // -------------------------------------------------------------------------
@@ -172,6 +218,70 @@ class RelanceApiTest extends TestCase
             'type' => 'manuelle',
             'statut' => 'envoyee',
         ]);
+    }
+
+    public function test_relance_manuelle_envoyee_au_contact_principal(): void
+    {
+        Mail::fake();
+
+        Contact::create([
+            'entreprise_id' => $this->factureEnAttente->entreprise->id,
+            'nom' => 'Diallo',
+            'email' => 'contact.principal@example.com',
+            'est_principal' => true,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$this->factureEnAttente->id}/relances", ['niveau' => 1]);
+
+        $response->assertCreated();
+        // Le contact principal prime sur l'email general de l'entreprise
+        $this->assertEquals('contact.principal@example.com', $response->json('data.email_destinataire'));
+
+        Mail::assertSent(RelanceClientMail::class, fn (RelanceClientMail $mail) => $mail->hasTo('contact.principal@example.com'));
+    }
+
+    public function test_relance_manuelle_refusee_si_aucune_adresse(): void
+    {
+        Mail::fake();
+
+        // Ni contact principal, ni email entreprise
+        $this->factureEnAttente->entreprise->update(['email' => null]);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$this->factureEnAttente->id}/relances", ['niveau' => 1])
+            ->assertStatus(422);
+
+        Mail::assertNothingSent();
+        $this->assertDatabaseCount('relances', 0);
+    }
+
+    public function test_envoi_relances_est_limite_par_throttle(): void
+    {
+        Mail::fake();
+
+        // throttle:6,1 -> les 6 premieres passent, la 7e dans la minute est bloquee (429)
+        for ($i = 0; $i < 6; $i++) {
+            $this->actingAs($this->admin)
+                ->postJson("/api/v1/factures/{$this->factureEnAttente->id}/relances", ['niveau' => 1]);
+        }
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$this->factureEnAttente->id}/relances", ['niveau' => 1])
+            ->assertStatus(429);
+    }
+
+    public function test_relance_echec_envoi_renvoie_422_et_ne_persiste_pas(): void
+    {
+        // Simule une panne d'envoi (SMTP/config) : la reponse doit etre propre (422), pas un 500,
+        // et la relance ne doit pas etre persistee (rollback de la transaction).
+        Mail::shouldReceive('to')->andThrow(new \RuntimeException('smtp down'));
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$this->factureEnAttente->id}/relances", ['niveau' => 1])
+            ->assertStatus(422);
+
+        $this->assertDatabaseCount('relances', 0);
     }
 
     public function test_cannot_send_relance_on_facture_soldee(): void

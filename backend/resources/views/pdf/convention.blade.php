@@ -18,11 +18,19 @@
         .cover { text-align: center; padding: 30px 40px; }
         .cover-institutions { font-size: 9pt; font-weight: bold; margin-bottom: 30px; line-height: 1.8; }
         .cover-institutions p { text-decoration: underline; }
-        .cover-logo-box {
-            display: inline-block; background: #1e3a5f; color: #fff;
-            font-size: 28pt; font-weight: bold; width: 60px; height: 60px;
-            text-align: center; line-height: 60px; border-radius: 8px; margin-bottom: 4px;
+        /* Logo damier Ledge (identique facture/devis, teintes lisibles sur blanc).
+           Centrage horizontal : conteneur a largeur fixe (2 cellules de 26px
+           + 3 espacements de 3px = 61px) + margin auto — la seule technique
+           fiable sous dompdf (align/margin sur la table directement ne le sont pas). */
+        .cover-logo-wrap { width: 61px; margin: 0 auto 4px; }
+        .cover-logo-grid { border-collapse: separate; }
+        .cover-logo-grid td {
+            width: 26px;
+            height: 26px;
+            border-radius: 7px;
         }
+        .logo-light { background-color: #cbd5e1; }
+        .logo-dark  { background-color: #51607a; }
         .cover-cabinet-nom { font-size: 22pt; font-weight: bold; color: #1e3a5f; margin-bottom: 4px; }
         .cover-cabinet-sous { font-size: 9pt; color: #64748b; font-style: italic; margin-bottom: 30px; }
         .cover-ref { text-align: left; font-size: 10pt; font-weight: bold; margin-bottom: 40px; line-height: 1.8; }
@@ -82,7 +90,12 @@
             <p>Chambre Nationale des Commissaires aux Comptes</p>
         </div>
 
-        <div class="cover-logo-box">L</div>
+        <div class="cover-logo-wrap">
+            <table class="cover-logo-grid" cellpadding="0" cellspacing="3">
+                <tr><td class="logo-light"></td><td class="logo-dark"></td></tr>
+                <tr><td class="logo-dark"></td><td class="logo-light"></td></tr>
+            </table>
+        </div>
         <div class="cover-cabinet-nom">{{ $cabinet['nom'] }}</div>
         <div class="cover-cabinet-sous">{{ $cabinet['soustitre'] ?? 'Cabinet de comptabilité et commissariat aux comptes' }}</div>
 

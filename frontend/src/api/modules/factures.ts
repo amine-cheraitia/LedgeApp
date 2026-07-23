@@ -14,8 +14,9 @@ export interface FactureFilters {
 
 export interface FacturePayload {
   mission_id: number
+  exercice_id?: number
   date_facture: string
-  notes?: string | null
+  type_tva?: 'standard' | 'exonere'
 }
 
 export interface PaiementPayload {
@@ -41,6 +42,10 @@ export const facturesApi = {
 
   getPdf(id: number): Promise<Blob> {
     return api.get(`/factures/${id}/pdf`, { responseType: 'blob' }).then(r => r.data)
+  },
+
+  transmettre(id: number): Promise<{ message: string }> {
+    return api.post(`/factures/${id}/transmettre`).then(r => r.data)
   },
 
   delete(id: number): Promise<void> {

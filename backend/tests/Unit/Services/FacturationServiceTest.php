@@ -14,6 +14,7 @@ use App\Models\RegimeFiscal;
 use App\Models\TvaTaux;
 use App\Models\User;
 use App\Services\FacturationService;
+use App\Services\NumerotationService;
 use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -24,6 +25,8 @@ class FacturationServiceTest extends TestCase
     use RefreshDatabase;
 
     private FacturationService $service;
+
+    private NumerotationService $numerotation;
 
     private Exercice $exercice;
 
@@ -41,6 +44,7 @@ class FacturationServiceTest extends TestCase
         Role::create(['name' => 'client']);
 
         $this->service = app(FacturationService::class);
+        $this->numerotation = app(NumerotationService::class);
 
         $this->exercice = Exercice::factory()->create(['annee' => 2026, 'statut' => 'ouvert']);
 
@@ -82,7 +86,7 @@ class FacturationServiceTest extends TestCase
 
     public function test_generer_numero_premier_document(): void
     {
-        $numero = $this->service->genererNumero('FF', 'factures', $this->exercice);
+        $numero = $this->numerotation->genererNumero('FF', 'factures', $this->exercice);
 
         $this->assertEquals('FF2026-001', $numero);
     }
@@ -102,8 +106,8 @@ class FacturationServiceTest extends TestCase
 
     public function test_numerotation_independante_par_prefixe(): void
     {
-        $this->service->genererNumero('FF', 'factures', $this->exercice);
-        $numero = $this->service->genererNumero('FA', 'avoirs', $this->exercice);
+        $this->numerotation->genererNumero('FF', 'factures', $this->exercice);
+        $numero = $this->numerotation->genererNumero('FA', 'avoirs', $this->exercice);
 
         $this->assertEquals('FA2026-001', $numero);
     }
@@ -113,12 +117,44 @@ class FacturationServiceTest extends TestCase
         $exercice2025 = Exercice::factory()->create(['annee' => 2025, 'statut' => 'cloture']);
         $exercice2026 = $this->exercice;
 
-        $this->service->genererNumero('FF', 'factures', $exercice2025);
-        $this->service->genererNumero('FF', 'factures', $exercice2025);
+        $this->numerotation->genererNumero('FF', 'factures', $exercice2025);
+        $this->numerotation->genererNumero('FF', 'factures', $exercice2025);
 
-        $numero2026 = $this->service->genererNumero('FF', 'factures', $exercice2026);
+        $numero2026 = $this->numerotation->genererNumero('FF', 'factures', $exercice2026);
 
         $this->assertEquals('FF2026-001', $numero2026);
+    }
+
+    public function test_supprimer_la_derniere_facture_libere_le_numero(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $this->service->creerFacture(['mission_id' => $this->mission->id, 'date_facture' => '2026-01-10'], $admin->id);
+        $this->service->creerFacture(['mission_id' => $this->mission->id, 'date_facture' => '2026-02-10'], $admin->id);
+        $facture3 = $this->service->creerFacture(['mission_id' => $this->mission->id, 'date_facture' => '2026-03-10'], $admin->id);
+
+        $this->assertEquals('FF2026-003', $facture3->numero);
+
+        // Hard delete de la derniere : la ligne disparait physiquement
+        $this->service->supprimerFacture($facture3);
+        $this->assertDatabaseMissing('factures', ['id' => $facture3->id]);
+
+        // Le numero libere est reutilise, sans trou
+        $this->assertEquals('FF2026-003', $this->numerotation->genererNumero('FF', 'factures', $this->exercice));
+    }
+
+    public function test_supprimer_une_facture_non_derniere_est_refuse(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $facture1 = $this->service->creerFacture(['mission_id' => $this->mission->id, 'date_facture' => '2026-01-10'], $admin->id);
+        $this->service->creerFacture(['mission_id' => $this->mission->id, 'date_facture' => '2026-02-10'], $admin->id);
+        $this->service->creerFacture(['mission_id' => $this->mission->id, 'date_facture' => '2026-03-10'], $admin->id);
+
+        $this->expectException(DomainException::class);
+        $this->service->supprimerFacture($facture1);
     }
 
     // -------------------------------------------------------------------------
@@ -172,6 +208,24 @@ class FacturationServiceTest extends TestCase
 
         $this->expectException(DomainException::class);
         $this->service->creerFacture(['mission_id' => $this->mission->id, 'date_facture' => '2026-04-15'], $admin->id);
+    }
+
+    public function test_somme_des_trois_tranches_egale_le_prix_ht_avec_centimes(): void
+    {
+        // Prix avec centimes : la 3e tranche (solde exact) doit absorber l'arrondi
+        // pour que T1 + T2 + T3 == prix_ht (anti perte d'arrondi).
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        $this->mission->update(['prix_ht' => 100.01]);
+
+        $f1 = $this->service->creerFacture(['mission_id' => $this->mission->id, 'date_facture' => '2026-01-15'], $admin->id);
+        $f2 = $this->service->creerFacture(['mission_id' => $this->mission->id, 'date_facture' => '2026-02-15'], $admin->id);
+        $f3 = $this->service->creerFacture(['mission_id' => $this->mission->id, 'date_facture' => '2026-03-15'], $admin->id);
+
+        $somme = (float) $f1->montant_ht + (float) $f2->montant_ht + (float) $f3->montant_ht;
+
+        $this->assertEquals(100.01, round($somme, 2));
+        $this->assertEquals(40.01, (float) $f3->montant_ht); // 100.01 - 30.00 - 30.00
     }
 
     // -------------------------------------------------------------------------

@@ -17,20 +17,25 @@ import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
 import DatePicker from 'primevue/datepicker'
 import Textarea from 'primevue/textarea'
+import FactureDetailDrawer from '@/components/facturation/FactureDetailDrawer.vue'
 import { useFactures } from '@/composables/useFactures'
 import { useMissions } from '@/composables/useMissions'
 import { useExercices } from '@/composables/useExercices'
+import { useTvaTaux } from '@/composables/useTvaTaux'
+import { useAuthStore } from '@/stores/authStore'
 import { avoirsApi } from '@/api/modules/avoirs'
-import type { Facture, Avoir } from '@/types'
-import type { PaiementPayload } from '@/api/modules/factures'
+import { formatDA } from '@/utils/currency'
+import type { Facture, Avoir, Exercice } from '@/types'
 
 const toast = useToast()
 const confirm = useConfirm()
+const auth = useAuthStore()
 const { exercices, exerciceCourant, fetchExercices, fetchExerciceCourant } = useExercices()
+const exercicesOuverts = computed(() => exercices.value.filter((e: { statut: string }) => e.statut === 'ouvert'))
 
 const {
   factures, loading, totalRecords, filters,
-  fetchFactures, createFacture, deleteFacture, addPaiement, telechargerPdf,
+  fetchFactures, createFacture, deleteFacture, transmettreFacture, telechargerPdf,
   onPage, onSearch, onSort, setExercice,
 } = useFactures()
 
@@ -108,10 +113,22 @@ function confirmDeleteAvoir(avoir: Avoir) {
 // ---------- Dialog création facture ----------
 const dialogVisible = ref(false)
 const saving = ref(false)
+const { fetchTaux: fetchTvaTaux, tauxEnVigueur } = useTvaTaux()
+
 const form = reactive({
   mission_id: null as number | null,
+  exercice_id: null as number | null,
   date_facture: new Date() as Date,
-  notes: '',
+  type_tva: 'standard' as 'standard' | 'exonere',
+})
+
+const tvaOptions = computed(() => {
+  const std = tauxEnVigueur('standard', form.date_facture)
+  const exo = tauxEnVigueur('exonere', form.date_facture)
+  return [
+    { label: std !== null ? `Standard (${std} %)` : 'Standard', value: 'standard' },
+    { label: exo !== null ? `Exonere (${exo} %)` : 'Exonere (0 %)', value: 'exonere' },
+  ]
 })
 
 const dateEcheancePreview = computed(() => {
@@ -119,6 +136,24 @@ const dateEcheancePreview = computed(() => {
   const d = new Date(form.date_facture)
   d.setDate(d.getDate() + 45)
   return d.toLocaleDateString('fr-FR')
+})
+
+// Bornes du DatePicker : la date de facture doit rester dans l'exercice choisi.
+const exerciceObj = computed(() => exercices.value.find((e: Exercice) => e.id === form.exercice_id) ?? null)
+const dateMin = computed(() => (exerciceObj.value ? new Date(exerciceObj.value.date_ouverture) : undefined))
+const dateMax = computed(() => (exerciceObj.value ? new Date(exerciceObj.value.date_cloture) : undefined))
+
+// Au changement d'exercice : si la date sort des bornes, on la ramene dedans
+// (aujourd'hui si dans la plage, sinon le 1er jour de l'exercice).
+watch(() => form.exercice_id, () => {
+  const min = dateMin.value
+  const max = dateMax.value
+  if (!min || !max) return
+  const d = form.date_facture
+  if (!d || d < min || d > max) {
+    const today = new Date()
+    form.date_facture = today >= min && today <= max ? today : min
+  }
 })
 
 function trancheLabel(mission_id: number | null): string {
@@ -132,8 +167,9 @@ function trancheLabel(mission_id: number | null): string {
 
 function openCreate() {
   form.mission_id = null
+  form.exercice_id = exerciceCourant.value?.id ?? null
   form.date_facture = new Date()
-  form.notes = ''
+  form.type_tva = 'standard'
   dialogVisible.value = true
 }
 
@@ -143,8 +179,9 @@ async function onSubmitFacture() {
   try {
     await createFacture({
       mission_id: form.mission_id,
+      exercice_id: form.exercice_id ?? undefined,
       date_facture: toIsoDate(form.date_facture),
-      notes: form.notes || null,
+      type_tva: form.type_tva,
     })
     dialogVisible.value = false
   } catch (err: any) {
@@ -155,50 +192,13 @@ async function onSubmitFacture() {
   }
 }
 
-// ---------- Dialog paiement ----------
-const paiementDialogVisible = ref(false)
-const paiementSaving = ref(false)
-const paiementFacture = ref<Facture | null>(null)
-const paiementForm = reactive<PaiementPayload>({
-  montant: 0,
-  date_paiement: '',
-  mode_paiement: 'virement',
-  reference: null,
-  notes: null,
-})
-const datePaiement = ref<Date | null>(null)
+// ---------- Drawer paiement ----------
+const drawerVisible = ref(false)
+const drawerFacture = ref<Facture | null>(null)
 
-const modeOptions = [
-  { label: 'Virement', value: 'virement' },
-  { label: 'Cheque', value: 'cheque' },
-  { label: 'Autre', value: 'autre' },
-]
-
-function openPaiement(facture: Facture) {
-  paiementFacture.value = facture
-  paiementForm.montant = facture.montant_ttc - facture.montant_paye
-  paiementForm.mode_paiement = 'virement'
-  paiementForm.reference = null
-  paiementForm.notes = null
-  datePaiement.value = new Date()
-  paiementDialogVisible.value = true
-}
-
-async function onSubmitPaiement() {
-  if (!paiementFacture.value || !datePaiement.value) return
-  paiementSaving.value = true
-  try {
-    await addPaiement(paiementFacture.value.id, {
-      ...paiementForm,
-      date_paiement: toIsoDate(datePaiement.value),
-    })
-    paiementDialogVisible.value = false
-  } catch (err: any) {
-    const detail = err.response?.data?.message ?? 'Erreur lors du paiement.'
-    toast.add({ severity: 'error', summary: 'Erreur', detail, life: 5000 })
-  } finally {
-    paiementSaving.value = false
-  }
+function openDrawer(facture: Facture) {
+  drawerFacture.value = facture
+  drawerVisible.value = true
 }
 
 // ---------- Dialog avoir ----------
@@ -241,6 +241,11 @@ async function onSubmitAvoir() {
 }
 
 // ---------- Helpers ----------
+// Popup d'erreur de suppression (ex. facture non-derniere) : un modal laisse le
+// temps de lire le message (suggestion d'avoir), contrairement a un toast fugace.
+const deleteErrorVisible = ref(false)
+const deleteErrorMessage = ref('')
+
 function confirmDelete(facture: Facture) {
   confirm.require({
     message: `Supprimer la facture "${facture.numero}" ?`,
@@ -248,21 +253,40 @@ function confirmDelete(facture: Facture) {
     icon: 'pi pi-exclamation-triangle',
     acceptLabel: 'Supprimer',
     rejectLabel: 'Annuler',
-    accept: () => deleteFacture(facture.id),
+    accept: async () => {
+      try {
+        await deleteFacture(facture.id)
+      } catch (err: any) {
+        deleteErrorMessage.value = err.response?.data?.message ?? 'Suppression impossible.'
+        deleteErrorVisible.value = true
+      }
+    },
+  })
+}
+
+function confirmTransmettre(facture: Facture) {
+  confirm.require({
+    message: `Transmettre la facture "${facture.numero}" par mail au client (PDF joint) ?`,
+    header: 'Transmission de la facture',
+    icon: 'pi pi-envelope',
+    acceptLabel: 'Transmettre',
+    rejectLabel: 'Annuler',
+    accept: () => transmettreFacture(facture.id),
   })
 }
 
 function toIsoDate(d: Date | null): string {
   if (!d) return ''
-  return d.toISOString().split('T')[0]
+  // Date LOCALE (pas toISOString/UTC) : evite le decalage d'un jour en UTC+1
+  // et garantit que la date envoyee == la date affichee == la date du taux calcule.
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString('fr-FR')
-}
-
-function formatMontant(v: number) {
-  return Number(v).toLocaleString('fr-FR') + ' DA'
 }
 
 function statutPaiementColor(statut: string) {
@@ -289,20 +313,28 @@ onMounted(async () => {
   await fetchExercices()
   exerciceSelectionne.value = exerciceCourant.value?.id
   fetchFactures()
-  fetchMissions()
   fetchAvoirs()
+  // Selects du dialog « Nouvelle facture » (admin uniquement) : /missions et
+  // /referentiels/tva-taux sont interdits a la secretaire cote API (403).
+  // On ne les charge que pour l'admin — sinon toast d'erreur a chaque visite.
+  if (auth.isAdmin) {
+    fetchMissions()
+    fetchTvaTaux()
+  }
 })
 </script>
 
 <template>
   <div>
     <div class="page-header">
-      <h1>Factures &amp; Avoirs</h1>
-      <Button label="Nouvelle facture" icon="pi pi-plus" aria-label="Creer une facture" @click="openCreate" />
+      <div>
+        <h1>Factures &amp; Avoirs</h1>
+      </div>
+      <Button v-if="auth.isAdmin" label="Nouvelle facture" icon="pi pi-plus" aria-label="Creer une facture" @click="openCreate" />
     </div>
 
     <div class="page-toolbar">
-      <div class="toolbar-right">
+      <div class="toolbar-filters">
         <label for="f-exercice" class="sr-only">Filtrer par exercice</label>
         <Select
           id="f-exercice"
@@ -312,7 +344,7 @@ onMounted(async () => {
           optionValue="id"
           placeholder="Tous les exercices"
           showClear
-          style="width: 14rem"
+          class="toolbar-select"
         />
       </div>
     </div>
@@ -333,16 +365,20 @@ onMounted(async () => {
         <!-- ===== Tab Factures ===== -->
         <TabPanel value="factures">
           <div class="tab-toolbar">
-            <label for="search-factures" class="sr-only">Rechercher une facture</label>
-            <InputText
-              id="search-factures"
-              v-model="search"
-              placeholder="Rechercher par numero ou client..."
-              style="width: 22rem"
-            />
+            <div class="search-wrapper">
+              <label for="search-factures" class="sr-only">Rechercher une facture</label>
+              <i class="pi pi-search search-icon" aria-hidden="true" />
+              <InputText
+                id="search-factures"
+                v-model="search"
+                class="search-input"
+                placeholder="Rechercher par numero ou client..."
+              />
+            </div>
           </div>
 
-          <DataTable
+          <div class="table-card">
+          <DataTable aria-label="Liste des factures"
             :value="factures"
             :loading="loading"
             :paginator="true"
@@ -356,13 +392,17 @@ onMounted(async () => {
             dataKey="id"
             stripedRows
             removableSort
+            paginatorTemplate="CurrentPageReport PrevPageLink PageLinks NextPageLink"
+            currentPageReportTemplate="{totalRecords} résultat(s) · Page {currentPage} sur {totalPages}"
           >
-            <Column field="numero" header="Numero" sortable />
+            <Column field="numero" header="Numero" sortable>
+              <template #body="{ data }"><span class="cell-mono">{{ data.numero }}</span></template>
+            </Column>
             <Column header="Entreprise">
               <template #body="{ data }">{{ data.entreprise?.raison_sociale ?? '-' }}</template>
             </Column>
             <Column header="Mission">
-              <template #body="{ data }">{{ data.mission?.reference ?? '-' }}</template>
+              <template #body="{ data }"><span class="cell-mono">{{ data.mission?.reference ?? '-' }}</span></template>
             </Column>
             <Column field="date_facture" header="Date" sortable>
               <template #body="{ data }">{{ formatDate(data.date_facture) }}</template>
@@ -371,10 +411,10 @@ onMounted(async () => {
               <template #body="{ data }">{{ formatDate(data.date_echeance) }}</template>
             </Column>
             <Column field="montant_ttc" header="Montant TTC" sortable>
-              <template #body="{ data }">{{ formatMontant(data.montant_ttc) }}</template>
+              <template #body="{ data }"><span class="cell-mono">{{ formatDA(data.montant_ttc) }}</span></template>
             </Column>
             <Column header="Paye">
-              <template #body="{ data }">{{ formatMontant(data.montant_paye) }}</template>
+              <template #body="{ data }"><span class="cell-mono">{{ formatDA(data.montant_paye) }}</span></template>
             </Column>
             <Column header="Mode">
               <template #body="{ data }">{{ modePaiementLabel(data.mode_paiement) }}</template>
@@ -396,16 +436,27 @@ onMounted(async () => {
                   @click="telechargerPdf(data.id, data.numero)"
                 />
                 <Button
-                  v-if="data.statut_paiement !== 'solde'"
+                  v-if="auth.isAdmin || auth.isSecretaire"
+                  icon="pi pi-envelope"
+                  text
+                  rounded
+                  severity="info"
+                  aria-label="Transmettre la facture par mail au client"
+                  v-tooltip.top="'Transmettre par mail'"
+                  @click="confirmTransmettre(data)"
+                />
+                <Button
+                  v-if="auth.isAdmin || auth.isSecretaire"
                   icon="pi pi-wallet"
                   text
                   rounded
                   severity="success"
-                  aria-label="Enregistrer un paiement"
-                  v-tooltip.top="'Paiement'"
-                  @click="openPaiement(data)"
+                  aria-label="Voir les encaissements"
+                  v-tooltip.top="'Encaissements'"
+                  @click="openDrawer(data)"
                 />
                 <Button
+                  v-if="auth.isAdmin"
                   icon="pi pi-file-edit"
                   text
                   rounded
@@ -415,7 +466,7 @@ onMounted(async () => {
                   @click="openAvoir(data)"
                 />
                 <Button
-                  v-if="!data.paiements || data.paiements.length === 0"
+                  v-if="auth.isAdmin && (!data.paiements || data.paiements.length === 0)"
                   icon="pi pi-trash"
                   text
                   rounded
@@ -427,21 +478,26 @@ onMounted(async () => {
               </template>
             </Column>
           </DataTable>
+          </div>
         </TabPanel>
 
         <!-- ===== Tab Avoirs ===== -->
         <TabPanel value="avoirs">
           <div class="tab-toolbar">
-            <label for="search-avoirs" class="sr-only">Rechercher un avoir</label>
-            <InputText
-              id="search-avoirs"
-              v-model="avoirsSearch"
-              placeholder="Rechercher par numero ou client..."
-              style="width: 22rem"
-            />
+            <div class="search-wrapper">
+              <label for="search-avoirs" class="sr-only">Rechercher un avoir</label>
+              <i class="pi pi-search search-icon" aria-hidden="true" />
+              <InputText
+                id="search-avoirs"
+                v-model="avoirsSearch"
+                class="search-input"
+                placeholder="Rechercher par numero ou client..."
+              />
+            </div>
           </div>
 
-          <DataTable
+          <div class="table-card">
+          <DataTable aria-label="Liste des avoirs"
             :value="avoirs"
             :loading="avoirsLoading"
             :paginator="true"
@@ -451,10 +507,14 @@ onMounted(async () => {
             @page="onAvoirsPage"
             dataKey="id"
             stripedRows
+            paginatorTemplate="CurrentPageReport PrevPageLink PageLinks NextPageLink"
+            currentPageReportTemplate="{totalRecords} résultat(s) · Page {currentPage} sur {totalPages}"
           >
-            <Column field="numero" header="Numero" />
+            <Column field="numero" header="Numero">
+              <template #body="{ data }"><span class="cell-mono">{{ data.numero }}</span></template>
+            </Column>
             <Column header="Facture d'origine">
-              <template #body="{ data }">{{ data.facture_origine?.numero ?? '-' }}</template>
+              <template #body="{ data }"><span class="cell-mono">{{ data.facture_origine?.numero ?? '-' }}</span></template>
             </Column>
             <Column header="Client">
               <template #body="{ data }">{{ data.facture_origine?.entreprise?.raison_sociale ?? '-' }}</template>
@@ -463,10 +523,10 @@ onMounted(async () => {
               <template #body="{ data }">{{ formatDate(data.date_avoir) }}</template>
             </Column>
             <Column header="Montant HT">
-              <template #body="{ data }">{{ formatMontant(data.montant_ht) }}</template>
+              <template #body="{ data }"><span class="cell-mono">{{ formatDA(data.montant_ht) }}</span></template>
             </Column>
             <Column header="Montant TTC">
-              <template #body="{ data }">{{ formatMontant(data.montant_ttc) }}</template>
+              <template #body="{ data }"><span class="cell-mono">{{ formatDA(data.montant_ttc) }}</span></template>
             </Column>
             <Column header="Motif">
               <template #body="{ data }">
@@ -485,6 +545,7 @@ onMounted(async () => {
                   @click="avoirsApi.telechargerPdf(data.facture_origine_id, data.id, data.numero)"
                 />
                 <Button
+                  v-if="auth.isAdmin"
                   icon="pi pi-trash"
                   text
                   rounded
@@ -496,6 +557,7 @@ onMounted(async () => {
               </template>
             </Column>
           </DataTable>
+          </div>
         </TabPanel>
       </TabPanels>
     </Tabs>
@@ -508,6 +570,21 @@ onMounted(async () => {
       :style="{ width: '34rem' }"
     >
       <form @submit.prevent="onSubmitFacture" class="dialog-form">
+        <div v-if="auth.isAdmin" class="form-field">
+          <label for="f-exercice-create">Exercice *</label>
+          <Select
+            id="f-exercice-create"
+            v-model="form.exercice_id"
+            :options="exercicesOuverts"
+            optionLabel="annee"
+            optionValue="id"
+            placeholder="Exercice ouvert..."
+            required
+            fluid
+            aria-label="Sélectionner l'exercice fiscal"
+          />
+        </div>
+
         <div class="form-field">
           <label for="f-mission">Mission *</label>
           <Select
@@ -528,7 +605,7 @@ onMounted(async () => {
         <div class="form-row">
           <div class="form-field">
             <label for="f-date">Date facture *</label>
-            <DatePicker id="f-date" v-model="form.date_facture" dateFormat="dd/mm/yy" fluid />
+            <DatePicker id="f-date" v-model="form.date_facture" :minDate="dateMin" :maxDate="dateMax" dateFormat="dd/mm/yy" fluid />
           </div>
           <div class="form-field">
             <label>Echeance (auto)</label>
@@ -538,8 +615,15 @@ onMounted(async () => {
         </div>
 
         <div class="form-field">
-          <label for="f-notes">Notes</label>
-          <Textarea id="f-notes" v-model="form.notes" rows="2" fluid />
+          <label for="f-tva">Categorie TVA *</label>
+          <Select
+            id="f-tva"
+            v-model="form.type_tva"
+            :options="tvaOptions"
+            optionLabel="label"
+            optionValue="value"
+            fluid
+          />
         </div>
 
         <div class="dialog-actions">
@@ -568,11 +652,11 @@ onMounted(async () => {
         <div class="avoir-recap">
           <div class="recap-row">
             <span class="recap-label">Facture</span>
-            <span>{{ avoirFacture.numero }}</span>
+            <span class="cell-mono">{{ avoirFacture.numero }}</span>
           </div>
           <div class="recap-row">
             <span class="recap-label">Montant HT</span>
-            <span>{{ formatMontant(avoirFacture.montant_ht) }}</span>
+            <span class="cell-mono">{{ formatDA(avoirFacture.montant_ht) }}</span>
           </div>
         </div>
 
@@ -620,67 +704,49 @@ onMounted(async () => {
       </form>
     </Dialog>
 
-    <!-- Dialog paiement -->
+    <!-- Drawer encaissements -->
+    <FactureDetailDrawer
+      v-model="drawerVisible"
+      :facture="drawerFacture"
+      @paiement-changed="fetchFactures"
+    />
+
+    <!-- Popup : suppression refusee (facture non-derniere, paiement ou avoir lie) -->
     <Dialog
-      v-model:visible="paiementDialogVisible"
-      :header="`Paiement — ${paiementFacture?.numero}`"
+      v-model:visible="deleteErrorVisible"
+      header="Suppression impossible"
       :modal="true"
-      :style="{ width: '28rem' }"
+      :style="{ width: 'min(100vw - 2rem, 30rem)' }"
+      :closable="true"
     >
-      <form @submit.prevent="onSubmitPaiement" class="dialog-form">
-        <div class="form-field">
-          <label for="p-montant">Montant (DA) *</label>
-          <InputNumber
-            id="p-montant"
-            v-model="paiementForm.montant"
-            :min="0.01"
-            mode="decimal"
-            :minFractionDigits="2"
-            fluid
-          />
-          <small v-if="paiementFacture" class="hint">
-            Restant : {{ formatMontant(paiementFacture.montant_ttc - paiementFacture.montant_paye) }}
-          </small>
-        </div>
-
-        <div class="form-field">
-          <label for="p-date">Date paiement *</label>
-          <DatePicker id="p-date" v-model="datePaiement" dateFormat="dd/mm/yy" fluid />
-        </div>
-
-        <div class="form-field">
-          <label for="p-mode">Mode de paiement *</label>
-          <Select
-            id="p-mode"
-            v-model="paiementForm.mode_paiement"
-            :options="modeOptions"
-            optionLabel="label"
-            optionValue="value"
-            fluid
-          />
-        </div>
-
-        <div class="form-field">
-          <label for="p-ref">Reference</label>
-          <InputText id="p-ref" v-model="paiementForm.reference" fluid />
-        </div>
-
-        <div class="dialog-actions">
-          <Button label="Annuler" severity="secondary" text @click="paiementDialogVisible = false" type="button" />
-          <Button
-            type="submit"
-            label="Enregistrer"
-            icon="pi pi-check"
-            :loading="paiementSaving"
-            :disabled="!datePaiement || !paiementForm.montant"
-          />
-        </div>
-      </form>
+      <div class="delete-error-body" role="alert" aria-live="assertive">
+        <i class="pi pi-exclamation-triangle delete-error-icon" aria-hidden="true" />
+        <p class="delete-error-text">{{ deleteErrorMessage }}</p>
+      </div>
+      <template #footer>
+        <Button label="Fermer" icon="pi pi-check" @click="deleteErrorVisible = false" />
+      </template>
     </Dialog>
   </div>
 </template>
 
 <style scoped>
+.delete-error-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.delete-error-icon {
+  font-size: 1.5rem;
+  color: var(--p-orange-500, #f97316);
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+.delete-error-text {
+  margin: 0;
+  line-height: 1.55;
+  color: var(--p-text-color);
+}
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -689,14 +755,52 @@ onMounted(async () => {
 }
 .page-toolbar {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.toolbar-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  flex: 1;
 }
 .tab-toolbar {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1rem;
   margin-top: 1rem;
+}
+
+/* ── Barre de recherche façon maquette : large, arrondie, pleine largeur ── */
+.search-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 16rem;
+}
+.search-icon {
+  position: absolute;
+  left: 0.95rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--p-text-muted-color);
+  pointer-events: none;
+}
+.search-input {
+  width: 100%;
+  height: 2.9rem;
+  padding-left: 2.6rem;
+  border-radius: 10px;
+}
+/* Filtres harmonises sur la meme hauteur/arrondi que la recherche */
+.toolbar-select {
+  min-width: 11rem;
+  height: 2.9rem;
+  border-radius: 10px;
+  align-items: center;
 }
 .tab-badge {
   display: inline-flex;
@@ -723,6 +827,11 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* Charte chiffres : montants et numeros de documents en police mono */
+.cell-mono {
+  font-family: var(--ledge-ff-mono);
+  letter-spacing: var(--ledge-letter-spacing-mono);
 }
 .dialog-form { display: flex; flex-direction: column; gap: 0.75rem; }
 .form-field { display: flex; flex-direction: column; gap: 0.25rem; flex: 1; }
@@ -754,7 +863,94 @@ onMounted(async () => {
 .recap-row { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
 .recap-label { font-size: 0.8rem; color: var(--p-text-muted-color); }
 
+/* ── Carte du tableau (maquette : bloc arrondi legerement eleve) ────────── */
+.table-card {
+  border: 1px solid var(--p-surface-200);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--p-surface-0);
+}
+.app-dark .table-card {
+  border-color: color-mix(in srgb, var(--p-surface-700) 55%, transparent);
+  background: color-mix(in srgb, var(--p-surface-800) 62%, var(--p-surface-900));
+}
+
+/* En-tetes de colonnes : petites capitales espacees, fond distinct (maquette) */
+.table-card :deep(.p-datatable-thead > tr > th) {
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--p-text-muted-color);
+  background: var(--p-surface-100);
+}
+.app-dark .table-card :deep(.p-datatable-thead > tr > th) {
+  background: color-mix(in srgb, var(--p-surface-700) 45%, var(--p-surface-900));
+}
+
+/* Transition douce du survol des lignes (150ms, colors only) */
+.table-card :deep(.p-datatable-tbody > tr) {
+  transition: background-color 0.15s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .table-card :deep(.p-datatable-tbody > tr) { transition: none; }
+}
+
+/* ── Zebrage charte : alternance « un peu clair / plus fonce » ─────────── */
+/* Point cle : la DataTable PrimeVue peint ses propres fonds OPAQUES (lignes,
+   paginator) qui masquaient la carte -> on rend la table transparente dans
+   .table-card et la charte peint tout (carte, zebrage, survol). */
+.table-card :deep(.p-datatable),
+.table-card :deep(.p-datatable-table),
+.table-card :deep(.p-datatable-tbody > tr),
+.table-card :deep(.p-paginator) {
+  background: transparent;
+}
+
+.table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-100) 65%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-700) 28%, transparent);
+}
+/* Le survol doit rester lisible par-dessus le zebrage (les deux modes) */
+.table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-200) 60%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-600) 30%, transparent);
+}
+
+/* ── Pagination : rapport + numeros de page centres ─────────────────────── */
+.table-card :deep(.p-paginator) {
+  justify-content: center;
+  gap: 0.75rem;
+  border-top: 1px solid color-mix(in srgb, var(--p-surface-500) 25%, transparent);
+}
+.table-card :deep(.p-paginator-current) {
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .form-row { flex-direction: column; }
+  .page-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .toolbar-filters {
+    width: 100%;
+  }
+  .tab-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .search-wrapper {
+    min-width: 0;
+    width: 100%;
+  }
+  .toolbar-select {
+    width: 100%;
+  }
 }
 </style>

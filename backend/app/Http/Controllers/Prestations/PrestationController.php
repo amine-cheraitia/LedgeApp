@@ -5,23 +5,31 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Prestations;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Prestations\CalculerPrixRequest;
 use App\Http\Requests\Prestations\StorePrestationRequest;
 use App\Http\Requests\Prestations\UpdatePrestationRequest;
 use App\Http\Resources\Prestations\PrestationResource;
 use App\Models\Prestation;
+use App\Services\PrestationService;
+use DomainException;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class PrestationController extends Controller
 {
+    public function __construct(private readonly PrestationService $prestationService) {}
+
     public function index(): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Prestation::class);
+
         return PrestationResource::collection(Prestation::all());
     }
 
     public function show(Prestation $prestation): PrestationResource
     {
+        $this->authorize('view', $prestation);
+
         return new PrestationResource($prestation);
     }
 
@@ -49,21 +57,18 @@ class PrestationController extends Controller
     {
         $this->authorize('delete', $prestation);
 
-        if ($prestation->missions()->exists()) {
-            return response()->json(['message' => 'Impossible de supprimer une prestation liee a des missions.'], 409);
+        try {
+            $this->prestationService->supprimer($prestation);
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
         }
-
-        $prestation->delete();
 
         return response()->json(['message' => 'Prestation supprimee.']);
     }
 
-    public function calculerPrix(Request $request, Prestation $prestation): JsonResponse
+    public function calculerPrix(CalculerPrixRequest $request, Prestation $prestation): JsonResponse
     {
-        $request->validate([
-            'regime_fiscal' => ['required', 'string'],
-            'categorie' => ['required', 'string'],
-        ]);
+        $this->authorize('viewAny', Prestation::class);
 
         $prixHt = $prestation->calculerPrixHt(
             $request->regime_fiscal,

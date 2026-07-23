@@ -24,27 +24,13 @@ class TvaTauxSeeder extends Seeder
         );
 
         DB::table('tva_taux')->updateOrInsert(
-            ['taux' => 9.00, 'type' => 'reduit'],
+            ['taux' => 0.00, 'type' => 'exonere'],
             [
-                'taux' => 9.00,
-                'designation' => 'TVA réduite LF 2023, art. 23',
+                'taux' => 0.00,
+                'designation' => 'TVA exonérée (prestations exonérées)',
                 'date_debut' => '2023-01-01',
                 'date_fin' => null,
-                'type' => 'reduit',
-                'actif' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
-
-        DB::table('timbre_taux')->updateOrInsert(
-            ['taux' => 1.00],
-            [
-                'taux' => 1.00,
-                'plafond' => 2500.00,
-                'designation' => 'Timbre fiscal LF 2024 (1%, plafonné 2 500 DA)',
-                'date_debut' => '2024-01-01',
-                'date_fin' => null,
+                'type' => 'exonere',
                 'actif' => true,
                 'created_at' => now(),
                 'updated_at' => now(),

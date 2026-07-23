@@ -15,8 +15,15 @@ class CalendarController extends Controller
 
     public function index(CalendarRequest $request): JsonResponse
     {
+        $filters = $request->validated();
+
+        // Collaborateur : forcer le filtre sur ses propres missions
+        if ($request->user()->hasRole('collaborateur')) {
+            $filters['collaborateur_id'] = $request->user()->id;
+        }
+
         return response()->json([
-            'data' => $this->calendarService->getEvents($request->validated()),
+            'data' => $this->calendarService->getEvents($filters),
         ]);
     }
 }

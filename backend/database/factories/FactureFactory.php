@@ -22,7 +22,6 @@ class FactureFactory extends Factory
             'exercice_id' => Exercice::factory(),
             'created_by' => User::factory(),
             'tva_taux_id' => null, // set in tests
-            'timbre_taux_id' => null, // set in tests
             'numero' => 'FF'.now()->year.'-'.str_pad(fake()->unique()->numberBetween(1, 999), 3, '0', STR_PAD_LEFT),
             'type' => 'FF',
             'date_facture' => now()->toDateString(),
@@ -30,11 +29,9 @@ class FactureFactory extends Factory
             'montant_ht' => fake()->randomFloat(2, 10000, 500000),
             'taux_tva' => 19.00,
             'montant_tva' => fake()->randomFloat(2, 1000, 100000),
-            'montant_timbre' => fake()->randomFloat(2, 100, 2500),
             'montant_ttc' => fake()->randomFloat(2, 15000, 600000),
             'montant_paye' => 0,
             'statut_paiement' => 'en_attente',
-            'notes' => null,
         ];
     }
 

@@ -1,11 +1,10 @@
-/* Reset + base mobile-first */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/* Base mobile-first.
+   NOTE : pas de reset universel ici — le preflight Tailwind v4 (@layer base)
+   fait deja `* { box-sizing: border-box; margin: 0; padding: 0 }`.
+   Un reset hors layer ecraserait TOUTES les utilities de spacing
+   (@layer utilities : ml-*, mt-*, p-*...) car en cascade CSS les styles
+   non-layerises priment sur les styles layerises. Symptome corrige :
+   libelles colles aux montants (ml-1 sans effet) sur les cartes KPI. */
 
 html {
   font-size: 100%;
@@ -13,17 +12,38 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--ledge-ff-body);
+  font-feature-settings: 'cv11' 1, 'ss03' 1;
   line-height: 1.5;
   color: var(--p-text-color);
-  background-color: var(--p-surface-ground);
+  background-color: var(--p-surface-100);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Focus visible pour accessibilité RGAA */
+.app-dark body {
+  background-color: var(--p-surface-900);
+}
+
+/* Focus visible pour accessibilité RGAA (bleu accent, visible light + dark) */
 :focus-visible {
-  outline: 3px solid var(--p-primary-color);
+  outline: 2px solid var(--ledge-accent);
   outline-offset: 2px;
+}
+
+/* Titre de page (h1) — base unique et sobre. Sans elle, le reset laissait les
+   h1 nus à la taille du texte courant (1rem) : titres illisibles sur toutes
+   les pages de liste. Échelle alignée sur le Dashboard (1.5rem / bold).
+   Les pages à identité propre (auth, portail dashboard, 404, fiche tâche)
+   gardent leur classe dédiée, de spécificité supérieure. */
+h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  margin: 0;
+  color: var(--p-text-color);
 }
 
 /* Skip to main content — RGAA */
@@ -31,7 +51,7 @@ body {
   position: absolute;
   top: -40px;
   left: 0;
-  background: var(--p-primary-color);
+  background: var(--ledge-brand-strong);
   color: white;
   padding: 0.5rem 1rem;
   z-index: 9999;
@@ -73,4 +93,26 @@ body {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* ================================================================
+   RGAA 3.2.1 / WCAG 1.4.3 — contraste des liens en mode sombre
+   En mode sombre, --p-primary-color = slate-600 (#475569) ne
+   contraste pas assez (2.4:1) sur les surfaces slate-900 (#0f172a).
+   On force les LIENS en couleur primaire vers slate-300 (#cbd5e1,
+   ~10:1). Les boutons/tags qui utilisent --p-primary-color en FOND
+   (avec texte blanc) ne sont pas concernes.
+   ================================================================ */
+.app-dark .text-primary {
+  color: #cbd5e1;
+}
+
+/* Meme defaut sur les Tabs PrimeVue : l'onglet ACTIF (texte primaire
+   slate-600) paraissait plus terne que les onglets inactifs en mode sombre
+   — hierarchie visuelle inversee. Libelle et barre active en slate-300. */
+.app-dark .p-tab.p-tab-active {
+  color: #cbd5e1;
+}
+.app-dark .p-tablist-active-bar {
+  background: #cbd5e1;
 }

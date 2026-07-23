@@ -9,9 +9,12 @@ use App\Models\Entreprise;
 use App\Models\Exercice;
 use App\Models\Facture;
 use App\Models\Mission;
+use App\Models\Paiement;
 use App\Models\Prestation;
+use App\Models\Relance;
 use App\Models\TvaTaux;
 use App\Models\User;
+use App\Services\FacturationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -79,7 +82,6 @@ class AvoirApiTest extends TestCase
             'montant_ht' => 94500,
             'taux_tva' => 19,
             'montant_tva' => 17955,
-            'montant_timbre' => 0,
             'montant_ttc' => 112455,
             'montant_paye' => 0,
             'statut_paiement' => 'en_attente',
@@ -220,5 +222,91 @@ class AvoirApiTest extends TestCase
             'date_avoir' => '2026-02-01',
             'motif' => 'Test',
         ])->assertStatus(401);
+    }
+
+    public function test_avoir_couvrant_le_total_solde_la_facture(): void
+    {
+        // Avoir de 94 500 HT => 112 455 TTC, egal au montant_ttc de la facture.
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$this->facture->id}/avoirs", [
+                'montant_ht' => 94500,
+                'date_avoir' => '2026-02-01',
+                'motif' => 'Annulation totale de la facture',
+            ])->assertCreated();
+
+        $this->facture->refresh();
+        $this->assertSame('solde', $this->facture->statut_paiement);
+        $this->assertEquals(0.0, round($this->facture->montantRestant(), 2));
+    }
+
+    public function test_paiement_partiel_puis_avoir_du_solde_soldent_la_facture(): void
+    {
+        // Paiement de 12 455, puis avoir couvrant les 100 000 restants (HT ~84 033,61).
+        Paiement::create([
+            'facture_id' => $this->facture->id,
+            'recorded_by' => $this->admin->id,
+            'montant' => 12455,
+            'date_paiement' => '2026-02-01',
+            'mode_paiement' => 'virement',
+        ]);
+        app(FacturationService::class)->recalculerStatutPaiement($this->facture);
+        $this->facture->refresh();
+        $this->assertSame('partiel', $this->facture->statut_paiement);
+
+        // Restant du = 100 000 TTC => HT = 100000 / 1.19 = 84033.61
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$this->facture->id}/avoirs", [
+                'montant_ht' => 84033.61,
+                'date_avoir' => '2026-02-10',
+                'motif' => 'Avoir du solde',
+            ])->assertCreated();
+
+        $this->facture->refresh();
+        $this->assertSame('solde', $this->facture->statut_paiement);
+    }
+
+    public function test_avoir_soldant_annule_les_relances_en_cours(): void
+    {
+        $relance = Relance::create([
+            'facture_id' => $this->facture->id,
+            'sent_by' => $this->admin->id,
+            'niveau' => 1,
+            'type' => 'manuelle',
+            'email_destinataire' => 'client@example.test',
+            'envoyee_le' => now(),
+            'statut' => 'en_attente',
+            'message' => 'Relance de test',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$this->facture->id}/avoirs", [
+                'montant_ht' => 94500,
+                'date_avoir' => '2026-02-01',
+                'motif' => 'Annulation totale',
+            ])->assertCreated();
+
+        $this->assertSame('annulee', $relance->fresh()->statut);
+    }
+
+    public function test_suppression_avoir_reevalue_le_statut(): void
+    {
+        $response = $this->actingAs($this->admin)
+            ->postJson("/api/v1/factures/{$this->facture->id}/avoirs", [
+                'montant_ht' => 94500,
+                'date_avoir' => '2026-02-01',
+                'motif' => 'Annulation totale',
+            ])->assertCreated();
+
+        $this->facture->refresh();
+        $this->assertSame('solde', $this->facture->statut_paiement);
+
+        $avoirId = ($response->json('data') ?? $response->json())['id'];
+        $this->actingAs($this->admin)
+            ->deleteJson("/api/v1/avoirs/{$avoirId}")
+            ->assertNoContent();
+
+        $this->facture->refresh();
+        $this->assertSame('en_attente', $this->facture->statut_paiement);
+        $this->assertEquals(112455.0, round($this->facture->montantRestant(), 2));
     }
 }

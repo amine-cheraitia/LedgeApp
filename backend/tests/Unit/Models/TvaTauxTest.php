@@ -70,4 +70,29 @@ class TvaTauxTest extends TestCase
         $this->assertNotNull($rate);
         $this->assertEquals(19, (float) $rate->taux);
     }
+
+    public function test_departage_deterministe_si_meme_date_debut(): void
+    {
+        // Deux taux du meme type a la meme date_debut : le plus recemment cree (id le plus grand) gagne.
+        TvaTaux::create([
+            'taux' => 19,
+            'designation' => 'Premier',
+            'date_debut' => '2026-06-18',
+            'type' => 'standard',
+            'actif' => true,
+        ]);
+
+        $second = TvaTaux::create([
+            'taux' => 21,
+            'designation' => 'Second',
+            'date_debut' => '2026-06-18',
+            'type' => 'standard',
+            'actif' => true,
+        ]);
+
+        $resolu = TvaTaux::enVigueurLe('2026-06-20');
+        $this->assertNotNull($resolu);
+        $this->assertEquals($second->id, $resolu->id);
+        $this->assertEquals(21, (float) $resolu->taux);
+    }
 }

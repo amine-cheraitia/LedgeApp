@@ -96,7 +96,9 @@ return [
         'users' => [
             'provider' => 'users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
-            'expire' => 60,
+            // Fenetre confortable pour une invitation (compte cree par l'admin) :
+            // le destinataire doit avoir le temps de relever ses mails. 24 h par defaut.
+            'expire' => (int) env('AUTH_PASSWORD_RESET_EXPIRE', 1440),
             'throttle' => 60,
         ],
     ],

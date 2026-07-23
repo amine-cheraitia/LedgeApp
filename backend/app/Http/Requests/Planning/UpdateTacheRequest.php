@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Planning;
 
+use App\Http\Requests\Planning\Concerns\ValidatesTacheDates;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateTacheRequest extends FormRequest
 {
+    use ValidatesTacheDates;
+
     public function authorize(): bool
     {
         return true;
@@ -18,13 +21,20 @@ class UpdateTacheRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        return array_merge([
             'titre' => ['sometimes', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
+            'assigned_to' => ['nullable', 'integer', 'exists:users,id', $this->assignableRule()],
             'statut' => ['sometimes', 'in:a_faire,en_cours,terminee,bloquee'],
-            'date_echeance' => ['nullable', 'date'],
-            'priorite' => ['sometimes', 'integer', 'min:1', 'max:5'],
-        ];
+            'priorite' => ['sometimes', 'integer', 'min:1', 'max:4'],
+        ], $this->tacheDateRules());
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return $this->tacheDateMessages();
     }
 }

@@ -57,6 +57,8 @@ class CalendarService
             'date_fin' => $m->date_fin?->toDateString(),
             'statut' => $m->statut,
             'prix_ht' => (float) $m->prix_ht,
+            'prestation_id' => $m->prestation_id,
+            'prestation_code' => $m->prestation?->code,
             'entreprise' => $m->entreprise?->raison_sociale,
             'prestation' => $m->prestation?->designation,
         ])->all();
@@ -64,9 +66,13 @@ class CalendarService
 
     private function fetchTaches(string $from, string $to, ?int $collaborateurId): array
     {
+        // La tache est une plage date_debut -> date_echeance (les 2 sont nullables).
+        // On garde celles qui chevauchent la fenetre : debut_effectif <= to ET fin_effective >= from.
+        // COALESCE est standard (compatible MySQL + SQLite) ; $from/$to passent en bindings.
         $query = Tache::with(['mission.entreprise', 'assignee'])
-            ->whereNotNull('date_echeance')
-            ->whereBetween('date_echeance', [$from, $to]);
+            ->where(fn ($q) => $q->whereNotNull('date_debut')->orWhereNotNull('date_echeance'))
+            ->whereRaw('COALESCE(date_debut, date_echeance) <= ?', [$to])
+            ->whereRaw('COALESCE(date_echeance, date_debut) >= ?', [$from]);
 
         if ($collaborateurId !== null) {
             $query->where('assigned_to', $collaborateurId);
@@ -76,12 +82,14 @@ class CalendarService
             'id' => $t->id,
             'type' => 'tache',
             'titre' => $t->titre,
+            'date_debut' => $t->date_debut?->toDateString(),
             'date_echeance' => $t->date_echeance?->toDateString(),
             'statut' => $t->statut,
             'priorite' => $t->priorite,
             'mission_id' => $t->mission_id,
             'mission_ref' => $t->mission?->reference,
             'entreprise' => $t->mission?->entreprise?->raison_sociale,
+            'assigned_to' => $t->assigned_to,
             'assignee' => $t->assignee?->name,
         ])->all();
     }

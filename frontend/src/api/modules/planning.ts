@@ -21,6 +21,8 @@ export interface CalendarMission {
   date_fin: string | null
   statut: Mission['statut']
   prix_ht: number
+  prestation_id: number | null
+  prestation_code: string | null
   entreprise: string | null
   prestation: string | null
 }
@@ -29,12 +31,14 @@ export interface CalendarTache {
   id: number
   type: 'tache'
   titre: string
-  date_echeance: string
+  date_debut: string | null
+  date_echeance: string | null
   statut: Tache['statut']
   priorite: number
   mission_id: number
   mission_ref: string | null
   entreprise: string | null
+  assigned_to: number | null
   assignee: string | null
 }
 

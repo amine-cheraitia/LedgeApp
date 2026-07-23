@@ -1,91 +1,83 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\StoreUserRequest;
+use App\Http\Requests\Auth\UpdateUserRequest;
+use App\Http\Resources\Auth\StaffSelectResource;
 use App\Http\Resources\Auth\UserResource;
 use App\Models\User;
+use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
 {
+    public function __construct(private readonly UserService $userService) {}
+
     public function index(Request $request): AnonymousResourceCollection
     {
-        $users = User::with('roles')
-            ->when($request->search, fn ($q, $s) => $q->where('name', 'like', "%{$s}%")->orWhere('email', 'like', "%{$s}%"))
-            ->when($request->role, fn ($q, $r) => $q->role($r))
-            ->latest()
-            ->paginate($request->per_page ?? 15);
+        $this->authorize('viewAny', User::class);
 
-        return UserResource::collection($users);
+        // Seul l'admin obtient l'annuaire complet (donnees sensibles) ; les autres
+        // roles ne voient que le personnel, en version minimale (selects d'assignation).
+        $estAdmin = $request->user()->hasRole('admin');
+
+        $users = $this->userService->listerAnnuaire(
+            $estAdmin,
+            $request->search,
+            $request->role,
+            (int) ($request->per_page ?? 15),
+        );
+
+        return $estAdmin
+            ? UserResource::collection($users)
+            : StaffSelectResource::collection($users);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreUserRequest $request): JsonResponse
     {
         $this->authorize('create', User::class);
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email'],
-            'password' => ['required', Password::defaults()],
-            'role' => ['required', 'string', 'exists:roles,name'],
-            'entreprise_id' => ['nullable', 'exists:entreprises,id'],
-            'portail_actif' => ['boolean'],
-        ]);
+        $result = $this->userService->creerStaff($request->validated());
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'entreprise_id' => $validated['entreprise_id'] ?? null,
-            'portail_actif' => $validated['portail_actif'] ?? false,
-        ]);
-
-        $user->assignRole($validated['role']);
-        $user->load('roles');
-
-        return (new UserResource($user))
+        return (new UserResource($result['user']))
+            ->additional(['invitation_url' => $result['invitation_url']])
             ->response()
             ->setStatusCode(201);
     }
 
     public function show(User $user): UserResource
     {
+        $this->authorize('view', $user);
+
         $user->load('roles', 'entreprise');
 
         return new UserResource($user);
     }
 
-    public function update(Request $request, User $user): UserResource
+    public function update(UpdateUserRequest $request, User $user): UserResource
     {
         $this->authorize('update', $user);
 
-        $validated = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'email' => ['sometimes', 'email', 'unique:users,email,'.$user->id],
-            'password' => ['sometimes', Password::defaults()],
-            'role' => ['sometimes', 'string', 'exists:roles,name'],
-            'entreprise_id' => ['nullable', 'exists:entreprises,id'],
-            'portail_actif' => ['boolean'],
+        return new UserResource($this->userService->mettreAJour($user, $request->validated()));
+    }
+
+    /**
+     * Renvoie une invitation (lien de definition de mot de passe) a un utilisateur.
+     */
+    public function renvoyerInvitation(User $user): JsonResponse
+    {
+        $this->authorize('update', $user);
+
+        return response()->json([
+            'message' => 'Invitation renvoyee a '.$user->email.'.',
+            'invitation_url' => $this->userService->renvoyerInvitation($user),
         ]);
-
-        if (isset($validated['password'])) {
-            $validated['password'] = Hash::make($validated['password']);
-        }
-
-        $user->update(collect($validated)->except('role')->toArray());
-
-        if (isset($validated['role'])) {
-            $user->syncRoles([$validated['role']]);
-        }
-
-        $user->load('roles');
-
-        return new UserResource($user);
     }
 
     public function destroy(User $user): JsonResponse

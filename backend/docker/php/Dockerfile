@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     libfreetype6-dev \
     libjpeg62-turbo-dev \
+    libicu-dev \
     zip \
     unzip \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
@@ -20,6 +21,7 @@ RUN apt-get update && apt-get install -y \
         pcntl \
         bcmath \
         gd \
+        intl \
         zip \
         opcache \
     && pecl install redis \

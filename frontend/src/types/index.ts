@@ -27,7 +27,7 @@ export interface Entreprise {
   telephone: string | null
   email: string | null
   contact_principal: string | null
-  statut: 'prospect' | 'client' | 'ancien_client'
+  statut: 'prospect' | 'client'
   notes: string | null
   missions_count?: number
   factures_count?: number
@@ -116,9 +116,33 @@ export interface Tache {
   titre: string
   description: string | null
   statut: 'a_faire' | 'en_cours' | 'terminee' | 'bloquee'
+  date_debut: string | null
   date_echeance: string | null
   priorite: number
   assignee?: User
+  created_at: string
+  updated_at: string
+}
+
+export interface TacheCommentaire {
+  id: number
+  tache_id: number
+  user_id: number
+  contenu: string
+  visible_portail: boolean
+  user?: Pick<User, 'id' | 'name'>
+  created_at: string
+  updated_at: string
+}
+
+export interface TvaTaux {
+  id: number
+  taux: number
+  designation: string
+  type: 'standard' | 'exonere'
+  date_debut: string
+  date_fin: string | null
+  actif: boolean
   created_at: string
   updated_at: string
 }
@@ -134,11 +158,10 @@ export interface Devis {
   date_validite: string
   prix_ht: number
   montant_ht: number
+  taux_tva: number
   montant_tva: number
-  montant_timbre: number
   montant_ttc: number
   statut: 'brouillon' | 'envoye' | 'accepte' | 'refuse' | 'expire'
-  notes: string | null
   entreprise?: Entreprise
   prestation?: Prestation
   created_at: string
@@ -164,24 +187,18 @@ export interface Facture {
   mission_id: number | null
   devis_id: number | null
   created_by: number
-  tva_rate_id: number | null
-  timbre_rate_id: number | null
   numero: string
   type: 'FF' | 'FA'
-  facture_origine_id: number | null
   date_facture: string
   date_echeance: string
   montant_ht: number
   taux_tva: number
   montant_tva: number
-  montant_timbre: number
   montant_ttc: number
   montant_paye: number
   statut_paiement: 'en_attente' | 'partiel' | 'solde'
   mode_paiement: 'virement' | 'cheque' | 'autre' | 'non_defini'
   montant_restant: number
-  pdf_path: string | null
-  notes: string | null
   entreprise?: Entreprise
   exercice?: Exercice
   mission?: Mission
@@ -231,14 +248,32 @@ export interface Paiement {
   id: number
   facture_id: number
   recorded_by: number
+  recorded_by_name?: string
   montant: number
   date_paiement: string
-  mode_paiement: 'virement' | 'cheque' | 'espece' | 'autre'
+  mode_paiement: 'virement' | 'cheque' | 'autre'
   reference: string | null
   notes: string | null
   facture?: Facture
   created_at: string
   updated_at: string
+}
+
+export type AuditEvent = 'created' | 'updated' | 'deleted'
+
+export interface Activity {
+  id: number
+  event: AuditEvent | null
+  description: string
+  log_name: string | null
+  subject_type: string
+  subject_id: number | null
+  causer: { id: number; name: string } | null
+  changes: {
+    attributes: Record<string, unknown>
+    old: Record<string, unknown>
+  }
+  created_at: string
 }
 
 export interface PaginatedResponse<T> {

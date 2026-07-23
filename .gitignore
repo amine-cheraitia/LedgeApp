@@ -12,7 +12,15 @@ Thumbs.db
 backend/.env
 backend/.env.backup
 backend/.env.production
-backend/.env.docker
+# .env.e2e : genere localement depuis .env.e2e.example (APP_KEY creee au
+# premier run des tests E2E) — jamais versionne, une cle fonctionnelle
+# n'a rien a faire dans git.
+backend/.env.e2e
+# .env.jury : variante de .env.docker avec identifiants SMTP de demonstration,
+# injectee uniquement dans le zip remis au jury — jamais versionnee.
+backend/.env.jury
+# backend/.env.docker : versionne volontairement — template de demo Docker,
+# sans secret reel (mots de passe admin et BDD injectes via docker-compose).
 backend/.phpactor.json
 backend/.phpunit.result.cache
 backend/.phpunit.cache
@@ -36,5 +44,14 @@ frontend/dist
 frontend/.env.local
 frontend/.env.*.local
 
-# Claude
-.claude/settings.local.json
+# Rapports de couverture de tests (generes a la demande)
+backend/coverage-html
+frontend/coverage
+
+# Playwright E2E (rapports + storageState authentifie, jamais versionnes)
+frontend/playwright-report/
+frontend/test-results/
+frontend/e2e/.auth/
+
+# Notes locales
+docs/notes/

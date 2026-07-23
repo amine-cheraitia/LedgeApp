@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConfirm } from 'primevue/useconfirm'
 import DataTable from 'primevue/datatable'
@@ -17,11 +17,14 @@ import { useEntreprises } from '@/composables/useEntreprises'
 import { usePrestations } from '@/composables/usePrestations'
 import { useUsers } from '@/composables/useUsers'
 import { useExercices } from '@/composables/useExercices'
+import { useAuthStore } from '@/stores/authStore'
+import { toIsoDate, parseIsoDate } from '@/utils/date'
 import type { Mission } from '@/types'
 import type { MissionPayload } from '@/api/modules/missions'
 
 const router = useRouter()
 const confirm = useConfirm()
+const auth = useAuthStore()
 const {
   missions, loading, totalRecords, filters,
   fetchMissions, createMission, updateMission, deleteMission,
@@ -54,24 +57,22 @@ const editForm = ref<{ collaborateur_ids: number[]; notes: string }>({
   notes: '',
 })
 
+const exercicesOuverts = computed(() => exercices.value.filter((e: { statut: string }) => e.statut === 'ouvert'))
+
 const form = ref<MissionPayload>({
   entreprise_id: 0,
   prestation_id: 0,
+  exercice_id: undefined,
   date_debut: '',
   date_fin: '',
   collaborateur_ids: [],
   notes: '',
 })
 
-function toIsoDate(d: Date | null): string {
-  if (!d) return ''
-  return d.toISOString().split('T')[0]
-}
-
 function openEdit(mission: Mission) {
   editMission.value = mission
-  editDateDebut.value = new Date(mission.date_debut)
-  editDateFin.value = mission.date_fin ? new Date(mission.date_fin) : null
+  editDateDebut.value = parseIsoDate(mission.date_debut)
+  editDateFin.value = mission.date_fin ? parseIsoDate(mission.date_fin) : null
   editForm.value.collaborateur_ids = mission.collaborateurs?.map((c: any) => c.id) ?? []
   editForm.value.notes = mission.notes ?? ''
   editDialogVisible.value = true
@@ -81,9 +82,10 @@ async function onSubmitEdit() {
   if (!editMission.value || !editDateDebut.value) return
   editSaving.value = true
   try {
+    // toIsoDate (utils/date) formate en LOCAL : pas de bascule J-1 via UTC
     await updateMission(editMission.value.id, {
-      date_debut: toIsoDate(editDateDebut.value),
-      date_fin: toIsoDate(editDateFin.value),
+      date_debut: toIsoDate(editDateDebut.value) ?? '',
+      date_fin: toIsoDate(editDateFin.value) ?? '',
       collaborateur_ids: editForm.value.collaborateur_ids,
       notes: editForm.value.notes,
     })
@@ -96,7 +98,15 @@ async function onSubmitEdit() {
 }
 
 function openCreate() {
-  form.value = { entreprise_id: 0, prestation_id: 0, date_debut: '', date_fin: '', collaborateur_ids: [], notes: '' }
+  form.value = {
+    entreprise_id: 0,
+    prestation_id: 0,
+    exercice_id: exerciceCourant.value?.id,
+    date_debut: '',
+    date_fin: '',
+    collaborateur_ids: [],
+    notes: '',
+  }
   dateDebut.value = null
   dateFin.value = null
   dialogVisible.value = true
@@ -107,8 +117,8 @@ async function onSubmit() {
   try {
     await createMission({
       ...form.value,
-      date_debut: toIsoDate(dateDebut.value),
-      date_fin: toIsoDate(dateFin.value),
+      date_debut: toIsoDate(dateDebut.value) ?? '',
+      date_fin: toIsoDate(dateFin.value) ?? '',
     })
     dialogVisible.value = false
   } catch {
@@ -120,7 +130,7 @@ async function onSubmit() {
 
 function confirmDelete(mission: Mission) {
   confirm.require({
-    message: `Supprimer la mission ${mission.reference} ?`,
+    message: `Êtes-vous sûr de vouloir supprimer la mission ${mission.reference} ? Cette action est irréversible et supprimera aussi ses tâches et commentaires.`,
     header: 'Confirmation',
     acceptLabel: 'Supprimer',
     rejectLabel: 'Annuler',
@@ -139,58 +149,74 @@ function statutSeverity(statut: string) {
   return map[statut] ?? 'secondary'
 }
 
+function statutLabel(statut: string) {
+  const map: Record<string, string> = {
+    en_cours: 'En cours', terminee: 'Terminée', suspendue: 'Suspendue', annulee: 'Annulée',
+  }
+  return map[statut] ?? statut
+}
+
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString('fr-FR')
 }
 
-function formatMontant(v: number) {
-  return new Intl.NumberFormat('fr-DZ').format(v) + ' DA'
-}
 
 onMounted(async () => {
-  await fetchExerciceCourant()
-  await fetchExercices()
-  exerciceSelectionne.value = exerciceCourant.value?.id
+  // Collaborateur : pas d'accès aux référentiels — on charge uniquement ses missions
+  if (!auth.isCollaborateur) {
+    await fetchExerciceCourant()
+    await fetchExercices()
+    exerciceSelectionne.value = exerciceCourant.value?.id
+    fetchEntreprises()
+    fetchPrestations()
+    fetchUsers()
+  }
   fetchMissions()
-  fetchEntreprises()
-  fetchPrestations()
-  fetchUsers()
 })
 </script>
 
 <template>
   <div>
     <div class="page-header">
-      <h1>Missions</h1>
-      <Button label="Nouvelle mission" icon="pi pi-plus" @click="openCreate" />
+      <div>
+        <h1>Missions</h1>
+        <p v-if="totalRecords" class="page-compteurs">
+          {{ totalRecords }} mission{{ totalRecords > 1 ? 's' : '' }}
+        </p>
+      </div>
+      <Button v-if="!auth.isCollaborateur" label="Nouvelle mission" icon="pi pi-plus" aria-label="Créer une nouvelle mission" @click="openCreate" />
     </div>
 
     <div class="page-toolbar">
-      <div class="toolbar-left">
-        <label for="m-search" class="sr-only">Rechercher une mission</label>
-        <InputText
-          id="m-search"
-          v-model="search"
-          placeholder="Rechercher par reference ou client..."
-          style="width: 22rem"
-        />
-      </div>
-      <div class="toolbar-right">
-        <label for="m-exercice" class="sr-only">Filtrer par exercice</label>
-        <Select
-          id="m-exercice"
-          v-model="exerciceSelectionne"
-          :options="exercices"
-          optionLabel="annee"
-          optionValue="id"
-          placeholder="Tous les exercices"
-          showClear
-          style="width: 14rem"
-        />
+      <div class="toolbar-filters">
+        <div class="search-wrapper">
+          <label for="m-search" class="sr-only">Rechercher une mission</label>
+          <i class="pi pi-search search-icon" aria-hidden="true" />
+          <InputText
+            id="m-search"
+            v-model="search"
+            class="search-input"
+            placeholder="Reference, client…"
+          />
+        </div>
+        <template v-if="!auth.isCollaborateur">
+          <label for="m-exercice" class="sr-only">Filtrer par exercice</label>
+          <Select
+            id="m-exercice"
+            v-model="exerciceSelectionne"
+            :options="exercices"
+            optionLabel="annee"
+            optionValue="id"
+            placeholder="Tous les exercices"
+            showClear
+            class="toolbar-select"
+          />
+        </template>
       </div>
     </div>
 
-    <DataTable
+    <div class="table-card">
+    <DataTable aria-label="Liste des missions"
       :value="missions"
       :loading="loading"
       :paginator="true"
@@ -204,33 +230,67 @@ onMounted(async () => {
       dataKey="id"
       stripedRows
       removableSort
+      paginatorTemplate="CurrentPageReport PrevPageLink PageLinks NextPageLink"
+      currentPageReportTemplate="{totalRecords} résultat(s) · Page {currentPage} sur {totalPages}"
     >
-      <Column field="reference" header="Reference" sortable />
-      <Column header="Entreprise" sortField="entreprise_id">
-        <template #body="{ data }">{{ data.entreprise?.raison_sociale ?? '-' }}</template>
-      </Column>
-      <Column header="Prestation">
-        <template #body="{ data }">{{ data.prestation?.designation ?? '-' }}</template>
-      </Column>
-      <Column field="prix_ht" header="Prix HT" sortable>
-        <template #body="{ data }">{{ formatMontant(data.prix_ht) }}</template>
-      </Column>
-      <Column field="date_debut" header="Debut" sortable>
-        <template #body="{ data }">{{ formatDate(data.date_debut) }}</template>
-      </Column>
-      <Column field="statut" header="Statut" sortable>
-        <template #body="{ data }">
-          <Tag :value="data.statut" :severity="statutSeverity(data.statut)" />
+      <Column header="#" style="width: 3rem; min-width: 3rem">
+        <template #body="{ index }">
+          <span class="row-number">{{ ((filters.page ?? 1) - 1) * (filters.per_page ?? 15) + index + 1 }}</span>
         </template>
       </Column>
-      <Column header="Actions" style="width: 8rem">
+      <Column field="reference" header="N° de mission" sortable style="min-width: 10rem">
         <template #body="{ data }">
-          <Button icon="pi pi-eye" text rounded @click="goToDetail(data)" aria-label="Voir detail" v-tooltip.top="'Voir detail'" />
-          <Button icon="pi pi-pencil" text rounded severity="secondary" @click="openEdit(data)" aria-label="Modifier la mission" v-tooltip.top="'Modifier'" />
-          <Button icon="pi pi-trash" text rounded severity="danger" @click="confirmDelete(data)" aria-label="Supprimer" v-tooltip.top="'Supprimer'" />
+          <span class="mission-ref">{{ data.reference }}</span>
+        </template>
+      </Column>
+      <Column header="Raison sociale" sortField="entreprise_id" sortable style="min-width: 11rem">
+        <template #body="{ data }">{{ data.entreprise?.raison_sociale ?? '—' }}</template>
+      </Column>
+      <Column header="Prestation" style="min-width: 10rem">
+        <template #body="{ data }">{{ data.prestation?.designation ?? '—' }}</template>
+      </Column>
+      <Column field="date_debut" header="Date de début" sortable style="min-width: 9rem">
+        <template #body="{ data }">{{ formatDate(data.date_debut) }}</template>
+      </Column>
+      <Column field="date_fin" header="Date de fin" sortable class="col-date-fin" style="min-width: 9rem">
+        <template #body="{ data }">{{ data.date_fin ? formatDate(data.date_fin) : '—' }}</template>
+      </Column>
+      <Column field="statut" header="Statut" sortable style="min-width: 8rem">
+        <template #body="{ data }">
+          <Tag :value="statutLabel(data.statut)" :severity="statutSeverity(data.statut)" />
+        </template>
+      </Column>
+      <Column header="Actions" style="width: 9rem; min-width: 9rem">
+        <template #body="{ data }">
+          <div class="actions-cell">
+            <Button
+              icon="pi pi-eye"
+              text rounded severity="info" size="small"
+              aria-label="Voir le détail de la mission"
+              v-tooltip.top="'Voir le détail'"
+              @click="goToDetail(data)"
+            />
+            <Button
+              v-if="!auth.isCollaborateur"
+              icon="pi pi-pencil"
+              text rounded severity="secondary" size="small"
+              aria-label="Modifier la mission"
+              v-tooltip.top="'Modifier'"
+              @click="openEdit(data)"
+            />
+            <Button
+              v-if="!auth.isCollaborateur"
+              icon="pi pi-times"
+              text rounded severity="danger" size="small"
+              aria-label="Supprimer la mission"
+              v-tooltip.top="'Supprimer'"
+              @click="confirmDelete(data)"
+            />
+          </div>
         </template>
       </Column>
     </DataTable>
+    </div>
 
     <Dialog
       v-model:visible="dialogVisible"
@@ -239,6 +299,21 @@ onMounted(async () => {
       :style="{ width: '32rem' }"
     >
       <form @submit.prevent="onSubmit" class="dialog-form">
+        <div v-if="auth.isAdmin" class="form-field">
+          <label for="m-exercice-create">Exercice *</label>
+          <Select
+            id="m-exercice-create"
+            v-model="form.exercice_id"
+            :options="exercicesOuverts"
+            optionLabel="annee"
+            optionValue="id"
+            placeholder="Exercice ouvert..."
+            required
+            fluid
+            aria-label="Sélectionner l'exercice fiscal"
+          />
+        </div>
+
         <div class="form-field">
           <label for="m-entreprise">Entreprise *</label>
           <Select
@@ -362,8 +437,48 @@ onMounted(async () => {
   margin-bottom: 1rem;
   flex-wrap: wrap;
 }
-.toolbar-left { display: flex; gap: 0.5rem; align-items: center; }
-.toolbar-right { display: flex; gap: 0.5rem; align-items: center; }
+.toolbar-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+/* ── En-tete : compteur sous le titre (meme patron que les entreprises) ── */
+.page-compteurs {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+}
+
+/* ── Barre de recherche façon maquette : large, arrondie, pleine largeur ── */
+.search-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 16rem;
+}
+.search-icon {
+  position: absolute;
+  left: 0.95rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--p-text-muted-color);
+  pointer-events: none;
+}
+.search-input {
+  width: 100%;
+  height: 2.9rem;
+  padding-left: 2.6rem;
+  border-radius: 10px;
+}
+/* Filtres harmonises sur la meme hauteur/arrondi que la recherche */
+.toolbar-select {
+  min-width: 11rem;
+  height: 2.9rem;
+  border-radius: 10px;
+  align-items: center;
+}
 .dialog-form {
   display: flex;
   flex-direction: column;
@@ -380,5 +495,115 @@ onMounted(async () => {
   justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 0.5rem;
+}
+
+/* ── Table ──────────────────────────────────────────────────────────────────── */
+.row-number {
+  font-size: 0.78rem;
+  color: var(--p-text-muted-color);
+  font-weight: 500;
+}
+
+.mission-ref {
+  font-weight: 600;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.actions-cell {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.15rem;
+  align-items: center;
+}
+
+/* ── Carte du tableau (maquette : bloc arrondi legerement eleve) ────────── */
+.table-card {
+  border: 1px solid var(--p-surface-200);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--p-surface-0);
+}
+.app-dark .table-card {
+  border-color: color-mix(in srgb, var(--p-surface-700) 55%, transparent);
+  background: color-mix(in srgb, var(--p-surface-800) 62%, var(--p-surface-900));
+}
+
+/* En-tetes de colonnes : petites capitales espacees, fond distinct (maquette) */
+.table-card :deep(.p-datatable-thead > tr > th) {
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--p-text-muted-color);
+  background: var(--p-surface-100);
+}
+.app-dark .table-card :deep(.p-datatable-thead > tr > th) {
+  background: color-mix(in srgb, var(--p-surface-700) 45%, var(--p-surface-900));
+}
+
+/* Transition douce du survol des lignes (150ms, colors only) */
+.table-card :deep(.p-datatable-tbody > tr) {
+  transition: background-color 0.15s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .table-card :deep(.p-datatable-tbody > tr) { transition: none; }
+}
+
+/* ── Zebrage charte : alternance « un peu clair / plus fonce » ─────────── */
+/* Point cle : la DataTable PrimeVue peint ses propres fonds OPAQUES (lignes,
+   paginator) qui masquaient la carte -> on rend la table transparente dans
+   .table-card et la charte peint tout (carte, zebrage, survol). */
+.table-card :deep(.p-datatable),
+.table-card :deep(.p-datatable-table),
+.table-card :deep(.p-datatable-tbody > tr),
+.table-card :deep(.p-paginator) {
+  background: transparent;
+}
+
+.table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-100) 65%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-700) 28%, transparent);
+}
+/* Le survol doit rester lisible par-dessus le zebrage (les deux modes) */
+.table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-200) 60%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-600) 30%, transparent);
+}
+
+/* ── Pagination : rapport + numeros de page centres ─────────────────────── */
+.table-card :deep(.p-paginator) {
+  justify-content: center;
+  gap: 0.75rem;
+  border-top: 1px solid color-mix(in srgb, var(--p-surface-500) 25%, transparent);
+}
+.table-card :deep(.p-paginator-current) {
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  :deep(.col-date-fin) { display: none; }
+}
+
+@media (max-width: 640px) {
+  .page-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .toolbar-filters {
+    width: 100%;
+  }
+  .search-wrapper {
+    min-width: 0;
+    width: 100%;
+  }
+  .toolbar-select {
+    width: 100%;
+  }
 }
 </style>

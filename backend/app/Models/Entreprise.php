@@ -1,15 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Entreprise extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, LogsActivity, SoftDeletes;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
     protected $fillable = [
         'raison_sociale', 'nif', 'nis', 'num_rc', 'article_imposition',
@@ -21,6 +33,17 @@ class Entreprise extends Model
     public function contacts(): HasMany
     {
         return $this->hasMany(Contact::class);
+    }
+
+    /**
+     * Adresse email a utiliser pour joindre l'entreprise : email du contact principal,
+     * a defaut l'email general de l'entreprise. Source unique pour devis/factures/relances.
+     */
+    public function emailDestinataire(): ?string
+    {
+        $principal = $this->contacts()->where('est_principal', true)->value('email');
+
+        return $principal ?: $this->email;
     }
 
     public function users(): HasMany
@@ -41,11 +64,6 @@ class Entreprise extends Model
     public function factures(): HasMany
     {
         return $this->hasMany(Facture::class);
-    }
-
-    public function documents(): HasMany
-    {
-        return $this->hasMany(Document::class);
     }
 
     public function isClient(): bool

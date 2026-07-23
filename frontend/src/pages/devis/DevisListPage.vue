@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -10,15 +10,18 @@ import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
 import MultiSelect from 'primevue/multiselect'
 import DatePicker from 'primevue/datepicker'
-import Textarea from 'primevue/textarea'
 import { useDevis } from '@/composables/useDevis'
 import { useEntreprises } from '@/composables/useEntreprises'
 import { usePrestations } from '@/composables/usePrestations'
 import { useUsers } from '@/composables/useUsers'
 import { useExercices } from '@/composables/useExercices'
+import { useTvaTaux } from '@/composables/useTvaTaux'
+import { useAuthStore } from '@/stores/authStore'
+import { formatDA } from '@/utils/currency'
 import type { Devis } from '@/types'
 
 const confirm = useConfirm()
+const auth = useAuthStore()
 const {
   devisList, loading, totalRecords, filters,
   fetchDevis, createDevis, updateDevis, envoyerDevis, accepterDevis, refuserDevis,
@@ -29,6 +32,7 @@ const { entreprises, fetchEntreprises } = useEntreprises()
 const { prestations, fetchPrestations } = usePrestations()
 const { users, fetchUsers } = useUsers()
 const { exercices, exerciceCourant, fetchExercices, fetchExerciceCourant } = useExercices()
+const { fetchTaux: fetchTvaTaux, tauxEnVigueur } = useTvaTaux()
 
 const search = ref('')
 const exerciceSelectionne = ref<number | undefined>(undefined)
@@ -37,14 +41,26 @@ watch(search, (val) => onSearch(val))
 watch(exerciceSelectionne, (val) => setExercice(val))
 
 // Dialog creation devis
+const exercicesOuverts = computed(() => exercices.value.filter((e: { statut: string }) => e.statut === 'ouvert'))
+
 const dialogVisible = ref(false)
 const saving = ref(false)
 const form = reactive({
   entreprise_id: null as number | null,
   prestation_id: null as number | null,
+  exercice_id: null as number | null,
   date_devis: null as Date | null,
   date_validite: null as Date | null,
-  notes: '',
+  type_tva: 'standard' as 'standard' | 'exonere',
+})
+
+const tvaOptions = computed(() => {
+  const std = tauxEnVigueur('standard', form.date_devis)
+  const exo = tauxEnVigueur('exonere', form.date_devis)
+  return [
+    { label: std !== null ? `Standard (${std} %)` : 'Standard', value: 'standard' },
+    { label: exo !== null ? `Exonere (${exo} %)` : 'Exonere (0 %)', value: 'exonere' },
+  ]
 })
 
 // Dialog modification devis
@@ -57,7 +73,6 @@ const editDevisForm = reactive({
   prestation_id: null as number | null,
   date_devis: null as Date | null,
   date_validite: null as Date | null,
-  notes: '',
 })
 
 // Dialog conversion en mission
@@ -91,11 +106,12 @@ watch(() => editDevisForm.date_devis, (newDate) => {
 
 function toIsoDate(d: Date | null): string {
   if (!d) return ''
-  return d.toISOString().split('T')[0]
-}
-
-function formatMontant(v: number) {
-  return Number(v).toLocaleString('fr-FR')
+  // Date LOCALE (pas toISOString/UTC) : evite le decalage d'un jour en UTC+1
+  // et garantit que la date envoyee == la date affichee == la date du taux calcule.
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 function statutColor(statut: string) {
@@ -112,9 +128,12 @@ function statutColor(statut: string) {
 function openCreate() {
   form.entreprise_id = null
   form.prestation_id = null
-  form.date_devis = null
+  form.exercice_id = exerciceCourant.value?.id ?? null
+  // Date du jour par defaut (comme la facture) : le taux courant s'affiche d'emblee
+  // et l'echeance (date_validite) est auto-remplie par le watcher.
+  form.date_devis = new Date()
   form.date_validite = null
-  form.notes = ''
+  form.type_tva = 'standard'
   dialogVisible.value = true
 }
 
@@ -125,9 +144,10 @@ async function onSubmit() {
     await createDevis({
       entreprise_id: form.entreprise_id,
       prestation_id: form.prestation_id,
+      exercice_id: form.exercice_id ?? undefined,
       date_devis: toIsoDate(form.date_devis),
       date_validite: toIsoDate(form.date_validite),
-      notes: form.notes || null,
+      type_tva: form.type_tva,
     })
     dialogVisible.value = false
   } catch {
@@ -144,7 +164,6 @@ function openEditDevis(devis: Devis) {
   editDevisForm.prestation_id = devis.prestation?.id ?? devis.prestation_id ?? null
   editDevisForm.date_devis = devis.date_devis ? new Date(devis.date_devis) : null
   editDevisForm.date_validite = devis.date_validite ? new Date(devis.date_validite) : null
-  editDevisForm.notes = devis.notes ?? ''
   editDevisVisible.value = true
 }
 
@@ -157,7 +176,6 @@ async function onSubmitEditDevis() {
       prestation_id: editDevisForm.prestation_id ?? undefined,
       date_devis: editDevisForm.date_devis ? toIsoDate(editDevisForm.date_devis) : undefined,
       date_validite: editDevisForm.date_validite ? toIsoDate(editDevisForm.date_validite) : undefined,
-      notes: editDevisForm.notes || undefined,
     })
     editDevisVisible.value = false
   } catch {
@@ -200,7 +218,18 @@ function confirmDelete(devis: Devis) {
     icon: 'pi pi-exclamation-triangle',
     acceptLabel: 'Supprimer',
     rejectLabel: 'Annuler',
-    accept: () => deleteDevis(devis.id),
+    accept: () => { void deleteDevis(devis.id).catch(() => {}) },
+  })
+}
+
+function confirmEnvoyer(devis: Devis) {
+  confirm.require({
+    message: `Envoyer le devis "${devis.numero}" par mail au client (PDF joint) ?`,
+    header: 'Envoi du devis',
+    icon: 'pi pi-send',
+    acceptLabel: 'Envoyer',
+    rejectLabel: 'Annuler',
+    accept: () => envoyerDevis(devis.id),
   })
 }
 
@@ -212,22 +241,36 @@ onMounted(async () => {
   fetchEntreprises()
   fetchPrestations()
   fetchUsers()
+  // Select TVA du dialog « Nouveau devis » (admin uniquement) : le referentiel
+  // est interdit a la secretaire cote API (403) -> charge pour l'admin seul.
+  if (auth.isAdmin) fetchTvaTaux()
 })
 </script>
 
 <template>
   <div>
     <div class="page-header">
-      <h2>Devis</h2>
-      <Button label="Nouveau devis" icon="pi pi-plus" @click="openCreate" />
+      <div>
+        <h1>Devis</h1>
+        <p v-if="totalRecords" class="page-compteurs">
+          {{ totalRecords }} devis
+        </p>
+      </div>
+      <Button v-if="auth.isAdmin" label="Nouveau devis" icon="pi pi-plus" @click="openCreate" />
     </div>
 
     <div class="page-toolbar">
-      <div class="toolbar-left">
-        <label for="search-devis" class="sr-only">Rechercher un devis</label>
-        <InputText id="search-devis" v-model="search" placeholder="Rechercher par numero ou client..." style="width: 22rem" />
-      </div>
-      <div class="toolbar-right">
+      <div class="toolbar-filters">
+        <div class="search-wrapper">
+          <label for="search-devis" class="sr-only">Rechercher un devis</label>
+          <i class="pi pi-search search-icon" aria-hidden="true" />
+          <InputText
+            id="search-devis"
+            v-model="search"
+            class="search-input"
+            placeholder="Rechercher par numero ou client..."
+          />
+        </div>
         <label for="dv-exercice" class="sr-only">Filtrer par exercice</label>
         <Select
           id="dv-exercice"
@@ -237,12 +280,13 @@ onMounted(async () => {
           optionValue="id"
           placeholder="Tous les exercices"
           showClear
-          style="width: 14rem"
+          class="toolbar-select"
         />
       </div>
     </div>
 
-    <DataTable
+    <div class="table-card">
+    <DataTable aria-label="Liste des devis"
       :value="devisList"
       :loading="loading"
       :paginator="true"
@@ -257,8 +301,14 @@ onMounted(async () => {
       responsiveLayout="scroll"
       stripedRows
       removableSort
+      paginatorTemplate="CurrentPageReport PrevPageLink PageLinks NextPageLink"
+      currentPageReportTemplate="{totalRecords} résultat(s) · Page {currentPage} sur {totalPages}"
     >
-      <Column field="numero" header="Numero" sortable />
+      <Column field="numero" header="Numero" sortable>
+        <template #body="{ data }">
+          <span class="cell-mono">{{ data.numero }}</span>
+        </template>
+      </Column>
       <Column header="Entreprise">
         <template #body="{ data }">
           {{ data.entreprise?.raison_sociale ?? '-' }}
@@ -271,14 +321,14 @@ onMounted(async () => {
       </Column>
       <Column field="date_devis" header="Date" sortable />
       <Column field="date_validite" header="Validite" sortable />
-      <Column field="prix_ht" header="Prix HT (DA)" sortable>
+      <Column field="prix_ht" header="Prix HT" sortable>
         <template #body="{ data }">
-          {{ formatMontant(data.prix_ht) }}
+          <span class="cell-mono">{{ formatDA(data.prix_ht) }}</span>
         </template>
       </Column>
-      <Column field="montant_ttc" header="Montant TTC (DA)" sortable>
+      <Column field="montant_ttc" header="Montant TTC" sortable>
         <template #body="{ data }">
-          {{ formatMontant(data.montant_ttc) }}
+          <span class="cell-mono">{{ formatDA(data.montant_ttc) }}</span>
         </template>
       </Column>
       <Column field="statut" header="Statut" sortable>
@@ -300,7 +350,7 @@ onMounted(async () => {
           />
           <!-- Brouillon : modifier + envoyer + supprimer -->
           <Button
-            v-if="data.statut === 'brouillon'"
+            v-if="data.statut === 'brouillon' && auth.isAdmin"
             icon="pi pi-pencil"
             text
             severity="secondary"
@@ -313,12 +363,12 @@ onMounted(async () => {
             icon="pi pi-send"
             text
             severity="info"
-            aria-label="Envoyer"
-            v-tooltip.top="'Envoyer'"
-            @click="envoyerDevis(data.id)"
+            aria-label="Envoyer le devis par mail au client"
+            v-tooltip.top="'Envoyer par mail'"
+            @click="confirmEnvoyer(data)"
           />
           <Button
-            v-if="data.statut === 'brouillon'"
+            v-if="data.statut === 'brouillon' && auth.isAdmin"
             icon="pi pi-trash"
             text
             severity="danger"
@@ -328,7 +378,7 @@ onMounted(async () => {
           />
           <!-- Envoye : accepter + refuser -->
           <Button
-            v-if="data.statut === 'envoye'"
+            v-if="data.statut === 'envoye' && auth.isAdmin"
             icon="pi pi-check-circle"
             text
             severity="success"
@@ -337,7 +387,7 @@ onMounted(async () => {
             @click="accepterDevis(data.id)"
           />
           <Button
-            v-if="data.statut === 'envoye'"
+            v-if="data.statut === 'envoye' && auth.isAdmin"
             icon="pi pi-times-circle"
             text
             severity="danger"
@@ -347,7 +397,7 @@ onMounted(async () => {
           />
           <!-- Accepte : convertir en mission -->
           <Button
-            v-if="data.statut === 'accepte'"
+            v-if="data.statut === 'accepte' && auth.isAdmin"
             icon="pi pi-arrow-right"
             text
             severity="warn"
@@ -358,6 +408,7 @@ onMounted(async () => {
         </template>
       </Column>
     </DataTable>
+    </div>
 
     <!-- Dialog creation devis -->
     <Dialog
@@ -367,6 +418,21 @@ onMounted(async () => {
       :style="{ width: '36rem' }"
     >
       <form @submit.prevent="onSubmit" class="dialog-form">
+        <div v-if="auth.isAdmin" class="form-field">
+          <label for="dv-exercice-create">Exercice *</label>
+          <Select
+            id="dv-exercice-create"
+            v-model="form.exercice_id"
+            :options="exercicesOuverts"
+            optionLabel="annee"
+            optionValue="id"
+            placeholder="Exercice ouvert..."
+            required
+            fluid
+            aria-label="Sélectionner l'exercice fiscal"
+          />
+        </div>
+
         <div class="form-field">
           <label for="dv-entreprise">Entreprise *</label>
           <Select
@@ -406,8 +472,15 @@ onMounted(async () => {
         </div>
 
         <div class="form-field">
-          <label for="dv-notes">Notes</label>
-          <Textarea id="dv-notes" v-model="form.notes" rows="2" fluid />
+          <label for="dv-tva">Categorie TVA *</label>
+          <Select
+            id="dv-tva"
+            v-model="form.type_tva"
+            :options="tvaOptions"
+            optionLabel="label"
+            optionValue="value"
+            fluid
+          />
         </div>
 
         <div class="dialog-actions">
@@ -461,11 +534,6 @@ onMounted(async () => {
             <label for="ed-validite">Date validite *</label>
             <DatePicker id="ed-validite" v-model="editDevisForm.date_validite" dateFormat="dd/mm/yy" :minDate="editDevisForm.date_devis ?? undefined" fluid />
           </div>
-        </div>
-
-        <div class="form-field">
-          <label for="ed-notes">Notes</label>
-          <Textarea id="ed-notes" v-model="editDevisForm.notes" rows="2" fluid />
         </div>
 
         <div class="dialog-actions">
@@ -530,15 +598,144 @@ onMounted(async () => {
   margin-bottom: 1rem;
 }
 .page-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
-.toolbar-left { display: flex; gap: 0.5rem; align-items: center; }
-.toolbar-right { display: flex; gap: 0.5rem; align-items: center; }
+.toolbar-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  flex: 1;
+}
 .dialog-form { display: flex; flex-direction: column; gap: 0.75rem; }
 .form-field { display: flex; flex-direction: column; gap: 0.25rem; flex: 1; }
 .form-field label { font-size: 0.875rem; font-weight: 500; }
 .form-row { display: flex; gap: 0.75rem; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
 
+/* ── En-tete : compteur sous le titre (meme patron que missions/entreprises) ── */
+.page-compteurs {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+}
+
+/* ── Barre de recherche façon maquette : large, arrondie, pleine largeur ── */
+.search-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 16rem;
+}
+.search-icon {
+  position: absolute;
+  left: 0.95rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--p-text-muted-color);
+  pointer-events: none;
+}
+.search-input {
+  width: 100%;
+  height: 2.9rem;
+  padding-left: 2.6rem;
+  border-radius: 10px;
+}
+/* Filtres harmonises sur la meme hauteur/arrondi que la recherche */
+.toolbar-select {
+  min-width: 11rem;
+  height: 2.9rem;
+  border-radius: 10px;
+  align-items: center;
+}
+
+/* ── Carte du tableau (maquette : bloc arrondi legerement eleve) ────────── */
+.table-card {
+  border: 1px solid var(--p-surface-200);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--p-surface-0);
+}
+.app-dark .table-card {
+  border-color: color-mix(in srgb, var(--p-surface-700) 55%, transparent);
+  background: color-mix(in srgb, var(--p-surface-800) 62%, var(--p-surface-900));
+}
+
+/* Chiffres en mono, regle charte : montants et numeros de devis */
+.cell-mono {
+  font-family: var(--ledge-ff-mono);
+  letter-spacing: var(--ledge-letter-spacing-mono);
+}
+
+/* En-tetes de colonnes : petites capitales espacees, fond distinct (maquette) */
+.table-card :deep(.p-datatable-thead > tr > th) {
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--p-text-muted-color);
+  background: var(--p-surface-100);
+}
+.app-dark .table-card :deep(.p-datatable-thead > tr > th) {
+  background: color-mix(in srgb, var(--p-surface-700) 45%, var(--p-surface-900));
+}
+
+/* Transition douce du survol des lignes (150ms, colors only) */
+.table-card :deep(.p-datatable-tbody > tr) {
+  transition: background-color 0.15s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .table-card :deep(.p-datatable-tbody > tr) { transition: none; }
+}
+
+/* ── Zebrage charte : alternance « un peu clair / plus fonce » ─────────── */
+/* Point cle : la DataTable PrimeVue peint ses propres fonds OPAQUES (lignes,
+   paginator) qui masquaient la carte -> on rend la table transparente dans
+   .table-card et la charte peint tout (carte, zebrage, survol). */
+.table-card :deep(.p-datatable),
+.table-card :deep(.p-datatable-table),
+.table-card :deep(.p-datatable-tbody > tr),
+.table-card :deep(.p-paginator) {
+  background: transparent;
+}
+
+.table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-100) 65%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr.p-row-odd) {
+  background: color-mix(in srgb, var(--p-surface-700) 28%, transparent);
+}
+/* Le survol doit rester lisible par-dessus le zebrage (les deux modes) */
+.table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-200) 60%, transparent);
+}
+.app-dark .table-card :deep(.p-datatable-tbody > tr:hover) {
+  background: color-mix(in srgb, var(--p-surface-600) 30%, transparent);
+}
+
+/* ── Pagination : rapport + numeros de page centres ─────────────────────── */
+.table-card :deep(.p-paginator) {
+  justify-content: center;
+  gap: 0.75rem;
+  border-top: 1px solid color-mix(in srgb, var(--p-surface-500) 25%, transparent);
+}
+.table-card :deep(.p-paginator-current) {
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .form-row { flex-direction: column; }
+  .page-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .toolbar-filters {
+    width: 100%;
+  }
+  .search-wrapper {
+    min-width: 0;
+    width: 100%;
+  }
+  .toolbar-select {
+    width: 100%;
+  }
 }
 </style>

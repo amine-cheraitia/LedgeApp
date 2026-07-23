@@ -14,11 +14,15 @@
         }
         .page { padding: 40px 50px 60px 50px; }
 
-        .logo-box {
-            display: inline-block; background: #1e3a5f; color: #fff;
-            font-size: 22pt; font-weight: bold; width: 50px; height: 50px;
-            text-align: center; line-height: 50px; border-radius: 6px;
+        /* Logo damier Ledge (identique facture/devis, teintes lisibles sur blanc) */
+        .logo-grid { border-collapse: separate; }
+        .logo-grid td {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
         }
+        .logo-light { background-color: #cbd5e1; }
+        .logo-dark  { background-color: #51607a; }
         .cabinet-nom { font-size: 20pt; font-weight: bold; color: #1e3a5f; }
         .cabinet-sous { font-size: 8.5pt; color: #64748b; font-style: italic; margin-bottom: 4px; }
         .header-sep { border-bottom: 2px solid #1e3a5f; margin-bottom: 30px; padding-bottom: 8px; }
@@ -56,8 +60,11 @@
     <div class="header-sep">
         <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
-                <td style="vertical-align: middle; padding-right: 10px; width: 56px;">
-                    <div class="logo-box">L</div>
+                <td style="vertical-align: middle; padding-right: 12px; width: 62px;">
+                    <table class="logo-grid" cellpadding="0" cellspacing="3">
+                        <tr><td class="logo-light"></td><td class="logo-dark"></td></tr>
+                        <tr><td class="logo-dark"></td><td class="logo-light"></td></tr>
+                    </table>
                 </td>
                 <td style="vertical-align: middle;">
                     <div class="cabinet-nom">{{ $cabinet['nom'] }}</div>

@@ -15,6 +15,7 @@ export interface MissionFilters {
 export interface MissionPayload {
   entreprise_id: number
   prestation_id: number
+  exercice_id?: number
   date_debut: string
   date_fin: string
   collaborateur_ids?: number[]
@@ -49,6 +50,10 @@ export const missionsApi = {
 
   delete(id: number): Promise<void> {
     return api.delete(`/missions/${id}`)
+  },
+
+  rapportPdfUrl(id: number): string {
+    return `/api/v1/missions/${id}/rapport/pdf`
   },
 
   conventionPdfUrl(id: number): string {

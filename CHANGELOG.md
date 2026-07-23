@@ -7,7 +7,1014 @@
 
 ---
 
-## [Unreleased]
+## [1.0.0] — 2026-07-23
+
+> **Première version stable de Ledge.** Périmètre fonctionnel complet du backlog (52 US · 190 pts) :
+> auth et rôles avec invitations, entreprises et contacts, exercices fiscaux, devis → missions → tâches,
+> facturation par tranches avec TVA historisée, avoirs, paiements et créances, relances manuelles et
+> automatiques, portail client isolé, planning calendrier, dashboards et statistiques, journal d'audit,
+> génération PDF, supervision — validé par 1 096 tests (497 backend / 599 frontend), audités RGAA et
+> OWASP, livré par la chaîne CI/CD ci-dessous. Le tag `v1.0.0` publie les images Docker de production
+> sur GHCR via le pipeline CD.
+
+### CI/CD — pipeline de livraison continue (images Docker de release) — ci/pipeline-cd
+
+Le projet dispose désormais d'une chaîne de **livraison continue sans serveur de déploiement** : à chaque tag `vX.Y.Z`, le workflow `cd.yml` ré-exécute l'intégralité des portes de qualité de la CI (workflow réutilisé via `workflow_call` : lint, 1 096 tests, gates de couverture, audits de dépendances bloquants, E2E Playwright), construit deux **images Docker de production**, les **scanne** (Trivy — vulnérabilités HIGH/CRITICAL corrigeables bloquantes, OS et dépendances embarquées), les **smoke-teste** (framework bootable, SPA servie) puis les **publie sur GitHub Container Registry** avec les tags SemVer + `latest`. Nouveaux artefacts :
+
+- `ledge-backend` — Dockerfile multi-stage : vendor Composer sans dev + autoloader optimisé (étape dédiée), php-fpm 8.3 + nginx embarqué (API autonome sur :8000), opcache production (`validate_timestamps=0`), caches Laravel appliqués **au démarrage** du conteneur (l'environnement n'est jamais figé dans l'image) ; migrations = étape de déploiement explicite.
+- `ledge-frontend` — build Vite figé servi par nginx ; proxy `/api`, `/sanctum`, `/storage`, `/up` vers `BACKEND_HOST` (variable d'environnement, résolution DNS à la requête : le conteneur démarre même sans backend joignable).
+
+Déclenchement manuel possible (`workflow_dispatch`, images `edge-<sha>`) pour valider le pipeline hors release. La stack de démonstration jury (`docker compose up`, `start-ledge`) est **inchangée**. Documentation : MANUEL-DEPLOIEMENT §3.5 (déploiement type par `docker pull`), ARCHITECTURE (section CI/CD), GITFLOW (phase 3 — release).
+
+### Docs — cohérence des documents de livraison — docs/nettoyage-livraison
+
+Remise en cohérence de l'ensemble des documents avec l'état réel du dépôt, suite à un audit complet de la documentation :
+
+- **`CONTEXT.md`** : retrait d'une note de travail obsolète, dates et deadline rafraîchies, tableau des sprints et compétences C4 passés à l'état réel (livré), 19 modèles Eloquent, versions BDD clarifiées par environnement (MySQL 8 Docker/prod, 9.1 WAMP dev), accès Docker documenté, mot de passe admin aligné sur le mécanisme `ADMIN_PASSWORD` (plus de valeur en dur).
+- **`GITFLOW.md`** : tableau de branches figé au démarrage remplacé par le workflow réel (une branche par US, PR systématique) + suivi des bogues tracés par issues GitHub (#20/#21/#22 → PR #23, #52 → PR #53) ; les deux mentions de déploiement automatique (staging/prod) retirées — la CI réelle fait lint, tests, audits et E2E.
+- **`BACKLOG.md`** : recalculé depuis les fiches (**52 US · 190 pts**, toutes livrées — badges manquants ajoutés sur US-24/35/38, US-51 passée ✅ dans le résumé).
+- **Chiffres de tests** alignés sur les suites réellement exécutées — **497 tests backend** (45 fichiers) et **599 tests frontend** (51 fichiers), total 1 096 — dans `README.md`, `STRATEGIE-TESTS.md`, `SECURITY.md` et `CAHIER-RECETTES.md`.
+- **`SECURITY.md`** : nouvel état daté du 23/07 consignant les remédiations de juillet (Guzzle/npm PR #97, dompdf PR #101) ; correction d'une affirmation fausse — les audits `composer audit` / `npm audit` de la CI sont **bloquants** (et l'ont prouvé), pas « non bloquants ».
+- **`ARCHITECTURE.md`** : 19 modèles, CI décrite fidèlement (PHP 8.3, 4 jobs dont gate de couverture, audits bloquants, E2E Playwright), section Tests refaite (45 fichiers back, 51 front, 4 specs E2E).
+- **`CAHIER-RECETTES.md`** : environnement de recette aligné sur la stack Docker de démonstration (celle du jury), RGA-05 passé ✅ (Lighthouse accessibilité mesuré à 100), compteurs STR-02/03 actualisés.
+- **`MANUEL-UTILISATION.md`** : ajout des sections manquantes **Planning**, **Statistiques** et **Journal d'audit** (rédigées depuis le code réel : rôles, filtres, onglets, comportements).
+- **Périmètre du dépôt resserré sur les livrables** : la documentation publique (`docs/` + README + CHANGELOG) devient l'unique référence du projet.
+- **`MANUEL-DEPLOIEMENT.md` / `README.md`** : durée du premier lancement réaliste (2 à 5 min), variante PowerShell pour surcharger `ADMIN_PASSWORD`.
+- **`CHANGELOG.md`** : purge d'un bloc « A faire » résiduel de mars listant des modules livrés depuis.
+- **Retrait des documents de travail internes** (plans de fonctionnalités livrées, notes de préparation, historique de travail, guide interne de conventions) qui n'avaient pas leur place dans la documentation produit livrée.
+
+### Fix — build Docker cassé par le lien symbolique `public/storage` — docs/demarrage-jury-docker
+
+Après un premier lancement de la stack, le `php artisan storage:link` de l'auto-initialisation crée `backend/public/storage`, lien symbolique vers un chemin interne au conteneur (`/var/www/storage/app/public`) — cassé vu de l'hôte. Tout `docker compose up --build` ultérieur échouait alors à l'envoi du contexte de build : `failed to solve: invalid file request public/storage` (reproduit deux fois sur le PC de démonstration jury). Correctif : le lien est exclu du contexte via `backend/.dockerignore` — le build n'en a pas besoin, l'entrypoint le recrée dans le conteneur à chaque démarrage. Entrée de dépannage ajoutée au manuel de déploiement (§1.7) avec le contournement PowerShell (`Remove-Item backend\public\storage -Force`) pour les copies du projet antérieures au correctif.
+
+### Sécurité — remédiation des advisories dompdf du 22/07 — fix/deps-audit-dompdf
+
+L'audit bloquant de la CI a détecté 2 advisories publiées le 22/07/2026 sur `dompdf/dompdf` < 3.1.6 (sévérité **low**) : CVE-2026-55554 — *Chroot Validation Bypass* (contournement de la restriction des fichiers locaux lisibles pendant le rendu) et CVE-2026-55555 — *File existence oracle via font-face* (une déclaration CSS `@font-face` piégée révèle l'existence de fichiers sur le serveur). **Impact réel sur Ledge : quasi nul** — les deux failles supposent du HTML/CSS attaquant-contrôlé, or les PDF (devis, factures, avoirs, conventions) sont rendus depuis des templates Blade internes avec styles et polices fixés par l'application ; l'utilisateur ne fournit que des données échappées. Remédiation conforme à la politique du projet (aucune advisory silencée) : `composer update dompdf/dompdf` → **3.1.6** (montée patch, lockfile seul, wrapper `barryvdh/laravel-dompdf` inchangé). `composer audit` repasse au vert ; suite backend re-exécutée et rendu PDF vérifié après mise à jour. Une 3e advisory dompdf parue dans la foulée (*Local file read via SVG*) est également couverte : elle ne touche que les versions < 3.1.6.
+
+### Docs — démarrage jury : prérequis Docker explicites — docs/demarrage-jury-docker
+
+Manuel de déploiement §1 : lien de téléchargement Docker Desktop, mention de l'installation WSL 2 au premier lancement sous Windows, rappel que Docker Desktop doit être démarré avant de lancer la stack, lancement depuis l'archive de livraison (`start-ledge`) documenté en plus du clone Git, et nouvelle entrée de dépannage (« docker n'est pas reconnu » / daemon injoignable → démarrer Docker Desktop). README : mêmes précisions dans les étapes jury (WSL 2, Docker Desktop démarré).
+
+### Fix — PDF devis : montant HT affiché à 0,00 DA — fix/pdf-devis-prix-ht
+
+Le template PDF du devis lisait encore `devis.montant_ht`, colonne supprimée le 08/07 par la migration `nettoyage_schema_mort` (doublon de `prix_ht`) : l'attribut mort renvoyait `null`, affiché « 0,00 DA » dans la cellule Prix HT **et** la ligne Montant HT des totaux — TVA et TTC restaient justes (leurs colonnes existent toujours), rendant le document incohérent. Correctif : le template lit `prix_ht` (source de vérité unique, alignée sur mission) ; retrait d'un `montant_ht` résiduel dans le setUp de `PdfEndpointsTest` ; **test de non-régression** qui rend la vue `pdf.devis` et vérifie les trois montants affichés (HT réel, TVA, TTC — toute cellule à zéro fait échouer le test). Seul le PDF devis était touché : factures, avoirs et rapports conservent leur colonne `montant_ht`.
+
+### Fix — extension PHP `intl` manquante dans l'image Docker — fix/docker-extension-intl
+
+La génération des PDF (montant en lettres via `NumberFormatter`, extension `intl`) échouait dans la stack Docker de démonstration : l'image PHP n'installait pas `intl`. Conséquences en cascade — téléchargement des PDF (devis, factures, avoirs, conventions) en erreur 500, et **envoi de devis impossible** (l'erreur PDF, avalée par le catch générique, s'affichait « Vérifiez la configuration d'envoi (SMTP) ») laissant le devis bloqué en brouillon, donc ni acceptable ni convertible en mission. Correctif : `libicu-dev` + `docker-php-ext-install intl` dans `backend/docker/php/Dockerfile` ; prérequis `intl` documenté (README, manuel de déploiement). La déclaration `ext-intl` dans `composer.json` est différée : Composer bloque toute re-résolution tant que les advisories Guzzle en cours n'ont pas de version corrigée (audit sécurité conservé actif, aucune advisory silencée).
+
+### Sécurité — remédiation des advisories du 20/07 (Guzzle + npm) — fix/deps-audit-guzzle-npm
+
+Les audits bloquants de la CI ont détecté 6 advisories publiées le 20/07/2026 : 4 sur `guzzlehttp/guzzle` (medium — cookies host-only, DoS cookies, fuite `Proxy-Authorization`) et 2 **high** sur des dépendances transitives frontend (`brace-expansion` — DoS ReDoS, `immutable` via sass — DoS). Remédiation conforme à la politique du projet (aucune advisory silencée) : `composer update guzzlehttp/guzzle` → **7.15.1** (version corrigée) et `npm audit fix` (lockfiles seuls, aucun changement de code). `composer audit` et `npm audit --audit-level=high` repassent au vert ; suites backend et frontend re-exécutées après mise à jour.
+
+### UI — chiffres en mono et formateur partagé sur tout le front — feature/tableau-entreprises-portail
+
+Application complète de la règle charte « chiffres en JetBrains Mono, montants via `utils/currency` » : les 7 derniers fichiers à formateur local (listes Devis et Factures & Avoirs, drawer des paiements, Prestations, fiche Entreprise, dialogue Planning, Factures du portail client) passent à `formatDA` (centimes affichés, « DA » systématique — y compris sur les devis qui l'omettaient) avec numéros de documents (DV/FF/FA/M) et NIF en mono. Cartes KPI de la fiche entreprise en format compact `formatDAKpi` avec montant exact en `title`/`aria-label`. Plus **aucun formateur de montant local** dans le front. En-têtes de colonnes devis épurés du « (DA) » devenu redondant.
+
+### UI — fiche entreprise en cartes charte et statuts libellés — feature/tableau-entreprises-portail
+
+Même traitement que la fiche mission : cartes KPI et sections d'infos (Coordonnées, Contacts, Notes) sur la **surface standard** (fond, bordure, rayon 12px, variantes dark), les 3 tableaux d'onglets en `table-card` complet (en-têtes petites capitales, zébrage/survol, `prefers-reduced-motion`), **l'orange de la carte Impayé remplacé par le rouge** (identité navy/slate sans orange), et les 4 familles de tags enfin libellées (Prospect/Client, En cours/Terminée…, Brouillon/Envoyé/Accepté…, En attente/Partiel/Soldé) au lieu des valeurs brutes `en_cours`. Tokens (`--ledge-danger`/`--ledge-accent`) en remplacement des hex à repli indigo d'une ancienne charte.
+
+### Fix — lisibilité des onglets en mode sombre — feature/tableau-entreprises-portail
+
+Deux défauts dark : la pastille de comptage des onglets de la fiche entreprise (fond `surface-200` clair figé + chiffre en `text-color` devenu blanc → invisible) est alignée sur la version correcte de Factures & Avoirs (tokens primaires auto-adaptés) ; et l'**onglet actif** des Tabs PrimeVue (texte primaire slate-600) paraissait plus terne que les onglets inactifs — hiérarchie inversée. Libellé et barre active passés en slate-300 en dark, dans le bloc `main.css` qui documentait déjà ce défaut pour les liens. Correction globale (fiche entreprise, Factures & Avoirs, Statistiques, Planning).
+
+### Fix — créances : le restant réel devient la source de vérité — feature/tableau-entreprises-portail
+
+Une facture au statut désynchronisé (donnée antérieure à la prise en compte des avoirs dans le recalcul) pouvait apparaître en créance avec **0 DA de restant dû** et être **relancée pour 0 DA** — y compris par le cron de relances automatiques.
+
+- **Backend** : `listerCreances()` filtre sur le restant réel (TTC − paiements − avoirs > 0) et non plus sur le seul statut ; relances manuelle **et** automatique refusées (422) sans reste à payer ; **migration de rattrapage** qui recalcule `statut_paiement`/`montant_paye` de toutes les factures selon la règle canonique. 2 tests de non-régression (exclusion de la liste, refus de relance) — suite **496 backend** verte.
+- **Frontend (page Créances)** : la colonne Retard ne ment plus — « échéance dans X j » en tag neutre pour les factures non échues (l'ancien `Math.max(0, …)` affichait « J+0 » un mois avant l'échéance), « J+X » réservé aux vrais retards ; bouton Relancer en navy charte (fini l'orange hors identité) ; carte « Total restant dû » adaptée au dark mode ; montants en `formatDA` partagé + mono (centimes affichés) ; un restant nul s'affiche grisé, jamais en rouge ; compteur redondant supprimé.
+
+### UI — base typographique unique pour les titres de page — feature/tableau-entreprises-portail
+
+Aucun style global n'existait pour les `h1` : le reset CSS les laissait à la taille du texte courant (1rem) sur la quasi-totalité des pages (listes, fiche mission…), trois pages compensant localement avec des valeurs divergentes (1.375 / 1.4 / 1.5rem). Une règle globale unique dans `main.css` (1.5rem · 700 · interlettrage −0.015em · couleur au token — l'échelle déjà utilisée par le Dashboard) s'applique désormais partout, back-office **et portail client** ; les overrides locaux divergents sont supprimés. Exceptions volontaires conservées : pages d'auth, 404/accès refusé, dashboard portail, titre de la fiche tâche (1.25rem + ellipsis pour les titres longs). Hiérarchie visuelle enfin alignée sur la hiérarchie sémantique (RGAA).
+
+### UX — dashboard collaborateur : salutation unique — feature/tableau-entreprises-portail
+
+Le sous-titre « Bienvenue, {prénom}. » de l'en-tête faisait doublon avec le « Bonjour, {prénom} » du bandeau héro juste en dessous : il est masqué pour le rôle collaborateur (le héro, plus riche — date, prénom, chips d'état — porte seul l'accueil ; admin et secrétaire, sans héro d'accueil, le conservent). Le `h1` « Tableau de bord » reste pour la structure et les lecteurs d'écran. Retrait au passage du glyphe « § » devant la date du héro (règle locale à la page).
+
+### Fix — donut « Répartition des tâches » du dashboard collaborateur — feature/tableau-entreprises-portail
+
+Les segments de l'anneau étaient déplacés/chevauchés (arcs empilés, segment majoritaire quasi invisible) : le motif `stroke-dasharray` avait une période de `arc + circonférence` alors que le `dashoffset` supposait une période égale à la circonférence — chaque segment se décalait de la longueur de son propre arc. Corrigé (période exactement = circonférence, départ compensé du demi-écart) et **verrouillé par un test** qui vérifie l'enchaînement bout à bout des segments (scénario 25/25/50).
+
+### UI — fiche mission normalisée sur la charte standard — feature/tableau-entreprises-portail
+
+La fiche mission abandonne le style « éditorial » (page limitée à 980px ≈ 60 % de l'écran, titre serif Fraunces, kickers mono avec glyphe « § », grille à pointillés, boutons compacts) au profit du langage utilisé partout ailleurs : **pleine largeur**, en-tête standard (retour + h1 Manrope + référence mono · entreprise · tag de statut **libellé** — fini le `en_cours` brut), **informations et documents en cartes** à la surface des tableaux (bordure, rayon 12px, variantes dark), titres de section h2 simples, boutons Générer/Imprimer et actions d'en-tête au **padding normal**. Zéro classe `ledger-*` restante sur la page ; fiches tâche et entreprise encore en style éditorial (harmonisation à décider).
+
+### UI — habillage maquette généralisé aux 10 listes — feature/tableau-entreprises-portail
+
+Le système validé sur le tableau Entreprises (carte arrondie, en-têtes en petites capitales, zébrage/survol charte, recherche large arrondie avec loupe, compteur sous le titre, **pagination centrée** « X résultat(s) · Page n sur m ») est déployé sur toutes les pages de liste : **Missions, Devis, Factures & Avoirs (les deux tableaux des onglets), Créances, Prestations, Taux de TVA, Exercices, Utilisateurs, Journal d'audit** — adapté à la nature de chaque page (pas de recherche ni pagination inventées sur les petites listes référentiel). RGAA intégralement préservé (ids, labels `sr-only`, `aria-label`, `role`, `aria-live` — vérifié par diff), dark mode couvert partout. Correctif outillage au passage : `playwright-report/` et `test-results/` exclus d'ESLint (le rapport E2E local minifié générait des milliers de fausses erreurs de lint).
+
+### UI — fiche mission alignée sur la charte éditoriale — feature/tableau-entreprises-portail
+
+Le bas de la fiche mission (sections brutes) rejoint le langage « ledger » du haut de page : sections numérotées `[02]`–`[05]` avec kicker mono et filet, tableaux Factures liées et Tâches en carte maquette, numéros/montants/documents en JetBrains Mono, cartes tranches au rayon/bordures charte, couleurs en dur remplacées par les tokens. Le formateur de montants local est remplacé par `formatDA` partagé (`utils/currency`) — les montants affichent désormais les centimes, conformément à la règle projet. Découpage, logique et accessibilité inchangés.
+
+### PDF — rapport de mission refait dans la charte facture/devis + logos — feature/tableau-entreprises-portail
+
+Le rapport de fin de mission est entièrement réécrit dans le langage graphique des factures/devis : bande navy dégradée avec **logo damier Ledge**, pilule de statut en liseré, cartes mission/client, KPI en cartes, chronologie, tableau statistiques à en-tête navy, blocs tâches/factures en cartes claires, solde global en bloc navy « TTC », pied de page identique. Mise en page fiabilisée : marge haute sur **toutes** les pages (fini le contenu collé au bord du papier), « Tâches et commentaires » démarre toujours en haut d'une nouvelle page, `page-break-inside: avoid` sur chaque bloc (un bloc qui ne tient pas bascule entier sur la page suivante), glyphes non couverts par la police remplacés. Poids du fichier : **1,3 Mo → 44 Ko** (police non embarquée). Convention et mandat : le carré « L » est remplacé par le **damier Ledge** (centré sur la page de garde de la convention).
+
+### UI — refonte du tableau Entreprises — feature/tableau-entreprises-portail
+
+Premier lot de la passe d'amélioration du front avant la release (maquette de référence validée par capture) :
+
+- **Zébrage des lignes selon la charte** : `stripedRows` était posé mais le token du thème rendait l'alternance invisible en mode sombre — les lignes impaires s'ancrent désormais sur les surfaces navy/slate de la charte (`color-mix` sur `--p-surface-*`), avec un survol distinct dans les deux modes.
+- **Sous-titre de comptage** « X entreprises · Y clients · Z prospects » sous le titre — compteurs **globaux** (indépendants des filtres) exposés par l'API (`EntrepriseService::compteursStatuts`, champ additionnel `compteurs`).
+- **Cellule Raison sociale à deux lignes** (nom + email en dessous) et **NIF en police mono** (`--ledge-ff-mono`), repli « — » si absent.
+- **En-tête façon maquette** : Export CSV remonté à côté de « Nouvelle entreprise » (groupe d'actions à droite du titre) ; la barre de recherche + filtres occupe sa propre ligne.
+- **Tableau en carte** : bloc arrondi bordé légèrement élevé (les deux modes), en-têtes de colonnes en petites capitales espacées sur fond distinct, survol des lignes en transition douce (150 ms, `prefers-reduced-motion` respecté).
+- **Boutons d'actions et colonne Portail conservés à l'identique** (demande explicite) — seul un `aria-label` manquant a été ajouté sur « Activer » et le groupe Portail est aligné proprement.
+- **Pagination façon maquette** : « X résultat(s) · Page n sur m » à gauche, navigation à droite.
+- Tests : +4 frontend (compteurs, cellule 2 lignes, zébrage/pagination posés) et +1 backend (compteurs globaux insensibles aux filtres) ; suites complètes **490 backend / 598 frontend / 15 E2E** vertes.
+
+### Sécurité — plus aucun secret dans les fichiers versionnés — fix/env-secrets-versionnes
+
+Remédiation du constat A05 de l'audit interne du 2026-07-17 (détail : `docs/SECURITY.md`, section « Secrets & fichiers d'environnement ») :
+
+- **`backend/.env.e2e` retiré du suivi git** : il contenait une `APP_KEY` fonctionnelle commitée. Remplacé par un template `.env.e2e.example` sans clé ; le fichier réel est **généré automatiquement** au chargement de la config Playwright (`e2e/ensure-env.ts` : copie + `key:generate --env=e2e`), en local comme en CI — zéro étape manuelle. La clé historique est considérée compromise et a été régénérée.
+- **Garde-fou anti-perte de données** ajouté au `global-setup` E2E : si `.env.e2e` manque, la suite refuse de démarrer au lieu de laisser `--env=e2e` retomber silencieusement sur le `.env` de dev — où `migrate:fresh` aurait **vidé la base de développement**.
+- **`backend/.env.docker` sans mot de passe** : `DB_PASSWORD` passe par `docker-compose.yml` (défaut de démo surchargeable), même patron que `ADMIN_PASSWORD` — `docker compose up --build` reste zéro-config.
+- Vérifié de bout en bout : suppression du `.env.e2e` local → `npx playwright test` régénère le fichier (clé fraîche, base `ledge_e2e`) → **14 tests E2E passés** (1 flaky repassé au retry, comportement inchangé).
+
+### RGAA — contrastes conformes en mode clair — refactor/setting-service
+
+Correction de la seule non-conformité RGAA mesurable relevée par l'audit du 2026-07-17 : des textes et icônes colorés sous le ratio WCAG AA (4.5:1 texte, 3:1 composants d'interface) en **mode clair** — le dark mode était déjà conforme.
+
+- **Tokens** ([tokens.css](frontend/src/assets/styles/tokens.css)) : `--ledge-success` `#16A34A` (3.30:1 sur blanc) → `#15803D` (5.0:1) ; `--ledge-warning-bright` `#F59E0B` (2.15:1) → `#D97706` (3.2:1). Corrige d'un coup les chips succès des dashboards, le tampon `.ledger-stamp--ok` (texte clair sur vert : 3.01:1 → 4.6:1) et l'icône du toggle de thème. Les valeurs dark restent inchangées.
+- **Textes sur fonds teintés passés aux tokens** (les hex en dur servaient les deux modes) : pills et badges du Dashboard (`.kpi-pill--*`, `.timeline-badge--*`, `.task-date--retard` — bleu 3.68:1, vert 2.28:1, orange 2.15:1, rouge 3.76:1 → tous ≥ 4.5:1), chips du Planning (`.stat-chip--*`, `.tache-chip--*`), tendance KPI fiche entreprise. Bonus : ces éléments suivent désormais aussi les bonnes valeurs en dark.
+- **Icônes** des cartes KPI, timeline et alertes de conflit alignées sur les tokens (≥ 3:1). Fonds teintés, barres décoratives et palettes de graphiques inchangés — l'identité visuelle est conservée (mêmes teintes, un cran plus foncées).
+
+### UX/RGAA — confirmation visible après définition du mot de passe — refactor/setting-service
+
+Bug relevé par l'audit du 2026-07-17 sur le parcours d'activation (invitation → `/definir-mot-de-passe`) : le toast de succès n'était **jamais affiché** — la page est hors layouts (`AppLayout`/`PortailLayout`, seuls porteurs d'un `<Toast/>`) et un message émis sans `<Toast/>` monté est perdu ; l'utilisateur retombait sur `/login` sans aucun retour.
+
+- Remplacement du toast par une **confirmation inline** `role="status"` / `aria-live="polite"` (annoncée par les lecteurs d'écran), qui reste affichée jusqu'à l'action de l'utilisateur — plus robuste qu'un toast même monté, que la redirection immédiate aurait de toute façon escamoté.
+- Le formulaire disparaît après succès et le lien de pied de page devient « Se connecter » ; plus de redirection automatique.
+- Tests de la page mis à jour (confirmation affichée, formulaire masqué, pas de faux succès en cas d'erreur API) ; suites : **595 tests front / 493 back**, couverture au-dessus des seuils CI.
+
+### Architecture — SettingService & controller mince — refactor/setting-service
+
+Dernier écart « controller mince » relevé par l'audit du 2026-07-17 (aucun changement de comportement, suites vertes) :
+
+- **`SettingService::mettreAJour()`** : la boucle de persistance des paramètres vivait dans `SettingController::update` (seul controller sur 27 avec de la logique métier inline) — déplacée dans un service dédié, désormais **transactionnelle** : si une écriture échoue, aucune n'est appliquée, là où l'ancien code laissait un lot à moitié appliqué.
+- Le controller consomme `$request->validated()` au lieu de la propriété brute `$request->settings` — la donnée itérée est désormais celle filtrée par le FormRequest.
+- **4 nouveaux tests unitaires** (`SettingServiceTest` : mise à jour d'un paramètre existant, création d'une clé absente, lot multiple, valeur nulle) ; suite backend complète verte : **493 tests / 1482 assertions**.
+
+### Tests E2E Playwright — parcours critiques contre le vrai backend — feature/tests-e2e-playwright
+
+Harnais **E2E Playwright** complétant la pyramide de tests (unitaires backend SQLite + composants front mockés) : **15 tests / 4 parcours** exécutés dans Chromium contre la **vraie stack** (Laravel + MySQL + Vite). Comble le trou structurel révélé par les bugs récents (`role[]` 500, toasts 403 secrétaire) : tout ce qui traverse la frontière front↔back est désormais couvert.
+
+- **Environnement isolé** : base MySQL dédiée `ledge_e2e` (jamais la base de dev), [backend/.env.e2e](backend/.env.e2e) versionné (clé de test, mail en mémoire), serveurs backend :8001 / frontend :5174 démarrés et arrêtés par Playwright, `migrate:fresh --seed` + `E2eSeeder` (comptes secrétaire/collaborateur de test) à chaque run.
+- **Parcours** : authentification par rôle (admin/secrétaire, échec de mot de passe) · **flux métier complet** entreprise → devis → accepté → converti en mission → facture (tranche 1) → paiement → statut soldé · navigation secrétaire avec assertion « **zéro toast d'erreur** » sur chaque page (non-régression des 403 en série) + Statistiques refusée · page Statistiques (onglets Cabinet/Collaborateurs, saisie d'objectif).
+- **Locators 100 % accessibles** (`getByRole`/`getByLabel` — aucun `data-testid` nécessaire, dividende direct du travail RGAA) ; `workers: 1` (base partagée), storageState par rôle, scripts `npm run test:e2e` / `test:e2e:ui`.
+- **Job CI dédié** (après les gates unitaires) : service MySQL + Chromium, rapport Playwright uploadé en artefact en cas d'échec.
+- **Bug de schéma trouvé par le harnais dès son premier run** : `missions.date_fin` était `NOT NULL` en base alors que la validation, le formulaire de conversion et tous les services la traitent comme nullable → toute conversion devis→mission sans date de fin provoquait un 500 SQL. Migration corrective réversible (`nullable()->change()`).
+
+### Architecture — controllers minces & validation uniforme — refactor/controllers-minces-et-form-requests
+
+Résorption des dettes SOLID confirmées par une relecture externe (aucun changement de comportement, suites vertes inchangées) :
+
+- **`TacheService::commenter()`** : la création d'un commentaire et la règle métier « le 1er commentaire engage la tâche (`a_faire` → `en_cours`) » vivaient dans `TacheCommentaireController::store` (transaction incluse) — déplacées dans le service, controller réduit à valider → déléguer → Resource.
+- **`FacturationService::supprimerPaiement()`** : le couple suppression + recalcul du statut de facture vivait dans `PaiementController::destroy` — extrait dans le service (miroir exact de `supprimerAvoir`), l'invariant « statut toujours recalculé après mutation » est désormais garanti au même endroit.
+- **Fin des `$request->validate()` inline** : les 4 occurrences restantes remplacées par des FormRequests dédiées — `FiltreExerciceRequest` (filtre exercice commun aux endpoints KPI/Statistiques, avec helper `exerciceId()`) et `CalculerPrixRequest` (simulateur de prix des prestations). Stratégie de validation 100 % uniforme sur l'API.
+
+### Règle métier — prix contractuel du devis accepté + délai de validité — fix/prix-devis-conserve-conversion
+
+Constats d'une relecture externe, vérifiés sur pièce puis corrigés :
+
+- **Le prix du devis accepté est désormais CONTRACTUEL** : à la conversion devis→mission, `MissionService::creerMission` reprenait le prix **recalculé depuis la grille actuelle** (`calculerPrixHt`) au lieu du `prix_ht` du devis — si le tarif de la prestation ou les indices (régime/catégorie) changeaient entre l'acceptation et la conversion, la mission (et donc les factures T1/T2/T3) divergeait du devis signé par le client. La mission reprend maintenant tel quel le prix du devis d'origine ; sans devis, le calcul grille à la création reste inchangé.
+- **Acceptation bornée au délai de validité** : `accepterDevis` ne vérifiait jamais `date_validite` — un devis échu restait acceptable indéfiniment (et le statut `expire`, présent dans l'enum, n'était produit par aucun code). Désormais : acceptation possible jusqu'au jour d'échéance **inclus** ; passé ce délai → 409 explicite et bascule automatique en `expire` (premier vrai producteur de ce statut), ce qui rend le devis inconvertible.
+- Règle documentée dans les règles métier du projet (règle n°1). **4 nouveaux tests** (prix conservé malgré changement de grille, prix grille sans devis, refus + bascule `expire` après échéance, acceptation le jour J) ; 2 fixtures de tests corrigées au passage (dates de validité codées en dur devenues expirées en cours d'année — le nouveau garde les a démasquées).
+
+### Page Statistiques — analytique cabinet & pilotage collaborateurs — feature/page-statistiques
+
+Nouvelle page **Statistiques** (admin) à deux onglets, qui **remplace la page « KPI Objectifs »** (menu renommé, ancienne URL `/kpi/objectifs` redirigée). Filtre exercice global partagé. Suites vertes : **479 backend / 593 frontend**, `vue-tsc` 0 erreur. L'export PDF des objectifs (US-34), annoncé mais jamais implémenté, est **annulé** (décision produit).
+
+**Onglet Cabinet**
+- **Top 8 entreprises contributrices** au CA facturé **HT net d'avoirs** (barres horizontales) — double agrégat SQL groupé (factures puis avoirs) pour éviter le fan-out d'un join, aucun input utilisateur dans les `selectRaw`.
+- **Répartition des missions par prestation** (doughnut) et **missions par état** (barres), scopées par exercice.
+- **Créances** : total impayé (avoirs déduits), aging 15-30 / 30-60 / 60+ jours, top 5 débiteurs cliquables vers la fiche entreprise — logique **mutualisée** avec le dashboard secrétaire (`StatistiqueService`), en corrigeant au passage un N+1 caché (`montantRestant()` par facture remplacé par `withSum`).
+
+**Onglet Collaborateurs**
+- Dropdown de sélection (admin + collaborateurs, **secrétaire exclue** du périmètre KPI) → 5 cartes KPI (CA HT réalisé avec mention « missions clôturées uniquement », missions clôturées, tâches terminées / en retard, délai moyen), **CA HT réalisé par mois** (barres) et **tâches par statut** (doughnut), jauges réalisé vs cible (pourcentage réel non plafonné).
+- Éditeur d'objectifs migré à l'identique dans [ObjectifsEditor.vue](frontend/src/pages/statistiques/ObjectifsEditor.vue) (diff + ConfirmDialog + suppression par champ vidé + `Promise.allSettled`) ; l'ancienne `KpiObjectifsPage.vue` est supprimée. Le calcul n'est plus fait pour **tous** les collaborateurs au chargement (5×N requêtes) mais à la demande du sélectionné.
+
+**Backend (SOLID / OWASP)**
+- Nouveau `StatistiqueService` + `StatistiqueController::cabinet` mince ; `KpiService::getCollaborateurStats` (réalisé mensuel par mois de `date_fin`, tâches par statut, missions par prestation).
+- **Doughnut « Missions par prestation »** (onglet Collaborateurs) : participation du collaborateur par type de mission (ex. Audit légal 5, Assistance comptable 2), palette de graphiques mutualisée (`utils/chartPalette.ts`).
+- **Définition de la participation alignée sur US-45** : un collaborateur participe à une mission s'il est **membre de l'équipe OU a une tâche assignée** dedans (à la création d'une mission on n'affecte personne — l'affectation réelle passe par les tâches). Appliquée partout : réalisé (CA HT, missions clôturées), CA mensuel, missions par prestation — un collaborateur travaillant uniquement via ses tâches n'affiche plus 0.
+- `GET /stats/cabinet` (groupe `role:admin`) ; `GET /kpi/collaborateurs/{user}/stats` (groupe `role:admin|collaborateur` **+** `KpiObjectifPolicy::viewStats` : admin **ou soi-même** — prépare la phase 2 « Mes objectifs » sur le dashboard collaborateur) ; cible non staff-KPI → 404 ; `exercice_id` validé (`exists`).
+- **29 nouveaux tests backend** (montants nets d'avoirs, scoping exercice, matrice de rôles complète : admin/collaborateur self/collaborateur autre/secrétaire/client) + **46 nouveaux tests frontend**.
+
+**RGAA**
+- Chaque graphique doublé d'un tableau `sr-only` avec `<caption>`, `role="img"` + `aria-label` dynamiques, états chargement `role="status"` / erreur `role="alert"` + « Réessayer », labels sur les selects, `prefers-reduced-motion` respecté (animations Chart.js coupées), chiffres en `--ledge-ff-mono` / `text-2xl`, montants `,00` et compact ≥ 1 M avec exact en tooltip.
+
+### Correctif — décalage J-1 des dates saisies (conversion UTC) — fix/dates-decalage-utc
+
+Le PrimeVue DatePicker émet une `Date` à minuit **local** ; plusieurs pages la sérialisaient encore via `toISOString()` (UTC) — en Algérie (UTC+1), minuit local = 23h **la veille** en UTC → toute date saisie était enregistrée au jour précédent. Bug signalé sur la création d'exercice (01/01/2025 → 31/12/2024, 31/12/2025 → 30/12/2025). Devis/Factures avaient déjà été corrigés (`fix/correctifs-planning`) mais pas les autres pages : correctif généralisé via l'utilitaire partagé `utils/date.ts` (`toIsoDate`/`parseIsoDate` en composants locaux), suppression des 3 clones locaux bugués.
+
+- **Exercices** ([ExerciceListPage.vue](frontend/src/pages/exercices/ExerciceListPage.vue)) : dates d'ouverture/clôture décalées de J-1 à la création **et** à la modification — le bug signalé.
+- **Missions** ([MissionListPage.vue](frontend/src/pages/missions/MissionListPage.vue)) : dates de début/fin décalées de J-1 à la création et à l'édition.
+- **Journal d'audit** ([AuditLogPage.vue](frontend/src/pages/audit/AuditLogPage.vue)) : filtres de période décalés de J-1.
+- **Planning** ([PlanningCalendarPage.vue](frontend/src/pages/planning/PlanningCalendarPage.vue), [usePlanning.ts](frontend/src/composables/usePlanning.ts)) : plage rechargée au changement de filtre collaborateur décalée de J-1 (risque d'exclure le dernier jour affiché) ; « aujourd'hui » et le lundi de la semaine Équipe faux entre minuit et 1h.
+- Tests de non-régression sur minuit **local** (les tests existants utilisaient des dates UTC ou une simple regex de format, ce qui masquait le bug) ; assertion de date exacte rétablie sur la création de mission.
+
+### KPI — cohérence métier & UX des tableaux de bord — fix/kpi-coherence-et-ux
+
+Lot de correctifs issu de la revue du module KPI (logique + UI/UX) sur les 3 dashboards (admin, secrétaire, collaborateur) et la page Objectifs collaborateurs. Suites vertes : **450 backend / 571 frontend**, `vue-tsc` 0 erreur.
+
+**Cohérence métier (backend)**
+- **Impayé unifié avoirs déduits** : `DashboardService::calculerTotalImpaye` (dashboard admin) déduit désormais les avoirs par facture (`max(0, ttc − payé − avoirs)`, via `withSum`, sans N+1) — aligné sur `Facture::montantRestant()` utilisé par le dashboard secrétaire. Une facture de 100 000 DA avec avoir de 11 900 DA affichait 100 000 DA d'impayé côté admin et 88 100 DA côté secrétaire.
+- **« CA du mois » cohérent avec le filtre exercice** : renvoie `null` (affiché « — » avec explication) quand l'exercice filtré n'est pas celui de l'année en cours, au lieu d'un 0 DA trompeur (mois calendaire courant croisé avec un exercice passé). Lookup d'exercice factorisé (une seule requête).
+- **Bloc Devis scopé par exercice** (total, en attente, acceptés, CA potentiel) — il agrégeait tous les exercices quel que soit le filtre ; la carte Clients, volontairement globale, l'assume désormais visuellement (« Tous exercices »).
+- `KpiService::getCollaborateurs` expose l'`id` de chaque objectif (`{id, valeur}`) pour permettre la suppression depuis l'IHM.
+
+**UX des dashboards**
+- **Fin des toasts d'erreur en série pour la secrétaire** : `/factures` et `/devis` préchargeaient au montage `GET /missions` (réservé `admin|collaborateur`) et `GET /referentiels/tva-taux` (réservé `admin`) pour alimenter des dialogs de création qu'elle ne voit pas (`v-if="auth.isAdmin"`) → 403 + 2 toasts rouges sur Factures et 1 sur Devis **à chaque navigation** (décalage front/back hérité du recadrage de son périmètre). Fetchs désormais gardés par le rôle, sur le pattern d'`EntrepriseDetailPage` (`peutVoirMissions`). Tests de non-régression (secrétaire : aucun appel ni toast ; admin : préchargement conservé).
+- **État d'erreur visible sur les 3 dashboards** : un échec API affichait une page quasi vide sans message ; désormais bloc `role="alert"` + bouton « Réessayer » (nouvel état `error` de `useDashboardStats`). Sur la page Objectifs, une panne de chargement se déguisait en « Aucun collaborateur trouvé ».
+- **Drill-down sur les cartes KPI admin** : Impayés/Taux de recouvrement → `/creances`, Missions actives → `/missions`, Clients → `/entreprises`, CA/CA du mois → `/factures` — liens accessibles clavier (`:focus-visible`, `aria-label` portant le montant exact), à parité avec les dashboards secrétaire/collaborateur.
+- **Libellés de période** : sous-ligne « Exercice {année} / Toutes années » sur les cartes CA, Impayés et le panneau Devis — lève l'ambiguïté « CA du mois » (mensuel calendaire) vs « Chiffre d'affaires » (exercice filtré).
+
+**Page Objectifs collaborateurs (US-34) — finitions**
+- **Suppression d'objectif enfin possible depuis l'IHM** (l'API `DELETE` existait sans aucun chemin d'accès) : vider un champ puis Sauvegarder supprime l'objectif, avec texte d'aide dédié.
+- **Sauvegarde par diff + confirmation** : écrasements et suppressions passent par un `ConfirmDialog` récapitulatif ; aucune modification → toast « Aucune modification à enregistrer » (fini le clic sans effet et le faux toast de succès quand un champ vidé était silencieusement ignoré) ; échecs partiels nommant les objectifs concernés (`Promise.allSettled`).
+- **Objectif fixé à 0 distingué de « pas d'objectif »** (test d'existence `!= null` au lieu de truthy) ; **dépassement valorisé** : le pourcentage n'est plus plafonné à 100 % (Tag « 163 % », barre bornée visuellement).
+
+**Formatage & typographie des chiffres**
+- **Utilitaire partagé [utils/currency.ts](frontend/src/utils/currency.ts)** (`formatDA`, `formatDACompact`, `formatDAKpi`) : supprime 4 définitions locales divergentes. Cartes KPI : montants **compacts au-delà d'un million** (« 1,25 M DA ») avec montant exact en tooltip/`aria-label` ; sous le million et dans les tables, montant exact **avec centimes (,00) — règle projet**.
+- Chiffres des cartes en **`--ledge-ff-mono`** partout (classe manquante ajoutée) et taille ramenée de `text-3xl` à **`text-2xl`**.
+- `useCountUp` respecte désormais `prefers-reduced-motion` nativement (les compteurs du dashboard collaborateur l'ignoraient) ; suppression du CSS mort d'une comparaison N‑1 jamais branchée (`.reco-delta*`, `.reco-compare`, `.reco-vbar*`).
+
+### Audit interne — remédiation sécurité, architecture, RGAA & qualité — integration/audit-fixes-preview
+
+Correction des écarts relevés par l'audit interne (règles métier, OWASP, RGAA, découpage architectural, code mort), plus l'outillage de démonstration et la documentation. Suites vertes : **445 backend / 551 frontend**, ESLint 0 erreur.
+
+**Règles métier**
+- Suppression de devis **bloquée (409)** s'il est rattaché à une mission/facture ; conversion en mission exigeant un devis « accepté » + garde anti-doublon (`lockForUpdate`).
+- Paiements : vérification d'appartenance paiement↔facture (anti-IDOR, 404), verrou `lockForUpdate` anti sur-crédit concurrent, erreurs métier **409** explicites si aucun exercice n'est ouvert (au lieu de 500).
+- Dates `date_devis` / `date_avoir` bornées à l'exercice de rattachement ; **réouverture d'un exercice clôturé ré-autorisée** (facturation de rattrapage), garde conservée uniquement sur la suppression d'un exercice porteur de documents.
+
+**Sécurité (OWASP)**
+- Défense en profondeur : scoping des routes imbriquées (tâches/commentaires/contacts), Policies + FormRequests manquants (Prestation, Setting, Avoir, Audit, Créances), KPI de production réservés à l'admin, portail durci (`type=FF` sur PDF facture, rapport gaté par `visible_portail`).
+- En-têtes de sécurité sur **toutes** les réponses + HSTS en HTTPS ; `/health` réservé admin ; Telescope désactivé par défaut ; audits `composer`/`npm` **bloquants** en CI.
+- Annuaire utilisateurs : OR de recherche **groupé explicitement** (la restriction de rôle staff s'applique à tout le groupe) + test de non-régression.
+- Cartographie **OWASP Top 10 complète (A01–A10)** dans [docs/SECURITY.md](docs/SECURITY.md).
+
+**Architecture (couche Services)**
+- Extraction de la logique métier hors des contrôleurs : `UserService`, `TacheService`, `NumerotationService` (supprime le couplage Planning→Facturation), `FacturationService::enregistrerPaiement` / `listerAvoirs` ; contrôleurs amincis (valider → déléguer → Resource).
+- `declare(strict_types=1)` généralisé, gardes de suppression centralisées dans les services, rename front `auth.ts` → `authStore.ts` (24 imports).
+
+**Accessibilité (RGAA)**
+- Cible du skip-link `#main-content` rendue focusable, retrait de `role="banner"` des hero, hiérarchie des titres corrigée (h3→h2), `aria-label` sur 24 `DataTable`, icônes décoratives `aria-hidden`. Guide [docs/ACCESSIBILITE-RGAA.md](docs/ACCESSIBILITE-RGAA.md).
+
+**Nettoyage code mort & schéma**
+- Migration `nettoyage_schema_mort` : drop des colonnes/table mortes (`factures.pdf_path`, `factures.facture_origine_id`, `tache_commentaires.visible_portail`, `devis.montant_ht`) et de la table `documents` (GED jamais alimentée) ; modèles/resources alignés, modèle `Document` supprimé.
+- Suppression de composants front vestigiaux (configurateur de thème), du composable mort `useTaches.ts` et de champs TS fantômes ; retrait d'écritures mortes `montant_ht` sur devis.
+
+**Environnement Docker (démo / jury)**
+- Stack full-stack turnkey [docker-compose.yml](docker-compose.yml) (php-fpm, nginx, Vite, MySQL, Redis) avec auto-init (`composer install`, clé, `migrate --seed`) : `docker compose up` suffit. Proxy Vite ciblable (`VITE_PROXY_TARGET`), `.gitattributes` forçant LF sur shell/env/compose.
+
+**Documentation & outillage**
+- README à jour (démarrage Docker, comptes de tests réels, mot de passe admin retiré du clair) ; manuels de **déploiement**, d'**utilisation** (par rôle) et de **mise à jour** ; **plan de correction des bogues** ; stratégie de versionnage **SemVer** ([docs/GITFLOW.md](docs/GITFLOW.md)).
+- **ESLint** (flat config Vue+TS) + étape CI ; alignement du seuil de couverture front documenté (80/75/65).
+
+### Correctif métier — statut de paiement des factures tenant compte des avoirs — fix/recalcul-statut-avoirs
+
+Une facture annulée (totalement ou partiellement) par un **avoir** ne mettait jamais à jour son `statut_paiement` : `FacturationService::recalculerStatutPaiement()` ne sommait que les paiements, et `AvoirController::store/destroy` ne le rappelait pas. Conséquence : une facture soldée par avoir restait `en_attente`/`partiel`, apparaissait encore dans les créances et pouvait déclencher une **relance automatique** (cron quotidien) — voire une mise en demeure — sur une facture déjà réglée.
+
+- **`recalculerStatutPaiement()`** ([FacturationService.php](backend/app/Services/FacturationService.php)) prend désormais en compte les avoirs pour le passage à `solde` (`total réglé = paiements + avoirs ≥ montant_ttc`). Le statut `partiel` reste attaché à un paiement réel (un avoir n'est pas un paiement).
+- **`creerAvoir()`** recalcule le statut à la création et, si la facture devient `solde`, émet `InvoicePaid` → annulation des relances en cours (même effet qu'un paiement soldant). Nouvelle méthode **`supprimerAvoir()`** : réévalue le statut à la suppression (le dû remonte).
+- **`AvoirController::destroy`** délègue à `supprimerAvoir()` (retrait de la logique du contrôleur).
+- **Migration** `add_annulee_to_relances_statut` rendue **cross-SGBD** (via `Schema::change()` au lieu d'un `ALTER … MODIFY` MySQL ignoré sous SQLite) : l'état `annulee` des relances était absent du schéma de test, ce qui rendait l'annulation des relances non testable.
+- Tests : 5 nouveaux cas (avoir soldant, paiement partiel + avoir, annulation des relances, suppression d'avoir réévaluant le statut) — suite backend **419 verts**.
+
+### Sécurité métier — statut d'entreprise non modifiable manuellement — fix/statut-entreprise-observer
+
+La bascule **prospect → client** doit être exclusivement automatique (via `MissionObserver` sur `MissionCreated`). Or `UpdateEntrepriseRequest` exposait `statut` : un admin/secrétaire pouvait, via `PUT /entreprises/{id}`, forcer une entreprise en `client` **sans aucune mission** (puis lui activer un accès portail, `activerPortail` ne vérifiant que `statut === 'client'`) ou repasser un client en `prospect` — contournant le garde-fou métier et faussant les statistiques.
+
+- **Backend** : retrait de `statut` des règles de [UpdateEntrepriseRequest](backend/app/Http/Requests/Entreprises/UpdateEntrepriseRequest.php). Le champ est désormais silencieusement ignoré par l'API d'édition ; seule la création (`StoreEntrepriseRequest`) le fixe à l'état initial, et l'Observer opère la bascule.
+- **Frontend** : dans le dialog d'édition d'entreprise ([EntrepriseListPage.vue](frontend/src/pages/entreprises/EntrepriseListPage.vue)), le sélecteur de statut est remplacé par un affichage **lecture seule** (Tag + note explicative) ; il reste éditable uniquement à la création.
+- Tests : `test_update_ignore_le_statut` (EntrepriseApiTest) + `test_modification_ignore_le_statut` (EntrepriseCoverageTest, ex-`bascule_statut_vers_client` qui validait l'ancien comportement vulnérable).
+### Sécurité — endpoints de santé détaillés réservés à l'admin — fix/health-endpoint-auth
+
+Les routes `GET /health` (JSON) et `GET /health/dashboard` (HTML) de Spatie Health étaient **publiques** (`routes/web.php`, hors de tout middleware) : n'importe quel visiteur non authentifié pouvait consulter l'état BDD/cache/disque/queue et le statut `APP_DEBUG` — une fuite d'information de reconnaissance (OWASP A05). Elles sont désormais protégées par `role:admin`. Le monitoring externe (UptimeRobot) continue d'utiliser l'endpoint public **simple** `/up` (configuré dans `bootstrap/app.php`), qui ne divulgue aucun détail. Test dédié `HealthEndpointAccessTest` (guest/non-admin → 403, admin → 200, `/up` toujours public).
+### Sécurité — annuaire utilisateurs restreint et scopé par rôle — fix/users-index-restriction
+
+`GET /users` et `GET /users/{user}` étaient accessibles à **tout le staff** (admin, secrétaire, collaborateur) sans filtrage : un collaborateur — censé ne voir que ses missions/tâches — pouvait énumérer **tous** les comptes, y compris les clients (avec `email`, `entreprise_id`, `portail_actif`) et les admins (OWASP A01, sur-exposition contraire au moindre privilège).
+- **`GET /users`** : seul l'admin obtient l'annuaire complet. Les autres rôles (pour les selects d'assignation missions/tâches/devis) ne reçoivent que **le personnel** (jamais les clients) en **vue minimale** `StaffSelectResource` — uniquement `id`/`name`/`roles`, aucune donnée sensible. Ajout de `UserPolicy::viewAny` + `authorize()`.
+- **`GET /users/{user}`** (fiche complète) : déplacé dans le groupe `role:admin` + `UserPolicy::view` (admin uniquement).
+- Aucun changement frontend nécessaire (les consommateurs n'utilisaient que `id`/`name`/`roles`). Test dédié `UserApiTest` (admin = complet, collaborateur/secrétaire = personnel minimal sans clients, show réservé admin, client bloqué).
+### Sécurité — défense en profondeur : Policies + FormRequests manquants — fix/backend-defense-en-profondeur
+
+Renforcement de l'autorisation (Policy) et de la validation (FormRequest) au niveau contrôleur, en complément des middlewares de route (règles du projet « Policy sur chaque ressource » + « FormRequest sur tout store/update »).
+- **5 Policies ajoutées** (auto-découvertes) reflétant exactement les rôles des routes : `PaiementPolicy` (create/viewAny admin+secrétaire ; delete admin **ou** propriétaire de la saisie), `RelancePolicy` (admin+secrétaire), `ExercicePolicy` (lecture admin+secrétaire, écriture admin), `KpiObjectifPolicy` (lecture admin+secrétaire, écriture admin), `ContactPolicy` (admin+secrétaire). Appels `authorize()` ajoutés dans `PaiementController`, `RelanceController`, `ExerciceController`, `KpiController`, `ContactController`. La logique d'appartenance de `PaiementController::destroy` (câblée en dur) est déplacée dans `PaiementPolicy`.
+- **4 FormRequests** : `AuthController::login` branché sur le `LoginRequest` existant (jusque-là code mort) ; nouveaux `StoreKpiObjectifRequest` (KPI), `UpdateSettingRequest` (paramètres), `ActiverPortailRequest` (activation portail) — remplacent les `$request->validate()` inline.
+- Divers : `PaiementController` passe en `private readonly`. Test `LoginTest::test_login_exige_email_et_mot_de_passe` ajouté. Suite backend verte (les tests d'appartenance de paiement passent désormais via la Policy).
+### CI — gate de couverture 80% + audits de dépendances — ci/gates-couverture-audit
+
+La CI exécutait les tests sans **aucun seuil de couverture** (le gate 80% n'existait qu'en commande locale) et ne lançait jamais d'audit de dépendances.
+- **Backend** : `coverage: pcov` activé sur setup-php, tests lancés via `composer test:coverage` (`artisan test --coverage --min=80`).
+- **Frontend** : tests lancés via `npm run test:coverage` (seuils configurés dans `vite.config.ts` : lignes/statements 80, branches 75, fonctions 65).
+- **Audits** : étapes `composer audit` et `npm audit --omit=dev` ajoutées, **volontairement non bloquantes** (`continue-on-error`) — visibles dans les logs CI sans casser le pipeline tant que les CVE connues restent documentées dans `docs/SECURITY.md`.
+### Sécurité — remédiation des CVE de dépendances + SECURITY.md à jour — chore/securite-cve
+
+`composer audit` remontait 19 advisories (dont un *high* sur `laravel/framework`) et
+`npm audit` 7 (dont axios en production). Après remédiation, **les deux audits sont vierges**.
+- **Backend** : `composer update` (dans les contraintes `^7.x`/`^12.0`, sans bump majeur) tire
+  les correctifs Symfony 7.4.x, Laravel 12.55.x, Guzzle 7.10.x → **0 advisory**. Suppression de
+  l'entrée `config.audit.ignore` orpheline (`PKSA-21fb-n1x5-5nf7`) de `composer.json`.
+- **Frontend** : `axios` `^1.13.6` → `^1.18.1` (corrige les CVE prod SSRF / prototype pollution) ;
+  outillage build/dev (`vite`, `postcss`, `picomatch`, `brace-expansion`, `form-data`) patché via
+  `npm audit fix` → **0 vulnérabilité**.
+- **Doc** : `docs/SECURITY.md` réécrit — état vierge, remédiation détaillée, impact évalué,
+  surveillance CI (règle projet « ne jamais silencer une CVE, documenter + évaluer »).
+- Vérifié : backend 415 tests verts (post-update), frontend 557 tests + `vue-tsc` + `vite build` OK.
+
+### Correctif flaky CI — stub PrimeVue TabList dans le harnais de tests — fix/flaky-vitest-tablist-timer
+
+Le job Vitest de la CI échouait par intermittence (tous les tests verts, mais **1 erreur non gérée**) : `PrimeVue TabList` programme un `setTimeout` (`updateInkBar`) qui, sous happy-dom, pouvait se déclencher **après** le démontage du test → `ReferenceError: HTMLElement is not defined` → Vitest fait échouer le run. Stub de `TabList` ajouté aux stubs par défaut du harnais [mount.ts](frontend/src/__tests__/helpers/mount.ts) (`Tabs`/`Tab`/`TabPanel` restent réels) — supprime le timer, aucun test impacté (557 verts, exit 0).
+
+### Suite de tests calibrée + finitions UI + cahier de recettes — test/couverture-et-doc
+
+**Finitions UI** (compléments aux correctifs login déjà mergés) :
+- **Page 404** (route catch-all `/:pathMatch(.*)*`) → [NotFoundPage.vue](frontend/src/pages/errors/NotFoundPage.vue) au lieu d'un `<router-view>` vide ; standalone, RGAA, bouton retour adapté au rôle.
+- **Thème clair/sombre appliqué dès le bootstrap** ([main.ts](frontend/src/main.ts) + `applyStoredTheme` dans [layout.ts](frontend/src/layout/composables/layout.ts)) : les pages standalone (login, 404) respectent le dark mode au chargement à froid.
+- **Chiffres du dashboard en JetBrains Mono** ([DashboardPage.vue](frontend/src/pages/dashboard/DashboardPage.vue)).
+
+**Suite de tests calibrée** (proportionnée — RNCP C2.2.2 : un harnais couvrant les fonctionnalités —, ≥ 80 % de couverture des deux côtés) :
+- **Backend : 415 tests / 95 %** de lignes. Couverture des endpoints (auth, prestations, exercices, entreprises, facturation, devis, avoirs, relances, portail), des services (`DashboardService` 62→100 %, `PdfService`, `EntrepriseService`), des mails, policies et génération PDF.
+- **Correctifs révélés par les tests** : `ExerciceController::destroy` ajouté (la route `DELETE /exercices/{id}` existait sans méthode → désormais 409 si documents liés) ; validation d'**unicité NIF/NIS** dans les FormRequests entreprise (au lieu d'une `QueryException` 500) ; enum `statut` aligné sur `prospect`/`client` ; suppression du **code mort** `DevisLigne` + `DevisLigneResource` (aucune table ni endpoint) ; en-tête `Content-Disposition` de l'export CSV entreprises avec nom de fichier **entre guillemets** (RFC 6266, via `StreamedResponse` direct au lieu de `streamDownload` qui régénérait l'en-tête).
+- **Frontend : 557 tests / 83 %** de lignes (harnais de montage partagé `mountPage`, tests de pages/composables/API/layout/garde router).
+- **Outillage** : `composer test:coverage` (gate `--min=80`), `npm run test:coverage` (seuils 80), `@vitest/coverage-v8`.
+
+**Documentation (bloc 2)** :
+- [docs/STRATEGIE-TESTS.md](docs/STRATEGIE-TESTS.md) : pyramide de tests, chiffres par couche, commandes, gate.
+- [docs/CAHIER-RECETTES.md](docs/CAHIER-RECETTES.md) : **matrice de traçabilité scénario ↔ test automatisé** (compétence C2.3.1).
+
+### Redirection login pour session déjà active + nettoyage branding — fix/redirection-login-deja-connecte
+
+Deux correctifs sur la page de connexion :
+- **Redirection de l'utilisateur déjà authentifié hors de `/login`** : une garde `router.beforeEach` redirigeait déjà les routes `guest` (`to.meta.guest && auth.isAuthenticated` → `/` ou `/portail`), mais ne se déclenchait pas au **chargement à froid** (refresh / URL tapée) : la session n'était résolue (`fetchUser`) que pour les routes protégées, donc sur `/login` le store Pinia restait vide et l'utilisateur voyait le formulaire malgré un cookie de session valide. Correctif : résolution de session **une seule fois au démarrage** quelle que soit la route, via un flag `initialized` dans le store auth ([auth.ts](frontend/src/stores/auth.ts)) piloté par `fetchUser`/`login`, et condition de garde `if (!auth.initialized)` ([router/index.ts](frontend/src/router/index.ts)). En navigation SPA « chaude » le comportement était déjà correct ; le bug ne concernait que le refresh/URL directe.
+- **Retrait de la mention de version « Ledge v2 · RNCP 39583 »** de la page de connexion (panneau desktop + footer mobile) et du CSS associé ([LoginPage.vue](frontend/src/pages/auth/LoginPage.vue)).
+
+### Sécurité — restriction de rôle sur le journal d'audit (front) — fix/audit-logs-restriction-role-admin
+
+Correctif d'un **trou d'autorisation en profondeur** côté front : la route Vue Router `/audit-logs` était la seule route back-office sans `meta.roles`. Un membre du staff non-admin (`collaborateur` / `secrétaire`) pouvait donc **charger la page** en tapant l'URL directement (le menu la masquait déjà, mais la garde ne la bloquait pas).
+- **Impact réel limité** : l'API `GET /api/v1/audit-logs` est déjà protégée par le middleware `role:admin` → un non-admin recevait un `403` et **aucune donnée d'audit ne fuyait**. Le défaut était une incohérence de défense en profondeur + une UX dégradée (écran en erreur au lieu d'une redirection propre).
+- **Correctif** : ajout de `meta: { roles: ROLES.adminOnly }` sur la route `audit-logs` ([router/index.ts](frontend/src/router/index.ts)) → un non-admin est désormais redirigé vers `/acces-refuse`, comme toutes les autres pages admin. Cohérence rétablie sur les **3 couches** (backend `role:admin`, menu `isAdmin`, garde router `meta.roles`).
+- **Test** : ajout d'un test de non-régression (`src/__tests__/router.test.ts`) verrouillant `roles = ['admin']` sur cette route.
+- Contrôles : `vue-tsc` ✓, `vite build` ✓, **125 tests Vitest ✓** (+3).
+
+### Robustesse navigation — rechargement auto sur échec de chunk de route — fix/navigation-echec-chargement-chunks
+
+Correctif d'un bug de navigation intermittent : après un déploiement, un onglet resté ouvert référence d'anciens hash de chunks JS. Au clic dans la sidebar, l'`import()` dynamique de la route échoue (404), vue-router **annule la navigation en silence** → le clic « ne fait rien », et seul un rafraîchissement manuel réparait.
+- **`router.onError`** : détecte l'échec d'import dynamique (Chrome/Firefox/Safari) et **recharge automatiquement** la page à l'URL cible pour récupérer les chunks à jour.
+- **Écouteur `vite:preloadError`** : filet de sécurité sur l'échec de préchargement d'un module (rechargement unique).
+- **Anti-boucle** : gardes `sessionStorage` réinitialisées par `afterEach` à chaque navigation aboutie — au plus **un** rechargement par cible, jamais de boucle.
+- **Durcissement de la garde `beforeEach`** : `try/catch` autour du corps → une erreur inattendue ne bloque plus la navigation en silence (route protégée → `/login`, sinon on laisse passer).
+- Aucun changement de comportement en navigation normale (chunks présents) : chargement instantané inchangé.
+- Contrôles : `vue-tsc` ✓, `vite build` ✓, 122 tests Vitest ✓.
+
+### Accessibilité (contraste RGAA), CLS & SEO — feature/accessibilite-contraste-cls-seo
+
+Correctifs qualité front mesurés sur le **build de production** (Lighthouse desktop) : **Performance 45→85, Accessibilité 97→100, Best Practices 100, SEO 82→100** (le 45 initial provenait d'un audit sur le serveur de dev Vite, non représentatif — non minifié/non bundlé).
+- **Contraste RGAA (WCAG 1.4.3 / RGAA 3.2.1)** : en mode sombre, les liens en couleur primaire (`.text-primary`, `.mission-ref`, `.panel-link`, `.task-mission-link`, `a.timeline-title`) contrastaient à ~2.4:1 sur les surfaces slate — désormais en slate-300 (`#cbd5e1`, ~10:1). Les boutons (primaire en fond + texte blanc) ne sont pas concernés.
+- **CLS** : décalage de mise en page du dashboard ramené de **0.138 à 0.037** — hauteur réservée pendant le chargement (le footer ne remonte plus dans le viewport avant l'injection du contenu).
+- **Nom accessible du logo (WCAG 2.5.3)** : le SVG de `LedgeLogo` devient décoratif (`aria-hidden`) quand le wordmark « Ledge » est affiché, tout en conservant son nom accessible sans wordmark (login/PDF) — corrige `label-content-name-mismatch`.
+- **SEO** : ajout d'une `<meta name="description">` et d'un `public/robots.txt` valide.
+- **Build** : `vite.config.ts` — `vite preview` reprend le port 5173 et le proxy `/api` + `/sanctum` (constante `apiProxy` partagée avec le serveur de dev) afin d'auditer le build de prod en conditions réelles (auth Sanctum stateful sur `localhost:5173`).
+- Contrôles : `vue-tsc` ✓, `vite build` ✓, 122 tests Vitest ✓.
+
+### Refonte UI Dashboard + Login (identité navy/slate, light + dark) — feature/refonte-ui-dashboard-login
+
+Refonte visuelle d'après maquettes, appliquée globalement via les tokens partagés (cohérente sur toute l'app), sur les deux modes clair/sombre :
+- **Identité navy/slate monochrome** — suppression de l'accent orange. Boutons/CTA/avatar en **slate**, bleu réservé aux focus/liens, couleurs **sémantiques** conservées (bleu = données, vert = succès, **ambre** = alerte/recouvrement, rouge = danger).
+- **Preset PrimeVue figé** (`main.ts`, `definePreset`) : `primary` = surface (slate/navy) ; **surface = slate pour les deux modes** (le dark passait par le gris `zinc` d'Aura → désormais **navy**). Le **configurateur de thème** runtime (bouton palette) est retiré ; seul le toggle clair/sombre (icône ambre) demeure.
+- **Cartes** (`.card`, KPI, hero) : coins plus **arrondis** (14px) + **ombre douce au repos** (tokens `--ledge-shadow-card`), fond canvas gris clair / **navy** en dark, cartes surélevées (blanc / slate-800).
+- **Sidebar / topbar** : navy en dark, item actif en **pastille slate** (fini l'orange), avatar slate, focus **bleu** visible (RGAA) en clair et sombre.
+- **Login** : carte du formulaire **blanche + ombre** en clair (n'existait qu'en dark), coins 14px, **CTA slate** (au lieu d'orange), FAB/focus sans orange, dégradé navy du panneau de marque conservé.
+- **Logo** (`LedgeLogo`) unifié sur le **damier 2×2** (cohérent login + PDF) au lieu du sceau circulaire.
+
+**Correctifs responsive du layout (sidebar / topbar)** :
+- **Un seul logo par contexte** : le logo de la topbar est aligné sur le breakpoint **992px** du layout (au lieu de `lg=1024px` de Tailwind) → plus de double logo sur desktop ; il n'apparaît qu'en `< 992px`, la sidebar affichant déjà le sien en desktop.
+- **Suppression du bouton collapse** (chevrons) de la sidebar et de tout le code associé (état, `localStorage`, rail CSS).
+- **Bug « mask sans sidebar » corrigé** : `.layout-static` scopé à `@media (min-width: 992px)` — l'état « sidebar fermée » du desktop n'écrase plus la sidebar mobile par spécificité.
+- **Reset au franchissement du breakpoint** : mobile → desktop = sidebar apparente ; desktop → mobile = sidebar fermée.
+- **Drawer mobile propre** : la sidebar descend **sous la topbar** (`top: 3.5rem`) et son en-tête logo interne est masqué en mobile → plus de logo en double ni rogné par la topbar.
+- Contrôles : `vue-tsc` ✓, `vite build` ✓, 122 tests unitaires ✓.
+
+### Refonte des PDF (facture, devis, avoir) — feature/facture-date-exercice-et-retrait-notes
+
+Nouveau design des documents PDF, cohérent sur les trois types, avec une couleur d'en-tête distincte par document :
+- **En-tête** : bande à **dégradé** (police « Helvetica Neue »/Helvetica), logo damier 2×2 « Ledge » + sous-titre = nom du cabinet (paramètre `cabinet_nom`), titre du document + N° + **pilule de statut à liseré**. Couleurs : **facture = bleu nuit**, **devis = teal**, **avoir = gris ardoise**.
+- **Cartes** « Informations » / « Destinataire » de **même largeur et même hauteur** (cellules `<td>` stylisées), valeurs alignées à droite.
+- **Tableau** à en-tête coloré, **TOTAL TTC** dans un bloc arrondi, mention en lettres, **pied de page centré** (cabinet + adresse + NIF/NIS/agrément, depuis les paramètres). Sections « Signatures » et « Observations » retirées.
+- **Spécifique devis** : ligne « **Validité du devis : jusqu'au JJ/MM/AAAA** », statut (brouillon/envoyé/accepté/refusé/expiré), code + désignation + description de la prestation.
+- **Spécifique avoir** : **facture d'origine**, mission, **motif** (section dédiée), « TOTAL AVOIR TTC », destinataire repris de la facture d'origine.
+- Rendu compatible **dompdf v3.1.5** (mise en page par tables, `border-radius` et `linear-gradient` supportés). Aucune donnée/contrôleur modifié (mêmes variables passées par `PdfService`).
+
+### Facturation : date bornée à l'exercice + retrait du champ Notes — feature/facture-date-exercice-et-retrait-notes
+
+#### Date de facturation bornée à l'exercice + messages explicites
+- **Backend** (`StoreFactureRequest`) : `date_facture` doit désormais tomber **dans l'exercice choisi** (`exercice_id` fourni, sinon `Exercice::current()`) entre `date_ouverture` et `date_cloture`, sinon **422** avec un message explicite « La date de facturation doit être comprise dans l'exercice {annee} (du JJ/MM/AAAA au JJ/MM/AAAA). ». Ajout de `messages()`/`attributes()` FR pour tous les champs (fini les « The date_facture field… »).
+- **Frontend** (`FactureListPage.vue`) : le `DatePicker` de la facture est borné (`:minDate`/`:maxDate`) à l'exercice sélectionné — impossible de choisir une date hors exercice ; un `watch` ramène la date dans la plage au changement d'exercice.
+- **Tests** : `date_facture` hors exercice → 422 ; le test « sans taux TVA en vigueur » utilise désormais un exercice 2022 dédié (cohérent avec la nouvelle borne).
+
+#### Suppression du champ « Notes » des factures et devis
+Le champ `notes` (qui n'apparaissait que sur les PDF en « Observations ») est **retiré partout** pour les **factures** et **devis** : migration `dropColumn('notes')` (factures + devis), `$fillable` des modèles, FormRequests, `FacturationService` (`creerFacture`/`creerDevis`), Resources, **PDF Blade** (section Observations + CSS), factories, et côté frontend (types `Facture`/`Devis`, modules API, `useDevis`, formulaires `FactureListPage`/`DevisListPage`, tests). Les champs `notes` distincts de **paiement**, **entreprise** et **mission** sont **conservés**.
+
+#### PDF facture
+- Retrait de la **section « Signatures »** (et de son CSS) sur le PDF de facture.
+
+#### Correctif annexe (dashboard secrétaire)
+- `DashboardService::compterEncaissements` : les encaissements du mois affichaient **0 le dernier jour du mois** (un `whereBetween` de dates excluait un `date_paiement` comparé comme datetime). Remplacé par `whereYear`+`whereMonth` (pattern déjà utilisé pour les factures du mois). Bug préexistant.
+
+### Numérotation des factures sans trou & suppression conforme — feature/facture-suppression-conforme-numerotation
+
+Aligne la suppression de factures sur les règles de conformité (numérotation séquentielle **continue**, annulation par **avoir**).
+
+- **Réutilisation du numéro de la dernière facture** (`FacturationService::supprimerFacture`) : la suppression d'une facture autorisée passe d'un **soft delete** à un **hard delete** (`forceDelete`). Le `numero` est physiquement libéré, donc réutilisé par le générateur `MAX(numero)+1` — supprimer FF{annee}-003 puis recréer redonne **FF{annee}-003** (avant : un trou → 004, car la ligne soft-deletée restait comptée dans le `MAX` via `DB::table()`).
+- **Blocage de la suppression d'une facture non-dernière** : seule la dernière facture de la séquence (préfixe+exercice) peut être supprimée. Sinon → **409** avec un message invitant à **créer un avoir (FA)** pour annuler la facture sans casser la numérotation. Blocage également si la facture a des **paiements** (message enrichi) ou un **avoir** rattaché (nouveau).
+- **Frontend** (`FactureListPage.vue`) : un refus de suppression (auparavant silencieux) s'affiche désormais dans une **popup/modal** dédiée (« Suppression impossible ») qui reste ouverte jusqu'à fermeture, laissant le temps de lire le message et sa suggestion d'avoir.
+- **Tests** (`FactureApiTest`) : suppression de la dernière facture → numéro réutilisé ; suppression d'une facture non-dernière → 409 + suggestion d'avoir ; facture avec avoir → 409.
+
+### Correctifs gestion des taux de TVA — fix/tva-validation-dates-libelle-categorie
+
+- **Libellé de catégorie figé corrigé** (`TvaTauxPage.vue`) : dans la modale, les options du sélecteur « Categorie » affichaient un pourcentage **hardcodé** (« Standard (19%) ») déconnecté du champ « Taux (%) » — en éditant un taux à 35 %, la catégorie restait « Standard (19%) ». `typeOptions` devient un `computed` qui suit le taux saisi → **« Standard (35%) »** (Exonéré reste 0 %), mis à jour en direct.
+- **Date de fin antérieure à la date de début empêchée côté UI** (`TvaTauxPage.vue`) : le `DatePicker` de fin reçoit `:minDate="form.date_debut"` (jours antérieurs non sélectionnables) ; un `watch` remet la date de fin à `null` si l'on recule la date de début après une fin déjà choisie. Le backend rejetait déjà ce cas (`after_or_equal:date_debut`) — la contrainte UI évite désormais la saisie invalide en amont.
+- **Tests** : `TvaTauxApiTest` couvre désormais aussi le **chemin update** (PUT avec `date_fin` < `date_debut` → 422), en complément du test de création existant.
+
+### Sécurité — Invitation par lien & définition de mot de passe en libre-service — feature/invitation-definition-mot-de-passe
+
+L'administrateur ne manipule, ne voit ni ne transmet plus **aucun mot de passe** — ni à l'activation d'un accès client, ni à la création d'un collaborateur/secrétaire. Chaque utilisateur **définit lui-même** son mot de passe via un lien d'invitation sécurisé reçu par email. Implémente enfin le « email set-password » décrit de longue date (US-29) mais jamais codé.
+
+#### Avant / Après
+- **Avant** : l'activation portail générait `Str::random(12)` **renvoyé en clair** dans la réponse JSON et affiché à l'admin ; la création d'un staff exigeait que l'admin **saisisse** le mot de passe. L'admin connaissait donc le secret et devait le transmettre manuellement.
+- **Après** : le compte est créé avec un mot de passe placeholder **aléatoire (40 car.) inutilisable** ; un email d'invitation contenant un **lien à usage unique et expirable** est envoyé. Aucun mot de passe ne transite jamais.
+
+#### Backend
+- **`InvitationService`** (service transverse) : `inviter(User)` génère un jeton via le broker natif (`Password::createToken`), envoie l'email et retourne l'URL `FRONTEND_URL/definir-mot-de-passe?token=…&email=…` (repli copiable, **sans mot de passe**) ; `envoyerReinitialisation(User)` pour le libre-service.
+- **`PasswordController`** (routes publiques) : `POST /api/v1/forgot-password` (réponse **générique** anti-énumération d'emails) et `POST /api/v1/reset-password` (`Password::reset` + `Password::defaults()` + `confirmed`). Les deux **throttlées** (`throttle:6,1`).
+- **Mailables** `InvitationCompteMail` / `ReinitialisationMotDePasseMail` + templates Blade `mail/invitation`, `mail/reset-password` (bouton + lien de repli, mention d'expiration).
+- **`PortailService::activerPortail`** : ne renvoie plus `temporary_password` mais `invitation_url` ; `renvoyerInvitation()` ajouté. **`UserController::store`** passe par `StoreUserRequest` (plus de champ `password`), crée le compte et déclenche l'invitation ; `update` ne permet plus de fixer un mot de passe ; `renvoyerInvitation()` ajouté.
+- Routes admin de renvoi : `POST /api/v1/users/{user}/renvoyer-invitation`, `POST /api/v1/entreprises/{entreprise}/renvoyer-invitation`.
+- **Config** : `auth.passwords.users.expire` piloté par `AUTH_PASSWORD_RESET_EXPIRE` (défaut **1440 min / 24 h**, confortable pour une invitation) ; `app.frontend_url` (`FRONTEND_URL`) pour construire les liens.
+
+#### Frontend
+- Nouvelles pages publiques `DefinirMotDePassePage.vue` (`/definir-mot-de-passe`, sert invitation **et** réinitialisation) et `MotDePasseOubliePage.vue` (`/mot-de-passe-oublie`). RGAA : `role="alert"`/`aria-live`, labels, focus visible.
+- `LoginPage.vue` : le lien « Mot de passe oublié ? » pointe désormais vers le vrai flux libre-service (fin de l'impasse « contactez l'administrateur »).
+- `EntrepriseListPage.vue` / `UserListPage.vue` : suppression de l'affichage du mot de passe en clair ; après activation/création, dialog **« Invitation envoyée »** avec **lien copiable** (repli) ; action **« Renvoyer l'invitation »** par ligne. Champ mot de passe retiré du formulaire utilisateur.
+- Module API `auth.ts` (`forgotPassword`, `resetPassword`) ; `users.ts` / `entreprises.ts` adaptés (`invitation_url`, `renvoyerInvitation`, retrait de `password`).
+
+#### Tests
+- `UserInvitationTest` : création staff → invitation envoyée, **aucun mot de passe** exposé, rôle assigné, champ `password` ignoré, rôle obligatoire (422), renvoi d'invitation, non-admin interdit (403).
+- `PasswordResetTest` : forgot envoie un lien si le compte existe, **réponse générique** sinon, **throttling** (429) ; reset définit le mot de passe, rejette un token invalide (422), exige robustesse + confirmation.
+- `PortailAccessTest` : activation **n'expose plus** de mot de passe et **envoie une invitation** ; renvoi d'invitation au client existant. **273 tests** au vert.
+
+#### Note exploitation
+- Le choix du mot de passe par l'utilisateur transite par `POST /reset-password` : **HTTPS obligatoire en production** (le dev local reste en HTTP). Lien d'invitation/réinitialisation valable 24 h, à usage unique.
+
+### Robustesse suppression de mission — fix/robustesse-suppression-mission
+
+- **Échec silencieux corrigé** (`useMissions.ts`) : la suppression d'une mission bloquée par le backend (HTTP **409** « mission avec factures associées ») n'affichait **aucun retour** à l'utilisateur — `deleteMission` n'avait pas de `try/catch`, la promesse rejetée était avalée par le callback de confirmation et la mission restait dans la liste sans explication. Désormais le **message métier du backend** est remonté dans un toast d'erreur (même pattern que `deleteTache`), avec message de repli si le backend n'en fournit pas. Aucun toast de succès ni rafraîchissement de liste en cas d'échec.
+- **Confirmation explicite** (`MissionListPage.vue`) : la boîte de confirmation de suppression prévient désormais que **toutes les tâches et leurs commentaires seront également supprimés** et que les **documents associés seront conservés** (détachés de la mission), pour que l'utilisateur mesure la portée de l'action avant de valider.
+- **Commentaires de tâches orphelins corrigés** (`MissionService::supprimerMission`) : la mission étant **soft-deletée**, ni les events Eloquent ni le `cascadeOnDelete` SQL ne se déclenchaient ; les tâches étaient soft-deletées mais leurs **commentaires restaient actifs** (orphelins pointant vers une tâche supprimée). Ils sont désormais soft-deletés explicitement dans la même transaction.
+- **Documents rattachés à une mission supprimée corrigés** (`MissionService::supprimerMission`) : le soft-delete n'activait pas le `nullOnDelete` de la FK `documents.mission_id`, laissant des documents pointer vers une mission disparue. Ils sont désormais **détachés** (`mission_id = null`) — sans suppression, puisqu'ils restent rattachés à l'entreprise — conformément à l'intention du schéma.
+- **Tests** : front (`useMissions.test.ts`) succès + échec **409** + message de repli ; back (`MissionApiTest`) la suppression soft-delete les tâches **et** leurs commentaires, et **détache** les documents sans les supprimer.
+
+### Correctifs page Planning & accès aux tâches par rôle — fix/correctifs-planning
+
+Correctifs issus des tests utilisateur sur la page Planning : affichage, vues, comportement **différencié par rôle**, et règles métier d'affectation / isolation des tâches désormais **appliquées par le backend** (défense en profondeur).
+
+#### Frontend — Planning par rôle
+- **Collaborateur** (`PlanningCalendarPage.vue` / `usePlanning.ts`) : la page n'affiche plus qu'**un seul calendrier = ses tâches** (pas d'onglets), **colorées par priorité** (Faible → Urgente, 4 niveaux — voir correctif ci-dessous), avec une **légende priorité**. Calendrier **non éditable** (ni drag ni resize). Il ne voit jamais les tâches des autres.
+- **Admin** : conserve les onglets **Missions** (calendrier des missions) et **Équipe**. Dans l'onglet Équipe, **cliquer sur la tâche d'un collaborateur ouvre le même modal** que sur le calendrier des missions (chip rendu en `<button>` accessible).
+- **Onglet Missions** (`usePlanning.ts`) : le calendrier n'affiche que les **missions** (les tâches restent dans l'onglet Équipe et les fiches mission).
+- **Quatre vues** (`PlanningCalendarPage.vue`) : **Année / Mois / Semaine / Liste**, libellés FR — partout (Missions admin et planning collaborateur).
+- **Décalage d'un jour corrigé** (`usePlanning.ts`) : la fin des barres (`allDay` exclusif côté FullCalendar) est ajustée (+1 jour à l'affichage, −1 à la persistance d'un redimensionnement) ; une mission 24 → 26 couvre bien 24/25/26.
+- **Détail mission / tâche** : un collaborateur ne voit que **ses** tâches dans la fiche mission ; le **formulaire de commentaire est masqué** sur une tâche qui ne lui est pas affectée ; il ne peut **ni modifier ni supprimer** un commentaire qui n'est pas le sien.
+- **Sélecteur d'affectation** (`MissionDetailPage` / `TacheDetailPage`) : ne liste que les **administrateurs et collaborateurs** (`useUsers.fetchUsers({ role: ['admin','collaborateur'] })`).
+- **Toasts d'erreur** : le message du backend (422) est remonté lors d'un drag/resize hors bornes au lieu d'un message générique.
+
+#### Backend — isolation des tâches par rôle
+- **`Tache::scopeVisiblePour(User)`** : scope réutilisable — l'admin voit tout, le collaborateur uniquement les tâches qui lui sont affectées (`assigned_to`).
+- **`TachePolicy::view`** : admin, ou collaborateur affecté à la tâche. Appliquée sur :
+  - `TacheController@index` (liste scopée via `visiblePour`) et `@show` (**403** si tâche non affectée) ;
+  - `MissionController@show` (chargement des tâches scopé) ;
+  - `TacheCommentaireController@index` / `@store` (**403** : un collaborateur non affecté ne peut ni lister ni poster de commentaire).
+- **Immutabilité des commentaires** : `update` / `destroy` restent limités à l'**auteur ou à un admin** (`TacheCommentairePolicy`, inchangé).
+- **`ValidatesTacheDates`** (trait mutualisé `StoreTacheRequest` / `UpdateTacheRequest`) :
+  - `date_debut` ≥ **début de la mission** ; `date_echeance` ≤ **fin de la mission** — **sauf si la mission est en retard**, auquel cas l'échéance peut la dépasser. Rejet **422** + messages FR.
+  - `assigned_to` : une tâche ne peut être affectée qu'à un **collaborateur ou un administrateur** (jamais à la secrétaire). Rejet **422**.
+
+#### Frontend (API)
+- **`UserFilters.role`** : accepte `string | string[]` (`useUsers.fetchUsers` accepte un override de filtres sans changer le comportement par défaut de `UserListPage`).
+
+#### Tests
+- `TacheApiTest` : le collaborateur **ne voit que ses propres tâches** (l'admin les voit toutes) ; **403** à la consultation et au commentaire d'une tâche non affectée ; **201** au commentaire de sa propre tâche ; **403** à la modification/suppression du commentaire d'un admin (immutabilité) ; affectation secrétaire → 422 ; collaborateur → 201 ; bornes de dates `date_debut`/`date_echeance` → 422 ; échéance au-delà de la fin **autorisée** si mission en retard.
+
+#### Correctifs complémentaires (priorités, décalage de date, conflit d'affectation)
+- **Priorités cohérentes — 4 niveaux** : la légende du planning et le Dashboard affichaient des niveaux inventés (5 niveaux « Très faible → Critique » côté planning, mapping 3 niveaux cassé au Dashboard). Le système n'a que **4 priorités : Faible / Normale / Haute / Urgente**. Centralisation dans une source de vérité unique `frontend/src/utils/priorite.ts` (libellés, severities, couleurs alignées sur les badges PrimeVue — gris/bleu/ambre/rouge) réutilisée par `usePlanning.ts`, `PlanningCalendarPage.vue`, `TacheDetailPage.vue`, `MissionDetailPage.vue` et `DashboardPage.vue`. Backend : `StoreTacheRequest` / `UpdateTacheRequest` bornent désormais `priorite` à **`max:4`** (au lieu de `max:5`).
+- **Décalage d'un jour à la saisie corrigé** : une échéance saisie au 7 juin était enregistrée au 6 juin. Cause : `toIsoDate()` passait par `Date.toISOString()` (UTC), repassant à la veille en UTC+1. Nouveau helper `frontend/src/utils/date.ts` (`toIsoDate` / `parseIsoDate`) formatant à partir des composants **locaux** ; appliqué à la saisie et au pré-remplissage des formulaires (`TacheDetailPage.vue`, `MissionDetailPage.vue`).
+- **Alerte de conflit d'affectation réactive (non bloquante)** : à la création/édition d'une tâche, si le collaborateur choisi a déjà une tâche qui **chevauche** la période saisie (toutes missions confondues), un avertissement s'affiche en temps réel (au changement de dates **ou** de collaborateur) ; l'enregistrement reste autorisé. Backend : `Tache::scopeChevauche()` (chevauchement `COALESCE`, bindings), `MissionService::detecterConflitsTache()`, `TacheController@conflits` (admin only via `MissionPolicy::create`), `CheckTacheConflitsRequest`, `ConflitTacheResource`, route `GET /api/v1/taches/conflits`. Frontend : `tachesApi.conflits`, composable `useTacheConflits` (debounce + anti-course), encart d'avertissement `role="status"` / `aria-live="polite"` dans les 3 dialogues (création + édition mission, édition tâche).
+
+#### Tests (correctifs complémentaires)
+- `TacheApiTest` : `priorite = 5` → **422**, `priorite = 4` → **201** ; conflit détecté sur chevauchement, **0** hors période, exclusion de la tâche courante (`exclude_tache_id`), détection **inter-missions** ; `collaborateur_id` manquant / aucune date → **422** ; endpoint **interdit au collaborateur** → 403.
+
+### Tâches — date de début & affichage en plage sur le planning — feature/tache-date-debut
+
+Une tâche peut désormais porter une **date de début** en plus de son échéance ; sur le planning elle s'affiche en **plage** (barre début → échéance) au lieu d'un simple point.
+
+#### Backend
+- **Migration** `add_date_debut_to_taches_table` : colonne `date_debut` (nullable) sur `taches`.
+- **`Tache`** : `date_debut` ajouté au `$fillable` et casté en `date`.
+- **`StoreTacheRequest` / `UpdateTacheRequest`** : `date_debut` `nullable | date | before_or_equal:date_echeance`.
+- **`TacheResource`** : expose `date_debut`.
+- **`CalendarService::fetchTaches()`** : filtre par **chevauchement de plage** (`COALESCE(date_debut, date_echeance)` vs fenêtre, en **bindings** — pas de `DB::raw` avec input utilisateur) au lieu de la seule échéance ; une tâche dont la plage croise la fenêtre apparaît même si ni début ni échéance n'y tombent.
+
+#### Frontend
+- **Planning** (`usePlanning.ts`) : une tâche avec début **et** échéance s'affiche en **barre** ; un seul jour → **point**. Le glisser-déposer décale **les deux dates** ; le redimensionnement ajuste l'**échéance**.
+- **Popup tâche** (`PlanningCalendarPage.vue`) : ligne **« Début »** ajoutée ; échéance null-safe.
+- **`MissionDetailPage` / `TacheDetailPage`** : sélecteur **Date de début** (création + édition) et affichage.
+
+#### Tests
+- `TacheApiTest` : création avec `date_debut`, rejet si `date_debut > date_echeance`.
+- `CalendarApiTest` : tâche dont la **plage chevauche** la fenêtre (début avant / échéance après).
+
+### Refonte page Planning — feature/refonte-planning
+
+Refonte complète de la page Planning : navigation par onglets, vue annuelle, et nouvelle vue **Équipe** (charge / disponibilité par collaborateur).
+
+#### Frontend
+- **`PlanningCalendarPage.vue`** : refonte en deux onglets — **Calendrier** (missions & tâches) et **Équipe**.
+  - **Vue annuelle par défaut** (12 mois) via le plugin `@fullcalendar/multimonth`, + vues Mois / Semaine / Jour / Liste.
+  - **Loader overlay** pendant le chargement ; bouton **« Nouvelle mission »**.
+  - **Légende dynamique** par prestation (palette de couleurs) ; bordures de couleur par statut de mission.
+- **Onglet Équipe** (`usePlanning.ts`) : **grille de disponibilité** collaborateur × jour de la semaine, charge colorée (**Disponible / Modéré / Chargé**), navigation semaine précédente / suivante.
+- Filtre collaborateur **retiré de l'onglet Missions** (remplacé par la vue Équipe).
+
+#### Backend
+- **`CalendarService`** : expose `prestation_id` / `prestation_code` (légende par prestation) et `assigned_to` (grille Équipe) ; `planning.ts` typé en conséquence.
+
+#### Dépendances
+- Ajout de **`@fullcalendar/multimonth`** (vue annuelle 12 mois).
+
+### Missions — visibilité collaborateur, priorisation & refonte table — feature/fix-mission-list
+
+Affinements du module Missions : un collaborateur assigné à une tâche voit la mission parente, ses missions en cours sont priorisées, et la table missions est repensée.
+
+#### Backend
+- **`MissionService::listerMissions()` + `MissionPolicy::view()`** : un collaborateur **assigné à une tâche** d'une mission (mais absent de `mission_user`) voit désormais la mission, ses tâches et ses commentaires (`whereHas('taches', assigned_to)` en OR de `whereHas('collaborateurs')`).
+- **`MissionService::listerMissions()`** : pour le collaborateur, les missions **en cours** remontent en tête de liste (tri statut puis date).
+- **`TacheCommentaireController::store()`** : le **1er commentaire** sur une tâche `a_faire` la fait passer en `en_cours` ; une tâche `terminee`/`annulee` n'est pas réactivée.
+
+#### Frontend
+- **`MissionListPage.vue`** : refonte de la table missions — colonnes #, N° de mission, Raison sociale, Prestation, Date de début, **Date de fin** (triable), Statut (libellés lisibles), Actions sur une ligne ; colonne Prix HT retirée ; icône « voir » → `pi-eye` ; responsive (Date de fin masquée < 900px, toolbar empilée < 640px).
+- **`TacheDetailPage.vue`** : reflète le passage automatique en `en_cours` au 1er commentaire.
+- **`fix(ci)`** : `filters.page` potentiellement `undefined` (TS18048) corrigé.
+
+#### Tests
+- `MissionApiTest` : priorisation des missions en cours pour le collaborateur.
+- `TacheApiTest` : 1er commentaire sur tâche `a_faire` → `en_cours` ; commentaire sur tâche `terminee` ne change pas le statut.
+
+### Refonte UX encaissements — feature/ux-encaissements-drawer
+
+Remplace le Dialog paiement minimaliste par un **Drawer latéral** complet avec historique, validation, dark mode et mise à jour temps réel.
+
+#### Backend
+- **`PaiementController`** : `destroy()` supporte désormais la suppression par la secrétaire sur ses propres saisies (`admin OR recorded_by === user.id`) ; garde anti-dépassement dans `store()` (422 si montant > restant dû).
+- **`PaiementResource`** : expose `recorded_by_name` (via eager-load `recordedBy`) pour l'affichage « par X ».
+- **Routes** : `DELETE /factures/{id}/paiements/{p}` déplacée du groupe `admin` vers `admin|secretaire`.
+
+#### Frontend
+- **`FactureDetailDrawer.vue`** (nouveau) : panneau latéral droit — historique des paiements, étape de confirmation, validation temps réel, dark mode.
+  - Validation formulaire : montant ≤ 0, négatif ou > restant dû → message `role="alert"` (RGAA C4.1.3).
+  - Mise à jour instantanée du badge et des montants (ENCAISSÉ / RESTE DÛ) sans fermer le Drawer via `updateLocalTotals()`.
+  - Dark mode : tokens CSS adaptatifs (`--p-surface-ground` pour les lignes, nuances `300` pour les couleurs sémantiques).
+- **`FactureListPage.vue`** : bouton `pi-wallet` ouvre le Drawer ; Dialog paiement supprimé.
+
+#### Tests
+- `PaiementApiTest` (13 cas) : droits (admin / secrétaire / collaborateur), validations métier (0 / négatif / dépassement / déjà soldé), `InvoicePaid`, suppression avec droits fins.
+- `FactureDetailDrawer.test.ts` (17 cas) : affichage, dark mode classes, navigation, validation RGAA, permissions delete.
+- `PaiementFactory` créée.
+
+### Durcissement anti-abus (throttle envoi mail / PDF) — chore/durcissement-throttle-mail
+
+Suite à l'audit SOLID / RGAA / OWASP : le code est conforme ; on ajoute une limitation de débit (OWASP A04) sur les actions
+sortantes coûteuses, plus un nettoyage DRY.
+
+- **Throttle** : `throttle:6,1` sur les envois de mail (`POST /devis/{id}/envoyer`, `/factures/{id}/transmettre`,
+  `/factures/{id}/relances`) et `throttle:30,1` sur les routes **PDF** (back-office + portail) → empêche le spam
+  (quota Brevo) et la surcharge CPU ; `ApiExceptionRenderer` renvoie déjà un **429** propre.
+- **DRY** : messages d'envoi mail centralisés dans `App\Mail\MailMessages` (constantes partagées par
+  `FacturationService` et `RelanceService`).
+- **Tests** : `RelanceApiTest` — 429 au-delà de 6 envois/min.
+
+### Envoi des devis & factures par mail (US-44) — feature/envoi-devis-mail
+
+Permet à l'admin/secrétaire d'**envoyer un devis** ou de **transmettre une facture** au client par mail, avec le **PDF en pièce jointe**.
+
+#### Backend
+- **Mailables** `DevisMail` / `FactureMail` (calqués sur `RelanceClientMail`) : sujet, vue partagée `mail.document`,
+  **PDF généré à la volée** via `PdfService` (`Attachment::fromData(... ->output())`, sans stockage disque).
+- **`Entreprise::emailDestinataire()`** : destinataire = email du **contact principal**, à défaut l'email de l'entreprise —
+  **source unique** utilisée par les devis, les factures **et les relances** (`RelanceService` aligné, manuelle + automatique).
+  Si **ni l'un ni l'autre** n'est renseigné, message clair standardisé « Cette entreprise n'a pas d'adresse mail… » (popin) ;
+  le toast de succès des créances affiche le **vrai destinataire** (`email_destinataire`).
+- **`FacturationService`** : `envoyerDevis()` envoie désormais le mail **puis** passe le statut à `envoye` (refus `409` si l'entreprise
+  n'a pas d'email — statut inchangé) ; `transmettreFacture()` (nouveau) transmet la facture sans changer de statut.
+- **API** : `POST /factures/{id}/transmettre` (`FactureController::transmettre` + `FacturePolicy::transmettre`, **admin + secrétaire**) ;
+  `POST /devis/{id}/envoyer` (existant) envoie maintenant le mail. `DomainException → 409`.
+- **Config** : `MAIL_*` piloté par `.env` (Mailpit en dev, **Brevo** en démo) — aucun changement de code pour switcher.
+
+#### Frontend
+- Bouton **« Envoyer par mail »** (devis brouillon) et **« Transmettre par mail »** (facture, admin+secrétaire) avec **confirmation**,
+  `aria-label`, toasts de succès/erreur (`useDevis.envoyerDevis` / `useFactures.transmettreFacture`, module `factures.transmettre`).
+
+#### Tests
+- `DevisApiTest` : envoi → mail `DevisMail` au bon destinataire **avec pièce jointe PDF** + statut `envoye` ; sans email → `409` (statut inchangé).
+- `FactureApiTest` : transmission → mail `FactureMail` + pièce jointe ; sans email → `409` ; **secrétaire autorisée, collaborateur `403`**.
+
+### Gestion des taux de TVA (US-51) — feature/gestion-taux-tva
+
+Donne à l'admin la main sur les taux de TVA (sans accès BDD) et permet de facturer en **exonéré**.
+
+#### Backend
+- **CRUD des taux** (admin) : `GET|POST /api/v1/referentiels/tva-taux`, `PUT|DELETE /referentiels/tva-taux/{id}` —
+  `ReferentielTvaController` (mince) + `TvaTauxService` (logique métier, SRP) + `TvaTauxPolicy` (admin) +
+  `Store/UpdateTvaTauxRequest` (messages FR, borne `taux` 0–100) + `TvaTauxResource`.
+  Suppression **bloquée (409)** si des factures référencent le taux.
+- **Règle « toujours un taux actif par type »** : il doit rester en permanence **≥ 1 taux Standard actif en vigueur**
+  **et** **≥ 1 taux Exonéré actif en vigueur**. Désactiver, changer le type ou supprimer le **dernier** taux utilisable
+  d'un type est **bloqué (409)** — sinon la facturation se retrouverait sans taux applicable.
+- **`actif` devient significatif** : `TvaTaux::enVigueurLe($date, $type)` ne résout plus que les taux **actifs**
+  (un taux désactivé n'est jamais appliqué). Helpers `estActifEnVigueur()` / `existeAutreActifEnVigueur()`.
+- **Résolution déterministe (priorité au plus récent)** : `enVigueurLe` applique le taux dont la `date_debut` est la plus
+  proche (≤) de la date du document, **départage stable par `id`** si deux taux partagent la même date (plus de choix
+  arbitraire de MySQL → fin du conflit affiché/appliqué sur devis et factures). Le composable client `useTvaTaux` suit la même règle.
+- **Interdiction de deux taux actifs du même type le même jour** : à la création **et** à l'édition, le service refuse
+  (`409`) si un autre taux actif du type commence déjà ce jour-là. La **clôture automatique** du taux précédent est désormais
+  appliquée aussi à l'**édition** d'une `date_debut`/type (re-versionnement — avant, éditer une date « ne changeait rien »).
+- **Choix de catégorie à la création** : `type_tva` (`standard` | `exonere`) dans `StoreFacture`/`StoreDevisRequest` ;
+  `FacturationService::creerFacture()`/`creerDevis()` résolvent le taux via `TvaTaux::enVigueurLe($date, $type)`
+  (exonéré → TVA 0, TTC = HT). La **valeur reste fixée par la date** (historisation, snapshots immuables).
+- **Seeder** : taux **Exonéré 0%** ajouté, **Réduit 9%** retiré (hors activité).
+
+#### Frontend
+- Page **`/tva-taux`** (admin) : DataTable + dialog (catégorie Standard/Exonéré, taux, désignation, dates, actif),
+  garde 409 affichée en toast ; entrée menu sous **Administration**.
+- Sélecteur **« Catégorie TVA »** sur les formulaires facture/devis : affiche **« Standard (X %) »** où X est le
+  **taux actif en vigueur** à la date du document (miroir client `useTvaTaux.tauxEnVigueur`), recalculé quand la date change ;
+  **« Exonéré (0 %) »**. Cohérent car la règle ci-dessus garantit un taux courant unique et défini par type.
+- Module `referentiels.ts` + composable `useTvaTaux` + type `TvaTaux`.
+
+#### Fiabilisation TVA des devis + cas limites
+- **Snapshot du taux sur le devis** : nouvelles colonnes `devis.taux_tva` + `devis.tva_taux_id` (parité avec les factures),
+  renseignées à la création et exposées par `DevisResource`. Le **PDF devis** affiche désormais le **taux réel**
+  (`TVA (X%)`) au lieu de « 19% » codé en dur — un devis exonéré imprime « TVA (0%) ».
+- **Plus de 0% silencieux** : `FacturationService` centralise la résolution dans `resoudreTvaTaux()` ; si aucun taux
+  **standard** n'est en vigueur à la date, la création **échoue (409)** avec un message clair au lieu d'appliquer 0% en douce
+  (l'exonéré reste à 0 sans erreur). `DevisController::store` capture désormais `DomainException` (aligné sur facture).
+- **Édition de devis cohérente** : modifier la prestation recalcule `montant_ht`/`montant_tva`/`montant_ttc`
+  (le taux figé du devis est conservé).
+- **Modal & fuseau horaire** : la date du devis est pré-remplie à aujourd'hui (le taux courant s'affiche d'emblée, comme la facture) ;
+  `toIsoDate` envoie la **date locale** (et non `toISOString()`/UTC) — fini le décalage d'un jour en UTC+1 qui pouvait
+  désaccorder le taux affiché et le taux appliqué.
+- **Migration** additive `add_taux_tva_to_devis_table` + backfill des devis existants non exonérés à 19%.
+
+#### Tests
+- **`TvaTauxApiTest`** (CRUD, admin-only 403, garde 409, validations, clôture auto) + cas de la règle « ≥1 actif par type »
+  (désactiver/supprimer le dernier actif → 409 ; désactivation autorisée s'il reste un autre actif ;
+  `enVigueurLe` ignore un taux inactif) + **2 taux le même jour → 409** (création et édition), **édition d'une date re-clôture
+  le précédent** ; `TvaTauxTest` (départage déterministe par `id` à `date_debut` égale).
+- **`DevisApiTest`** : taux snapshot persisté (standard 19% / exonéré 0%), **devis hors taux en vigueur → 409**,
+  édition prestation → totaux recalculés ; **`FactureApiTest`** : facture standard hors taux → 409 (plus de 0% muet) ;
+  `api-modules.test.ts` étendu (`referentielsApi`).
+
+### Suppression du timbre fiscal (refactor/suppression-timbre)
+
+Le timbre fiscal était présent en infrastructure mais **toujours nul en pratique** (`creerFacture()`/`creerDevis()`
+forçaient `montant_timbre = 0` et `timbre_taux_id = null`, le calcul `TimbreTaux` n'était jamais invoqué). Il est
+**entièrement retiré** du périmètre.
+
+#### Backend
+- **Modèle** `TimbreTaux` supprimé ; `Facture`/`Devis` nettoyés (`montant_timbre`, `timbre_taux_id`, relation `timbreTaux()`)
+- **Migrations** : colonnes `montant_timbre` (factures, devis), FK `timbre_taux_id` et table `timbre_taux` retirées
+  (édition des migrations d'origine, schéma propre — nécessite `migrate:fresh`)
+- **`FacturationService`** / **`PdfService`** : timbre retiré de la création facture/devis et de l'agrégation du rapport de clôture
+- **Resources** (`FactureResource`, `DevisResource`), **factories**, **seeder** (`TvaTauxSeeder`) et **PDF de clôture** nettoyés
+- **Tests** : `TimbreTauxTest` supprimé ; références `TimbreTaux`/`montant_timbre` retirées des tests facturation/dashboard
+
+#### Frontend
+- **`types/index.ts`** : `montant_timbre` (Facture, Devis) et `timbre_rate_id` (Facture) retirés ; test `types.test.ts` aligné (TTC = HT + TVA)
+
+#### Docs
+- `README.md`, `docs/ARCHITECTURE.md`, `docs/BACKLOG.md` (US-04 → « TVA historisée », US-51 → « Gestion des taux TVA ») mis à jour
+
+#### Fix (repéré pendant la recette)
+- **`PdfService::genererRapportCloture()`** : le filtre des factures utilisait `where('type', 'facture')` alors que
+  le type réel est `'FF'` — le rapport de clôture (US-35) ressortait **toujours vide**. Corrigé en `where('type', 'FF')`
+  (cohérent avec `DashboardService` / `PortailService`). Vérifié : le rapport liste désormais bien les factures et les impayés.
+
+### Tests front (couche logique) + cahier de recettes (feature/tests-frontend)
+
+#### Tests
+- **Vitest** : harnais étendu à **95 tests** — couverture des **18 modules API**, du **store `auth`**
+  (login/logout/fetchUser, normalisation des rôles, getters de rôle, `hasAnyRole`), et des composables
+  (`useApiError`, `useCountUp`, patron CRUD via `useEntreprises`)
+- Couche **logique** uniquement (insensible à la refonte design à venir) ; tests de composants reportés post-refonte
+
+#### Documentation
+- **`docs/CAHIER-RECETTES.md`** (nouveau) : cahier de recettes **niveau application** (RNCP C2.3.1) — scénarios
+  **fonctionnels** (12 domaines), **structurels** (Pint / PHPUnit / Vitest / build / CI) et **sécurité** (OWASP)
+  avec préconditions, étapes et résultats attendus
+
+### Refonte page Créances + relances (feature/relances)
+
+#### Frontend
+- **`CreancesPage.vue`** : refonte **mobile-first** — KPI **« total restant »** dû mis en avant, dialog d'envoi de relance plus ergonomique, présentation des créances revue ; accessibilité (`aria-*`) renforcée
+
+#### Backend
+- **`RelanceClientMail.php` / `relance.blade.php`** : renommage de la variable `$message` en `$corps` dans la vue mail (évite le conflit avec la variable réservée `$message` de Blade)
+
+### Refonte sidebar v2 — accordéons + restyle (sidebar-refonte-v2)
+
+#### Frontend
+- **`AppMenu.vue`** : tous les groupes racine (Accueil, Gestion, Facturation, Administration) sont désormais des **accordéons à en-tête unique encadré** — suppression du libellé de section affiché en double. Le paramétrage reste regroupé sous « Administration » (Prestations, Paramètres, Exercices, Utilisateurs, KPI Objectifs, Journal d'audit) ; `KPI Objectifs` retiré de la section Accueil ; icônes de groupe ajoutées ; icône Paramètres en `pi-sliders-h`. Nouveau flag `defaultOpen` : **Accueil / Gestion / Facturation ouverts par défaut**, **Administration replié** (auto-ouvert sur une de ses pages filles)
+- **`AppMenuItem.vue`** : flag `accordion` sur un groupe racine (en-tête repliable à état local) ; ouverture initiale = `defaultOpen` si présent, sinon dépliée seulement si la page courante appartient au groupe ; menu portail inchangé
+- **`layout.scss` + `tokens.css`** : restyle du menu — item actif en **pastille arrondie** (liseré gauche retiré, nouveau rayon `--ledge-radius-pill: 8px`), en-tête d'accordéon **encadré** (fond `surface-100` + bordure) ; accent **orange encre conservé**, **dark mode** préservé
+- **RGAA** : en-tête `role="button"` + `aria-expanded`, navigation clavier (Entrée/Espace), focus visible, chevron + libellé (pas de couleur seule), `prefers-reduced-motion` neutralise la transition
+
+### Graphiques dashboard admin — (feature/dashboard-graphiques)
+
+#### Backend
+- **`DashboardService::getStats()`** : nouvelle clé `ca_mensuel` (`{ annee, data[12] }`) — série du CA TTC facturé mois par mois pour l'année de l'exercice filtré (ou année courante), agrégée en PHP (portable SQLite/MySQL, pas de SQL brut)
+- **`missions`** enrichi de `suspendues` et `annulees` (en plus de `en_cours` / `terminees`) pour la répartition par statut
+
+#### Frontend
+- **`DashboardPage.vue`** (section admin) : 2 graphiques **Chart.js** via le composant `<Chart>` de PrimeVue — **CA mensuel en barres** (12 mois, tooltip en DA) et **répartition des missions par statut en camembert**
+- **Dark mode** : couleurs des axes / texte / barres lues sur les tokens PrimeVue (`--p-*`) et rafraîchies au toggle via `useLayout().isDarkTheme`
+- **RGAA** : chaque graphe `role="img"` + `aria-label` résumant les valeurs, table alternative `.sr-only` (canvas non lisible par lecteur d'écran), `animation: false` si `prefers-reduced-motion`
+- **`stats.ts`** : type `DashboardStats` étendu (`ca_mensuel`, `missions.suspendues/annulees`)
+- Dépendance ajoutée : `chart.js`
+
+### Secrétaire hors Missions & Planning — (feature/secretaire-hors-missions-planning)
+
+#### Backend
+- **Routes API** (`routes/api.php`) : missions, tâches, commentaires, calendrier et dashboard collaborateur déplacés dans un groupe **`role:admin|collaborateur`** — la secrétaire n'y a plus accès (les utilitaires `users`/`settings` en lecture restent partagés)
+- **Policies** : `MissionPolicy` et `TachePolicy` ne référencent plus le rôle `secretaire` (`viewAny`/`view`/`create`/`update`/`delete` → admin, ou collaborateur sur ses propres missions/tâches)
+
+#### Frontend
+- **Menu** (`AppMenu.vue`) : les entrées **Missions** et **Planning** ne sont visibles que pour admin et collaborateur
+- **Routeur** : nouveau set `ROLES.adminCollaborateur` appliqué aux routes `missions`, `mission-detail`, `tache-detail`, `planning` — accès secrétaire bloqué (redirection accès refusé)
+- **Fiche entreprise** (`EntrepriseDetailPage.vue`) : pour la secrétaire, l'onglet **Missions** et le KPI **« Missions actives »** sont masqués, l'appel API missions n'est pas déclenché, et l'onglet par défaut bascule sur **Devis**
+
+#### Tests
+- **`SecretairePermissionsTest`** : nouveaux cas — la secrétaire reçoit `403` sur missions (liste/détail/création/tâches), calendrier et dashboard collaborateur
+
+### Recadrage du périmètre du rôle secrétaire — (feature/perimetre-secretaire)
+
+#### Backend
+- **Routes API** (`routes/api.php`) : les écritures de facturation passent en **`role:admin`** — création/suppression de devis et factures, création/suppression d'avoirs, suppression de paiements, cycle de vie devis (`accepter`/`refuser`/`convertir-en-mission`) et calcul de prix. La secrétaire conserve : lecture devis/factures/avoirs + PDF, **envoi d'un devis** au client, **enregistrement de paiements**, **envoi de relances**, consultation des créances, et le **CRUD des entreprises** (création/modification, sans suppression) + contacts
+- **Policies** : `DevisPolicy` / `FacturePolicy` — `create`/`update`/`delete` réservés à l'admin ; nouvelle ability **`DevisPolicy::envoyer`** (admin + secrétaire) pour dissocier l'envoi de la modification ; `AvoirPolicy::create` réservé à l'admin ; `EntreprisePolicy` inchangée (création/modification admin + secrétaire, suppression admin)
+- **`DevisController::envoyer()`** autorise désormais l'ability `envoyer` (et non plus `update`)
+- **`DashboardService::getSecretaireStats()`** : retrait du volet facturation/production (devis en attente / à convertir / expirant, émission de factures N vs N-1) ; dashboard recentré sur le **recouvrement** (créances, aging, relances dues, top débiteurs, encaissements du mois)
+
+#### Frontend
+- **Devis / Factures** : les actions de production (nouveau devis/facture, modifier, supprimer, accepter/refuser/convertir, émettre/supprimer un avoir) sont masquées pour la secrétaire (`v-if="auth.isAdmin"`) ; elle conserve **Envoyer un devis**, **téléchargement PDF** et **enregistrement de paiement**
+- **Dashboard secrétaire** (`SecretaireDashboardSection.vue`) : suppression de la carte « Devis en attente », du graphe « Émission de factures » et du bouton « Gérer les factures » ; grille rééquilibrée
+- **`stats.ts`** : type `SecretaireStats` aligné (suppression `facturation` / `factures_emises`, ajout `encaissements_mois` à la racine)
+
+#### Tests
+- **`SecretairePermissionsTest`** (nouveau) : couverture du périmètre autorisé (entreprises CRU, lecture facturation, envoi devis, paiement, relance) et interdit (création/suppression devis/factures/avoirs, cycle de vie devis, suppression entreprise/paiement)
+- **`DashboardSecretaireTest`** : structure mise à jour (plus de volet facturation, `encaissements_mois` à la racine)
+
+### Fix arrondi des tranches de facturation — (fix/arrondi-tranches-facturation)
+
+#### Backend
+- **`FacturationService::creerFacture()`** : la 3ᵉ tranche est désormais calculée comme **solde exact** (`prix_ht − T1 − T2`) au lieu d'un `round(prix_ht × 0.40)` indépendant — garantit l'invariant `T1 + T2 + T3 == prix_ht` même lorsque le prix porte des centimes (corrige une perte possible de 1 centime sur la répartition 30/30/40)
+
+#### Frontend
+- **`MissionDetailPage.vue`** : l'aperçu des tranches arrondit aux **centimes** (2 décimales) et applique le même solde exact sur la 3ᵉ tranche — aligné sur les montants réellement facturés par le backend (avant : `Math.round` aux dinars pleins, divergence possible avec la facture)
+
+#### Tests
+- **`FacturationServiceTest`** : nouveau test d'invariant `T1 + T2 + T3 == prix_ht` sur un prix à centimes (`100.01`) — cas limite d'arrondi
+
+### Dashboard secrétaire + autorisations front — (feature/dashboard-secretaire)
+
+#### Backend — dashboard secrétaire
+- **`DashboardService::getSecretaireStats()`** (nouveau) : KPI orientés recouvrement — créances totales (avec déduction avoirs via `montantRestant()`), aging 15–29 / 30–59 / 60+ j, relances dues (logique alignée sur `EnvoyerRelancesJob`), top 5 débiteurs, factures émises mois N vs N-1, créances urgentes
+- **Volet facturation** (`compterFacturation()`) : devis en attente (count + montant), devis acceptés à convertir en mission, devis expirant sous 7 j, encaissements du mois
+- **Worklist « À faire »** (`construireWorklist()`) : liste d'actions priorisées par sévérité (factures en retard, relances à envoyer, devis expirant / en attente / à convertir) avec route de destination — dashboard orienté action
+- **`GET /api/v1/stats/secretaire`** : route réservée au rôle `secretaire` (middleware Spatie dédié)
+- **`GET /api/v1/stats`** : déplacé dans le groupe `role:admin` — séparation stricte admin / secrétaire
+
+#### Backend — droits entreprises secrétaire
+- **`EntreprisePolicy`** : `create()` et `update()` ouverts à admin + secrétaire ; `delete()` reste admin uniquement
+- Routes `POST/PUT entreprises` déplacées dans le groupe `admin|secretaire` ; suppression et portail restent admin
+
+#### Frontend — dashboard secrétaire
+- **`SecretaireDashboardSection.vue`** : refonte graphique « Ledger Edition » orientée action — bandeau éditorial, **panneau « À faire »** (worklist cliquable), 4 KPI animés (count-up) recouvrement + facturation, graphiques SVG/CSS (aging, donut relances, comparatif factures N vs N-1), classement débiteurs en barres, table créances urgentes
+- **Dark mode** géré sur tous les nouveaux éléments (tokens `--p-*` / `--ledge-*`, sélecteurs `.app-dark` directs) ; correction d'un bug où `:global(.app-dark)` était mal compilé par lightningcss (perte du descendant) — appliqué aussi au dashboard collaborateur ; **RGAA** (charts `role="img"` + libellés, worklist en liste de liens, `prefers-reduced-motion`, focus visibles)
+- **Zéro dépendance ajoutée** : graphiques en SVG/CSS pur (cohérent avec le dashboard collaborateur)
+- **`useDashboardStats.ts`** (nouveau composable) : pattern Page → Composable → API pour les 3 dashboards
+- **`DashboardPage.vue`** : branchement à 3 voies (collaborateur / secrétaire / admin)
+
+#### Frontend — autorisations router
+- **`meta.roles`** sur toutes les routes back-office + guard `beforeEach` avec redirection vers `/acces-refuse`
+- **`AccesRefusePage.vue`** (nouveau) : page 403 accessible avec message clair et bouton retour (RGAA)
+- **`authStore.hasAnyRole()`** : helper pour le guard
+- **`AppMenu.vue`** : config relances (admin only) retirée du menu secrétaire
+- **`EntrepriseListPage.vue`** : colonne portail, suppression et dialogs réservés à l'admin
+
+#### Documentation
+- **`docs/WORKFLOW-FEATURE.md`** (nouveau) : checklist réutilisable pour chaque feature
+
+#### Tests
+- **`DashboardSecretaireTest.php`** : 9 tests — structure (incl. `facturation` + `actions`), avoirs, aging, devis en attente, encaissements du mois, worklist factures en retard, séparation rôles
+- **`DashboardKpiTest`** : secrétaire bloqué sur `/stats`
+- **`EntrepriseApiTest`** : secrétaire create/update OK, delete 403
+- **169 tests / 433 assertions** — aucune régression
+
+---
+
+### Refonte sidebar & qualité backend — (feature/refonte-sidebar)
+
+#### Backend — SOLID / SRP
+- **`FacturationService::supprimerFacture()`** (nouveau) : invariant "pas de paiements" levé via `DomainException`, cascade `lignes()->delete()` + `delete()` en transaction atomique
+- **`MissionService::supprimerMission()`** (nouveau) : invariant "pas de factures associées" levé via `DomainException`, cascade `taches()->delete()` + `collaborateurs()->detach()` + `delete()` en transaction (les pivots n'étaient pas nettoyés avant)
+- **`FactureController::destroy` et `MissionController::destroy`** : logique métier sortie des controllers, délégation pure aux services — alignement sur `DevisController::destroy` déjà conforme
+
+#### Backend — autorisations harmonisées
+- **`DevisPolicy` et `FacturePolicy`** : ajout de `viewAny()` et `view()` (admin/secrétaire/collaborateur en lecture) — auparavant aucune Policy ne couvrait `index/show/pdf`
+- **`DevisController`** : `authorize()` ajouté sur `index`, `show`, `pdf`, et toutes les transitions de statut (`envoyer`, `accepter`, `refuser`, `convertirEnMission`) — mappées sur `update`
+- **`FactureController`** : `authorize()` ajouté sur `index`, `show`, `pdf`
+- **`MissionController`** : `authorize('view', ...)` ajouté sur `conventionPdf` et `mandatPdf`
+
+#### Backend — conventions
+- Les dépendances injectées des 3 controllers (`DevisController`, `FactureController`, `MissionController`) sont désormais `private readonly`
+- Ajout du filtre `entreprise_id` sur les listes devis / factures / missions (gestion déjà présente côté services)
+
+#### Frontend — fix calculs KPIs fiche entreprise
+- **`EntrepriseDetailPage.vue`** : CA recalculé sur `montant_ht` au lieu de `montant_ttc` (le chiffre d'affaires est par définition hors taxes)
+- Nouveau `fetchFacturesKpi()` qui charge les factures **tous exercices confondus** indépendamment du filtre exercice de la page — les KPIs CA total et impayés reflètent désormais la réalité globale du client
+- Filtrage `entreprise_id` côté API plutôt que côté front (réduction de la charge réseau)
+- `formatMontant()` sécurisé contre les valeurs `null` / `NaN`
+
+#### Frontend — refonte UI page de connexion
+- **`LoginPage.vue`** : nouveau layout en deux zones — panneau de branding (logo SVG inline, tagline, pills modules, mention version/RNCP) + zone formulaire principale mobile-first
+- Deux dialogs informatifs ajoutés (aide à la connexion + mot de passe oublié) — pas de dépendance sur des pages externes
+- A11y renforcée : skip link vers le formulaire, `aria-label` sur la zone branding, `role="alert"` + `aria-live` sur les messages d'erreur
+- Suppression du composant `LedgeLogo` au profit d'un visuel SVG embarqué (simplification, moins de dépendances sur une page critique)
+
+#### Tests
+- **156 tests / 374 assertions** — aucune régression sur le refacto backend
+
+#### Audit de conformité — fixes qualité
+- **`LoginPage.vue`** : retrait du composant `<LedgeLogo>` orphelin ligne 107 (référencé sans import depuis la refonte UI — produisait un warning `Failed to resolve component` et un logo manquant dans la zone formulaire). Wrapper `<div class="login-form-logo-row">` et CSS associés également nettoyés
+- **`EntrepriseDetailPage.vue`** : introduction d'un type local `TagSeverity` (`'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast'`) — les 4 fonctions `statut*Color()` retournent désormais ce type au lieu de `as any` (correction d'une dette TypeScript)
+- **`EntrepriseDetailPage.vue`** : KPIs `Impayé / CA total / Missions actives` désormais visibles sur mobile en version compacte (cartes en `flex nowrap`, paddings et tailles de police réduits) — auparavant `display: none` masquait totalement ces indicateurs sous 900 px, contrairement à la règle mobile-first
+- **`EntrepriseDetailPage.vue`** : correction du débordement de texte dans le panneau Coordonnées — `dd` en `flex: 1; min-width: 0; overflow-wrap: anywhere` pour casser proprement les chaînes non sécables (emails, identifiants) + `align-items: flex-start` sur `.info-row` pour aligner le label en haut quand la valeur wrappe sur plusieurs lignes
+
+---
+
+### Journal d'audit — piste d'audit des actions utilisateurs (feature/journal-audit)
+
+#### Backend
+- **`spatie/laravel-activitylog` (^4)** : nouvelle table `activity_log` (causer, sujet polymorphe, événement, diff des propriétés) — migrations publiées
+- **Trait `LogsActivity`** sur 7 modèles sensibles : `Facture`, `Avoir`, `Paiement`, `Devis`, `Entreprise`, `User`, `Setting` (`logFillable` + `logOnlyDirty` + `dontSubmitEmptyLogs`)
+- **Sécurité** : `User` journalise tout sauf `password` et `remember_token` (`logExcept`) — aucun hash de mot de passe en clair dans l'audit
+- **`AuditService`** : liste paginée du journal, filtrable par entité / action / période ; mapping label court ↔ classe Eloquent
+- **`AuditController` + `ActivityResource`** : `GET /api/v1/audit-logs` (controller mince → service → resource), exposant causer, diff `old`/`attributes`, entité et date
+- **Route admin uniquement** : `/audit-logs` placée dans le groupe `role:admin` (secrétaire/collaborateur → 403)
+- **Tests** : `AuditLogTest` (6 tests) — journalisation avec causer, diff des champs modifiés, exclusion du `password`, accès admin/403, filtre par événement
+
+#### Frontend
+- **`pages/audit/AuditLogPage.vue`** (nouveau) : DataTable paginée + filtres (entité, action, dates) + dialog détail du diff avant/après · RGAA (`<main>`, `aria-labelledby`, `aria-label`, `role="search"`)
+- **`api/modules/audit.ts`** (nouveau) + type `Activity` : appel `GET /audit-logs` via le module dédié
+- **Router** : route `audit-logs` ; **`AppMenu`** : entrée « Journal d'audit » sous Administration (admin)
+
+#### Sécurité — dépendances (OWASP A06)
+- **`docs/SECURITY.md`** (nouveau) : 8 advisories sur 5 paquets Symfony 7.x (`http-kernel`, `mailer`, `mime`, `routing`, `yaml`) tirés transitivement par Laravel 12 — **documentées et évaluées** (impact réel faible à nul : `MAIL_MAILER=log`/Resend, autorisation Laravel native, routing Laravel, `yaml` en dépendance dev), **non silencées** dans `composer audit`
+- Aucune version corrigée n'étant disponible dans la plage `symfony/* ^7.2`, l'install (local + CI) reste fonctionnelle car `composer install` lit depuis le lock sans re-résolution ; plan de remédiation suivi (`composer update symfony/*` dès patch publié)
+
+### Sécurité — mot de passe admin hors du code (chore/admin-seeder-env-password)
+
+#### Backend
+- **`AdminUserSeeder`** : le mot de passe de l'administrateur initial est lu depuis `ADMIN_PASSWORD` (et l'email depuis `ADMIN_EMAIL`) au lieu d'être codé en dur — plus aucun credential dans le code source (OWASP A07)
+- **Garde-fou production** : si `ADMIN_PASSWORD` est absent en environnement `production`, le seeder lève une `RuntimeException` au lieu de créer un admin avec un mot de passe par défaut
+- **Local / test** : comportement inchangé — fallback sur `password` si `ADMIN_PASSWORD` est vide
+- **`.env.example`** : documentation des variables `ADMIN_EMAIL` / `ADMIN_PASSWORD`
+
+### Sécurité — gestion des erreurs API (fix/api-error-handling)
+
+#### Backend
+- **`app/Exceptions/ApiExceptionRenderer.php`** (nouveau) : renderer JSON unifié pour toutes les routes `api/*` — mappe chaque type d'exception (`ValidationException`, `AuthenticationException`, `AuthorizationException`, `ModelNotFoundException`, `NotFoundHttpException`, `MethodNotAllowedHttpException`, `TokenMismatchException`, `TooManyRequestsHttpException`, `QueryException`, `PDOException`, `HttpExceptionInterface`, catch-all `Throwable`) vers un statut HTTP correct + un message client générique en français
+- **`bootstrap/app.php`** : `shouldRenderJsonWhen` + `render` branchés sur le renderer — toute exception sur une route API renvoie désormais du JSON propre, **même quand `APP_DEBUG=true`** (plus aucune fuite de SQL, host, port, nom de DB, stack trace, chemin fichier)
+- Logging serveur complet (`Log::error` avec contexte URL/méthode/IP/user_id) — exploité par Sentry, jamais exposé au client
+- **6 tests** dans `ApiExceptionRendererTest` qui prouvent l'absence de fuite (SQL, SQLSTATE, host, port, stack, chemins)
+
+#### Frontend
+- **`types/api-error.ts`** (nouveau) : type `ApiError` discriminé (`network` / `timeout` / `validation` / `auth` / `forbidden` / `notfound` / `csrf` / `throttle` / `server` / `unavailable` / `unknown`)
+- **`api/client.ts`** : intercepteur réponse refait — détecte les erreurs réseau (WAMP éteint, DNS, CORS), les timeouts (15 s), les réponses non-JSON (page d'erreur HTML), produit un `ApiError` typé avec message FR adapté, et sanitize le `error.response.data.message` exposé au code existant
+- **`composables/useApiError.ts`** (nouveau) : helpers `getApiError()` / `getApiErrorMessage()` pour extraire un message safe sans accéder aux détails techniques
+- **`pages/auth/LoginPage.vue`** : utilise `getApiError()`, distingue 422 (identifiants) des autres erreurs, ajoute `aria-live="assertive"` + `aria-invalid` sur les champs en erreur
+- **CSS LoginPage** : surcharge `:-webkit-autofill` (plus de fond olive Chrome illisible en thème sombre), `word-break: break-word` sur le `Message` d'erreur (plus de cassure de layout sur message long), `:focus-visible` outline RGAA, `max-w-xl` sur le conteneur
+
+#### Sécurité (OWASP)
+- **A05 Security Misconfiguration** corrigé : `APP_DEBUG=true` ne fuite plus rien sur les routes API
+- **A09 Logging & Monitoring** : toutes les exceptions API sont loguées avec contexte structuré
+
+---
+
+### Dashboard collaborateur — (feature/dashboard-collaborateur)
+
+#### Backend
+- **`DashboardService::getCollaborateurStats()`** : stats personnalisées par collaborateur — missions assignées (total / en cours / terminées), tâches (total / à faire / en cours / terminées / bloquées / taux de complétion), 5 missions les plus récentes avec progression, 5 tâches urgentes avec indicateur retard
+- **`DashboardController::collaborateurStats()`** : endpoint `GET /collaborateur/stats` — accessible à tous les rôles backoffice
+- **`routes/api.php`** : route `collaborateur/stats` déplacée dans le groupe tous-backoffice (admin + secrétaire + collaborateur)
+
+#### Frontend
+- **`api/modules/stats.ts`** : interface `CollaborateurStats` + méthode `getCollaborateurDashboard()`
+- **`DashboardPage.vue`** : dashboard collaborateur dédié — 4 cartes KPI (missions assignées, mes tâches, taux de complétion, tâches bloquées), tableau `mes_missions` avec ProgressBar, liste `mes_taches_urgentes` avec Tag statut et indicateur retard rouge
+
+#### Correctifs
+- **`DashboardService`** : colonne `date_fin` corrigée en `date_echeance` (nom réel dans `taches`) — le tri et le calcul retard fonctionnent désormais correctement
+- **`DashboardPage.vue`** : import `ProgressSpinner` manquant ajouté — le spinner de chargement s'affiche correctement
+- **`api/modules/stats.ts`** : champ `priorite` retiré du type `CollaborateurStats` (non utilisé en vue)
+
+---
+
+### Rapport PDF fin de mission — (feature/rapport-fin-mission)
+
+#### Backend
+- **`PdfService::genererRapportMission()`** : génération du rapport PDF enrichi — eager loading `factures.paiements`, filtre `visible_portail=true` en mode portail
+- **`rapport-mission.blade.php`** (nouveau) : template DomPDF complet avec 6 sections : résumé exécutif (durée / avancement / financier), informations mission, chronologie jalons, statistiques tâches par statut, tâches + commentaires filtrés, facturation avec paiements par facture et solde global
+- **`MissionController::rapportPdf()`** : endpoint `GET /missions/{mission}/rapport/pdf` — admin/secrétaire uniquement, mode back-office (commentaires internes inclus)
+- **`PortailMissionController::rapportPdf()`** : endpoint `GET /portail/missions/{mission}/rapport/pdf` — client uniquement, mode portail (commentaires `visible_portail=true` uniquement, montants HT et bloc total masqués)
+- **`routes/api.php`** : 2 routes rapport PDF ajoutées (backoffice + portail)
+- **150 tests / 351 assertions** — aucune régression
+
+#### Frontend
+- **`api/modules/missions.ts`** : ajout de `rapportPdfUrl(id)` pour l'URL de génération back-office
+- **`api/modules/portail.ts`** : ajout de `rapportMissionPdfUrl(missionId)` pour l'URL portail
+- **`MissionDetailPage.vue`** : bouton "Télécharger le rapport PDF" dans la section Documents (masqué pour les collaborateurs)
+- **`PortailMissionsPage.vue`** : bouton "Télécharger le rapport PDF" dans le dialog détail mission
+
+---
+
+### Page dédiée tâche + corrections commentaires — (develop)
+
+#### Backend
+- **`TacheController::show()`** (nouveau) : endpoint `GET /missions/{mission}/taches/{tache}` — chargement d'une tâche individuelle avec son assigné
+- **`routes/api.php`** : route `missions.taches` désormais complète (plus d'exclusion de `show`)
+- **`TacheCommentaireResource`** : ajout de `user_id` en top-level — nécessaire pour la comparaison auteur côté frontend
+- **Fix route commentaires** : paramètre `{tach}` (Laravel tronquait `taches`) corrigé en `{tache}` via `->parameters(['taches' => 'tache'])` — le model binding fonctionnait pas
+
+#### Frontend
+- **`TacheDetailPage.vue`** (nouveau) : page dédiée `/missions/:id/taches/:tacheId` — carte infos tâche (assigné, échéance, priorité, statut), section commentaires complète avec CRUD, dialog modification tâche
+- **`MissionDetailPage.vue`** : tableau tâches simplifié — 3 boutons par ligne (voir ▶ page dédiée, modifier, supprimer), plus de chevrons expandables
+- **`api/modules/taches.ts`** : ajout de `getOne(missionId, tacheId)` pour charger une tâche individuelle
+- **`router/index.ts`** : route `tache-detail` ajoutée (`missions/:id/taches/:tacheId`)
+- **Commentaires** : boutons modifier/supprimer toujours visibles (plus de opacity:0 au hover) — auteur en gras + heure sur la même ligne en header du commentaire, boutons à droite
+- **Fix droits commentaires** : `peutModifierCommentaire()` utilisait `c.user_id` absent de la resource → corrigé avec fallback `c.user?.id` ; un collaborateur peut désormais modifier/supprimer ses propres commentaires
+- **CI gitflow guard** : job bloquant les PR `feature/* → main` ajouté dans `ci.yml`
+
+---
+
+### Droits collaborateur — (feature/droits-collaborateur)
+
+#### Backend
+- **`bootstrap/app.php`** : enregistrement des middleware Spatie (`role`, `permission`, `role_or_permission`) — prérequis pour les groupes de routes par rôle
+- **`routes/api.php`** : restructuration complète en 3 groupes de middleware :
+  - `role:admin` → écriture utilisateurs, paramètres, entreprises, exercices, prestations, KPI
+  - `role:admin|secretaire` → stats dashboard, lecture référentiels, toute la facturation (devis, factures, paiements, avoirs, relances, créances)
+  - tous rôles backoffice → lecture users/settings, calendar, missions, tâches, commentaires
+- **`EntreprisePolicy`** (nouveau) : `viewAny/view` réservés à admin/secrétaire ; `create/update/delete` admin uniquement
+- **`EntrepriseController`** : `$this->authorize()` ajouté sur toutes les méthodes
+- **`MissionPolicy`** : ajout de `viewAny` et `view` — collaborateurs restreints à leurs missions assignées (`mission_user` pivot) ; `update` désormais admin/secrétaire uniquement
+- **`MissionService::listerMissions()`** : ajout du paramètre `User $user` — filtre automatique `whereHas('collaborateurs')` pour les collaborateurs
+- **`MissionController`** : `index()` et `show()` branchés sur les gates `viewAny` et `view`
+- **`TachePolicy`** (nouveau) : `update` — collaborateur uniquement si `assigned_to === user->id` ; `delete` — admin/secrétaire uniquement
+- **`TacheController`** : `index()` protégé par `authorize('view', $mission)` ; `store`, `update`, `destroy` protégés par les policies ; payload `update` restreint à `statut` pour les collaborateurs
+- **`TacheCommentaireController`** : `index()` protégé par `authorize('view', $tache->mission)` ; `store()` vérifie l'accès à la mission via `MissionPolicy::view`
+- **`CalendarController`** : injection du filtre `collaborateur_id` automatiquement pour les collaborateurs — chaque collaborateur ne voit que les événements de ses missions assignées
+- **`TacheApiTest`** : correction du test `collaborateur_ne_voit_que_ses_taches` — attach du collaborateur à `mission_user` avant la requête
+- **Migration `add_visible_portail_to_tache_commentaires`** : colonne `visible_portail` (boolean, default false) sur `tache_commentaires` — prépare le rapport de clôture (US-35) et le partage client
+- **`TacheCommentaire`** : `visible_portail` ajouté au `$fillable`
+- **150 tests / 351 assertions** — aucune régression
+
+#### Frontend
+- **`stores/auth.ts`** : ajout des computed `isCollaborateur` et `isSecretaire` exportés
+- **`types/index.ts`** : ajout de l'interface `TacheCommentaire` (`id`, `tache_id`, `user_id`, `contenu`, `visible_portail`, `user`, `created_at`, `updated_at`)
+- **`api/modules/commentaires.ts`** (nouveau) : module API CRUD commentaires — `getAll`, `create`, `update`, `delete` sur `/taches/{tacheId}/commentaires`
+- **`composables/useCommentaires.ts`** (nouveau) : composable réactif — `fetchCommentaires`, `createCommentaire`, `updateCommentaire`, `deleteCommentaire` avec gestion toast succès/erreur
+- **`MissionDetailPage.vue`** : section commentaires par tâche (ligne expandable DataTable) — liste commentaires avec auteur/date, saisie inline, guards auteur/admin sur edit/delete, badge `visible_portail` admin uniquement ; guards rôle sur boutons créer/supprimer tâche, statut mission, statut tâche (désactivé si non-assigné), sections documents/tranches/factures ; RGAA : `aria-labelledby`, `role="status"`, `aria-expanded`, `aria-live`, `sr-only`
+- **`layout/AppMenu.vue`** : menu Entreprises désormais masqué pour les collaborateurs (`visible: isAdmin || isSecretaire`)
+- **`pages/dashboard/DashboardPage.vue`** : panel de bienvenue collaborateur avec liens vers Missions et Planning ; les stats financières (`GET /stats`) ne sont pas appelées pour les collaborateurs (évite le 403)
+- **`pages/missions/MissionListPage.vue`** : guards `!auth.isCollaborateur` sur les appels référentiels au montage, sur le bouton "Nouvelle mission", le filtre exercice, et les boutons modifier/supprimer du tableau
+
+---
 
 ### Supervision — (feature/supervision-mco)
 
@@ -491,14 +1498,6 @@
 - Module API `stats.ts` pour le dashboard
 - Pages mises à jour : `LoginPage`, `DashboardPage`, `EntrepriseListPage`
 
-### A faire
-- Module Relances (automatiques via queue + manuelles)
-- Portail client (lecture seule factures/documents)
-- Module KPI / Reporting (CA, missions, performance collaborateurs)
-- Module Documents / GED
-- PDF facture conforme DGI (US-14) — `PdfService::genererFacture()` + montant en lettres
-- Avoirs (FA) — creation depuis facture existante
-
 ---
 
 ## [0.5.0] — 2026-03-25
@@ -640,7 +1639,7 @@
   - `TimbreRateTest` (3 tests) : calcul avec plafond, taux correct, null avant tout taux
   - `PrestationTest` (1 test) : prix_ht = tarif × indice_regime × indice_categorie
   - `ConvertProspectToClientTest` (2 tests) : prospect→client a la mission, client reste client
-  - Tests Filament V1 supprimes (obsoletes depuis migration N-tier)
+  - Tests d'un prototype initial supprimes (obsoletes, remplaces par le harnais actuel)
 
 - **Frontend Vitest** — 18 tests, tous passent :
   - `types.test.ts` (5 tests) : validation interfaces Entreprise, Facture, Paiement, Devis, PaginatedResponse

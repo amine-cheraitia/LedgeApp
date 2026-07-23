@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Mail\MailMessages;
 use App\Mail\RelanceClientMail;
 use App\Models\Facture;
 use App\Models\Relance;
 use App\Models\Setting;
 use DomainException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
 class RelanceService
@@ -19,32 +21,42 @@ class RelanceService
      */
     public function envoyerManuelle(Facture $facture, int $niveau, int $userId): Relance
     {
-        if ($facture->statut_paiement === 'solde') {
-            throw new DomainException('Impossible d\'envoyer une relance sur une facture soldee.');
+        // montantRestant() plutot que le seul statut : un statut desynchronise
+        // ne doit pas permettre de relancer un client pour 0 DA.
+        if ($facture->estSolde() || $facture->montantRestant() <= 0) {
+            throw new DomainException('Impossible d\'envoyer une relance : la facture ne presente aucun reste a payer.');
         }
 
-        $email = $facture->entreprise?->email;
+        $email = $facture->entreprise?->emailDestinataire();
 
         if (empty($email)) {
-            throw new DomainException('L\'entreprise n\'a pas d\'adresse email renseignee.');
+            throw new DomainException(MailMessages::PAS_D_ADRESSE);
         }
 
         $message = $this->resolveTemplate($niveau, $facture);
 
-        $relance = Relance::create([
-            'facture_id' => $facture->id,
-            'sent_by' => $userId,
-            'niveau' => $niveau,
-            'type' => 'manuelle',
-            'email_destinataire' => $email,
-            'envoyee_le' => now(),
-            'statut' => 'envoyee',
-            'message' => $message,
-        ]);
+        // Insertion + envoi dans une transaction : si l'envoi echoue, la relance est annulee (pas de relance "fantome").
+        return DB::transaction(function () use ($facture, $niveau, $userId, $email, $message) {
+            $relance = Relance::create([
+                'facture_id' => $facture->id,
+                'sent_by' => $userId,
+                'niveau' => $niveau,
+                'type' => 'manuelle',
+                'email_destinataire' => $email,
+                'envoyee_le' => now(),
+                'statut' => 'envoyee',
+                'message' => $message,
+            ]);
 
-        Mail::to($email)->send(new RelanceClientMail($facture, $relance));
+            try {
+                Mail::to($email)->send(new RelanceClientMail($facture, $relance));
+            } catch (\Throwable $e) {
+                report($e);
+                throw new DomainException(MailMessages::ENVOI_ECHOUE);
+            }
 
-        return $relance->load('sentBy');
+            return $relance->load('sentBy');
+        });
     }
 
     /**
@@ -53,7 +65,8 @@ class RelanceService
      */
     public function envoyerAutomatique(Facture $facture, int $niveau): ?Relance
     {
-        if ($facture->statut_paiement === 'solde') {
+        // Meme garde que la relance manuelle : jamais de relance sans reste a payer.
+        if ($facture->estSolde() || $facture->montantRestant() <= 0) {
             return null;
         }
 
@@ -78,7 +91,7 @@ class RelanceService
             }
         }
 
-        $email = $facture->entreprise?->email;
+        $email = $facture->entreprise?->emailDestinataire();
 
         if (empty($email)) {
             return null;

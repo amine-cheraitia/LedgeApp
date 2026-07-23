@@ -1,6 +1,6 @@
 # Ledge — Contexte Projet
 
-> Derniere mise a jour : 24 Mars 2026 — Architecture N-tier (Vue.js + Laravel API)
+> Derniere mise a jour : 23 Juillet 2026 — Architecture N-tier (Vue.js + Laravel API)
 > RNCP 39583 - Expert en Developpement Logiciel - YNOV
 
 ---
@@ -13,10 +13,7 @@
 | **Type** | Systeme de gestion integre pour cabinets de conseil / comptabilite |
 | **Marche cible** | Algerie — cabinet pilote en premier, extensible nationalement |
 | **Contexte** | Le cabinet ne dispose d'aucun outil numerique centralise. Gestion sur Excel / papier -> pertes d'information, erreurs de facturation, relances oubliees, aucune tracabilite. Ledge remplace tout ca. |
-| **Historique** | V0 monolithique (Laravel 8 + Blade + mPDF) -> V1 Filament (abandonnee) -> V2 actuelle N-tier (Vue 3 + Laravel API) |
-| **Deadline** | Debut juin 2026 — MVP complet + tous les livrables RNCP |
-
-> **Note interne (ne pas mentionner dans les livrables RNCP)** : une ancienne application Laravel existe (rapport de stage). Elle sert de reference metier pour les regles de calcul et le modele de donnees, mais Ledge est presente comme une creation from scratch repondant a l'absence de solution numerique.
+| **Deadline** | Juillet 2026 — MVP complet + tous les livrables RNCP |
 
 ---
 
@@ -27,7 +24,7 @@
 | **Architecture** | N-tier 3 couches (presentation / metier / donnees) | — |
 | **Frontend** | Vue 3 + TypeScript + PrimeVue + Pinia + Vue Router | Vue 3.5 / PrimeVue 4 |
 | **Backend** | Laravel (API REST) + Sanctum + PHP | Laravel 12 / PHP 8.3 |
-| **BDD** | MySQL | 9.1.0 (WAMP local) |
+| **BDD** | MySQL | 8.0 (Docker demo / production) — 9.1 en dev local WAMP |
 | **Auth** | Laravel Sanctum (SPA cookie-based) | v4.3 |
 | **Permissions** | Spatie Laravel Permission | v7.2 |
 | **PDF** | DomPDF | v3.1 |
@@ -35,20 +32,9 @@
 | **Stockage docs** | Disque local + compatible S3 | PDF factures, documents cabinet |
 | **Serveur cible** | Nginx + PHP-FPM | VPS Linux Ubuntu 22 LTS |
 | **CI/CD** | GitHub Actions | Deploiement automatise |
-| **Dev tooling** | WAMP (Windows) + Claude Code | Environnement local |
+| **Dev tooling** | WAMP (Windows) + VS Code | Environnement local |
 
 > **Dev local :** WAMP sur Windows. Fix MySQL 9 requis : `ROW_FORMAT=DYNAMIC` dans `config/database.php`.
-
----
-
-## Historique des versions
-
-Voir [docs/HISTORIQUE.md](HISTORIQUE.md) pour le detail complet (V0, V1, V2).
-
-### Resume
-- **V0** (Laravel 8 + Blade) — appli originale, modules fonctionnels mais sans TVA historisee, portail, relances auto
-- **V1** (Laravel 12 + Filament) — abandonnee, modeles/migrations repris
-- **V2** (Vue 3 + Laravel API) — projet actuel N-tier
 
 ---
 
@@ -63,7 +49,7 @@ Ledge/
 │   │   │   ├── Requests/      # FormRequests par domaine
 │   │   │   ├── Resources/     # API Resources JSON par domaine
 │   │   │   └── Middleware/    # EnsureBackofficeAccess, EnsurePortailAccess
-│   │   ├── Models/            # 18 modeles Eloquent
+│   │   ├── Models/            # 19 modeles Eloquent
 │   │   └── Providers/
 │   ├── routes/api.php         # Toutes les routes API /api/v1/*
 │   ├── database/              # Migrations + seeders
@@ -81,7 +67,6 @@ Ledge/
 ├── .github/              # PR template RNCP, GitHub Actions
 ├── docs/                 # Documentation projet
 ├── CHANGELOG.md
-├── CLAUDE.md
 └── README.md
 ```
 
@@ -93,8 +78,10 @@ Ledge/
 |---|---|---|
 | **Backend API** | `http://localhost:8000/api/v1/*` | `cd backend && php artisan serve` |
 | **Frontend** | `http://localhost:5173` | `cd frontend && npm run dev` |
+| **Stack Docker (demo/jury)** | `http://localhost:5173` | `docker compose up --build` (racine) — voir [MANUEL-DEPLOIEMENT.md](MANUEL-DEPLOIEMENT.md) |
 
-**Compte admin par defaut :** `admin@ledge.dz` / `password`
+**Compte admin :** `admin@ledge.dz` / valeur de `ADMIN_PASSWORD` (variable d'environnement,
+jamais versionnee — defaut de demonstration Docker documente dans le manuel de deploiement).
 
 ---
 
@@ -121,7 +108,6 @@ Mission (dates debut/fin - statut - total - calendrier)
 ### Core / Settings
 Auth, roles et permissions (Spatie Laravel Permission), **parametres globaux configurables sans code** :
 - Taux TVA avec **historique versionne** (date d'entree en vigueur)
-- Timbre fiscal (1%, plafonne 2 500 DA — LF 2024)
 - Coordonnees cabinet (nom, adresse, NIF, NIS, RIB, logo)
 - Numerotation factures (prefixe, format annuel ou sequentiel)
 - Delais de relance (J+X par niveau)
@@ -169,7 +155,7 @@ Donnees : contacts, NIF/NIS, numero RC, article d'imposition, regime fiscal, cat
 ---
 
 ### Facturation
-Devis, factures, avoirs. Separation obligatoire par **exercice fiscal (annee)**. Calcul automatique TVA + timbre fiscal. Generation PDF conforme DGI. Logs immuables (piste d'audit).
+Devis, factures, avoirs. Separation obligatoire par **exercice fiscal (annee)**. Calcul automatique TVA. Generation PDF conforme DGI. Logs immuables (piste d'audit).
 
 **Calcul du prix HT d'une mission :**
 ```
@@ -187,19 +173,17 @@ Exemple : ACMPT pour une PME au regime Reel -> `120 000 x 1.5 x 1.75 = 315 000 D
 **Calcul TVA — devis :**
 ```
 TTC devis = Prix HT + (Prix HT x taux_tva)
-// Le timbre fiscal NE s'applique PAS sur les devis — montant_timbre = 0
 ```
 
 **Calcul TVA — facture :**
 ```
 Montant TVA    = Prix HT x taux_tva_en_vigueur_a_la_date_de_facture
-Timbre fiscal  = min(Prix HT x taux_timbre, plafond_timbre)
-Prix TTC       = Prix HT + Montant TVA + Timbre fiscal
+Prix TTC       = Prix HT + Montant TVA
 ```
 
 > Tous les indices et tarifs de base sont **parametrables via Settings** — aucun redeploiement pour ajuster la grille tarifaire.
 
-**Tranches de facturation (repris de la V0) :**
+**Tranches de facturation :**
 ```
 Tranche 1 = 30% du total mission
 Tranche 2 = 30% du total mission
@@ -208,7 +192,7 @@ Tranche 3 = 40% du total mission (solde)
 
 **Statut facture** recalcule automatiquement : `en_attente -> partiel -> solde`
 
-**Snapshots immuables** : taux TVA et timbre sont figes a la creation de la facture (pas de recalcul retroactif).
+**Snapshots immuables** : le taux TVA est fige a la creation de la facture (pas de recalcul retroactif).
 
 **Logs immuables** (piste d'audit) sur toutes les transactions financieres.
 
@@ -288,7 +272,6 @@ tva_rates
 ```php
 // Toujours utiliser cette methode, jamais un taux en dur
 $tva = TvaRate::enVigueurLe($facture->date_facture);
-$timbre = TimbreRate::enVigueurLe($facture->date_facture);
 ```
 
 Exemple concret :
@@ -331,20 +314,20 @@ Recherche et filtres toujours contextuels a un exercice. Le portail client affic
 
 ---
 
-## Ce que Ledge ameliore vs l'ancienne app (V0)
+## Ce que Ledge apporte au cabinet (vs gestion Excel / papier)
 
 | Probleme identifie | Solution dans Ledge |
 |---|---|
-| Pas de TVA / timbre calcules | Calcul auto + historisation des taux |
-| Pas de suivi statut paiement | Statut auto + relances automatiques |
-| Pas de portail client | Module Portail (Vue.js `/portail`) |
-| Roles basiques | Spatie Laravel Permission (granulaire) |
-| Pas de KPI collaborateur | Module KPI/Reporting |
+| TVA calculee a la main, sources d'erreurs | Calcul auto + historisation des taux |
+| Aucun suivi du statut des paiements | Statut auto + relances automatiques |
+| Aucun acces client a ses documents | Module Portail (Vue.js `/portail`) |
+| Aucune gestion des droits | Spatie Laravel Permission (granulaire) |
+| Aucun indicateur de pilotage | Module KPI/Reporting + Statistiques |
 | Pas de separation par exercice | Exercices fiscaux + numerotation annuelle |
-| Pas de supervision / MCO | UptimeRobot + Sentry + Laravel Health |
-| Pas d'accessibilite | RGAA integre des le dev |
-| UI Blade/jQuery vieillissante | Vue 3 + PrimeVue SPA moderne |
-| Pas de tests | PHPUnit + tests composants Vue |
+| Aucune supervision / MCO | UptimeRobot + Sentry + Laravel Health |
+| Accessibilite absente des outils bureautiques | RGAA integre des le dev |
+| Saisies dispersees (classeurs, papier) | SPA Vue 3 + PrimeVue centralisee |
+| Aucun controle qualite | PHPUnit + tests composants Vue |
 
 ---
 
@@ -354,7 +337,6 @@ Recherche et filtres toujours contextuels a un exercice. Le portail client affic
 |---|---|
 | TVA standard | 19% — LF 2023, art. 21 (historise) |
 | TVA reduite | 9% — services exoneres, art. 23 (historise) |
-| Timbre fiscal | 1% plafonne a 2 500 DA — LF 2024 (historise) |
 | Mentions obligatoires facture | NIF + NIS + RC + Art. imposition, numero chronologique, date |
 | Format DGI | Factures conformes Direction Generale des Impots |
 | Facturation electronique | Projet de loi en cours — architecture prete |
@@ -370,7 +352,6 @@ users                  -> auth + roles Spatie (entreprise_id nullable, portail_a
 entreprises            -> clients & prospects (statut, regime, categorie)
 exercices              -> exercices fiscaux par annee
 tva_rates              -> historique taux TVA (date_debut / date_fin)
-timbre_rates           -> historique taux timbre fiscal
 settings               -> parametres cle/valeur (cabinet, facturation, relances)
 prestations            -> catalogue avec tarif_initial
 regimes_fiscaux        -> Forfait (x1.0) / Reel (x1.5)
@@ -404,7 +385,7 @@ documents              -> fichiers PDF et documents partages portail
 
 **`users.entreprise_id` nullable** — `NULL` pour admin/collaborateur/secretaire, renseigne uniquement pour le role `client`. Isolation automatique des donnees dans le portail via scope Eloquent.
 
-**Table `tva_rates` versionnee** — taux TVA et timbre fiscal historises avec date d'entree en vigueur. Aucun redeploiement pour les mises a jour reglementaires.
+**Table `tva_rates` versionnee** — taux TVA historises avec date d'entree en vigueur. Aucun redeploiement pour les mises a jour reglementaires.
 
 **Table `settings` cle/valeur** — parametres metier en base, modifiables par l'admin sans code.
 
@@ -523,10 +504,10 @@ Voir [docs/GITFLOW.md](GITFLOW.md) pour le detail complet.
 
 | Competence | Obligatoire | Statut | Notes |
 |---|---|---|---|
-| C4.1.1 Mises a jour dependances | | en cours | `composer outdated` + Dependabot |
+| C4.1.1 Mises a jour dependances | | fait | Audits CI bloquants + remediations documentees (Guzzle, dompdf — voir SECURITY.md) |
 | C4.1.2 Supervision & alertes | oui | en cours | UptimeRobot + Laravel Health + Sentry |
 | C4.2.1 Consignation anomalies | oui | en cours | Sentry + Laravel logs rotatifs |
-| C4.2.2 Correctif CI/CD | | en cours | Pipeline GitHub Actions |
+| C4.2.2 Correctif CI/CD | | fait | Pipeline GitHub Actions (lint, tests, audits, E2E) |
 | C4.3.1 Axes d'amelioration | | en cours | Retour utilisateurs post-MVP |
 | C4.3.2 Journal des versions | oui | en cours | CHANGELOG.md + GitHub Releases (SemVer) |
 | C4.3.3 Collaboration support client | | en cours | Guide utilisateur + procedure d'escalade |
@@ -539,8 +520,8 @@ Voir [docs/GITFLOW.md](GITFLOW.md) pour le detail complet.
 |---|---|---|---|
 | S1-S2 | Cadrage & Bloc 1 | Dossier de cadrage, SWOT, comparatif, charge, budget, architecture | fait |
 | S3-S4 | Architecture & Setup | Schema BDD, migrations, doc technique, Gantt | fait |
-| S5-S6 | Sprint 1 — Core | Auth/roles, Clients, Facturation (calcul HT/TVA/timbre/PDF devis), Settings, Exercices | en cours |
-| S7-S8 | Sprint 2 — Avance | Planning FullCalendar, Relances mails, Portail client, KPI | a faire |
-| S9 | Sprint 3 — Qualite | OWASP Top 10, RGAA (axe + Lighthouse), tests unitaires, staging | a faire |
-| S10-S11 | Recette & MCO | Cahier de recettes, anomalies, CHANGELOG, UptimeRobot, Sentry | a faire |
-| S12 | Soutenance | Slides Blocs 2/3/4, repetition demo live (C3.4.2), argumentation jury | a faire |
+| S5-S6 | Sprint 1 — Core | Auth/roles, Clients, Facturation (calcul HT/TVA/PDF devis), Settings, Exercices | fait |
+| S7-S8 | Sprint 2 — Avance | Planning calendrier, Relances mails, Portail client, KPI | fait |
+| S9 | Sprint 3 — Qualite | OWASP Top 10, RGAA (axe + Lighthouse), tests unitaires | fait |
+| S10-S11 | Recette & MCO | Cahier de recettes, anomalies, CHANGELOG, supervision | fait |
+| S12 | Soutenance | Slides Blocs 2/3/4, repetition demo live (C3.4.2), argumentation jury | en preparation |

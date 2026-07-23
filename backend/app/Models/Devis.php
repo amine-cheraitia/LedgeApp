@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -8,24 +10,33 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Devis extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, LogsActivity, SoftDeletes;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
     protected $fillable = [
         'entreprise_id', 'prestation_id', 'exercice_id', 'created_by', 'numero',
-        'date_devis', 'date_validite', 'prix_ht', 'montant_ht', 'montant_tva',
-        'montant_timbre', 'montant_ttc', 'statut', 'notes',
+        'date_devis', 'date_validite', 'prix_ht', 'taux_tva',
+        'tva_taux_id', 'montant_tva', 'montant_ttc', 'statut',
     ];
 
     protected $casts = [
         'date_devis' => 'date',
         'date_validite' => 'date',
         'prix_ht' => 'decimal:2',
-        'montant_ht' => 'decimal:2',
+        'taux_tva' => 'decimal:2',
         'montant_tva' => 'decimal:2',
-        'montant_timbre' => 'decimal:2',
         'montant_ttc' => 'decimal:2',
     ];
 
@@ -37,6 +48,11 @@ class Devis extends Model
     public function prestation(): BelongsTo
     {
         return $this->belongsTo(Prestation::class);
+    }
+
+    public function tvaTaux(): BelongsTo
+    {
+        return $this->belongsTo(TvaTaux::class);
     }
 
     public function exercice(): BelongsTo

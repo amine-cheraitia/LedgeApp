@@ -20,6 +20,8 @@ class ContactController extends Controller
 
     public function index(Entreprise $entreprise): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Contact::class);
+
         $contacts = $entreprise->contacts()->orderByDesc('est_principal')->orderBy('nom')->get();
 
         return ContactResource::collection($contacts);
@@ -27,6 +29,8 @@ class ContactController extends Controller
 
     public function store(StoreContactRequest $request, Entreprise $entreprise): JsonResponse
     {
+        $this->authorize('create', Contact::class);
+
         $contact = $this->contactService->creer($entreprise, $request->validated());
 
         return (new ContactResource($contact))
@@ -36,6 +40,10 @@ class ContactController extends Controller
 
     public function update(UpdateContactRequest $request, Entreprise $entreprise, Contact $contact): ContactResource
     {
+        abort_if($contact->entreprise_id !== $entreprise->id, 404, 'Contact introuvable pour cette entreprise.');
+
+        $this->authorize('update', $contact);
+
         $contact = $this->contactService->mettreAJour($contact, $request->validated());
 
         return new ContactResource($contact);
@@ -43,6 +51,10 @@ class ContactController extends Controller
 
     public function destroy(Entreprise $entreprise, Contact $contact): JsonResponse
     {
+        abort_if($contact->entreprise_id !== $entreprise->id, 404, 'Contact introuvable pour cette entreprise.');
+
+        $this->authorize('delete', $contact);
+
         $this->contactService->supprimer($contact);
 
         return response()->json(['message' => 'Contact supprime.']);
