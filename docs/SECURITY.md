@@ -71,6 +71,12 @@ par la mise à jour vers les versions correctives publiées dans les plages `^7.
   Composer fait échouer le pipeline) et `npm audit --omit=dev --audit-level=high` (**bloquant
   à partir de la sévérité high**) à chaque build : une nouvelle advisory bloque les merges
   jusqu'à remédiation — démontré les 20/07 (Guzzle/npm) et 22/07 (dompdf).
+- **Scan des images de release (Trivy)** : le pipeline CD (`cd.yml`) scanne chaque image de
+  production avant publication — une vulnérabilité **HIGH/CRITICAL corrigeable** (système
+  d'exploitation ou dépendance embarquée) **bloque la publication**. Couche complémentaire aux
+  audits Composer/npm : elle couvre aussi les paquets OS de l'image. Contrôle démontré lors de
+  la validation du pipeline (2 CVE HIGH du paquet Debian `linux-libc-dev` bloquées, corrigées
+  par mise à niveau des paquets au build).
 - Dès qu'une nouvelle advisory apparaît : évaluer l'impact, appliquer `composer update` /
   `npm audit fix` dans les contraintes, et mettre à jour ce document.
 

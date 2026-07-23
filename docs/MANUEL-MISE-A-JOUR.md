@@ -38,6 +38,29 @@ docker compose exec app php artisan migrate:status
 
 ---
 
+## Mise a jour — par images de production (GHCR)
+
+Pour une instance deployee a partir des images publiees par le pipeline CD
+(voir [MANUEL-DEPLOIEMENT §3.5](MANUEL-DEPLOIEMENT.md)) :
+
+```bash
+docker pull ghcr.io/amine-cheraitia/ledge-backend:vX.Y.Z
+docker pull ghcr.io/amine-cheraitia/ledge-frontend:vX.Y.Z
+
+docker stop ledge-api ledge-web && docker rm ledge-api ledge-web
+docker run -d --name ledge-api --env-file .env.production -p 8000:8000 \
+  ghcr.io/amine-cheraitia/ledge-backend:vX.Y.Z
+docker run -d --name ledge-web -e BACKEND_HOST=ledge-api:8000 -p 80:80 \
+  ghcr.io/amine-cheraitia/ledge-frontend:vX.Y.Z
+
+docker exec ledge-api php artisan migrate --force
+```
+
+Rollback : relancer les conteneurs sur le tag precedent (les images restent
+disponibles sur GHCR) + restauration du dump si des migrations sont passees.
+
+---
+
 ## Mise a jour — installation manuelle
 
 ```bash

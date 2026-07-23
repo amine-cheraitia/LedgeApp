@@ -7,6 +7,14 @@
 
 ---
 
+## [Unreleased]
+
+### Docs — mise à jour post-release v1.0.0 — docs/post-release-v1-0-0
+
+La documentation reflète la release effective : `GITFLOW.md` (l'historique des versions va désormais de 0.1.0 à la **1.0.0 taguée et publiée**), `CONTEXT.md` (compétence C4.3.2 passée à « fait » — CHANGELOG + release taguée), `SECURITY.md` (nouveau contrôle documenté : **scan Trivy bloquant des images de release** — couche OS complémentaire aux audits de dépendances, démontré pendant la validation du pipeline), `README.md` (ligne CD dans les modules), `MANUEL-MISE-A-JOUR.md` (nouvelle voie de mise à jour par images GHCR avec rollback par tag précédent).
+
+---
+
 ## [1.0.0] — 2026-07-23
 
 > **Première version stable de Ledge.** Périmètre fonctionnel complet du backlog (52 US · 190 pts) :

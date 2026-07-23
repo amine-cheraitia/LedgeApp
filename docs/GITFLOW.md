@@ -112,7 +112,8 @@ Le projet suit le **versionnage semantique** `MAJEUR.MINEUR.CORRECTIF` :
 
 Le **registre des versions** est [`CHANGELOG.md`](../CHANGELOG.md) (format
 *Keep a Changelog*). L'historique va de `0.1.0` (mise en place initiale) a la
-section `[Unreleased]` en cours, close a la prochaine release.
+version stable **`1.0.0`** (23/07/2026) — premiere release taguee (`v1.0.0`),
+publiee en GitHub Release avec ses images de production sur GHCR.
 
 **Un tag est pose a chaque release vers `main`** (jamais sur une branche
 d'integration non fusionnee) :
