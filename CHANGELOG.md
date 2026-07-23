@@ -21,10 +21,10 @@ Remise en cohérence de l'ensemble des documents avec l'état réel du dépôt, 
 - **`ARCHITECTURE.md`** : 19 modèles, CI décrite fidèlement (PHP 8.3, 4 jobs dont gate de couverture, audits bloquants, E2E Playwright), section Tests refaite (45 fichiers back, 51 front, 4 specs E2E).
 - **`CAHIER-RECETTES.md`** : environnement de recette aligné sur la stack Docker de démonstration (celle du jury), RGA-05 passé ✅ (Lighthouse accessibilité mesuré à 100), compteurs STR-02/03 actualisés.
 - **`MANUEL-UTILISATION.md`** : ajout des sections manquantes **Planning**, **Statistiques** et **Journal d'audit** (rédigées depuis le code réel : rôles, filtres, onglets, comportements).
-- **`CLAUDE.md`** : inventaire des modules remis à niveau (Relances, KPI/Statistiques, Avoirs, Portail, Audit livrés — plus aucun « à venir » périmé), jobs réels documentés.
+- **Périmètre du dépôt resserré sur les livrables** : la documentation publique (`docs/` + README + CHANGELOG) devient l'unique référence du projet.
 - **`MANUEL-DEPLOIEMENT.md` / `README.md`** : durée du premier lancement réaliste (2 à 5 min), variante PowerShell pour surcharger `ADMIN_PASSWORD`.
 - **`CHANGELOG.md`** : purge d'un bloc « A faire » résiduel de mars listant des modules livrés depuis.
-- **Retrait de deux documents de travail** (`docs/plan-rapport-mission-pdf.md` — plan d'une fonctionnalité livrée, `docs/architecture-memoire.md` — note de préparation) qui n'avaient pas leur place dans la documentation produit.
+- **Retrait des documents de travail internes** (plans de fonctionnalités livrées, notes de préparation, historique de travail, guide interne de conventions) qui n'avaient pas leur place dans la documentation produit livrée.
 
 ### Fix — build Docker cassé par le lien symbolique `public/storage` — docs/demarrage-jury-docker
 
@@ -167,7 +167,7 @@ Constats d'une relecture externe, vérifiés sur pièce puis corrigés :
 
 - **Le prix du devis accepté est désormais CONTRACTUEL** : à la conversion devis→mission, `MissionService::creerMission` reprenait le prix **recalculé depuis la grille actuelle** (`calculerPrixHt`) au lieu du `prix_ht` du devis — si le tarif de la prestation ou les indices (régime/catégorie) changeaient entre l'acceptation et la conversion, la mission (et donc les factures T1/T2/T3) divergeait du devis signé par le client. La mission reprend maintenant tel quel le prix du devis d'origine ; sans devis, le calcul grille à la création reste inchangé.
 - **Acceptation bornée au délai de validité** : `accepterDevis` ne vérifiait jamais `date_validite` — un devis échu restait acceptable indéfiniment (et le statut `expire`, présent dans l'enum, n'était produit par aucun code). Désormais : acceptation possible jusqu'au jour d'échéance **inclus** ; passé ce délai → 409 explicite et bascule automatique en `expire` (premier vrai producteur de ce statut), ce qui rend le devis inconvertible.
-- Règle documentée dans CLAUDE.md (règle métier n°1). **4 nouveaux tests** (prix conservé malgré changement de grille, prix grille sans devis, refus + bascule `expire` après échéance, acceptation le jour J) ; 2 fixtures de tests corrigées au passage (dates de validité codées en dur devenues expirées en cours d'année — le nouveau garde les a démasquées).
+- Règle documentée dans les règles métier du projet (règle n°1). **4 nouveaux tests** (prix conservé malgré changement de grille, prix grille sans devis, refus + bascule `expire` après échéance, acceptation le jour J) ; 2 fixtures de tests corrigées au passage (dates de validité codées en dur devenues expirées en cours d'année — le nouveau garde les a démasquées).
 
 ### Page Statistiques — analytique cabinet & pilotage collaborateurs — feature/page-statistiques
 
@@ -289,7 +289,7 @@ Les routes `GET /health` (JSON) et `GET /health/dashboard` (HTML) de Spatie Heal
 - Aucun changement frontend nécessaire (les consommateurs n'utilisaient que `id`/`name`/`roles`). Test dédié `UserApiTest` (admin = complet, collaborateur/secrétaire = personnel minimal sans clients, show réservé admin, client bloqué).
 ### Sécurité — défense en profondeur : Policies + FormRequests manquants — fix/backend-defense-en-profondeur
 
-Renforcement de l'autorisation (Policy) et de la validation (FormRequest) au niveau contrôleur, en complément des middlewares de route (règles CLAUDE.md « Policy sur chaque ressource » + « FormRequest sur tout store/update »).
+Renforcement de l'autorisation (Policy) et de la validation (FormRequest) au niveau contrôleur, en complément des middlewares de route (règles du projet « Policy sur chaque ressource » + « FormRequest sur tout store/update »).
 - **5 Policies ajoutées** (auto-découvertes) reflétant exactement les rôles des routes : `PaiementPolicy` (create/viewAny admin+secrétaire ; delete admin **ou** propriétaire de la saisie), `RelancePolicy` (admin+secrétaire), `ExercicePolicy` (lecture admin+secrétaire, écriture admin), `KpiObjectifPolicy` (lecture admin+secrétaire, écriture admin), `ContactPolicy` (admin+secrétaire). Appels `authorize()` ajoutés dans `PaiementController`, `RelanceController`, `ExerciceController`, `KpiController`, `ContactController`. La logique d'appartenance de `PaiementController::destroy` (câblée en dur) est déplacée dans `PaiementPolicy`.
 - **4 FormRequests** : `AuthController::login` branché sur le `LoginRequest` existant (jusque-là code mort) ; nouveaux `StoreKpiObjectifRequest` (KPI), `UpdateSettingRequest` (paramètres), `ActiverPortailRequest` (activation portail) — remplacent les `$request->validate()` inline.
 - Divers : `PaiementController` passe en `private readonly`. Test `LoginTest::test_login_exige_email_et_mot_de_passe` ajouté. Suite backend verte (les tests d'appartenance de paiement passent désormais via la Policy).
@@ -429,7 +429,7 @@ Aligne la suppression de factures sur les règles de conformité (numérotation 
 
 ### Sécurité — Invitation par lien & définition de mot de passe en libre-service — feature/invitation-definition-mot-de-passe
 
-L'administrateur ne manipule, ne voit ni ne transmet plus **aucun mot de passe** — ni à l'activation d'un accès client, ni à la création d'un collaborateur/secrétaire. Chaque utilisateur **définit lui-même** son mot de passe via un lien d'invitation sécurisé reçu par email. Implémente enfin le « email set-password » décrit de longue date (US-29, CLAUDE.md) mais jamais codé.
+L'administrateur ne manipule, ne voit ni ne transmet plus **aucun mot de passe** — ni à l'activation d'un accès client, ni à la création d'un collaborateur/secrétaire. Chaque utilisateur **définit lui-même** son mot de passe via un lien d'invitation sécurisé reçu par email. Implémente enfin le « email set-password » décrit de longue date (US-29) mais jamais codé.
 
 #### Avant / Après
 - **Avant** : l'activation portail générait `Str::random(12)` **renvoyé en clair** dans la réponse JSON et affiché à l'admin ; la création d'un staff exigeait que l'admin **saisisse** le mot de passe. L'admin connaissait donc le secret et devait le transmettre manuellement.
@@ -692,7 +692,7 @@ forçaient `montant_timbre = 0` et `timbre_taux_id = null`, le calcul `TimbreTau
 - **`types/index.ts`** : `montant_timbre` (Facture, Devis) et `timbre_rate_id` (Facture) retirés ; test `types.test.ts` aligné (TTC = HT + TVA)
 
 #### Docs
-- `CLAUDE.md`, `README.md`, `docs/ARCHITECTURE.md`, `docs/BACKLOG.md` (US-04 → « TVA historisée », US-51 → « Gestion des taux TVA ») mis à jour
+- `README.md`, `docs/ARCHITECTURE.md`, `docs/BACKLOG.md` (US-04 → « TVA historisée », US-51 → « Gestion des taux TVA ») mis à jour
 
 #### Fix (repéré pendant la recette)
 - **`PdfService::genererRapportCloture()`** : le filtre des factures utilisait `where('type', 'facture')` alors que
@@ -1622,7 +1622,7 @@ forçaient `montant_timbre = 0` et `timbre_taux_id = null`, le calcul `TimbreTau
   - `TimbreRateTest` (3 tests) : calcul avec plafond, taux correct, null avant tout taux
   - `PrestationTest` (1 test) : prix_ht = tarif × indice_regime × indice_categorie
   - `ConvertProspectToClientTest` (2 tests) : prospect→client a la mission, client reste client
-  - Tests Filament V1 supprimes (obsoletes depuis migration N-tier)
+  - Tests d'un prototype initial supprimes (obsoletes, remplaces par le harnais actuel)
 
 - **Frontend Vitest** — 18 tests, tous passent :
   - `types.test.ts` (5 tests) : validation interfaces Entreprise, Facture, Paiement, Devis, PaginatedResponse

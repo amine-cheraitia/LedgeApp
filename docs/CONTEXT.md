@@ -13,7 +13,6 @@
 | **Type** | Systeme de gestion integre pour cabinets de conseil / comptabilite |
 | **Marche cible** | Algerie — cabinet pilote en premier, extensible nationalement |
 | **Contexte** | Le cabinet ne dispose d'aucun outil numerique centralise. Gestion sur Excel / papier -> pertes d'information, erreurs de facturation, relances oubliees, aucune tracabilite. Ledge remplace tout ca. |
-| **Historique** | V0 monolithique (Laravel 8 + Blade + mPDF) -> V1 Filament (abandonnee) -> V2 actuelle N-tier (Vue 3 + Laravel API) |
 | **Deadline** | Juillet 2026 — MVP complet + tous les livrables RNCP |
 
 ---
@@ -36,17 +35,6 @@
 | **Dev tooling** | WAMP (Windows) + VS Code | Environnement local |
 
 > **Dev local :** WAMP sur Windows. Fix MySQL 9 requis : `ROW_FORMAT=DYNAMIC` dans `config/database.php`.
-
----
-
-## Historique des versions
-
-Voir [docs/HISTORIQUE.md](HISTORIQUE.md) pour le detail complet (V0, V1, V2).
-
-### Resume
-- **V0** (Laravel 8 + Blade) — appli originale, modules fonctionnels mais sans TVA historisee, portail, relances auto
-- **V1** (Laravel 12 + Filament) — abandonnee, modeles/migrations repris
-- **V2** (Vue 3 + Laravel API) — projet actuel N-tier
 
 ---
 
@@ -195,7 +183,7 @@ Prix TTC       = Prix HT + Montant TVA
 
 > Tous les indices et tarifs de base sont **parametrables via Settings** — aucun redeploiement pour ajuster la grille tarifaire.
 
-**Tranches de facturation (repris de la V0) :**
+**Tranches de facturation :**
 ```
 Tranche 1 = 30% du total mission
 Tranche 2 = 30% du total mission
@@ -326,20 +314,20 @@ Recherche et filtres toujours contextuels a un exercice. Le portail client affic
 
 ---
 
-## Ce que Ledge ameliore vs l'ancienne app (V0)
+## Ce que Ledge apporte au cabinet (vs gestion Excel / papier)
 
 | Probleme identifie | Solution dans Ledge |
 |---|---|
-| Pas de TVA calculee | Calcul auto + historisation des taux |
-| Pas de suivi statut paiement | Statut auto + relances automatiques |
-| Pas de portail client | Module Portail (Vue.js `/portail`) |
-| Roles basiques | Spatie Laravel Permission (granulaire) |
-| Pas de KPI collaborateur | Module KPI/Reporting |
+| TVA calculee a la main, sources d'erreurs | Calcul auto + historisation des taux |
+| Aucun suivi du statut des paiements | Statut auto + relances automatiques |
+| Aucun acces client a ses documents | Module Portail (Vue.js `/portail`) |
+| Aucune gestion des droits | Spatie Laravel Permission (granulaire) |
+| Aucun indicateur de pilotage | Module KPI/Reporting + Statistiques |
 | Pas de separation par exercice | Exercices fiscaux + numerotation annuelle |
-| Pas de supervision / MCO | UptimeRobot + Sentry + Laravel Health |
-| Pas d'accessibilite | RGAA integre des le dev |
-| UI Blade/jQuery vieillissante | Vue 3 + PrimeVue SPA moderne |
-| Pas de tests | PHPUnit + tests composants Vue |
+| Aucune supervision / MCO | UptimeRobot + Sentry + Laravel Health |
+| Accessibilite absente des outils bureautiques | RGAA integre des le dev |
+| Saisies dispersees (classeurs, papier) | SPA Vue 3 + PrimeVue centralisee |
+| Aucun controle qualite | PHPUnit + tests composants Vue |
 
 ---
 

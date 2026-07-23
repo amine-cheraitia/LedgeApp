@@ -141,7 +141,6 @@ npm run test:coverage         # rapport de couverture (seuils garde-fous)
 - [Strategie de tests](docs/STRATEGIE-TESTS.md)
 - [Plan de correction des bogues](docs/PLAN-CORRECTION-BOGUES.md)
 - [Gitflow RNCP](docs/GITFLOW.md)
-- [Historique des versions](docs/HISTORIQUE.md)
 - [Changelog](CHANGELOG.md)
 
 ---
