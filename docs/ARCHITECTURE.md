@@ -1,7 +1,6 @@
 # Architecture N-tier — Ledge
 
-> Decision prise le 23 Mars 2026
-> Remplace la V0 monolithique (Laravel 8 + Blade) et la V1 Filament (abandonnee)
+> Decision d'architecture prise le 23 Mars 2026 au cadrage du projet
 
 ## Vue d'ensemble
 
@@ -18,7 +17,7 @@
 └──────────────┬──────────────┘
                │ Eloquent ORM
 ┌──────────────▼──────────────┐
-│   Tier 3 — Données          │  MySQL 9.1 — 20+ tables
+│   Tier 3 — Données          │  MySQL 8 — 25+ tables
 │                             │  Historisation TVA, exercices fiscaux
 └─────────────────────────────┘
 ```
@@ -60,7 +59,7 @@ backend/app/
 ├── Events/                    # MissionCreated, InvoicePaid
 ├── Listeners/                 # ConvertProspectToClient, CancelRelancesOnPayment
 ├── Observers/                 # MissionObserver
-├── Models/                    # 18 modeles Eloquent
+├── Models/                    # 19 modeles Eloquent
 └── Providers/                 # AppServiceProvider (observers, events)
 ```
 
@@ -97,19 +96,23 @@ Jamais d'appel Axios direct dans les composants Vue.
 ## Tests
 
 ```
-backend/tests/
-├── Feature/Api/           # Tests integration API (DevisApiTest, FactureApiTest, EntrepriseApiTest)
+backend/tests/             # 497 tests — 45 fichiers
+├── Feature/               # Integration API par domaine (facturation, planning, portail,
+│                          #   auth, audit, jobs, PDF, securite) — 38 fichiers
 └── Unit/
-    ├── Models/            # Tests modeles (TvaTaux, Prestation)
-    └── Listeners/         # Tests listeners (ConvertProspectToClient)
+    ├── Models/            # Regles des modeles (TvaTaux, Prestation...)
+    ├── Listeners/         # Listeners d'events (ConvertProspectToClient...)
+    └── Services/          # Logique metier isolee (FacturationService...)
 
-frontend/src/__tests__/
-├── types.test.ts          # Validation interfaces TypeScript
-└── api-modules.test.ts    # Tests unitaires modules API (mock Axios)
+frontend/src/__tests__/    # 599 tests — 51 fichiers (pages, composables, stores, utils)
+frontend/e2e/              # 4 specs Playwright — parcours complets en navigateur
 ```
 
 - Backend : PHPUnit + SQLite :memory: (RefreshDatabase)
-- Frontend : Vitest + happy-dom
+- Frontend : Vitest + happy-dom + @vue/test-utils
+- E2E : Playwright (Chromium) sur la stack complete — job CI dedie
+
+Detail complet : [STRATEGIE-TESTS.md](STRATEGIE-TESTS.md).
 
 ## CI/CD
 
@@ -117,8 +120,10 @@ Pipeline GitHub Actions (`.github/workflows/ci.yml`) declenchee sur push/PR vers
 
 | Job | Etapes |
 |---|---|
-| `backend` | PHP 8.2 → Composer install → Pint lint → PHPUnit |
-| `frontend` | Node 20 → npm ci → Vitest → vue-tsc → Vite build |
+| `gitflow-guard` | Bloque toute PR `feature/*` ciblant `main` |
+| `backend` | PHP 8.3 → Composer install → Pint lint → PHPUnit (gate couverture ≥ 80 %) → `composer audit` (bloquant) |
+| `frontend` | Node 20 → npm ci → ESLint → Vitest (gates couverture) → `npm audit` (bloquant des high) → vue-tsc → Vite build |
+| `e2e` | Playwright (Chromium) — parcours bout en bout sur la stack complete |
 
 ## Sécurité (OWASP)
 

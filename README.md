@@ -24,7 +24,8 @@ Montants en **Dinars Algeriens (DA)**.
 2. Dezipper l'archive de livraison.
 3. **Docker Desktop demarre**, double-cliquer sur **`start-ledge.bat`** (Windows)
    — ou executer `./start-ledge.sh` (Mac/Linux).
-4. Attendre la fin de l'initialisation (**~2 minutes au premier lancement**).
+4. Attendre la fin de l'initialisation (**2 a 5 minutes au premier lancement**,
+   selon la machine et la connexion).
 5. Ouvrir **http://localhost:5173** et se connecter avec
    `admin@ledge.dz` / `Ledge@Demo2026`.
 
@@ -36,7 +37,7 @@ docker compose up --build
 ```
 
 Le backend s'auto-initialise (dependances, cle applicative, migrations + jeu de
-donnees de demonstration). Au bout de ~2 min, tout est pret :
+donnees de demonstration). Apres 2 a 5 min au premier lancement, tout est pret :
 
 | Service | URL |
 |---|---|
@@ -88,10 +89,10 @@ npm run dev                # http://localhost:5173
 
 ```bash
 # Backend (depuis backend/)
-php artisan test              # 444 tests PHPUnit sur SQLite :memory:
+php artisan test              # 497 tests PHPUnit sur SQLite :memory:
 
 # Frontend (depuis frontend/)
-npm run test                  # 551 tests Vitest
+npm run test                  # 599 tests Vitest
 npm run test:coverage         # rapport de couverture (seuils garde-fous)
 ```
 
@@ -119,8 +120,8 @@ npm run test:coverage         # rapport de couverture (seuils garde-fous)
 | Calendrier / Planning | Fait |
 | KPI / Dashboard | Fait |
 | Journal d'audit (activitylog) | Fait |
-| Tests backend (PHPUnit — 444 tests) | Fait |
-| Tests frontend (Vitest — 551 tests) | Fait |
+| Tests backend (PHPUnit — 497 tests) | Fait |
+| Tests frontend (Vitest — 599 tests) | Fait |
 | CI/CD GitHub Actions (Pint, tests, couverture) | Fait |
 
 ---
@@ -140,7 +141,6 @@ npm run test:coverage         # rapport de couverture (seuils garde-fous)
 - [Strategie de tests](docs/STRATEGIE-TESTS.md)
 - [Plan de correction des bogues](docs/PLAN-CORRECTION-BOGUES.md)
 - [Gitflow RNCP](docs/GITFLOW.md)
-- [Historique des versions](docs/HISTORIQUE.md)
 - [Changelog](CHANGELOG.md)
 
 ---

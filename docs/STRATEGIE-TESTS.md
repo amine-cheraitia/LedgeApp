@@ -13,9 +13,9 @@ et comment mesurer la couverture. Il accompagne le [cahier de recettes](CAHIER-R
 
 | Couche | Outil | Tests | Fichiers | Couverture lignes |
 |---|---|---|---|---|
-| **Backend** (Laravel API) | PHPUnit 11 | **415** | 40 | **95 %** |
-| **Frontend** (Vue 3 SPA) | Vitest 4 + @vue/test-utils | **557** | 48 | **83 %** |
-| **Total** | | **971** | | |
+| **Backend** (Laravel API) | PHPUnit 11 | **497** | 45 | **95,9 %** |
+| **Frontend** (Vue 3 SPA) | Vitest 4 + @vue/test-utils | **599** | 51 | **84,9 %** |
+| **Total** | | **1096** | | |
 
 > Suite **calibrée** pour rester proportionnée (RNCP C2.2.2 : un harnais couvrant les fonctionnalités,
 > pas une inflation de tests) tout en dépassant 80 % de couverture de lignes des deux côtés. Un
@@ -35,10 +35,10 @@ et comment mesurer la couverture. Il accompagne le [cahier de recettes](CAHIER-R
                  │   Recette manuelle (E2E)     │   CAHIER-RECETTES.md
                  │   scénarios utilisateur      │   (hors périmètre auto)
                  ├─────────────────────────────┤
-        Feature  │  383 tests API backend       │   HTTP réel -> BDD SQLite mémoire
-        + pages  │  ~430 tests composants front │   montage réel des composants
+        Feature  │  461 tests API backend       │   HTTP réel -> BDD SQLite mémoire
+        + pages  │  ~600 tests composants front │   montage réel des composants
                  ├─────────────────────────────┤
-        Unit     │   31 tests Services/Modèles  │   logique métier isolée
+        Unit     │   35 tests Services/Modèles  │   logique métier isolée
                  └─────────────────────────────┘
 ```
 
@@ -55,7 +55,7 @@ et comment mesurer la couverture. Il accompagne le [cahier de recettes](CAHIER-R
 
 ## 3. Stratégie backend (PHPUnit)
 
-**Répartition** : 31 tests unitaires (`tests/Unit`) + 383 tests de fonctionnalité (`tests/Feature`).
+**Répartition** : 35 tests unitaires (`tests/Unit`) + 461 tests de fonctionnalité (`tests/Feature`).
 Environnement de test isolé : SQLite `:memory:`, cache `array`, mail `array`, queue `sync`
 (voir `backend/phpunit.xml`).
 
@@ -64,9 +64,9 @@ Environnement de test isolé : SQLite `:memory:`, cache `array`, mail `array`, q
 | Service | Couverture | Rôle |
 |---|---|---|
 | `TvaTauxService`, `KpiService`, `InvitationService`, `AuditService`, `CalendarService` | 100 % | — |
-| `FacturationService` | 96 % | Facturation, tranches, snapshots TVA |
+| `FacturationService` | 97 % | Facturation, tranches, snapshots TVA |
 | `PortailService` | 96 % | Isolation des données client |
-| `MissionService` | 95 % | Création mission, prix HT immuable |
+| `MissionService` | 96 % | Création mission, prix HT immuable |
 | `RelanceService` | 94 % | Relances automatiques |
 
 ### Exemple — règle métier critique (tranches, anti perte d'arrondi)
@@ -174,13 +174,13 @@ et `frontend/coverage/index.html`.
 
 ```bash
 # Backend (depuis backend/)
-php artisan test                       # 444 tests
+php artisan test                       # 497 tests
 php artisan test --filter=LoginTest    # une classe
 composer test:coverage                 # couverture + gate 80 %
 composer test:coverage-html            # rapport HTML
 
 # Frontend (depuis frontend/)
-npm run test                           # 551 tests
+npm run test                           # 599 tests
 npx vitest run src/__tests__/pages/PrestationListPage.test.ts   # un fichier
 npm run test:coverage                  # couverture + gate 80/75/65 %
 ```

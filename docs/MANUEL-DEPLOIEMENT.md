@@ -71,7 +71,8 @@ affiche `Local: http://localhost:5173/`, tout est operationnel.
 
 > Identifiants de **demonstration**. Aucun mot de passe de production n'est
 > versionne. Pour en definir un autre avant le premier lancement :
-> `ADMIN_PASSWORD='MonMotDePasse' docker compose up --build`.
+> - Linux/macOS : `ADMIN_PASSWORD='MonMotDePasse' docker compose up --build`
+> - Windows (PowerShell) : `$env:ADMIN_PASSWORD='MonMotDePasse'; docker compose up --build`
 
 ### 1.4 Ce que contient la base au demarrage
 
@@ -200,7 +201,7 @@ php artisan config:cache && php artisan route:cache && php artisan view:cache
 - Diagnostics detailles : `GET /health` (reserve `role:admin`).
 - Error tracking : renseigner `SENTRY_LARAVEL_DSN`.
 
-Voir [docs/SECURITY.md](SECURITY.md) pour les controles de securite en place.
+Voir [SECURITY.md](SECURITY.md) pour les controles de securite en place.
 
 ### 3.5 Mise a jour d'une instance existante
 
