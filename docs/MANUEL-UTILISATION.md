@@ -7,10 +7,15 @@ Guide fonctionnel par role. Pour installer / lancer l'application, voir
 
 | Role | Espace | Perimetre |
 |---|---|---|
-| **Admin** | `/admin` | Acces complet : parametres, utilisateurs, facturation, planning |
-| **Collaborateur** | `/admin` | Ses missions et ses taches uniquement |
-| **Secretaire** | `/admin` | Entreprises (sans suppression), recouvrement, envoi de documents. **Pas** de Missions ni Planning |
-| **Client** | `/portail` | Lecture seule de ses propres donnees |
+| **Admin** | Back-office | Acces complet : parametres, utilisateurs, facturation, planning |
+| **Collaborateur** | Back-office | Ses missions et ses taches uniquement |
+| **Secretaire** | Back-office | Entreprises (sans suppression), recouvrement, envoi de documents. **Pas** de Missions ni Planning |
+| **Client** | Portail client | Lecture seule de ses propres donnees |
+
+Il n'y a **aucune adresse a retenir** : tout le monde se connecte a la meme URL
+(http://localhost:5173) et l'application **oriente automatiquement** chaque
+utilisateur vers son espace selon son role — le **back-office** pour le staff
+(admin, collaborateur, secretaire), le **portail** pour le client.
 
 Le **client ne s'inscrit jamais lui-meme** : l'admin active son acces depuis la
 fiche entreprise, et le client definit son mot de passe via un lien d'invitation.

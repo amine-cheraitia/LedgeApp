@@ -13,6 +13,10 @@
 > (parcours complet pour un lecteur découvrant l'application) et configuration email de l'archive
 > de démonstration explicitée. Aucun changement de code.
 
+### Docs — correction du tableau des rôles du manuel d'utilisation — release/v1.1.2
+
+Le tableau des rôles indiquait `/admin` comme espace du staff (admin, collaborateur, secrétaire) : **route inexistante dans l'application** (le back-office est servi à la racine `/`, seul le portail client est bien à `/portail`) — reliquat du guide de conception, jamais aligné sur le code. La colonne « Espace » utilise désormais des libellés clairs (**Back-office** / **Portail client**) plutôt que des chemins d'URL bruts, avec une phrase précisant que **tout le monde se connecte à la même URL** (`localhost:5173`) et que l'application oriente automatiquement chacun vers son espace selon son rôle — plus lisible et exact pour un évaluateur.
+
 ### Docs — conseil de test des envois d'emails pour l'évaluation — docs/conseil-email-jury
 
 Manuel de déploiement §1.6 : encart recommandant, quand l'envoi SMTP est actif (archive de livraison), d'utiliser **sa propre adresse email** à la création d'une entreprise/d'un contact pour recevoir réellement les devis, factures et invitations — avec le rappel de **vérifier le dossier spam** (expéditeur de démonstration). Même consigne ajoutée dans le **manuel d'utilisation** en tête du cycle commercial (« Important — évaluation / prise en main ») : sans adresse email réelle sur l'entreprise, la suite du parcours (réception du devis, acceptation, portail) ne peut pas être déroulée.
