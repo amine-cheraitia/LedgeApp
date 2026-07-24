@@ -7,6 +7,26 @@
 
 ---
 
+## [Unreleased]
+
+### Perf — démo Docker : opcache sans revalidation des timestamps — chore/opcache-demo-docker
+
+`opcache.validate_timestamps = 0` dans `backend/docker/php/local.ini` (configuration montée
+uniquement dans le conteneur `app` de la stack de démonstration) : PHP ne re-vérifie plus la
+date de chaque fichier source à chaque requête — un surcoût sensible à travers le bind mount
+sous Windows (Docker Desktop), visible sur les endpoints d'agrégation comme `/stats`.
+Contrepartie assumée pour la démo : une modification du code backend nécessite un
+`docker compose restart app` pour être prise en compte. Sans impact sur l'environnement de
+développement WAMP ni sur les images de production.
+
+### Sécurité — advisory npm : PostCSS < 8.5.16 — fix/deps-postcss
+
+Advisory **high** GHSA-r28c-9q8g-f849 (path traversal lors de l'auto-chargement des source
+maps `sourceMappingURL`) publiée le 24/07 et **interceptée par l'étape d'audit npm bloquante
+de la CI**. Remédiation : `npm audit fix` → `postcss` **8.5.16** ; `npm audit` vierge et
+build de production re-vérifié. Impact réel quasi nul (outil de build uniquement, aucun CSS
+utilisateur traité). Évaluation détaillée : `docs/SECURITY.md`.
+
 ## [1.1.2] — 2026-07-24
 
 > Correctif documentaire de finalisation pour l'évaluation : manuel d'utilisation autoporteur
