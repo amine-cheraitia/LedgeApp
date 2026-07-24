@@ -11,7 +11,7 @@
 
 ### Docs — conseil de test des envois d'emails pour l'évaluation — docs/conseil-email-jury
 
-Manuel de déploiement §1.6 : encart recommandant, quand l'envoi SMTP est actif (archive de livraison), d'utiliser **sa propre adresse email** à la création d'une entreprise/d'un contact pour recevoir réellement les devis, factures et invitations — avec le rappel de **vérifier le dossier spam** (expéditeur de démonstration).
+Manuel de déploiement §1.6 : encart recommandant, quand l'envoi SMTP est actif (archive de livraison), d'utiliser **sa propre adresse email** à la création d'une entreprise/d'un contact pour recevoir réellement les devis, factures et invitations — avec le rappel de **vérifier le dossier spam** (expéditeur de démonstration). Même consigne ajoutée dans le **manuel d'utilisation** en tête du cycle commercial (« Important — évaluation / prise en main ») : sans adresse email réelle sur l'entreprise, la suite du parcours (réception du devis, acceptation, portail) ne peut pas être déroulée.
 
 ---
 

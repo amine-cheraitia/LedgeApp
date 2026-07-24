@@ -40,6 +40,15 @@ reception d'un lien de reinitialisation (en demo, lien visible dans les logs).
   ni transmis par l'admin).
 
 ### Cycle commercial
+
+> **Important (evaluation / prise en main)** : creez l'entreprise avec une
+> **adresse email reelle que vous consultez** (la votre, par exemple) — c'est a
+> cette adresse que l'application envoie les **devis**, les **factures** et
+> l'**invitation au portail client**. Sans adresse valide, impossible de derouler
+> la suite du parcours (reception du devis, acceptation, portail...). Au premier
+> envoi, **verifiez le dossier spam / courrier indesirable** : l'expediteur de
+> demonstration peut y etre classe.
+
 1. **Entreprise** : creer une fiche (statut *prospect* par defaut).
 2. **Devis** : creer un devis avec ses lignes -> l'envoyer.
 3. **Mission** : convertir le devis en mission. L'entreprise bascule
