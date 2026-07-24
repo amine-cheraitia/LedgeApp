@@ -104,7 +104,7 @@ backend/tests/             # 497 tests — 45 fichiers
     ├── Listeners/         # Listeners d'events (ConvertProspectToClient...)
     └── Services/          # Logique metier isolee (FacturationService...)
 
-frontend/src/__tests__/    # 599 tests — 51 fichiers (pages, composables, stores, utils)
+frontend/src/__tests__/    # 604 tests — 52 fichiers (pages, composables, stores, utils)
 frontend/e2e/              # 4 specs Playwright — parcours complets en navigateur
 ```
 

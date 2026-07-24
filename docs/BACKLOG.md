@@ -519,7 +519,7 @@
 - Cahier de recettes : `docs/CAHIER-RECETTES.md` (scenarios fonctionnels / structurels / securite OWASP) — competence C2.3.1
 
 **🔁 Reste a faire (tests a venir)**
-- [x] **Tests de composants front** — fait : ~51 fichiers Vitest + @vue/test-utils (harnais `mountPage`), pages/composants/stores/composables testes par role
+- [x] **Tests de composants front** — fait : 52 fichiers Vitest + @vue/test-utils (harnais `mountPage`), pages/composants/stores/composables testes par role
 - [x] **Tests E2E / parcours** (Playwright) — fait (feature/tests-e2e-playwright) : **15 tests / 4 parcours** contre le vrai backend (base MySQL dediee `ledge_e2e`, serveurs 8001/5174 orchestres par Playwright) — login par role, **flux complet entreprise → devis → accepte → mission → facture → paiement solde**, navigation secretaire « zero toast d'erreur » (non-regression des 403), page Statistiques (2 onglets + objectifs). Locators 100 % accessibles (getByRole/getByLabel, aucun data-testid necessaire — merci RGAA). `npm run test:e2e` / `test:e2e:ui` · job CI dedie (MySQL service + Chromium). **Bug de schema trouve par le harnais** : `missions.date_fin` NOT NULL vs code nullable → migration corrective
 - [x] **Mesure de couverture** — fait : `@vitest/coverage-v8` + `test:coverage`, gates reels en CI
 - [x] **Extraire les formatters** — fait (fix/kpi-coherence-et-ux) : `src/utils/currency.ts` (`formatDA`, `formatDACompact`, `formatDAKpi`) + tests unitaires dedies, 4 definitions locales supprimees

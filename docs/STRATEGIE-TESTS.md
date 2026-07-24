@@ -14,8 +14,8 @@ et comment mesurer la couverture. Il accompagne le [cahier de recettes](CAHIER-R
 | Couche | Outil | Tests | Fichiers | Couverture lignes |
 |---|---|---|---|---|
 | **Backend** (Laravel API) | PHPUnit 11 | **497** | 45 | **95,9 %** |
-| **Frontend** (Vue 3 SPA) | Vitest 4 + @vue/test-utils | **599** | 51 | **84,9 %** |
-| **Total** | | **1096** | | |
+| **Frontend** (Vue 3 SPA) | Vitest 4 + @vue/test-utils | **604** | 52 | **85 %** |
+| **Total** | | **1101** | | |
 
 > Suite **calibrée** pour rester proportionnée (RNCP C2.2.2 : un harnais couvrant les fonctionnalités,
 > pas une inflation de tests) tout en dépassant 80 % de couverture de lignes des deux côtés. Un
@@ -180,7 +180,7 @@ composer test:coverage                 # couverture + gate 80 %
 composer test:coverage-html            # rapport HTML
 
 # Frontend (depuis frontend/)
-npm run test                           # 599 tests
+npm run test                           # 604 tests
 npx vitest run src/__tests__/pages/PrestationListPage.test.ts   # un fichier
 npm run test:coverage                  # couverture + gate 80/75/65 %
 ```
