@@ -27,6 +27,36 @@ de la CI**. Remédiation : `npm audit fix` → `postcss` **8.5.16** ; `npm audit
 build de production re-vérifié. Impact réel quasi nul (outil de build uniquement, aucun CSS
 utilisateur traité). Évaluation détaillée : `docs/SECURITY.md`.
 
+### Docs — audit de cohérence doc/code : corrections et retrait des documents internes — docs/corrections-audit-coherence
+
+Passe de vérification systématique des affirmations des documents livrés contre l'état réel
+du code, et corrections :
+- **Compteurs alignés** — `BACKLOG.md` : 497 tests backend / 604 frontend (au lieu de 190/95),
+  35 FormRequests, case « exécuter le cahier de recettes » cochée (RGA-05 mesuré à 100),
+  renvoi `[Unreleased]` → `[1.0.0]` ; `STRATEGIE-TESTS.md` : 52 fichiers frontend
+  (27 pages · 7 client API/guard/utils), 462 tests Feature.
+- **`ARCHITECTURE.md`** — arborescences réelles : 11 sous-dossiers Controllers (Portail,
+  Dashboard, Audit, Referentiel inclus), 20 services dont `NumerotationService`
+  (la délégation de numérotation était mal attribuée), `PdfService` et ses 7 générations
+  de documents, `layout/` avec `AppLayout` (et non `layouts/AdminLayout`), 19 modèles partout,
+  ajout de `components/` et `utils/`.
+- **`GITFLOW.md`** — flux de release réel à deux PR (`release/vX.Y.Z -> develop` puis
+  `develop -> main`), historique des versions complété (v1.1.1, v1.1.2).
+- **`STRATEGIE-TESTS.md`** — la couche haute de la pyramide reflète la suite E2E Playwright
+  automatisée en CI ; section « points de défense » retirée.
+- **Taux réduit 9 %** — références retirées de `CAHIER-RECETTES.md` (FAC-05) et `BACKLOG.md`
+  (grille TVA active : 19 % standard, 0 % exonéré).
+- **Précisions** — `SECURITY.md` : throttling réel (login 5/min, reset 6/min) ;
+  `MANUEL-UTILISATION.md` : création directe de mission documentée, comportement du lien de
+  réinitialisation précisé selon l'environnement ; `MANUEL-MISE-A-JOUR.md` : `cd backend`
+  manquant dans la procédure de rollback ; `ACCESSIBILITE-RGAA.md` : `aria-live` réel
+  (`assertive` sur les erreurs bloquantes) ; `PLAN-CORRECTION-BOGUES.md` : convention réelle
+  du CHANGELOG.
+- **Retraits** — `docs/CONTEXT.md` et `docs/WORKFLOW-FEATURE.md` (documents de travail
+  internes, contenu couvert par les documents livrés). `README.md` : liens vers le cahier de
+  recettes et le backlog ajoutés, lien contexte retiré, vocabulaire uniformisé
+  (« évaluation / démonstration »).
+
 ## [1.1.2] — 2026-07-24
 
 > Correctif documentaire de finalisation pour l'évaluation : manuel d'utilisation autoporteur

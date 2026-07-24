@@ -2,7 +2,7 @@
 
 Ce document couvre trois scenarios :
 
-1. [Demonstration locale avec Docker](#1-demonstration-locale-avec-docker) — **recommande pour le jury / une evaluation**
+1. [Demonstration locale avec Docker](#1-demonstration-locale-avec-docker) — **recommande pour une evaluation / demonstration**
 2. [Installation manuelle (developpement)](#2-installation-manuelle-developpement)
 3. [Deploiement en production](#3-deploiement-en-production)
 
@@ -10,7 +10,7 @@ Ce document couvre trois scenarios :
 
 ## 1. Demonstration locale avec Docker
 
-> **>> C'EST LE PARCOURS A SUIVRE POUR LE JURY / L'EVALUATION <<**
+> **>> C'EST LE PARCOURS A SUIVRE POUR L'EVALUATION <<**
 >
 > L'archive de livraison se lance en un double-clic (`start-ledge.bat`), sans rien
 > installer ni configurer d'autre que Docker Desktop, et avec l'envoi d'emails
@@ -35,7 +35,7 @@ docker compose version
 
 ### 1.2 Lancement
 
-**Parcours jury — depuis l'archive de livraison (.zip)** :
+**Parcours d'evaluation — depuis l'archive de livraison (.zip)** :
 
 1. Dezipper l'archive.
 2. Docker Desktop demarre, **double-cliquer sur `start-ledge.bat`** (Windows) —
@@ -145,7 +145,7 @@ puis appliquer sans reconstruire : `docker compose restart app`.
 (Si `backend/.env` n'existe pas encore — clone jamais lance — on peut a la
 place editer `backend/.env.docker` avant le premier `docker compose up`.)
 
-> **Conseil pour tester l'envoi reel (jury / evaluation)** — lorsque l'envoi SMTP
+> **Conseil pour tester l'envoi reel (evaluation)** — lorsque l'envoi SMTP
 > est actif (cas de l'archive de livraison, pre-configuree) : a la creation d'une
 > entreprise ou d'un contact, **utilisez votre propre adresse email** comme email
 > de l'entreprise/du contact. Vous recevrez ainsi reellement les devis, factures

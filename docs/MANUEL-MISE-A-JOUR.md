@@ -129,7 +129,8 @@ Alternative si la migration fournit un `down()` fiable :
 ```bash
 # Docker
 docker compose build && docker compose up -d
-# Manuel
+# Manuel (depuis la racine du projet)
+cd backend
 composer install --no-dev --optimize-autoloader
 php artisan config:cache && cd ../frontend && npm ci && npm run build
 ```

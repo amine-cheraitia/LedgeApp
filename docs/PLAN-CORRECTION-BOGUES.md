@@ -43,7 +43,7 @@ Le flux suit le Gitflow du projet (voir [GITFLOW.md](GITFLOW.md)) :
 5. **Pull Request** avec le template RNCP (description, cause, correctif, tests).
 6. **Merge** : un `fix/*` de production est fusionne sur `main` **et** `develop`
    pour eviter la regression a la version suivante.
-7. **CHANGELOG** mis a jour (section `Fixed`), nouveau tag si livraison.
+7. **CHANGELOG** mis a jour (entree `Fix` dans la section de la version concernee), nouveau tag si livraison.
 
 ## 4. Deploiement du correctif
 

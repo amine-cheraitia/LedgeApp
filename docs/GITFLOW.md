@@ -72,13 +72,14 @@ docs(changelog): v1.1.0 — portail client + planning
 **Competences :** C2.1.2 (CI), C4.2.2 (CD)
 
 ### Phase 3 — Release vers main
-1. Mettre a jour `CHANGELOG.md` -> section `[x.y.z]`
-2. PR `develop -> main` (revue finale + merge)
-3. Tag Git : `git tag vx.y.z`
-4. GitHub Release avec notes
-5. Le tag declenche le **pipeline CD** : portes de qualite CI -> build des images
+1. Branche `release/vX.Y.Z` depuis `develop` : couper le `CHANGELOG.md` -> section `[x.y.z]`
+2. PR `release/vX.Y.Z -> develop` (revue + merge)
+3. PR `develop -> main` (revue finale + merge)
+4. Tag Git `vx.y.z` pose sur le commit de merge de `main`
+5. GitHub Release avec notes
+6. Le tag declenche le **pipeline CD** : portes de qualite CI -> build des images
    de production -> scan Trivy -> publication sur GHCR (voir MANUEL-DEPLOIEMENT §3.5)
-6. Deploiement de l'image selon la procedure du [MANUEL-DEPLOIEMENT.md](MANUEL-DEPLOIEMENT.md)
+7. Deploiement de l'image selon la procedure du [MANUEL-DEPLOIEMENT.md](MANUEL-DEPLOIEMENT.md)
 
 **Competences :** C4.3.2 (obligatoire), C4.2.2
 
@@ -113,8 +114,8 @@ Le projet suit le **versionnage semantique** `MAJEUR.MINEUR.CORRECTIF` :
 Le **registre des versions** est [`CHANGELOG.md`](../CHANGELOG.md) (format
 *Keep a Changelog*). L'historique va de `0.1.0` (mise en place initiale) aux
 versions stables taguees et publiees — **`v1.0.0`** (premiere version stable,
-23/07/2026) puis **`v1.1.0`** — chacune avec sa GitHub Release et ses images
-de production sur GHCR.
+23/07/2026), **`v1.1.0`**, **`v1.1.1`** puis **`v1.1.2`** (24/07/2026) —
+chacune avec sa GitHub Release et ses images de production sur GHCR.
 
 **Un tag est pose a chaque release vers `main`** (jamais sur une branche
 d'integration non fusionnee) :
@@ -131,4 +132,4 @@ reprennent la section correspondante du CHANGELOG.
 ## Regle d'or
 
 > **JAMAIS de push direct sur main.** Tout passe par une PR.
-> Le jury verifie dans l'historique GitHub que chaque merge passe par une PR.
+> L'historique GitHub permet de verifier que chaque merge passe par une PR.
