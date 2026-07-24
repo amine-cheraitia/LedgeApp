@@ -50,15 +50,21 @@ reception d'un lien de reinitialisation (en demo, lien visible dans les logs).
 > demonstration peut y etre classe.
 
 1. **Entreprise** : creer une fiche (statut *prospect* par defaut).
-2. **Devis** : creer un devis avec ses lignes -> l'envoyer.
-3. **Mission** : convertir le devis en mission. L'entreprise bascule
-   automatiquement *prospect -> client*. Le prix HT est calcule une fois et fige.
-4. **Taches** : decouper la mission, assigner des collaborateurs, suivre l'avancement.
-5. **Facturation** : emettre les factures (par tranches 30 / 30 / 40 %). La TVA
+2. **Devis** : creer un devis avec ses lignes -> **l'envoyer** (le client le
+   recoit par email, PDF joint).
+3. **Acceptation** : sur un devis *envoye*, utiliser le bouton **Accepter**
+   (ou Refuser) dans la liste des devis. Un devis n'est acceptable que dans son
+   **delai de validite** ; passe l'echeance, il devient *expire* et ne peut plus
+   etre converti.
+4. **Mission** : convertir le devis **accepte** en mission. L'entreprise bascule
+   automatiquement *prospect -> client*. Le prix HT du devis est repris tel quel
+   (contractuel) et fige.
+5. **Taches** : decouper la mission, assigner des collaborateurs, suivre l'avancement.
+6. **Facturation** : emettre les factures (par tranches 30 / 30 / 40 %). La TVA
    appliquee est celle **en vigueur a la date de facture** et reste figee.
-6. **Paiements** : enregistrer les reglements -> le statut passe
+7. **Paiements** : enregistrer les reglements -> le statut passe
    `en_attente -> partiel -> solde` automatiquement.
-7. **Avoirs** : emettre un avoir (FA) rattache a une facture si necessaire.
+8. **Avoirs** : emettre un avoir (FA) rattache a une facture si necessaire.
 
 ### Planning
 Calendrier des missions et des taches (4 vues : Annee, Mois, Semaine, Liste),
@@ -82,11 +88,30 @@ accessible a l'admin et au collaborateur -> **pas d'acces pour la secretaire**
   titre indicatif, non bloquant -- si le collaborateur assigne a deja une
   autre tache sur la meme periode.
 
-### Portail client
-Depuis la fiche entreprise (statut *client*) -> **« Activer l'acces portail »** :
-- cree le compte client (role `client`, rattache a l'entreprise) ;
-- envoie une **invitation** ; en repli, un **lien copiable** est affiche a l'admin ;
-- `portail_actif = 1` pour activer, `0` pour revoquer.
+### Portail client — activer l'acces d'un client
+
+L'espace client (`/portail`) n'est accessible **qu'apres activation par l'admin**
+— le client ne peut pas s'inscrire lui-meme. Pour activer un acces :
+
+1. Ouvrir la **liste des Entreprises** et reperer l'entreprise concernee
+   (statut *client* — automatique des la premiere mission, cf. cycle commercial).
+2. Cliquer sur son bouton **« Activer l'acces portail »**.
+3. Dans la fenetre qui s'ouvre, verifier / completer le **nom** et l'**adresse
+   email** du client (pre-remplis depuis la fiche — une adresse reelle est
+   indispensable), puis cliquer sur **« Activer le portail »**.
+4. L'application **envoie une invitation par email** au client, et affiche a
+   l'admin un **lien d'invitation copiable** — a transmettre manuellement si
+   l'email n'arrive pas (penser au dossier spam). Le lien est a usage unique.
+5. Le client ouvre le lien, **definit lui-meme son mot de passe**, puis se
+   connecte sur http://localhost:5173 : il arrive directement sur son espace
+   `/portail`. (L'admin ne voit, ne saisit ni ne transmet jamais de mot de passe.)
+
+Gestion de l'acces ensuite, depuis la meme liste :
+
+- **Verrouiller / reactiver** l'acces (bouton dedie, avec confirmation) : un
+  acces verrouille empeche toute connexion du client jusqu'a reactivation.
+- **Renvoyer l'invitation** : genere un nouveau lien envoye au client —
+  l'ancien lien devient invalide.
 
 ### Statistiques
 Page reservee a l'admin, avec un filtre d'exercice global (tous les
@@ -145,6 +170,8 @@ Page reservee a l'admin : tracabilite des actions sur les entites sensibles
 
 ## Parcours client (portail)
 
+- Recoit une **invitation** (email, ou lien transmis par l'admin), **definit son
+  mot de passe** via ce lien, puis se connecte sur http://localhost:5173.
 - Espace `/portail` en **lecture seule**, strictement limite a ses donnees.
 - Consulte : ses factures, ses documents (PDF), ses missions.
 - Telecharge les PDF (devis, factures, rapports de mission).

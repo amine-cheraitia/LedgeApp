@@ -13,6 +13,14 @@
 
 Manuel de déploiement §1.6 : encart recommandant, quand l'envoi SMTP est actif (archive de livraison), d'utiliser **sa propre adresse email** à la création d'une entreprise/d'un contact pour recevoir réellement les devis, factures et invitations — avec le rappel de **vérifier le dossier spam** (expéditeur de démonstration). Même consigne ajoutée dans le **manuel d'utilisation** en tête du cycle commercial (« Important — évaluation / prise en main ») : sans adresse email réelle sur l'entreprise, la suite du parcours (réception du devis, acceptation, portail) ne peut pas être déroulée.
 
+### Docs — manuel d'utilisation autoporteur pour un évaluateur novice — docs/manuel-parcours-jury
+
+Le manuel d'utilisation se suffit désormais à un lecteur qui découvre l'application :
+
+- **Cycle commercial complété** : l'étape **Acceptation du devis** manquait entre l'envoi et la conversion en mission — un lecteur qui suivait le manuel à la lettre se retrouvait bloqué (la conversion exige un devis *accepté*, dans son délai de validité). Le parcours passe de 7 à 8 étapes, avec le rappel expiration/refus.
+- **Activation du portail client réécrite en pas-à-pas** (5 étapes concrètes : où cliquer, la fenêtre nom/email, l'invitation envoyée + le lien copiable de secours, la définition du mot de passe par le client, sa connexion) — le jargon technique (`portail_actif = 1`) remplacé par les gestes réels de l'interface ; gestion de l'accès documentée (verrouiller/réactiver, renvoyer l'invitation avec invalidation de l'ancien lien).
+- **Parcours client** : première connexion explicitée (invitation → définition du mot de passe → connexion).
+
 ---
 
 ## [1.1.1] — 2026-07-24
