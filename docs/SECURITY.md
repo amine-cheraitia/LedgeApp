@@ -84,6 +84,14 @@ par la mise à jour vers les versions correctives publiées dans les plages `^7.
 
 ## Secrets & fichiers d'environnement (OWASP A05)
 
+> **Note sur l'archive de livraison (évaluation)** : l'archive remise pour
+> évaluation embarque volontairement un **compte SMTP de démonstration** (envoi
+> réel des devis, factures et invitations pendant les tests). Ce compte est
+> dédié à l'évaluation, ne donne accès à aucune donnée, n'est **pas versionné
+> dans le dépôt git** (fichier d'environnement injecté uniquement dans
+> l'archive), et est **révoqué après l'évaluation**. Aucun secret de production
+> n'est distribué.
+
 ### Constat — audit interne du 2026-07-17
 
 Deux fichiers d'environnement versionnés contenaient des valeurs sensibles :
