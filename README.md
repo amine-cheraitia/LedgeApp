@@ -92,7 +92,7 @@ npm run dev                # http://localhost:5173
 php artisan test              # 497 tests PHPUnit sur SQLite :memory:
 
 # Frontend (depuis frontend/)
-npm run test                  # 599 tests Vitest
+npm run test                  # 604 tests Vitest
 npm run test:coverage         # rapport de couverture (seuils garde-fous)
 ```
 
@@ -121,7 +121,7 @@ npm run test:coverage         # rapport de couverture (seuils garde-fous)
 | KPI / Dashboard | Fait |
 | Journal d'audit (activitylog) | Fait |
 | Tests backend (PHPUnit — 497 tests) | Fait |
-| Tests frontend (Vitest — 599 tests) | Fait |
+| Tests frontend (Vitest — 604 tests) | Fait |
 | CI GitHub Actions (lint, tests, couverture, audits, E2E) | Fait |
 | CD — images de production publiees sur GHCR a chaque tag (scan + smoke tests) | Fait |
 

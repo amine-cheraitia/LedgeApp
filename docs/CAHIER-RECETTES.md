@@ -249,7 +249,7 @@ Back = PHPUnit (`backend/tests/`), Front = Vitest (`frontend/src/__tests__/`).
 | AUD-01 / 02 / 03 | `Feature/Api/AuditLogTest` |
 | STR-01 | `vendor/bin/pint --test` (CI) |
 | STR-02 | `php artisan test` — **497 tests back / 95,9 % couverture lignes** (gate CI ≥ 80 %) |
-| STR-03 | `npm test` — **599 tests front / 84,9 % couverture lignes** (gates Vitest 80/75/65 %) |
+| STR-03 | `npm test` — **604 tests front / 85 % couverture lignes** (gates Vitest 80/75/65 %) |
 | STR-04 | `npm run build` (vue-tsc + vite build) |
 | SEC-04 | `Feature/Api/ApiExceptionRendererTest` (pas de fuite d'erreur) |
 | SEC-09 | `PasswordResetTest::test_forgot_password_est_throttle`, `RelanceApiTest::test_envoi_relances_est_limite_par_throttle` |
