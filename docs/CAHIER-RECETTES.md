@@ -31,8 +31,8 @@
 | AUTH-02 | — | `POST /login` avec mot de passe erroné | 422/401, aucune session ouverte | 🔁 |
 | AUTH-03 | — | 6 tentatives de login échouées en < 1 min | 6ᵉ requête bloquée par `throttle:5,1` (429) | 🔁 |
 | AUTH-04 | Session admin | `POST /logout` | 204, session détruite, token CSRF réinitialisé côté front | 🔁 |
-| AUTH-05 | Client connecté | Accès à une route `meta.zone = 'backoffice'` | Redirection / accès refusé (garde Vue Router) | ✅ |
-| AUTH-06 | Staff connecté | Accès à une route `meta.zone = 'portail'` | Accès refusé | ✅ |
+| AUTH-05 | Client connecté | Accès à une route back-office (`meta.backoffice`) | Redirection / accès refusé (garde Vue Router) | ✅ |
+| AUTH-06 | Staff connecté | Accès à une route portail (`meta.portail`) | Accès refusé | ✅ |
 | AUTH-07 | Secrétaire connectée | Accès Missions / Planning | Redirection `/acces-refuse` (hors périmètre) | 🔁 |
 
 ## 2. Référentiel (prestations, exercices, paramètres)
@@ -43,7 +43,7 @@
 | REF-02 | Prestation liée à des missions | Supprimer cette prestation | 409 (protection suppression) | ✅ |
 | REF-03 | Admin | `POST /prestations/{id}/calculer-prix` avec régime + catégorie | `prix_ht = tarif × indice_régime × indice_catégorie` (ex. ACMPT 120000 × Réel 1.5 × PME 1.75 = 315000) | 🔁 |
 | REF-04 | Admin | Ouvrir un exercice, en ouvrir un second | Un seul exercice « ouvert » à la fois (`Exercice::current()`) | 🔁 |
-| REF-05 | Admin | Modifier les paramètres cabinet (NIF, NIS, RIB, logo) | Valeurs persistées, reprises sur les PDF générés ensuite | ✅ |
+| REF-05 | Admin | Modifier les paramètres cabinet (NIF, NIS, RIB, agrément) | Valeurs persistées, reprises sur les PDF générés ensuite | ✅ |
 | REF-06 | Admin | Créer un taux de TVA (catégorie standard/exonéré, taux, dates) sur `/tva-taux` | 201, taux listé | 🔁 |
 | REF-07 | Taux utilisé par des factures | Supprimer ce taux | 409 (suppression bloquée) | 🔁 |
 | REF-08 | Non-admin | Accéder à la gestion des taux de TVA | 403 (admin uniquement) | 🔁 |
@@ -123,9 +123,9 @@
 
 | ID | Préconditions | Étapes | Résultat attendu | Statut |
 |---|---|---|---|---|
-| REL-01 | Factures impayées | Page Créances | Liste `en_attente`/`partiel`, total restant dû en évidence, tri ancienneté, export CSV | ✅ |
+| REL-01 | Factures impayées | Page Créances | Liste `en_attente`/`partiel`, total restant dû en évidence, tri ancienneté | ✅ |
 | REL-02 | Facture impayée | Envoyer une relance manuelle (niveau 1) | Mail au contact principal, entrée au journal des relances | 🔁 |
-| REL-03 | Sans relance niveau 1 | Envoyer une relance niveau 2 | Bloqué (séquence des niveaux) | 🔁 |
+| REL-03 | Sans relance niveau 1 | Relance **automatique** (cron) de niveau 2 | Ignorée : la séquence des niveaux n'est imposée que pour l'envoi automatique (en manuel, l'admin choisit librement le niveau) | 🔁 |
 | REL-04 | Facture soldée | Envoyer une relance | Bloqué | 🔁 |
 | REL-05 | Secrétaire | Envoyer une relance | Autorisé | 🔁 |
 | REL-06 | Entreprise avec **contact principal** (email A) + email entreprise (B) | Envoyer une relance | Mail envoyé à **A** (contact principal prioritaire) ; le toast affiche le vrai destinataire | 🔁 |
@@ -167,7 +167,7 @@
 | STR-02 | Tests unitaires/fonctionnels back | `php artisan test` | Tous verts | 🔁 |
 | STR-03 | Tests logique front | `npm test` (Vitest) | Tous verts (modules API, store auth, composables) | 🔁 |
 | STR-04 | Build front | `npm run build` | Compilation sans erreur TypeScript | 🔁 |
-| STR-05 | Intégration continue | Pipeline GitHub Actions sur la PR | Jobs Backend + Frontend + garde Gitflow au vert | 🔁 |
+| STR-05 | Intégration continue | Pipeline GitHub Actions sur la PR | Jobs Backend, Frontend, E2E (Playwright) et garde Gitflow au vert | 🔁 |
 
 ## 14. Tests de sécurité (OWASP Top 10)
 

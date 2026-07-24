@@ -7,10 +7,15 @@ Guide fonctionnel par role. Pour installer / lancer l'application, voir
 
 | Role | Espace | Perimetre |
 |---|---|---|
-| **Admin** | `/admin` | Acces complet : parametres, utilisateurs, facturation, planning |
-| **Collaborateur** | `/admin` | Ses missions et ses taches uniquement |
-| **Secretaire** | `/admin` | Entreprises (sans suppression), recouvrement, envoi de documents. **Pas** de Missions ni Planning |
-| **Client** | `/portail` | Lecture seule de ses propres donnees |
+| **Admin** | Back-office | Acces complet : parametres, utilisateurs, facturation, planning |
+| **Collaborateur** | Back-office | Ses missions et ses taches uniquement |
+| **Secretaire** | Back-office | Entreprises (sans suppression), recouvrement, envoi de documents. **Pas** de Missions ni Planning |
+| **Client** | Portail client | Lecture seule de ses propres donnees |
+
+Il n'y a **aucune adresse a retenir** : tout le monde se connecte a la meme URL
+(http://localhost:5173) et l'application **oriente automatiquement** chaque
+utilisateur vers son espace selon son role — le **back-office** pour le staff
+(admin, collaborateur, secretaire), le **portail** pour le client.
 
 Le **client ne s'inscrit jamais lui-meme** : l'admin active son acces depuis la
 fiche entreprise, et le client definit son mot de passe via un lien d'invitation.
@@ -31,7 +36,10 @@ reception d'un lien de reinitialisation (en demo, lien visible dans les logs).
 ## Parcours administrateur
 
 ### Configurer le cabinet
-- **Parametres** : coordonnees, prefixes de numerotation, TVA.
+- **Parametres** : coordonnees du cabinet (NIF, NIS, RIB, agrement...) et
+  prefixes de numerotation.
+- **Taux de TVA** : page dediee du menu Administration — grille des taux en
+  vigueur par periode (date d'effet). Distincte de la page Parametres.
 - **Exercices** : ouvrir l'exercice courant. Un exercice cloture peut etre
   **rouvert** par l'admin pour rattraper une facturation oubliee.
 - **Prestations** : grille tarifaire (tarif de base par prestation).
@@ -50,15 +58,18 @@ reception d'un lien de reinitialisation (en demo, lien visible dans les logs).
 > demonstration peut y etre classe.
 
 1. **Entreprise** : creer une fiche (statut *prospect* par defaut).
-2. **Devis** : creer un devis avec ses lignes -> **l'envoyer** (le client le
-   recoit par email, PDF joint).
+2. **Devis** : creer un devis pour une entreprise et **une prestation** — le
+   prix HT est calcule automatiquement depuis la grille tarifaire (voir « Regles
+   metier »). Puis **l'envoyer** (le client le recoit par email, PDF joint).
 3. **Acceptation** : sur un devis *envoye*, utiliser le bouton **Accepter**
    (ou Refuser) dans la liste des devis. Un devis n'est acceptable que dans son
    **delai de validite** ; passe l'echeance, il devient *expire* et ne peut plus
    etre converti.
-4. **Mission** : convertir le devis **accepte** en mission. L'entreprise bascule
-   automatiquement *prospect -> client*. Le prix HT du devis est repris tel quel
-   (contractuel) et fige.
+4. **Mission** : la conversion se fait **depuis la liste des Devis** (et non
+   depuis la page Missions). Sur la ligne du devis **accepte**, cliquer sur
+   **« Convertir en mission »** -> une fenetre s'ouvre pour finaliser la mission.
+   A la validation : l'entreprise bascule automatiquement *prospect -> client*,
+   et le prix HT du devis est repris tel quel (contractuel) et fige.
 5. **Taches** : decouper la mission, assigner des collaborateurs, suivre l'avancement.
 6. **Facturation** : emettre les factures (par tranches 30 / 30 / 40 %). La TVA
    appliquee est celle **en vigueur a la date de facture** et reste figee.
@@ -95,7 +106,8 @@ L'espace client (`/portail`) n'est accessible **qu'apres activation par l'admin*
 
 1. Ouvrir la **liste des Entreprises** et reperer l'entreprise concernee
    (statut *client* — automatique des la premiere mission, cf. cycle commercial).
-2. Cliquer sur son bouton **« Activer l'acces portail »**.
+2. Cliquer sur le bouton **« Activer »** de la colonne Portail (l'infobulle et
+   le lecteur d'ecran indiquent « Activer l'acces portail de {entreprise} »).
 3. Dans la fenetre qui s'ouvre, verifier / completer le **nom** et l'**adresse
    email** du client (pre-remplis depuis la fiche — une adresse reelle est
    indispensable), puis cliquer sur **« Activer le portail »**.
@@ -173,8 +185,10 @@ Page reservee a l'admin : tracabilite des actions sur les entites sensibles
 - Recoit une **invitation** (email, ou lien transmis par l'admin), **definit son
   mot de passe** via ce lien, puis se connecte sur http://localhost:5173.
 - Espace `/portail` en **lecture seule**, strictement limite a ses donnees.
-- Consulte : ses factures, ses documents (PDF), ses missions.
-- Telecharge les PDF (devis, factures, rapports de mission).
+- Consulte : ses factures, ses missions, ses documents.
+- Telecharge les PDF (factures, rapports de mission, conventions et mandats).
+  Le **devis** n'est pas consultable dans le portail : le client le recoit
+  uniquement par email (PDF joint) au moment de l'envoi.
 
 ---
 
@@ -182,17 +196,42 @@ Page reservee a l'admin : tracabilite des actions sur les entites sensibles
 
 | Regle | Comportement |
 |---|---|
-| Prix HT mission | `tarif x indice regime x indice categorie`, calcule une fois, immuable |
+| Prix HT mission | `tarif de base x indice regime fiscal x indice categorie`, calcule une seule fois, immuable (voir exemple ci-dessous) |
 | TVA | Historisee : celle en vigueur a la date du document, jamais recalculee |
 | Numerotation | Par exercice, remise a zero chaque annee (`FF2026-001`, `DV2026-001`...) |
 | Statut facture | Automatique selon les paiements |
 | Prospect -> Client | Automatique a la creation d'une mission |
 | Suppressions | Bloquees si des documents lies existent (message explicite) |
 
+### Calcul du prix HT — detail
+
+Le prix HT depend du **tarif de base de la prestation** module par deux indices :
+le **regime fiscal** et la **categorie** de l'entreprise (valeurs du jeu de
+donnees de demonstration) :
+
+| Regime fiscal | Indice | | Categorie d'entreprise | Indice |
+|---|---|---|---|---|
+| Forfait | x 1,00 | | Tres Petite Entreprise (TPE) | x 1,00 |
+| Reel | x 1,50 | | Petite et Moyenne Entreprise (PME) | x 1,75 |
+| | | | Grande Entreprise (GE) | x 2,00 |
+
+**Exemple** : une **Assistance Comptable** (code ACMPT, tarif de base
+120 000 DA) vendue a une entreprise au **regime Reel** et de categorie **PME** :
+
+```
+Prix HT = 120 000 x 1,50 x 1,75 = 315 000 DA
+```
+
+Ce montant est calcule **une seule fois** a la creation du devis, conserve tel
+quel a la conversion en mission, puis reparti sur les trois tranches de
+facturation (30 / 30 / 40 %). Un changement ulterieur d'un indice ou d'un tarif
+n'affecte **jamais** un document deja emis.
+
 ---
 
 ## Documents PDF
 
-Devis, factures et rapports de mission sont exportables en PDF depuis leurs
-ecrans respectifs (bouton d'export / icone PDF). Le portail client permet au
-client de telecharger ses propres documents.
+Devis, factures, avoirs, conventions/mandats et rapports de mission sont
+exportables en PDF depuis leurs ecrans respectifs (bouton d'export / icone PDF).
+Le portail client permet au client de telecharger ses propres documents
+(factures, rapports de mission, conventions/mandats — voir « Parcours client »).

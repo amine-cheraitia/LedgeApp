@@ -9,8 +9,8 @@ rollback. Chaque version stable est identifiee par un tag `vX.Y.Z` (SemVer).
    variables d'environnement, migrations sensibles.
 2. **Sauvegarder la base de donnees** (indispensable) :
    ```bash
-   # Docker
-   docker compose exec mysql mysqldump -u ledge -psecret ledge > backup-$(date +%F).sql
+   # Docker (-T : pas de pseudo-TTY, evite les CRLF parasites dans le dump)
+   docker compose exec -T mysql mysqldump -u ledge -psecret ledge > backup-$(date +%F).sql
    # Serveur
    mysqldump -u <user> -p <base> > backup-$(date +%F).sql
    ```
@@ -43,21 +43,24 @@ docker compose exec app php artisan migrate:status
 Pour une instance deployee a partir des images publiees par le pipeline CD
 (voir [MANUEL-DEPLOIEMENT §3.5](MANUEL-DEPLOIEMENT.md)) :
 
+Les tags d'image GHCR n'ont **pas** le prefixe `v` du tag Git (le tag Git
+`v1.1.0` publie les images `1.1.0`, `1.1`, `latest`). Exemple avec `1.1.0` :
+
 ```bash
-docker pull ghcr.io/amine-cheraitia/ledge-backend:vX.Y.Z
-docker pull ghcr.io/amine-cheraitia/ledge-frontend:vX.Y.Z
+docker pull ghcr.io/amine-cheraitia/ledge-backend:1.1.0
+docker pull ghcr.io/amine-cheraitia/ledge-frontend:1.1.0
 
 docker stop ledge-api ledge-web && docker rm ledge-api ledge-web
 docker run -d --name ledge-api --env-file .env.production -p 8000:8000 \
-  ghcr.io/amine-cheraitia/ledge-backend:vX.Y.Z
+  ghcr.io/amine-cheraitia/ledge-backend:1.1.0
 docker run -d --name ledge-web -e BACKEND_HOST=ledge-api:8000 -p 80:80 \
-  ghcr.io/amine-cheraitia/ledge-frontend:vX.Y.Z
+  ghcr.io/amine-cheraitia/ledge-frontend:1.1.0
 
 docker exec ledge-api php artisan migrate --force
 ```
 
-Rollback : relancer les conteneurs sur le tag precedent (les images restent
-disponibles sur GHCR) + restauration du dump si des migrations sont passees.
+Rollback : relancer les conteneurs sur le tag d'image precedent (les images
+restent disponibles sur GHCR) + restauration du dump si des migrations sont passees.
 
 ---
 
@@ -101,7 +104,9 @@ En cas d'anomalie bloquante :
 ### 1. Revenir a la version precedente
 
 ```bash
-git checkout vX.Y.(Z-1)        # version stable precedente
+# Revenir au tag de la derniere version stable connue (notee avant la mise a
+# jour ; liste complete : git tag --list). Exemple :
+git checkout v1.0.0
 ```
 
 ### 2. Restaurer la base (si des migrations ont ete appliquees)
