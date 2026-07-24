@@ -7,7 +7,11 @@
 
 ---
 
-## [Unreleased]
+## [1.1.2] — 2026-07-24
+
+> Correctif documentaire de finalisation pour l'évaluation : manuel d'utilisation autoporteur
+> (parcours complet pour un lecteur découvrant l'application) et configuration email de l'archive
+> de démonstration explicitée. Aucun changement de code.
 
 ### Docs — conseil de test des envois d'emails pour l'évaluation — docs/conseil-email-jury
 
