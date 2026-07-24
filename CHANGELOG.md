@@ -7,6 +7,50 @@
 
 ---
 
+## [1.1.2] — 2026-07-24
+
+> Correctif documentaire de finalisation pour l'évaluation : manuel d'utilisation autoporteur
+> (parcours complet pour un lecteur découvrant l'application), configuration email de l'archive
+> de démonstration explicitée, et **audit de cohérence doc/code** des 3 manuels + cahier de
+> recettes + CHANGELOG (correction de tous les écarts relevés). Aucun changement de code.
+
+### Docs — audit de livraison : correction des écarts doc / code sur les 5 documents — release/v1.1.2
+
+Vérification de chaque affirmation des 3 manuels + cahier de recettes + CHANGELOG contre le code réel (5 relectures parallèles). Écarts corrigés :
+
+- **Manuel d'utilisation** : le portail client ne permet **pas** de télécharger un devis (reçu par email seulement — aucune route portail devis) ; un devis porte **une seule prestation** (pas de « lignes » multiples inexistantes) ; le **taux de TVA** se configure sur une page dédiée du menu (distincte de Parametres) ; libellé réel du bouton portail « Activer » (le texte complet n'est que dans l'infobulle) ; section PDF complétée (avoirs, conventions/mandats).
+- **Manuel de déploiement** : la procédure de configuration SMTP pointait vers `.env.docker` (sans effet une fois `.env` créé par le bind-mount) → éditer `backend/.env` puis `docker compose restart app` ; **tags d'image GHCR sans préfixe `v`** (le tag Git `v1.1.0` publie les images `1.1.0`/`1.1`/`latest`) ; parcours jury (archive .zip) mis en avant, `git clone` relégué en alternative.
+- **Manuel de mise à jour** : mêmes **tags d'image sans `v`** (`docker pull ...:1.1.0`) ; `mysqldump` avec `-T` (évite les CRLF parasites dans le dump) ; notation de rollback `git checkout vX.Y.(Z-1)` remplacée par un exemple de tag réel.
+- **Cahier de recettes** : retrait de « export CSV » (inexistant sur la page Créances) et de « logo » (paramètre cabinet inexistant) ; REL-03 reformulé — la séquence des niveaux de relance n'est imposée qu'en envoi **automatique** (en manuel l'admin choisit librement) ; `meta.zone` → `meta.backoffice`/`meta.portail` (nom technique réel) ; job **E2E Playwright** ajouté à la description de la CI.
+- **Cohérence croisée** : `SECURITY.md` (compteur 599 → **604** tests frontend), `BACKLOG.md` et `CONTEXT.md` (`meta.zone`, « logo ») alignés.
+
+### Docs — précisions finales du manuel d'utilisation pour l'évaluation — release/v1.1.2
+
+- **Conversion devis → mission** : précisé qu'elle se fait **depuis la liste des Devis** (bouton « Convertir en mission » sur un devis accepté), et non depuis la page Missions — un lecteur pouvait chercher au mauvais endroit.
+- **Calcul du prix HT détaillé** : ajout des **tableaux d'indices réels** (régime fiscal Forfait ×1,00 / Réel ×1,50 ; catégorie TPE ×1,00 / PME ×1,75 / GE ×2,00 — valeurs du seeder) et d'un **exemple chiffré** (ACMPT 120 000 × 1,50 × 1,75 = 315 000 DA), avec le rappel de l'immuabilité et de la répartition en tranches 30/30/40.
+
+### Docs — correction du tableau des rôles du manuel d'utilisation — release/v1.1.2
+
+Le tableau des rôles indiquait `/admin` comme espace du staff (admin, collaborateur, secrétaire) : **route inexistante dans l'application** (le back-office est servi à la racine `/`, seul le portail client est bien à `/portail`) — reliquat du guide de conception, jamais aligné sur le code. La colonne « Espace » utilise désormais des libellés clairs (**Back-office** / **Portail client**) plutôt que des chemins d'URL bruts, avec une phrase précisant que **tout le monde se connecte à la même URL** (`localhost:5173`) et que l'application oriente automatiquement chacun vers son espace selon son rôle — plus lisible et exact pour un évaluateur.
+
+### Docs — conseil de test des envois d'emails pour l'évaluation — docs/conseil-email-jury
+
+Manuel de déploiement §1.6 : encart recommandant, quand l'envoi SMTP est actif (archive de livraison), d'utiliser **sa propre adresse email** à la création d'une entreprise/d'un contact pour recevoir réellement les devis, factures et invitations — avec le rappel de **vérifier le dossier spam** (expéditeur de démonstration). Même consigne ajoutée dans le **manuel d'utilisation** en tête du cycle commercial (« Important — évaluation / prise en main ») : sans adresse email réelle sur l'entreprise, la suite du parcours (réception du devis, acceptation, portail) ne peut pas être déroulée.
+
+### Docs — manuel d'utilisation autoporteur pour un évaluateur novice — docs/manuel-parcours-jury
+
+Le manuel d'utilisation se suffit désormais à un lecteur qui découvre l'application :
+
+- **Cycle commercial complété** : l'étape **Acceptation du devis** manquait entre l'envoi et la conversion en mission — un lecteur qui suivait le manuel à la lettre se retrouvait bloqué (la conversion exige un devis *accepté*, dans son délai de validité). Le parcours passe de 7 à 8 étapes, avec le rappel expiration/refus.
+- **Activation du portail client réécrite en pas-à-pas** (5 étapes concrètes : où cliquer, la fenêtre nom/email, l'invitation envoyée + le lien copiable de secours, la définition du mot de passe par le client, sa connexion) — le jargon technique (`portail_actif = 1`) remplacé par les gestes réels de l'interface ; gestion de l'accès documentée (verrouiller/réactiver, renvoyer l'invitation avec invalidation de l'ancien lien).
+- **Parcours client** : première connexion explicitée (invitation → définition du mot de passe → connexion).
+
+### Docs — le compte SMTP de démonstration de l'archive est documenté et assumé — docs/explication-smtp-demo
+
+Le manuel de déploiement (§1.6) distingue désormais explicitement les deux configurations email : **archive de livraison** (SMTP pré-configuré et actif — un compte d'envoi de démonstration Brevo est fourni **volontairement** pour tester les envois réels sans configuration ; compte dédié, hors dépôt git, révoqué après l'évaluation) et **dépôt Git** (`MAIL_MAILER=log` par défaut, liens dans les logs + lien copiable). L'ancienne formulation (« aucun email n'est réellement envoyé ») contredisait le comportement réel de l'archive. Même clarification en tête de la section Secrets de `SECURITY.md` (OWASP A05) : aucun secret de production distribué.
+
+---
+
 ## [1.1.1] — 2026-07-24
 
 > Correctif documentaire : chiffres de tests et références de release alignés sur l'état réel v1.1.0.

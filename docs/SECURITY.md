@@ -21,7 +21,7 @@ Deux vagues d'advisories ont été traitées depuis l'état du 05/07 (détail co
   depuis des templates Blade internes, sans HTML/CSS fourni par l'utilisateur.
 
 Vérification post-remédiation (23/07) : `composer audit` et `npm audit --omit=dev` vierges ;
-suites re-exécutées après chaque mise à jour — **497 tests backend** et **599 tests frontend**
+suites re-exécutées après chaque mise à jour — **497 tests backend** et **604 tests frontend**
 verts ; rendu PDF réel contrôlé après la montée dompdf. Ces deux épisodes ont été **détectés
 par l'étape d'audit bloquante de la CI** (cf. Surveillance continue) — le mécanisme fonctionne.
 
@@ -84,6 +84,14 @@ par la mise à jour vers les versions correctives publiées dans les plages `^7.
 
 ## Secrets & fichiers d'environnement (OWASP A05)
 
+> **Note sur l'archive de livraison (évaluation)** : l'archive remise pour
+> évaluation embarque volontairement un **compte SMTP de démonstration** (envoi
+> réel des devis, factures et invitations pendant les tests). Ce compte est
+> dédié à l'évaluation, ne donne accès à aucune donnée, n'est **pas versionné
+> dans le dépôt git** (fichier d'environnement injecté uniquement dans
+> l'archive), et est **révoqué après l'évaluation**. Aucun secret de production
+> n'est distribué.
+
 ### Constat — audit interne du 2026-07-17
 
 Deux fichiers d'environnement versionnés contenaient des valeurs sensibles :
@@ -125,7 +133,7 @@ Contrôles en place dans Ledge, catégorie par catégorie.
 
 | # | Catégorie | Contrôles dans Ledge |
 |---|---|---|
-| **A01** | Broken Access Control | Rôles Spatie + **Policy par ressource** ; middlewares `EnsureBackofficeAccess` / `EnsurePortailAccess` ; **isolation portail** stricte (`where('entreprise_id', …)` + `abort_if(403)`) ; guards Vue Router (`meta.zone`) |
+| **A01** | Broken Access Control | Rôles Spatie + **Policy par ressource** ; middlewares `EnsureBackofficeAccess` / `EnsurePortailAccess` ; **isolation portail** stricte (`where('entreprise_id', …)` + `abort_if(403)`) ; guards Vue Router (`meta.backoffice` / `meta.portail`) |
 | **A02** | Cryptographic Failures | Mots de passe **bcrypt** (`BCRYPT_ROUNDS=12`) ; chiffrement applicatif via `APP_KEY` ; en prod `SESSION_SECURE_COOKIE=true` + `SESSION_SAME_SITE=strict` (HTTPS) ; jetons d'invitation/reset **à usage unique et hachés** ; aucun secret versionné |
 | **A03** | Injection | **Eloquent / Query Builder avec bindings** uniquement, jamais `DB::raw()` sur entrée utilisateur ; **FormRequest** sur chaque `store`/`update` ; pas de `v-html` sur données utilisateur (XSS) ; en-têtes CSP |
 | **A04** | Insecure Design | Invariants métier : **snapshots immuables** (TVA/TTC), **TVA historisée** par date, numérotation concurrente sûre (`lockForUpdate` + contrainte UNIQUE) ; **protection de suppression** (entités liées) ; découplage via Events/Observers |
