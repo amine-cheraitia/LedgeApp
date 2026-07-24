@@ -7,7 +7,10 @@
 
 ---
 
-## [Unreleased]
+## [1.1.1] — 2026-07-24
+
+> Correctif documentaire : chiffres de tests et références de release alignés sur l'état réel v1.1.0.
+> Aucun changement de code.
 
 ### Docs — actualisation des compteurs de tests et des références de release — docs/actualisation-chiffres-tests
 
