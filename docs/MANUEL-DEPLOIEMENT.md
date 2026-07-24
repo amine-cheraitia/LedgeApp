@@ -208,7 +208,7 @@ Voir [SECURITY.md](SECURITY.md) pour les controles de securite en place.
 A chaque tag `vX.Y.Z`, le pipeline CD (`.github/workflows/cd.yml`) construit,
 scanne (Trivy — bloquant sur vulnerabilite HIGH/CRITICAL corrigeable) et publie
 deux images de production sur GitHub Container Registry, apres avoir re-execute
-**toutes les portes de qualite de la CI** (lint, 1096 tests, gates de
+**toutes les portes de qualite de la CI** (lint, 1101 tests, gates de
 couverture, audits de dependances, E2E) :
 
 | Image | Contenu | Port |

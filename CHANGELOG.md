@@ -7,6 +7,14 @@
 
 ---
 
+## [Unreleased]
+
+### Docs — actualisation des compteurs de tests et des références de release — docs/actualisation-chiffres-tests
+
+Alignement des documents sur l'état v1.1.0 : compteurs frontend **604 tests / 52 fichiers / 85 % de lignes** (total **1 101** avec les 497 backend) dans README, STRATEGIE-TESTS, ARCHITECTURE, CAHIER-RECETTES (STR-03), MANUEL-DEPLOIEMENT (§3.5) et BACKLOG (US-38) ; GITFLOW et CONTEXT référencent désormais les **deux releases publiées** (v1.0.0 et v1.1.0) ; date de mise à jour de CONTEXT rafraîchie. Les constats datés (SECURITY.md, état au 23/07) restent inchangés — exacts à leur date.
+
+---
+
 ## [1.1.0] — 2026-07-23
 
 > Amélioration du ressenti de chargement (barre de progression de navigation globale accessible,
