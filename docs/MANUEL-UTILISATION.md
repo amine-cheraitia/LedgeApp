@@ -29,7 +29,9 @@ fiche entreprise, et le client definit son mot de passe via un lien d'invitation
 3. Le menu s'adapte automatiquement au role.
 
 Mot de passe oublie : lien **« Mot de passe oublie »** -> saisie de l'email ->
-reception d'un lien de reinitialisation (en demo, lien visible dans les logs).
+reception d'un lien de reinitialisation par email (avec l'archive de demonstration,
+l'envoi SMTP est deja configure ; en environnement de developpement sans SMTP,
+le lien est visible dans les logs).
 
 ---
 
@@ -65,11 +67,13 @@ reception d'un lien de reinitialisation (en demo, lien visible dans les logs).
    (ou Refuser) dans la liste des devis. Un devis n'est acceptable que dans son
    **delai de validite** ; passe l'echeance, il devient *expire* et ne peut plus
    etre converti.
-4. **Mission** : la conversion se fait **depuis la liste des Devis** (et non
-   depuis la page Missions). Sur la ligne du devis **accepte**, cliquer sur
-   **« Convertir en mission »** -> une fenetre s'ouvre pour finaliser la mission.
-   A la validation : l'entreprise bascule automatiquement *prospect -> client*,
-   et le prix HT du devis est repris tel quel (contractuel) et fige.
+4. **Mission** : la conversion d'un devis se fait **depuis la liste des Devis**.
+   Sur la ligne du devis **accepte**, cliquer sur **« Convertir en mission »**
+   -> une fenetre s'ouvre pour finaliser la mission. A la validation :
+   l'entreprise bascule automatiquement *prospect -> client*, et le prix HT du
+   devis est repris tel quel (contractuel) et fige. Une mission peut aussi etre
+   creee **directement** (bouton « Nouvelle mission » de la page Missions,
+   admin/secretaire), sans passer par un devis.
 5. **Taches** : decouper la mission, assigner des collaborateurs, suivre l'avancement.
 6. **Facturation** : emettre les factures (par tranches 30 / 30 / 40 %). La TVA
    appliquee est celle **en vigueur a la date de facture** et reste figee.

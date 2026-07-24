@@ -48,7 +48,6 @@
 - Table `tva_taux` avec `date_debut` / `date_fin`
 - `TvaTaux::enVigueurLe($date)`
 - Snapshot immuable copie a la creation de chaque facture — **JAMAIS** `Carbon::now()` dans la resolution
-- Note : le timbre fiscal a ete retire (toujours nul en pratique) — voir CHANGELOG
 - Depend de : —
 
 ---
@@ -474,7 +473,7 @@
 
 - ✅ CSRF sur tous les formulaires (Sanctum cookie-based)
 - ✅ Eloquent uniquement (jamais `DB::raw()` avec input utilisateur)
-- ✅ Form Request sur tout `store()` et `update()` (23 FormRequests)
+- ✅ Form Request sur tout `store()` et `update()` (35 FormRequests)
 - ✅ Brute-force login : `throttle:5,1` sur POST /login
 - ✅ Headers HTTP securises : CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
 - ✅ Policies Laravel sur chaque ressource : User, Prestation, Setting, Facture, Devis, Mission, Avoir
@@ -483,7 +482,7 @@
 - ✅ A05 Security Misconfiguration : `ApiExceptionRenderer` — aucune fuite de SQL, host, port, stack, chemin fichier sur les routes API meme en `APP_DEBUG=true` (6 tests)
 - ✅ A09 Logging & Monitoring : toutes les exceptions API loguees avec contexte structure (URL, methode, IP, user_id) — relayees a Sentry ; journal d'audit metier des actions sensibles (US-47)
 - ✅ A06 Composants vulnerables : `composer audit` actif (advisories non silencees) — advisories Symfony 7.x heritees de Laravel 12 documentees et evaluees dans `docs/SECURITY.md` (impact reel faible a nul), remediation suivie
-- 🔄 **Remediation audit interne (integration/audit-fixes-preview)** : defense en profondeur — scoping des routes imbriquees, Policies/FormRequests manquants (Prestation, Setting, Avoir, Audit, Creances), en-tetes de securite sur toutes les reponses + HSTS, `/health` reserve admin, audits `composer`/`npm` rendus bloquants en CI, annuaire (OR de recherche groupe + test de non-regression), anti-IDOR sur les paiements. **Cartographie OWASP A01-A10 complete** dans `docs/SECURITY.md`. Detail complet : `CHANGELOG.md` section `[Unreleased]`.
+- 🔄 **Remediation audit interne (integration/audit-fixes-preview)** : defense en profondeur — scoping des routes imbriquees, Policies/FormRequests manquants (Prestation, Setting, Avoir, Audit, Creances), en-tetes de securite sur toutes les reponses + HSTS, `/health` reserve admin, audits `composer`/`npm` rendus bloquants en CI, annuaire (OR de recherche groupe + test de non-regression), anti-IDOR sur les paiements. **Cartographie OWASP A01-A10 complete** dans `docs/SECURITY.md`. Detail complet : `CHANGELOG.md` version `[1.0.0]`.
 - Depend de : tout le code
 
 ---
@@ -514,8 +513,8 @@
 - Depend de : **US-04, US-05, US-13, US-15, US-17**
 
 **✅ Etat actuel (tests realises)**
-- Back : **190 tests PHPUnit** (calcul HT, snapshot TVA, statut paiement automatique, numerotation annuelle reset, tranches 30/30/40)
-- Front : **95 tests Vitest** — 18 modules API, store `auth` (login/logout/getters), composables (`useApiError`, `useCountUp`, patron CRUD via `useEntreprises`)
+- Back : **497 tests PHPUnit** (calcul HT, snapshot TVA, statut paiement automatique, numerotation annuelle reset, tranches 30/30/40)
+- Front : **604 tests Vitest** — modules API, store `auth` (login/logout/getters), composables (`useApiError`, `useCountUp`, patron CRUD via `useEntreprises`), pages et layouts
 - Cahier de recettes : `docs/CAHIER-RECETTES.md` (scenarios fonctionnels / structurels / securite OWASP) — competence C2.3.1
 
 **🔁 Reste a faire (tests a venir)**
@@ -523,7 +522,7 @@
 - [x] **Tests E2E / parcours** (Playwright) — fait (feature/tests-e2e-playwright) : **15 tests / 4 parcours** contre le vrai backend (base MySQL dediee `ledge_e2e`, serveurs 8001/5174 orchestres par Playwright) — login par role, **flux complet entreprise → devis → accepte → mission → facture → paiement solde**, navigation secretaire « zero toast d'erreur » (non-regression des 403), page Statistiques (2 onglets + objectifs). Locators 100 % accessibles (getByRole/getByLabel, aucun data-testid necessaire — merci RGAA). `npm run test:e2e` / `test:e2e:ui` · job CI dedie (MySQL service + Chromium). **Bug de schema trouve par le harnais** : `missions.date_fin` NOT NULL vs code nullable → migration corrective
 - [x] **Mesure de couverture** — fait : `@vitest/coverage-v8` + `test:coverage`, gates reels en CI
 - [x] **Extraire les formatters** — fait (fix/kpi-coherence-et-ux) : `src/utils/currency.ts` (`formatDA`, `formatDACompact`, `formatDAKpi`) + tests unitaires dedies, 4 definitions locales supprimees
-- [ ] **Executer le cahier de recettes** — valider les scenarios ⏳, dont **RGA-05** (Lighthouse accessibilite >= 85)
+- [x] **Executer le cahier de recettes** — fait : scenarios executes et valides, dont **RGA-05** (Lighthouse accessibilite mesure a **100**)
 
 ---
 

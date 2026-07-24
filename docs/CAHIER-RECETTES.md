@@ -13,7 +13,7 @@
 | ⏳ | À exécuter / re-valider |
 
 > **Environnements** —
-> **Recette / démonstration (recommandé, identique jury)** : stack Docker complète — `docker compose up --build`
+> **Recette / démonstration (recommandé, identique à l'évaluation)** : stack Docker complète — `docker compose up --build`
 > à la racine (ou `start-ledge.bat`), application sur `http://localhost:5173`, connexion `admin@ledge.dz`
 > (mot de passe : `ADMIN_PASSWORD`, défaut de démo documenté dans le [MANUEL-DEPLOIEMENT.md](MANUEL-DEPLOIEMENT.md)) ;
 > base pré-remplie automatiquement (migrations + seed à l'initialisation).
@@ -98,7 +98,7 @@
 | FAC-02 | Facture créée | Vérifier les tranches | T1 = 30 %, T2 = 30 %, **T3 = solde exact** (`prix_ht − T1 − T2`) ; invariant `T1+T2+T3 == prix_ht` | 🔁 |
 | FAC-03 | Facture 2026 | Lire `taux_tva_snapshot` | Taux **en vigueur à la date de facture** (19 %), **immuable** même appelé en 2030 (`TvaTaux::enVigueurLe`) | 🔁 |
 | FAC-04 | 1er janvier nouvel exercice | Créer une facture | Séquence réinitialisée à 001 ; pas de doublon en concurrence (`lockForUpdate`) | 🔁 |
-| FAC-05 | Facture | Générer le PDF DGI | NIF/NIS/RC, TVA 19/9 %, montant en lettres | ✅ |
+| FAC-05 | Facture | Générer le PDF DGI | NIF/NIS/RC, TVA au taux historisé (19 % standard, 0 % exonéré), montant en lettres | ✅ |
 | FAC-06 | Facture, admin **ou secrétaire** | Cliquer « Transmettre par mail » | Mail au client **avec PDF joint** ; collaborateur → 403 ; entreprise sans email → 409 | 🔁 |
 
 ## 7. Paiements

@@ -17,7 +17,7 @@ Montants en **Dinars Algeriens (DA)**.
 
 ## 🚀 Demarrage rapide avec Docker
 
-### Pour le jury (archive de livraison — installation simple)
+### Depuis l'archive de livraison (installation simple)
 
 1. Installer **Docker Desktop** : https://www.docker.com/products/docker-desktop/
    (sous Windows, accepter l'installation de WSL 2 si elle est proposee).
@@ -136,7 +136,8 @@ npm run test:coverage         # rapport de couverture (seuils garde-fous)
 
 **Reference**
 - [Architecture N-tier](docs/ARCHITECTURE.md)
-- [Contexte projet](docs/CONTEXT.md)
+- [Cahier de recettes](docs/CAHIER-RECETTES.md)
+- [Backlog produit](docs/BACKLOG.md)
 - [Securite (OWASP)](docs/SECURITY.md)
 - [Accessibilite (RGAA)](docs/ACCESSIBILITE-RGAA.md)
 - [Strategie de tests](docs/STRATEGIE-TESTS.md)

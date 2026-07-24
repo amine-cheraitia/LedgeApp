@@ -23,7 +23,7 @@ et sont verifiees a la revue de code (checklist du template de PR).
 
 ### Formulaires
 - `<label>` associe (ou `aria-label`) sur chaque champ de saisie.
-- Messages d'erreur en `role="alert"` + `aria-live="polite"` (annonce lecteur d'ecran).
+- Messages d'erreur en `role="alert"` + `aria-live` (`assertive` pour les erreurs bloquantes, annonce lecteur d'ecran).
 
 ### Composants PrimeVue
 - `aria-label` sur les boutons sans texte visible (icones : editer, supprimer, export).

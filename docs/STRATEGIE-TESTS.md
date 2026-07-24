@@ -32,10 +32,10 @@ et comment mesurer la couverture. Il accompagne le [cahier de recettes](CAHIER-R
 
 ```
                  ┌─────────────────────────────┐
-                 │   Recette manuelle (E2E)     │   CAHIER-RECETTES.md
-                 │   scénarios utilisateur      │   (hors périmètre auto)
+                 │   E2E (Playwright) + recette │   parcours bout en bout en CI
+                 │   scénarios utilisateur      │   + CAHIER-RECETTES.md (manuel)
                  ├─────────────────────────────┤
-        Feature  │  461 tests API backend       │   HTTP réel -> BDD SQLite mémoire
+        Feature  │  462 tests API backend       │   HTTP réel -> BDD SQLite mémoire
         + pages  │  ~600 tests composants front │   montage réel des composants
                  ├─────────────────────────────┤
         Unit     │   35 tests Services/Modèles  │   logique métier isolée
@@ -55,7 +55,7 @@ et comment mesurer la couverture. Il accompagne le [cahier de recettes](CAHIER-R
 
 ## 3. Stratégie backend (PHPUnit)
 
-**Répartition** : 35 tests unitaires (`tests/Unit`) + 461 tests de fonctionnalité (`tests/Feature`).
+**Répartition** : 35 tests unitaires (`tests/Unit`) + 462 tests de fonctionnalité (`tests/Feature`).
 Environnement de test isolé : SQLite `:memory:`, cache `array`, mail `array`, queue `sync`
 (voir `backend/phpunit.xml`).
 
@@ -122,7 +122,7 @@ dépendances), pagination, validation des FormRequests.
 
 ## 4. Stratégie frontend (Vitest)
 
-**Répartition** (48 fichiers) : 24 pages · 14 composables · 6 (client API, guard router, utils) ·
+**Répartition** (52 fichiers) : 27 pages · 14 composables · 7 (client API, guard router, utils) ·
 2 layout · 1 store · 1 composant.
 
 ### Harnais de montage partagé
@@ -188,20 +188,4 @@ npm run test:coverage                  # couverture + gate 80/75/65 %
 > Prérequis couverture backend : driver Xdebug en mode `coverage` — géré automatiquement par le
 > script Composer (`@putenv XDEBUG_MODE=coverage`).
 
----
 
-## 7. Points de défense (soutenance)
-
-Ce qui compte n'est pas le compteur mais la **maîtrise de la démarche**. Trois idées à savoir défendre :
-
-1. **La pyramide** : peu de tests unitaires ciblés sur la logique métier, beaucoup de tests
-   d'intégration (Feature API) qui donnent confiance sur le comportement réel, et des tests de
-   composants pour l'IHM. Chaque niveau a un rôle.
-2. **L'isolation** : BDD en mémoire recréée par test côté back ; simulation de la frontière réseau
-   côté front. Les tests sont déterministes et n'ont aucune dépendance externe.
-3. **La couverture pilotée par un seuil** : la couverture n'est pas décorative, elle est **vérifiée
-   automatiquement** (gate 80 % back / 80-75-65 % front) — c'est ce qui la rend utile en CI.
-
-Les règles métier sensibles du domaine (TVA historisée, invariant des tranches, numérotation par
-exercice, isolation du portail, brute-force login) sont couvertes par des tests nommés
-explicitement — ce sont les meilleurs exemples à présenter.

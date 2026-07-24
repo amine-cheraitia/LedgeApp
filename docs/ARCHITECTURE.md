@@ -43,19 +43,26 @@ Architecture **Controller → Service → Model** avec sous-dossiers par domaine
 backend/app/
 ├── Http/
 │   ├── Controllers/
-│   │   ├── Auth/              # AuthController, UserController
-│   │   ├── Entreprises/       # EntrepriseController
+│   │   ├── Audit/             # AuditController (journal d'audit)
+│   │   ├── Auth/              # AuthController, PasswordController, UserController
+│   │   ├── Dashboard/         # DashboardController, KpiController, StatistiqueController
+│   │   ├── Entreprises/       # EntrepriseController, ContactController
 │   │   ├── Exercices/         # ExerciceController
+│   │   ├── Facturation/       # DevisController, FactureController, AvoirController, PaiementController, CreanceController, RelanceController
+│   │   ├── Planning/          # MissionController, TacheController, TacheCommentaireController, CalendarController
+│   │   ├── Portail/           # PortailController, PortailFactureController, PortailMissionController, PortailDocumentController
 │   │   ├── Prestations/       # PrestationController
-│   │   ├── Settings/          # SettingController
-│   │   ├── Facturation/       # DevisController, FactureController, PaiementController
-│   │   └── Planning/          # MissionController, TacheController
-│   ├── Requests/              # FormRequests par domaine (Auth/, Entreprises/, Facturation/, Planning/)
-│   └── Resources/             # API Resources JSON par domaine (Facturation/, Planning/)
-├── Services/
-│   ├── FacturationService.php # Logique metier : numerotation, transitions devis, creation devis/factures, paiements
-│   ├── MissionService.php     # Logique metier : calcul prix HT, CRUD missions (délègue genererNumero à FacturationService)
-│   └── PdfService.php         # Generation PDF DomPDF : genererDevis() — extensible pour genererFacture() (US-14)
+│   │   ├── Referentiel/       # ReferentielTvaController
+│   │   └── Settings/          # SettingController
+│   ├── Requests/              # FormRequests par domaine (Auth/, Entreprises/, Facturation/, Planning/, ...)
+│   └── Resources/             # API Resources JSON par domaine (Facturation/, Planning/, ...)
+├── Services/                  # 20 services metier — une responsabilite chacun (SRP)
+│   ├── FacturationService.php # Transitions devis, creation factures/avoirs, paiements
+│   ├── MissionService.php     # Calcul prix HT, CRUD missions, documents generes
+│   ├── NumerotationService.php# Numerotation annuelle par exercice (FF/FA/DV/MD/CV)
+│   ├── PdfService.php         # PDF DomPDF : devis, facture, avoir, mandat, convention, rapports
+│   └── ...                    # Entreprise, Contact, Exercice, Prestation, TvaTaux, Setting, Relance,
+│                              # Portail, Dashboard, Kpi, Statistique, Calendar, Tache, User, Invitation, Audit
 ├── Events/                    # MissionCreated, InvoicePaid
 ├── Listeners/                 # ConvertProspectToClient, CancelRelancesOnPayment
 ├── Observers/                 # MissionObserver
@@ -68,7 +75,7 @@ Le Service contient toute la logique metier (transitions d'etat, calculs, regles
 Le Controller catch `DomainException` et retourne le code HTTP approprie (409, etc.).
 Le Model gere les relations, casts et scopes Eloquent.
 
-Pas de modules avec ServiceProviders separes — trop de config pour 18 modeles, meme clarte avec des sous-dossiers.
+Pas de modules avec ServiceProviders separes — trop de config pour 19 modeles, meme clarte avec des sous-dossiers.
 
 ## Organisation du frontend
 
@@ -80,13 +87,15 @@ frontend/src/
 │   ├── client.ts          # Axios configure (CSRF, intercepteurs)
 │   └── modules/           # Un module par domaine (entreprises, devis, factures, missions, taches, ...)
 ├── composables/           # Logique reactive reutilisable (useEntreprises, useFactures, ...)
+├── components/            # Composants partages (logo, facturation)
 ├── assets/styles/         # CSS mobile-first, skip-link RGAA
-├── layouts/               # AdminLayout (sidebar), PortailLayout
+├── layout/                # AppLayout (sidebar back-office), PortailLayout
 ├── pages/                 # Un dossier par domaine
 ├── router/                # Guards auth + role
 ├── stores/                # Pinia (auth uniquement — le reste via composables)
 ├── types/                 # Interfaces TypeScript
-└── __tests__/             # Tests Vitest (types, api-modules)
+├── utils/                 # Formatage devise/date, palette graphique
+└── __tests__/             # Tests Vitest (pages, composables, api, layout, ...)
 ```
 
 **Principe** : la Page utilise le Composable pour la logique reactive.
