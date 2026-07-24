@@ -119,6 +119,14 @@ MAIL_USERNAME=<login-brevo>
 MAIL_PASSWORD=<cle-smtp>
 ```
 
+> **Conseil pour tester l'envoi reel (jury / evaluation)** — lorsque l'envoi SMTP
+> est actif (cas de l'archive de livraison, pre-configuree) : a la creation d'une
+> entreprise ou d'un contact, **utilisez votre propre adresse email** comme email
+> de l'entreprise/du contact. Vous recevrez ainsi reellement les devis, factures
+> et invitations portail envoyes depuis l'application. **Pensez a verifier le
+> dossier spam / courrier indesirable** : l'expediteur etant un compte SMTP de
+> demonstration, les messages peuvent y etre classes au premier envoi.
+
 ### 1.7 Depannage
 
 | Symptome | Cause probable | Solution |
