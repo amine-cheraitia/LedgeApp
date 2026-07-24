@@ -7,9 +7,9 @@
 
 ## Composants tiers — advisories (OWASP A06)
 
-### État au 2026-07-23 : audits vierges après les remédiations de juillet
+### État au 2026-07-24 : audits vierges après les remédiations de juillet
 
-Deux vagues d'advisories ont été traitées depuis l'état du 05/07 (détail complet dans le
+Trois vagues d'advisories ont été traitées depuis l'état du 05/07 (détail complet dans le
 [CHANGELOG](../CHANGELOG.md)) :
 
 - **20/07** — 6 advisories : 4 sur `guzzlehttp/guzzle` (medium) et 2 **high** sur des
@@ -19,11 +19,17 @@ Deux vagues d'advisories ont été traitées depuis l'état du 05/07 (détail co
   oracle d'existence de fichier via `@font-face`, lecture de fichier local via SVG).
   Remédiation : `dompdf` → **3.1.6** (PR #101). Impact réel quasi nul : les PDF sont rendus
   depuis des templates Blade internes, sans HTML/CSS fourni par l'utilisateur.
+- **24/07** — 1 advisory **high** sur `postcss` < 8.5.16 (GHSA-r28c-9q8g-f849 : path
+  traversal lors de l'auto-chargement des source maps `sourceMappingURL`). Remédiation :
+  `npm audit fix` → `postcss` **8.5.16** (PR #120), `npm audit` vierge, build de production
+  re-vérifié. Impact réel quasi nul : PostCSS n'intervient qu'au build sur les feuilles de
+  style internes du projet — aucun CSS fourni par l'utilisateur n'est traité.
 
-Vérification post-remédiation (23/07) : `composer audit` et `npm audit --omit=dev` vierges ;
-suites re-exécutées après chaque mise à jour — **497 tests backend** et **604 tests frontend**
-verts ; rendu PDF réel contrôlé après la montée dompdf. Ces deux épisodes ont été **détectés
-par l'étape d'audit bloquante de la CI** (cf. Surveillance continue) — le mécanisme fonctionne.
+Vérification post-remédiation (23/07, renouvelée le 24/07) : `composer audit` et `npm audit`
+vierges ; suites re-exécutées après chaque mise à jour — **497 tests backend** et **604 tests
+frontend** verts ; rendu PDF réel contrôlé après la montée dompdf. Ces trois épisodes ont été
+**détectés par l'étape d'audit bloquante de la CI** (cf. Surveillance continue) — le
+mécanisme fonctionne.
 
 ### État au 2026-07-05 : `composer audit` et `npm audit` vierges
 
