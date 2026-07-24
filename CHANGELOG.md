@@ -7,6 +7,14 @@
 
 ---
 
+## [Unreleased]
+
+### Docs — conseil de test des envois d'emails pour l'évaluation — docs/conseil-email-jury
+
+Manuel de déploiement §1.6 : encart recommandant, quand l'envoi SMTP est actif (archive de livraison), d'utiliser **sa propre adresse email** à la création d'une entreprise/d'un contact pour recevoir réellement les devis, factures et invitations — avec le rappel de **vérifier le dossier spam** (expéditeur de démonstration).
+
+---
+
 ## [1.1.1] — 2026-07-24
 
 > Correctif documentaire : chiffres de tests et références de release alignés sur l'état réel v1.1.0.
