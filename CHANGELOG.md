@@ -10,8 +10,24 @@
 ## [1.1.2] — 2026-07-24
 
 > Correctif documentaire de finalisation pour l'évaluation : manuel d'utilisation autoporteur
-> (parcours complet pour un lecteur découvrant l'application) et configuration email de l'archive
-> de démonstration explicitée. Aucun changement de code.
+> (parcours complet pour un lecteur découvrant l'application), configuration email de l'archive
+> de démonstration explicitée, et **audit de cohérence doc/code** des 3 manuels + cahier de
+> recettes + CHANGELOG (correction de tous les écarts relevés). Aucun changement de code.
+
+### Docs — audit de livraison : correction des écarts doc / code sur les 5 documents — release/v1.1.2
+
+Vérification de chaque affirmation des 3 manuels + cahier de recettes + CHANGELOG contre le code réel (5 relectures parallèles). Écarts corrigés :
+
+- **Manuel d'utilisation** : le portail client ne permet **pas** de télécharger un devis (reçu par email seulement — aucune route portail devis) ; un devis porte **une seule prestation** (pas de « lignes » multiples inexistantes) ; le **taux de TVA** se configure sur une page dédiée du menu (distincte de Parametres) ; libellé réel du bouton portail « Activer » (le texte complet n'est que dans l'infobulle) ; section PDF complétée (avoirs, conventions/mandats).
+- **Manuel de déploiement** : la procédure de configuration SMTP pointait vers `.env.docker` (sans effet une fois `.env` créé par le bind-mount) → éditer `backend/.env` puis `docker compose restart app` ; **tags d'image GHCR sans préfixe `v`** (le tag Git `v1.1.0` publie les images `1.1.0`/`1.1`/`latest`) ; parcours jury (archive .zip) mis en avant, `git clone` relégué en alternative.
+- **Manuel de mise à jour** : mêmes **tags d'image sans `v`** (`docker pull ...:1.1.0`) ; `mysqldump` avec `-T` (évite les CRLF parasites dans le dump) ; notation de rollback `git checkout vX.Y.(Z-1)` remplacée par un exemple de tag réel.
+- **Cahier de recettes** : retrait de « export CSV » (inexistant sur la page Créances) et de « logo » (paramètre cabinet inexistant) ; REL-03 reformulé — la séquence des niveaux de relance n'est imposée qu'en envoi **automatique** (en manuel l'admin choisit librement) ; `meta.zone` → `meta.backoffice`/`meta.portail` (nom technique réel) ; job **E2E Playwright** ajouté à la description de la CI.
+- **Cohérence croisée** : `SECURITY.md` (compteur 599 → **604** tests frontend), `BACKLOG.md` et `CONTEXT.md` (`meta.zone`, « logo ») alignés.
+
+### Docs — précisions finales du manuel d'utilisation pour l'évaluation — release/v1.1.2
+
+- **Conversion devis → mission** : précisé qu'elle se fait **depuis la liste des Devis** (bouton « Convertir en mission » sur un devis accepté), et non depuis la page Missions — un lecteur pouvait chercher au mauvais endroit.
+- **Calcul du prix HT détaillé** : ajout des **tableaux d'indices réels** (régime fiscal Forfait ×1,00 / Réel ×1,50 ; catégorie TPE ×1,00 / PME ×1,75 / GE ×2,00 — valeurs du seeder) et d'un **exemple chiffré** (ACMPT 120 000 × 1,50 × 1,75 = 315 000 DA), avec le rappel de l'immuabilité et de la répartition en tranches 30/30/40.
 
 ### Docs — correction du tableau des rôles du manuel d'utilisation — release/v1.1.2
 

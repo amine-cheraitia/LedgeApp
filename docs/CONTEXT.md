@@ -108,7 +108,7 @@ Mission (dates debut/fin - statut - total - calendrier)
 ### Core / Settings
 Auth, roles et permissions (Spatie Laravel Permission), **parametres globaux configurables sans code** :
 - Taux TVA avec **historique versionne** (date d'entree en vigueur)
-- Coordonnees cabinet (nom, adresse, NIF, NIS, RIB, logo)
+- Coordonnees cabinet (nom, adresse, NIF, NIS, RIB, agrement)
 - Numerotation factures (prefixe, format annuel ou sequentiel)
 - Delais de relance (J+X par niveau)
 - Modeles mails de relance (templates personnalisables)

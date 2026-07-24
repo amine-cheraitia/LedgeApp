@@ -26,7 +26,7 @@
 **En tant qu'utilisateur**, je veux m'authentifier avec email et mot de passe **afin d'** acceder a mon espace selon mon role.
 
 - Sanctum SPA cookie-based · session persistante · CSRF · logout
-- Guards Vue Router : `meta.zone = 'backoffice'` → bloque clients · `meta.zone = 'portail'` → bloque staff
+- Guards Vue Router : `meta.backoffice` → bloque clients · `meta.portail` → bloque staff
 - 🔄 **Redirection session active (fix/redirection-login-deja-connecte)** : un utilisateur deja connecte qui recharge `/login` (ou tape l'URL) est desormais redirige vers `/` (ou `/portail`) — resolution de session une seule fois au demarrage via le flag `initialized` du store auth, y compris sur les routes `guest`
 - Depend de : —
 
@@ -34,7 +34,7 @@
 
 ### US-03 · Parametrage cabinet · M · 3 pts · Sprint 1 ✅
 
-**En tant qu'administrateur**, je veux configurer les parametres du cabinet (NIF, NIS, RIB, logo, adresse) **afin que** ces donnees apparaissent automatiquement sur tous les documents emis.
+**En tant qu'administrateur**, je veux configurer les parametres du cabinet (NIF, NIS, RIB, agrement, adresse) **afin que** ces donnees apparaissent automatiquement sur tous les documents emis.
 
 - Table `settings` cle/valeur · logo uploadable · donnees figees sur les PDFs a la generation
 - Depend de : —

@@ -10,6 +10,12 @@ Ce document couvre trois scenarios :
 
 ## 1. Demonstration locale avec Docker
 
+> **>> C'EST LE PARCOURS A SUIVRE POUR LE JURY / L'EVALUATION <<**
+>
+> L'archive de livraison se lance en un double-clic (`start-ledge.bat`), sans rien
+> installer ni configurer d'autre que Docker Desktop, et avec l'envoi d'emails
+> deja actif.
+
 ### 1.1 Prerequis
 
 - **Docker Desktop** (Windows/macOS) ou **Docker Engine + Docker Compose v2** (Linux).
@@ -29,27 +35,27 @@ docker compose version
 
 ### 1.2 Lancement
 
-Depuis l'**archive de livraison (.zip)** : dezipper, puis double-cliquer sur
-`start-ledge.bat` (Windows) — ou executer `./start-ledge.sh` (Mac/Linux) — a la
-racine du dossier extrait. Aucun clone necessaire.
+**Parcours jury — depuis l'archive de livraison (.zip)** :
 
-Depuis le depot Git :
+1. Dezipper l'archive.
+2. Docker Desktop demarre, **double-cliquer sur `start-ledge.bat`** (Windows) —
+   ou executer `./start-ledge.sh` (Mac/Linux) — a la racine du dossier extrait.
 
-```bash
-git clone <url-du-depot> ledge
-cd ledge
-docker compose up --build
-```
+C'est tout : aucun clone, aucune commande, aucune configuration. L'archive
+embarque deja son `backend/.env` (base de demonstration + **envoi d'emails reel
+pre-configure**).
+
+> **Alternative (developpeurs) — depuis le depot Git** : `git clone <url> ledge`,
+> `cd ledge`, puis `docker compose up --build`. Un clone ne contient pas de
+> `backend/.env` : le conteneur en cree un automatiquement depuis le modele
+> `backend/.env.docker` (emails alors en mode `log`, cf. §1.6).
 
 La premiere execution telecharge les images et construit le conteneur PHP
-(~2 a 5 min). Le conteneur backend s'**auto-initialise** ensuite
-(`backend/docker/php/entrypoint.sh`) :
-
-1. copie `backend/.env.docker` -> `.env` ;
-2. `composer install` ;
-3. generation de la cle applicative ;
-4. attente de MySQL ;
-5. `php artisan migrate --seed` (schema + referentiel + compte admin).
+(~2 a 5 min), puis le backend s'**auto-initialise** sans aucune manipulation
+(`backend/docker/php/entrypoint.sh`) : `composer install`, generation de la cle
+applicative, attente de MySQL, puis `php artisan migrate --seed` (schema +
+referentiel + compte admin). Un `backend/.env` deja present — le cas de
+l'archive — est **conserve tel quel**.
 
 Quand le log affiche `Backend pret. Demarrage de PHP-FPM.` et que le frontend
 affiche `Local: http://localhost:5173/`, tout est operationnel.
@@ -109,14 +115,21 @@ Deux configurations selon la provenance du projet :
   Ce compte de test ne donne acces a aucune donnee, n'est **pas versionne dans
   le depot git**, et sera **revoque apres l'evaluation**. Aucun identifiant de
   production n'est distribue.
-- **Depot Git** : par defaut `MAIL_MAILER=log` — aucun email n'est reellement
-  envoye. Les liens d'invitation et de reinitialisation restent :
+- **Depot Git (clone)** : le compte SMTP de demonstration **n'est pas inclus**
+  dans le depot (aucun secret versionne). Par defaut `MAIL_MAILER=log` — aucun
+  email n'est reellement envoye ; les liens d'invitation et de reinitialisation
+  restent :
   - **affiches a l'admin** (lien copiable dans l'interface, apres activation
     d'un acces) ;
   - **ecrits** dans `backend/storage/logs/laravel.log`.
 
-Pour configurer un autre fournisseur SMTP (ex. un compte Brevo personnel) dans
-`backend/.env.docker`, puis `docker compose up -d --force-recreate app` :
+  Pour obtenir un **envoi reel** depuis un clone du depot, il faut donc
+  **fournir ses propres identifiants SMTP** (voir ci-dessous).
+
+Pour configurer un fournisseur SMTP (ex. un compte Brevo personnel), editer le
+fichier **`backend/.env`** — et non `backend/.env.docker` : ce dernier n'est
+qu'un modele, copie une seule fois vers `.env` au tout premier demarrage ; une
+fois `.env` cree, seul `.env` est lu. Renseigner :
 
 ```env
 MAIL_MAILER=smtp
@@ -125,7 +138,12 @@ MAIL_HOST=smtp-relay.brevo.com
 MAIL_PORT=587
 MAIL_USERNAME=<login-brevo>
 MAIL_PASSWORD=<cle-smtp>
+MAIL_FROM_ADDRESS=<expediteur-verifie-brevo>
 ```
+
+puis appliquer sans reconstruire : `docker compose restart app`.
+(Si `backend/.env` n'existe pas encore — clone jamais lance — on peut a la
+place editer `backend/.env.docker` avant le premier `docker compose up`.)
 
 > **Conseil pour tester l'envoi reel (jury / evaluation)** — lorsque l'envoi SMTP
 > est actif (cas de l'archive de livraison, pre-configuree) : a la creation d'une
@@ -221,27 +239,32 @@ Voir [SECURITY.md](SECURITY.md) pour les controles de securite en place.
 
 ### 3.5 Images Docker de release (GHCR) — livraison continue
 
-A chaque tag `vX.Y.Z`, le pipeline CD (`.github/workflows/cd.yml`) construit,
+A chaque tag Git `vX.Y.Z`, le pipeline CD (`.github/workflows/cd.yml`) construit,
 scanne (Trivy — bloquant sur vulnerabilite HIGH/CRITICAL corrigeable) et publie
 deux images de production sur GitHub Container Registry, apres avoir re-execute
 **toutes les portes de qualite de la CI** (lint, 1101 tests, gates de
-couverture, audits de dependances, E2E) :
+couverture, audits de dependances, E2E).
+
+> **Note sur les tags** : le tag **Git** est `vX.Y.Z` (avec `v`), mais les tags
+> d'**image** publies sur GHCR n'ont **pas** le prefixe : `X.Y.Z`, `X.Y` et
+> `latest` (ex. pour le tag Git `v1.1.0` -> images `1.1.0`, `1.1`, `latest`).
 
 | Image | Contenu | Port |
 |---|---|---|
-| `ghcr.io/amine-cheraitia/ledge-backend:vX.Y.Z` | API Laravel (php-fpm + nginx embarque, vendor sans dev, opcache production) | 8000 |
-| `ghcr.io/amine-cheraitia/ledge-frontend:vX.Y.Z` | SPA Vue buildee servie par nginx, proxy `/api`, `/sanctum`, `/storage` vers `BACKEND_HOST` | 80 |
+| `ghcr.io/amine-cheraitia/ledge-backend:X.Y.Z` | API Laravel (php-fpm + nginx embarque, vendor sans dev, opcache production) | 8000 |
+| `ghcr.io/amine-cheraitia/ledge-frontend:X.Y.Z` | SPA Vue buildee servie par nginx, proxy `/api`, `/sanctum`, `/storage` vers `BACKEND_HOST` | 80 |
 
-Deploiement type (serveur avec Docker, MySQL et Redis accessibles) :
+Deploiement type (serveur avec Docker, MySQL et Redis accessibles) — exemple
+avec la version `1.1.0` :
 
 ```bash
-docker pull ghcr.io/amine-cheraitia/ledge-backend:vX.Y.Z
-docker pull ghcr.io/amine-cheraitia/ledge-frontend:vX.Y.Z
+docker pull ghcr.io/amine-cheraitia/ledge-backend:1.1.0
+docker pull ghcr.io/amine-cheraitia/ledge-frontend:1.1.0
 
 docker run -d --name ledge-api  --env-file .env.production -p 8000:8000 \
-  ghcr.io/amine-cheraitia/ledge-backend:vX.Y.Z
+  ghcr.io/amine-cheraitia/ledge-backend:1.1.0
 docker run -d --name ledge-web  -e BACKEND_HOST=ledge-api:8000 -p 80:80 \
-  ghcr.io/amine-cheraitia/ledge-frontend:vX.Y.Z
+  ghcr.io/amine-cheraitia/ledge-frontend:1.1.0
 
 # Migrations : etape de deploiement explicite (jamais automatique)
 docker exec ledge-api php artisan migrate --force
