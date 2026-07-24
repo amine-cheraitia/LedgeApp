@@ -21,6 +21,10 @@ Le manuel d'utilisation se suffit désormais à un lecteur qui découvre l'appli
 - **Activation du portail client réécrite en pas-à-pas** (5 étapes concrètes : où cliquer, la fenêtre nom/email, l'invitation envoyée + le lien copiable de secours, la définition du mot de passe par le client, sa connexion) — le jargon technique (`portail_actif = 1`) remplacé par les gestes réels de l'interface ; gestion de l'accès documentée (verrouiller/réactiver, renvoyer l'invitation avec invalidation de l'ancien lien).
 - **Parcours client** : première connexion explicitée (invitation → définition du mot de passe → connexion).
 
+### Docs — le compte SMTP de démonstration de l'archive est documenté et assumé — docs/explication-smtp-demo
+
+Le manuel de déploiement (§1.6) distingue désormais explicitement les deux configurations email : **archive de livraison** (SMTP pré-configuré et actif — un compte d'envoi de démonstration Brevo est fourni **volontairement** pour tester les envois réels sans configuration ; compte dédié, hors dépôt git, révoqué après l'évaluation) et **dépôt Git** (`MAIL_MAILER=log` par défaut, liens dans les logs + lien copiable). L'ancienne formulation (« aucun email n'est réellement envoyé ») contredisait le comportement réel de l'archive. Même clarification en tête de la section Secrets de `SECURITY.md` (OWASP A05) : aucun secret de production distribué.
+
 ---
 
 ## [1.1.1] — 2026-07-24

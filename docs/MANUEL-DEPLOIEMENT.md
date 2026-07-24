@@ -98,17 +98,25 @@ docker compose down               # arreter (conserve la base)
 docker compose down -v            # arreter + SUPPRIMER la base (repartir de zero)
 ```
 
-### 1.6 Emails (invitations, reinitialisation)
+### 1.6 Emails (invitations, devis, factures, reinitialisation)
 
-En demo, `MAIL_MAILER=log` : aucun email n'est reellement envoye. Les liens
-d'invitation et de reinitialisation restent :
+Deux configurations selon la provenance du projet :
 
-- **affiches a l'admin** (lien copiable dans l'interface, apres activation d'un
-  acces) ;
-- **ecrits** dans `backend/storage/logs/laravel.log`.
+- **Archive de livraison (evaluation)** : l'envoi SMTP est **pre-configure et
+  actif**. C'est un choix volontaire : un **compte d'envoi de demonstration**
+  (Brevo), dedie a l'evaluation, est fourni pour permettre de **tester les envois
+  reels** — devis, factures, invitations portail — sans aucune configuration.
+  Ce compte de test ne donne acces a aucune donnee, n'est **pas versionne dans
+  le depot git**, et sera **revoque apres l'evaluation**. Aucun identifiant de
+  production n'est distribue.
+- **Depot Git** : par defaut `MAIL_MAILER=log` — aucun email n'est reellement
+  envoye. Les liens d'invitation et de reinitialisation restent :
+  - **affiches a l'admin** (lien copiable dans l'interface, apres activation
+    d'un acces) ;
+  - **ecrits** dans `backend/storage/logs/laravel.log`.
 
-Pour un envoi reel, renseigner un fournisseur SMTP (ex. Brevo) dans
-`backend/.env.docker` puis `docker compose up -d --force-recreate app` :
+Pour configurer un autre fournisseur SMTP (ex. un compte Brevo personnel) dans
+`backend/.env.docker`, puis `docker compose up -d --force-recreate app` :
 
 ```env
 MAIL_MAILER=smtp
