@@ -7,6 +7,38 @@
 
 ## Composants tiers — advisories (OWASP A06)
 
+### État au 2026-08-18 : audits vierges après la vague d'août
+
+Dix advisories publiées les 03-06/08 (8 Composer, 2 npm — toutes sur des dépendances
+transitives) ont été traitées en une passe (branche `fix/deps-audit-2026-08`, détail dans le
+[CHANGELOG](../CHANGELOG.md)) :
+
+- **`guzzlehttp/guzzle` < 7.15.2** — 2 advisories : CVE-2026-69246 (**high**, un host non
+  canonique peut contourner des vérifications basées sur le host) et CVE-2026-69245 (medium,
+  un domaine de cookie non canonique conserve la portée sous-domaine). Remédiation :
+  `composer update guzzlehttp/guzzle` → **7.15.2**. Impact réel faible : Guzzle ne sert
+  qu'aux appels sortants vers des hosts fixes (API d'envoi de mail, health checks) — aucune
+  requête pilotée par une URL utilisateur (cf. A10).
+- **`league/commonmark` < 2.9.0** — 6 advisories : 5 DoS **high**/medium (parsing
+  quadratique de Markdown forgé CVE-2026-71488, imbrication XML profonde, collision de slugs
+  de titres, notes de bas de page dupliquées, blocs d'attributs adjacents) et un
+  contournement du filtre de liens dangereux (`href`/`src`) via octets de contrôle
+  (CVE-2026-71478, medium). Remédiation : `composer update league/commonmark` → **2.10.0**.
+  Impact réel faible : CommonMark n'est invoqué que par les templates de mail Markdown de
+  Laravel sur du contenu applicatif — aucun Markdown fourni par l'utilisateur n'est rendu.
+- **npm** — 2 advisories **high** transitives : `brace-expansion` (GHSA-mh99-v99m-4gvg et
+  GHSA-rgw5-rvv9-x895, DoS par expansion non bornée — chaînes `eslint`,
+  `typescript-eslint`, `unplugin-vue-components` : outillage de dev uniquement, non expédié
+  dans le bundle) → **5.0.9** / **2.1.4**, et `nanoid` < 3.3.18 (GHSA-2v37-7h3g-55p8,
+  boucle infinie sur taille zéro — via `postcss`, build uniquement) → **3.3.18**, via
+  `npm audit fix` sans `--force`.
+
+Vérification post-remédiation (18/08) : `composer audit` et `npm audit` vierges ;
+**497 tests backend** (1495 assertions) et **604 tests frontend** re-exécutés verts, gate de
+couverture Vitest passée, `vue-tsc -b` + `vite build` et `eslint` OK. Seuls `composer.lock`
+et `package-lock.json` changent — aucune contrainte de `composer.json`/`package.json`
+modifiée.
+
 ### État au 2026-07-24 : audits vierges après les remédiations de juillet
 
 Trois vagues d'advisories ont été traitées depuis l'état du 05/07 (détail complet dans le
