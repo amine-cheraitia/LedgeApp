@@ -9,6 +9,30 @@
 
 ## [Unreleased]
 
+### Sécurité — advisories d'août : Guzzle, CommonMark, brace-expansion, nanoid — fix/deps-audit-2026-08
+
+Dix advisories publiées début août (8 Composer, 2 npm — toutes sur des dépendances
+transitives) remédiées en une passe, sans modification de contrainte dans
+`composer.json`/`package.json` :
+- **`guzzlehttp/guzzle` 7.15.1 → 7.15.2** — CVE-2026-69246 (**high**, un host non canonique
+  peut contourner des vérifications basées sur le host) et CVE-2026-69245 (medium, portée
+  sous-domaine conservée par un domaine de cookie non canonique). Impact réel faible :
+  Guzzle n'appelle que des hosts fixes (API d'envoi de mail, health checks), aucune requête
+  pilotée par une URL utilisateur.
+- **`league/commonmark` 2.8.2 → 2.10.0** — 6 advisories : 5 DoS (dont CVE-2026-71488,
+  parsing quadratique de Markdown forgé) et un contournement du filtre de liens dangereux
+  via octets de contrôle (CVE-2026-71478). Impact réel faible : CommonMark ne rend que le
+  Markdown des templates de mail internes, jamais de saisie utilisateur.
+- **npm** : `brace-expansion` **5.0.9** / **2.1.4** (GHSA-mh99-v99m-4gvg,
+  GHSA-rgw5-rvv9-x895 — DoS, chaînes eslint/typescript-eslint/unplugin-vue-components,
+  outillage dev uniquement) et `nanoid` **3.3.18** (GHSA-2v37-7h3g-55p8, boucle infinie —
+  via postcss, build uniquement), via `npm audit fix` sans `--force`.
+
+Vérification : `composer audit` et `npm audit` vierges ; **497 tests backend**
+(1495 assertions) et **604 tests frontend** verts, gate de couverture Vitest passée,
+`vue-tsc`/`vite build` et `eslint` OK. Seuls les lockfiles changent. Évaluation détaillée :
+`docs/SECURITY.md`.
+
 ### Perf — démo Docker : opcache sans revalidation des timestamps — chore/opcache-demo-docker
 
 `opcache.validate_timestamps = 0` dans `backend/docker/php/local.ini` (configuration montée
